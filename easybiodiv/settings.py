@@ -55,7 +55,7 @@ ROOT_URLCONF = 'easybiodiv.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -119,3 +119,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Auth redirects
+LOGIN_REDIRECT_URL = 'dashboard:index'
+LOGOUT_REDIRECT_URL = 'dashboard:index'
+
+# Email (console en dev — configurer SMTP en prod)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
