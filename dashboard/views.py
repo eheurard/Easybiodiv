@@ -1,4 +1,3 @@
-import json
 from collections import defaultdict
 
 from django.http import JsonResponse
@@ -75,10 +74,10 @@ def index(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
     initial_data = None
     if companies:
-        first = Company.objects.order_by('name').first()
-        initial_data = json.dumps(_get_company_data(first))
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = _get_company_data(first)
     return render(request, 'dashboard/index.html', {
-        'companies_json': json.dumps(companies),
+        'companies': companies,
         'initial_data': initial_data,
     })
 

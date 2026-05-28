@@ -67,9 +67,7 @@
 
 {% block extra_js %}
 <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
-<script>
-  const COMPANIES = {{ companies_json|safe }};
-  const INITIAL_DATA = {{ initial_data|default:"null"|safe }};
-  const COMPANY_API_URL = "{% url 'dashboard:company_data' pk=0 %}".replace('0/', '');
-</script>
+{{ companies|json_script:"companies-data" }}
+{{ initial_data|json_script:"initial-data" }}
+<script>var COMPANY_API_URL = "{% url 'dashboard:company_data' pk=0 %}".replace('0/', '');</script>
 {% endblock %}

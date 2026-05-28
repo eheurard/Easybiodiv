@@ -35,14 +35,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ── Overview page ──────────────────────────────────────────────────────
+  const companiesEl = document.getElementById('companies-data');
+  if (companiesEl) {
+    const companies = JSON.parse(companiesEl.textContent);
+    const initialDataEl = document.getElementById('initial-data');
+    const initialData = initialDataEl ? JSON.parse(initialDataEl.textContent) : null;
+    const overviewMap = initMap();
+    if (initialData) updateDashboard(initialData, overviewMap);
+    initCombobox(companies, initialData, overviewMap);
+  }
+
 });
 
-// ── Overview page ───────────────────────────────────────────────────────────
-if (typeof COMPANIES !== 'undefined') {
-  const overviewMap = initMap();
-  if (INITIAL_DATA) updateDashboard(INITIAL_DATA, overviewMap);
-  initCombobox(COMPANIES, overviewMap);
-}
 
 function escHtml(s) {
   return String(s)
@@ -156,7 +161,7 @@ function fetchCompany(id, map) {
     .catch((err) => console.error('fetchCompany failed:', err));
 }
 
-function initCombobox(companies, map) {
+function initCombobox(companies, initialData, map) {
   const input = document.getElementById('company-search');
   const listbox = document.getElementById('company-listbox');
   const combobox = document.getElementById('company-combobox');
@@ -229,7 +234,7 @@ function initCombobox(companies, map) {
     }
   });
 
-  if (INITIAL_DATA && companies.length > 0) {
-    input.value = INITIAL_DATA.company_name;
+  if (initialData && companies.length > 0) {
+    input.value = initialData.company_name;
   }
 }

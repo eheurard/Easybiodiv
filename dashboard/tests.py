@@ -89,11 +89,11 @@ class DashboardIndexViewTests(TestCase):
         response = self.client.get(reverse('dashboard:index'))
         self.assertTemplateUsed(response, 'dashboard/index.html')
 
-    def test_companies_json_in_context(self):
+    def test_companies_in_context(self):
         Company.objects.create(name='Zeta Corp')
         Company.objects.create(name='Alpha Corp')
         response = self.client.get(reverse('dashboard:index'))
-        companies = json.loads(response.context['companies_json'])
+        companies = response.context['companies']
         self.assertEqual(len(companies), 2)
         self.assertEqual(companies[0]['name'], 'Alpha Corp')  # ordered by name
 
@@ -101,7 +101,7 @@ class DashboardIndexViewTests(TestCase):
         _make_world()
         response = self.client.get(reverse('dashboard:index'))
         self.assertIsNotNone(response.context['initial_data'])
-        data = json.loads(response.context['initial_data'])
+        data = response.context['initial_data']
         self.assertIn('asset_count', data)
 
     def test_initial_data_none_without_companies(self):
