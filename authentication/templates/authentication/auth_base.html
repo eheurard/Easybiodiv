@@ -1,0 +1,36 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Easybiodiv{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'authentication/css/auth.css' %}">
+</head>
+<body>
+
+  <a href="{% url 'dashboard:index' %}" class="auth-brand" aria-label="Retour à l'accueil Easybiodiv">
+    <div class="auth-brand__logo" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+        <path d="M16 6C10.477 6 6 10.477 6 16s4.477 10 10 10 10-4.477 10-10S21.523 6 16 6zm0 3a7 7 0 110 14A7 7 0 0116 9zm0 2a5 5 0 100 10A5 5 0 0016 11zm0 2a3 3 0 110 6 3 3 0 010-6z" fill="#fff"/>
+      </svg>
+    </div>
+    <div class="auth-brand__text">
+      <span class="auth-brand__name">Easybiodiv</span>
+      <span class="auth-brand__tagline">Biodiversité &amp; CSRD</span>
+    </div>
+  </a>
+
+  <div class="auth-card" role="main">
+    {% block card %}{% endblock %}
+  </div>
+
+  <a href="{% url 'dashboard:index' %}" class="auth-back" aria-label="Retour au dashboard">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M9 11L5 7l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Retour au dashboard
+  </a>
+
+</body>
+</html>

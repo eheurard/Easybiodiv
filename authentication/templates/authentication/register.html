@@ -1,1 +1,100 @@
-<!DOCTYPE html><html><body>{% if form %}register{% endif %}</body></html>
+{% extends "authentication/auth_base.html" %}
+
+{% block title %}Créer un compte — Easybiodiv{% endblock %}
+
+{% block card %}
+  <h1 class="auth-card__title">Créer un compte</h1>
+  <p class="auth-card__subtitle">Rejoignez Easybiodiv gratuitement</p>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <div class="auth-form__group">
+      <label class="auth-form__label" for="{{ form.username.id_for_label }}">Identifiant</label>
+      <input
+        class="auth-form__input"
+        type="text"
+        id="{{ form.username.id_for_label }}"
+        name="{{ form.username.html_name }}"
+        value="{{ form.username.value|default:'' }}"
+        autocomplete="username"
+        autofocus
+        aria-describedby="{% if form.username.errors %}id_reg_username_errors{% endif %}"
+      >
+      {% if form.username.errors %}
+        <ul class="auth-form__errors" id="id_reg_username_errors">
+          {% for error in form.username.errors %}
+            <li class="auth-form__error">{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <div class="auth-form__group">
+      <label class="auth-form__label" for="{{ form.email.id_for_label }}">Adresse email</label>
+      <input
+        class="auth-form__input"
+        type="email"
+        id="{{ form.email.id_for_label }}"
+        name="{{ form.email.html_name }}"
+        value="{{ form.email.value|default:'' }}"
+        autocomplete="email"
+        aria-describedby="{% if form.email.errors %}id_email_errors{% endif %}"
+      >
+      {% if form.email.errors %}
+        <ul class="auth-form__errors" id="id_email_errors">
+          {% for error in form.email.errors %}
+            <li class="auth-form__error">{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <div class="auth-form__group">
+      <label class="auth-form__label" for="{{ form.password1.id_for_label }}">Mot de passe</label>
+      <input
+        class="auth-form__input"
+        type="password"
+        id="{{ form.password1.id_for_label }}"
+        name="{{ form.password1.html_name }}"
+        autocomplete="new-password"
+        aria-describedby="{% if form.password1.errors %}id_pwd1_errors{% endif %}"
+      >
+      {% if form.password1.errors %}
+        <ul class="auth-form__errors" id="id_pwd1_errors">
+          {% for error in form.password1.errors %}
+            <li class="auth-form__error">{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <div class="auth-form__group">
+      <label class="auth-form__label" for="{{ form.password2.id_for_label }}">Confirmer le mot de passe</label>
+      <input
+        class="auth-form__input"
+        type="password"
+        id="{{ form.password2.id_for_label }}"
+        name="{{ form.password2.html_name }}"
+        autocomplete="new-password"
+        aria-describedby="{% if form.password2.errors %}id_pwd2_errors{% endif %}"
+      >
+      {% if form.password2.errors %}
+        <ul class="auth-form__errors" id="id_pwd2_errors">
+          {% for error in form.password2.errors %}
+            <li class="auth-form__error">{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <button class="auth-btn auth-btn--primary" type="submit">Créer mon compte</button>
+  </form>
+
+  <div class="auth-divider">ou</div>
+
+  <p class="auth-link-row">
+    Déjà un compte ?
+    <a href="{% url 'authentication:login' %}">Se connecter</a>
+  </p>
+{% endblock %}

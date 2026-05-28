@@ -1,1 +1,73 @@
-<!DOCTYPE html><html><body>login</body></html>
+{% extends "authentication/auth_base.html" %}
+
+{% block title %}Connexion — Easybiodiv{% endblock %}
+
+{% block card %}
+  <h1 class="auth-card__title">Connexion</h1>
+  <p class="auth-card__subtitle">Accédez à votre espace biodiversité</p>
+
+  {% if form.non_field_errors %}
+    <ul class="auth-form__global-errors" role="alert">
+      {% for error in form.non_field_errors %}
+        <li class="auth-form__global-error">{{ error }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <div class="auth-form__group">
+      <label class="auth-form__label" for="{{ form.username.id_for_label }}">Identifiant</label>
+      <input
+        class="auth-form__input"
+        type="text"
+        id="{{ form.username.id_for_label }}"
+        name="{{ form.username.html_name }}"
+        value="{{ form.username.value|default:'' }}"
+        autocomplete="username"
+        autofocus
+        aria-describedby="{% if form.username.errors %}id_username_errors{% endif %}"
+      >
+      {% if form.username.errors %}
+        <ul class="auth-form__errors" id="id_username_errors">
+          {% for error in form.username.errors %}
+            <li class="auth-form__error">{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <div class="auth-form__group">
+      <label class="auth-form__label" for="{{ form.password.id_for_label }}">Mot de passe</label>
+      <input
+        class="auth-form__input"
+        type="password"
+        id="{{ form.password.id_for_label }}"
+        name="{{ form.password.html_name }}"
+        autocomplete="current-password"
+        aria-describedby="{% if form.password.errors %}id_password_errors{% endif %}"
+      >
+      {% if form.password.errors %}
+        <ul class="auth-form__errors" id="id_password_errors">
+          {% for error in form.password.errors %}
+            <li class="auth-form__error">{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <a href="{% url 'authentication:password_reset' %}" class="auth-form__forgot">
+      Mot de passe oublié ?
+    </a>
+
+    <button class="auth-btn auth-btn--primary" type="submit">Se connecter</button>
+  </form>
+
+  <div class="auth-divider">ou</div>
+
+  <p class="auth-link-row">
+    Pas encore de compte ?
+    <a href="{% url 'authentication:register' %}">Créer un compte</a>
+  </p>
+{% endblock %}
