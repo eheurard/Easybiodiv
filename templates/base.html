@@ -132,16 +132,27 @@
             <span class="app-header__notif-badge" aria-label="3 notifications"></span>
           </button>
 
-          <button class="app-header__avatar" aria-label="Menu utilisateur" aria-haspopup="true">
-            {% if user.is_authenticated %}
-              <span class="app-header__avatar-initials">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</span>
-            {% else %}
+          {% if user.is_authenticated %}
+            <div class="app-header__user-menu">
+              <button class="app-header__avatar" aria-label="Menu utilisateur" aria-haspopup="true" aria-expanded="false" id="user-menu-btn">
+                <span class="app-header__avatar-initials">{{ user.username|first|upper }}</span>
+              </button>
+              <div class="app-header__user-dropdown" id="user-dropdown" hidden>
+                <span class="app-header__user-name">{{ user.username }}</span>
+                <form method="post" action="{% url 'authentication:logout' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="app-header__logout-btn">Se déconnecter</button>
+                </form>
+              </div>
+            </div>
+          {% else %}
+            <a href="{% url 'authentication:login' %}" class="app-header__avatar" aria-label="Se connecter">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/>
                 <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
-            {% endif %}
-          </button>
+            </a>
+          {% endif %}
         </div>
       </header>
       <!-- /Header -->

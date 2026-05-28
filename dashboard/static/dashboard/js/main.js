@@ -35,6 +35,34 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ── User menu dropdown ──────────────────────────────────────────────────
+  const userMenuBtn = document.getElementById('user-menu-btn');
+  const userDropdown = document.getElementById('user-dropdown');
+
+  if (userMenuBtn && userDropdown) {
+    userMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = !userDropdown.hidden;
+      userDropdown.hidden = isOpen;
+      userMenuBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+
+    document.addEventListener('click', () => {
+      userDropdown.hidden = true;
+      userMenuBtn.setAttribute('aria-expanded', 'false');
+    });
+
+    userDropdown.addEventListener('click', (e) => e.stopPropagation());
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !userDropdown.hidden) {
+        userDropdown.hidden = true;
+        userMenuBtn.setAttribute('aria-expanded', 'false');
+        userMenuBtn.focus();
+      }
+    });
+  }
+
   // ── Overview page ──────────────────────────────────────────────────────
   const companiesEl = document.getElementById('companies-data');
   if (companiesEl) {

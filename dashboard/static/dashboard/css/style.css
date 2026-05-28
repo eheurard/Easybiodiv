@@ -711,6 +711,63 @@ p {
   letter-spacing: 0.02em;
 }
 
+/* Avatar — supprime le style button natif quand c'est un lien */
+a.app-header__avatar {
+  text-decoration: none;
+}
+
+/* ─── User menu dropdown ─────────────────────────────────────────────────── */
+.app-header__user-menu {
+  position: relative;
+}
+
+.app-header__user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--color-surface-container-lowest);
+  border: var(--border-card);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(115, 107, 94, 0.1);
+  padding: 8px;
+  min-width: 160px;
+  z-index: 100;
+}
+
+.app-header__user-dropdown[hidden] {
+  display: none;
+}
+
+.app-header__user-name {
+  display: block;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+  border-bottom: 1px solid var(--color-outline-variant);
+  margin-bottom: 4px;
+}
+
+.app-header__logout-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-on-surface-variant);
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s;
+}
+
+.app-header__logout-btn:hover {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
 /* ─── Page content ───────────────────────────────────────────────────────── */
 .app-content {
   flex: 1;
