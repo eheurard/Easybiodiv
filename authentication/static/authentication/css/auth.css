@@ -1,0 +1,290 @@
+/* ── Auth pages — Terra Insight design system ─────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-primary:       #91452d;
+  --color-primary-dark:  #77321b;
+  --color-surface:       #fbf9f4;
+  --color-surface-low:   #f5f3ee;
+  --color-surface-mid:   #f0eee9;
+  --color-on-surface:    #1b1c19;
+  --color-on-variant:    #54433e;
+  --color-muted:         #87736d;
+  --color-outline:       #dac1ba;
+  --color-error:         #ba1a1a;
+  --color-white:         #ffffff;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  color: var(--color-on-surface);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* ── Brand ───────────────────────────────────────────────────────────── */
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+  text-decoration: none;
+}
+
+.auth-brand__logo {
+  width: 38px;
+  height: 38px;
+  background: var(--color-primary);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.auth-brand__text {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-brand__name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-on-surface);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.auth-brand__tagline {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ── Card ────────────────────────────────────────────────────────────── */
+.auth-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-lg);
+  padding: 36px 40px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 4px 24px rgba(115, 107, 94, 0.07);
+}
+
+.auth-card__title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+
+.auth-card__subtitle {
+  font-size: 14px;
+  color: var(--color-muted);
+  margin-bottom: 28px;
+}
+
+/* ── Form elements ───────────────────────────────────────────────────── */
+.auth-form__group {
+  margin-bottom: 18px;
+}
+
+.auth-form__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-on-variant);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.auth-form__input {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--color-on-surface);
+  background: var(--color-surface-low);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.auth-form__input:focus {
+  border-color: var(--color-primary);
+  background: var(--color-white);
+}
+
+.auth-form__input::placeholder {
+  color: var(--color-muted);
+  opacity: 0.7;
+}
+
+.auth-form__errors {
+  list-style: none;
+  margin-top: 5px;
+}
+
+.auth-form__error {
+  font-size: 12px;
+  color: var(--color-error);
+}
+
+/* Messages d'erreur non-field (ex: login incorrect) */
+.auth-form__global-errors {
+  background: #ffdad6;
+  border: 1px solid #ffb4ab;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  list-style: none;
+}
+
+.auth-form__global-error {
+  font-size: 13px;
+  color: #93000a;
+}
+
+/* ── Forgot password link ─────────────────────────────────────────────── */
+.auth-form__forgot {
+  display: block;
+  text-align: right;
+  font-size: 13px;
+  color: var(--color-primary);
+  text-decoration: none;
+  margin-top: -10px;
+  margin-bottom: 20px;
+}
+
+.auth-form__forgot:hover {
+  text-decoration: underline;
+}
+
+/* ── Primary button ──────────────────────────────────────────────────── */
+.auth-btn {
+  display: block;
+  width: 100%;
+  padding: 11px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 0.15s;
+  margin-top: 8px;
+}
+
+.auth-btn--primary {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.auth-btn--primary:hover {
+  background: var(--color-primary-dark);
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────── */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+  font-size: 12px;
+  color: var(--color-outline);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-outline);
+}
+
+/* ── Secondary link ──────────────────────────────────────────────────── */
+.auth-link-row {
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.auth-link-row a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-link-row a:hover {
+  text-decoration: underline;
+}
+
+/* ── Back to site ────────────────────────────────────────────────────── */
+.auth-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 22px;
+  font-size: 13px;
+  color: var(--color-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.auth-back:hover {
+  color: var(--color-primary);
+}
+
+/* ── Info block (password_reset_done, complete) ───────────────────────── */
+.auth-info {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.auth-info__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  background: #ffdbd0;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+}
+
+.auth-info__text {
+  font-size: 15px;
+  color: var(--color-on-variant);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 28px 24px;
+  }
+}
