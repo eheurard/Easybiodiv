@@ -40,26 +40,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const userDropdown = document.getElementById('user-dropdown');
 
   if (userMenuBtn && userDropdown) {
+    function openMenu() {
+      userDropdown.removeAttribute('hidden');
+      userMenuBtn.setAttribute('aria-expanded', 'true');
+    }
+    function closeMenu() {
+      userDropdown.setAttribute('hidden', '');
+      userMenuBtn.setAttribute('aria-expanded', 'false');
+    }
+
     userMenuBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const isOpen = !userDropdown.hidden;
-      userDropdown.hidden = isOpen;
-      userMenuBtn.setAttribute('aria-expanded', String(!isOpen));
+      userDropdown.hasAttribute('hidden') ? openMenu() : closeMenu();
     });
 
-    document.addEventListener('click', () => {
-      userDropdown.hidden = true;
-      userMenuBtn.setAttribute('aria-expanded', 'false');
-    });
-
+    document.addEventListener('click', closeMenu);
     userDropdown.addEventListener('click', (e) => e.stopPropagation());
-
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !userDropdown.hidden) {
-        userDropdown.hidden = true;
-        userMenuBtn.setAttribute('aria-expanded', 'false');
-        userMenuBtn.focus();
-      }
+      if (e.key === 'Escape') { closeMenu(); userMenuBtn.focus(); }
     });
   }
 
