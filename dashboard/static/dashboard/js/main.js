@@ -44,6 +44,14 @@ if (typeof COMPANIES !== 'undefined') {
   initCombobox(COMPANIES, overviewMap);
 }
 
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function initMap() {
   const container = document.getElementById('overview-map');
   if (!container) return null;
@@ -77,9 +85,9 @@ function initMap() {
       new maplibregl.Popup()
         .setLngLat(e.lngLat)
         .setHTML(
-          `<strong>${p.name}</strong><br>` +
-          `${p.country} — ${p.commodity}<br>` +
-          `<small>${p.region}</small>`
+          `<strong>${escHtml(p.name)}</strong><br>` +
+          `${escHtml(p.country)} — ${escHtml(p.commodity)}<br>` +
+          `<small>${escHtml(p.region)}</small>`
         )
         .addTo(map);
     });
@@ -123,13 +131,13 @@ function updateDashboard(data, map) {
     .map((c) => {
       const tags = c.commodities
         .map((cm, i) =>
-          `<span class="country-item__tag${i === 0 ? ' country-item__tag--primary' : ''}">${cm.name} ×${cm.count}</span>`
+          `<span class="country-item__tag${i === 0 ? ' country-item__tag--primary' : ''}">${escHtml(cm.name)} ×${cm.count}</span>`
         )
         .join('');
       return `
         <div class="country-item">
           <div class="country-item__top">
-            <span class="country-item__name">${c.name}</span>
+            <span class="country-item__name">${escHtml(c.name)}</span>
             <span class="country-item__count">${c.asset_count} actif${c.asset_count > 1 ? 's' : ''}</span>
           </div>
           <div class="country-item__tags">${tags}</div>
@@ -140,8 +148,12 @@ function updateDashboard(data, map) {
 
 function fetchCompany(id, map) {
   fetch(COMPANY_API_URL + id + '/')
-    .then((r) => r.json())
-    .then((data) => updateDashboard(data, map));
+    .then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then((data) => updateDashboard(data, map))
+    .catch((err) => console.error('fetchCompany failed:', err));
 }
 
 function initCombobox(companies, map) {
@@ -156,7 +168,7 @@ function initCombobox(companies, map) {
     listbox.innerHTML = filtered
       .map(
         (c) =>
-          `<li class="company-combobox__option" role="option" data-id="${c.id}" tabindex="-1">${c.name}</li>`
+          `<li class="company-combobox__option" role="option" data-id="${c.id}" tabindex="-1">${escHtml(c.name)}</li>`
       )
       .join('');
     const open = filtered.length > 0;
@@ -210,7 +222,11 @@ function initCombobox(companies, map) {
     if (e.key === 'Enter' && idx >= 0) {
       selectCompany(Number(opts[idx].dataset.id), opts[idx].textContent.trim());
     }
-    if (e.key === 'Escape') { listbox.hidden = true; input.focus(); }
+    if (e.key === 'Escape') {
+      listbox.hidden = true;
+      combobox.setAttribute('aria-expanded', 'false');
+      input.focus();
+    }
   });
 
   if (INITIAL_DATA && companies.length > 0) {
