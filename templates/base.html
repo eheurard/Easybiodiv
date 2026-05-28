@@ -1,0 +1,162 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Easybiodiv{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <div class="app-layout" id="app-layout">
+
+    <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+    <aside class="app-sidebar" id="app-sidebar" aria-label="Navigation principale">
+
+      <div class="sidebar__brand">
+        <div class="sidebar__logo" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="var(--color-primary)"/>
+            <path d="M16 6C10.477 6 6 10.477 6 16s4.477 10 10 10 10-4.477 10-10S21.523 6 16 6zm0 3a7 7 0 110 14A7 7 0 0116 9zm0 2a5 5 0 100 10A5 5 0 0016 11zm0 2a3 3 0 110 6 3 3 0 010-6z" fill="#fff"/>
+          </svg>
+        </div>
+        <div class="sidebar__brand-text">
+          <span class="sidebar__brand-name">Easybiodiv</span>
+          <span class="sidebar__brand-tagline">Biodiversité &amp; CSRD</span>
+        </div>
+      </div>
+
+      <button class="sidebar__toggle" id="sidebar-toggle" aria-label="Réduire le menu" aria-expanded="true" aria-controls="app-sidebar">
+        <svg class="toggle-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M13 15l-5-5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <nav class="sidebar__nav" aria-label="Menu principal">
+        <ul class="sidebar__nav-list" role="list">
+          <li>
+            <a href="{% url 'dashboard:index' %}" class="sidebar__nav-link {% block nav_overview %}{% endblock %}" aria-label="Vue d'ensemble">
+              <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                <rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                <rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                <rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              <span class="sidebar__nav-label">Vue d'ensemble</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="sidebar__nav-link {% block nav_risks %}{% endblock %}" aria-label="Analyse des risques">
+              <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M10 3L18 17H2L10 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M10 8v4M10 13.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              <span class="sidebar__nav-label">Analyse des risques</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="sidebar__nav-link {% block nav_dependencies %}{% endblock %}" aria-label="Dépendances">
+              <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="3.5" cy="5" r="1.5" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="16.5" cy="5" r="1.5" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="3.5" cy="15" r="1.5" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="16.5" cy="15" r="1.5" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M5 5.5L8 8.5M15 5.5L12 8.5M5 14.5L8 11.5M15 14.5L12 11.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+              <span class="sidebar__nav-label">Dépendances</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="sidebar__nav-link {% block nav_compliance %}{% endblock %}" aria-label="Conformité CSRD">
+              <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <rect x="4" y="2" width="12" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+              <span class="sidebar__nav-label">Conformité CSRD</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar__footer">
+        <a href="#" class="sidebar__footer-link" aria-label="Exporter un rapport">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 2v8M5 7l3 3 3-3M3 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="sidebar__footer-link-label">Exporter rapport</span>
+        </a>
+
+        <div class="sidebar__footer-actions">
+          <a href="#" class="sidebar__footer-icon-link" aria-label="Paramètres">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <circle cx="9" cy="9" r="2.5" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M9 1.5v1.7M9 14.8v1.7M1.5 9h1.7M14.8 9h1.7M3.7 3.7l1.2 1.2M13.1 13.1l1.2 1.2M3.7 14.3l1.2-1.2M13.1 4.9l1.2-1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a href="#" class="sidebar__footer-icon-link" aria-label="Aide et support">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <circle cx="9" cy="9" r="7.5" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M6.5 6.5a2.5 2.5 0 015 0c0 1.5-1.5 2-2.5 3M9 13v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+    </aside>
+    <!-- ── /Sidebar ────────────────────────────────────────────────────── -->
+
+    <!-- ── Main area ─────────────────────────────────────────────────── -->
+    <div class="app-main">
+
+      <!-- Header -->
+      <header class="app-header" role="banner">
+        {% block header_left %}
+        <div class="app-header__search">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M13 13l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input type="search" class="app-header__search-input form-input" placeholder="Rechercher sites, entreprises..." aria-label="Rechercher">
+        </div>
+        {% endblock header_left %}
+
+        <div class="app-header__actions">
+          <button class="app-header__icon-btn" aria-label="Notifications" title="Notifications">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M10 2a6 6 0 00-6 6v3l-1.5 2.5h15L16 11V8a6 6 0 00-6-6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M8.5 16.5a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span class="app-header__notif-badge" aria-label="3 notifications"></span>
+          </button>
+
+          <button class="app-header__avatar" aria-label="Menu utilisateur" aria-haspopup="true">
+            {% if user.is_authenticated %}
+              <span class="app-header__avatar-initials">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</span>
+            {% else %}
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            {% endif %}
+          </button>
+        </div>
+      </header>
+      <!-- /Header -->
+
+      <!-- Page content -->
+      <main class="app-content" id="main-content" tabindex="-1">
+        {% block content %}{% endblock %}
+      </main>
+
+    </div>
+    <!-- ── /Main area ─────────────────────────────────────────────────── -->
+
+  </div><!-- /.app-layout -->
+
+  <script src="{% static 'dashboard/js/main.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
