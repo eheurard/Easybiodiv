@@ -1,3 +1,5 @@
+const SELECTED_COMPANY_KEY = 'selected-company-id';
+
 document.addEventListener('DOMContentLoaded', () => {
 
   // ── Sidebar toggle ──────────────────────────────────────────────────────
@@ -74,8 +76,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const initialDataEl = document.getElementById('initial-data');
     const initialData = initialDataEl ? JSON.parse(initialDataEl.textContent) : null;
     const overviewMap = initMap();
-    if (initialData) updateDashboard(initialData, overviewMap);
-    initCombobox(companies, initialData, overviewMap);
+
+    const savedId = parseInt(localStorage.getItem(SELECTED_COMPANY_KEY), 10);
+    const savedExists = savedId && companies.some(c => c.id === savedId);
+
+    if (savedExists && initialData && savedId !== initialData.company_id) {
+      fetchCompany(savedId, overviewMap);
+      const saved = companies.find(c => c.id === savedId);
+      initCombobox(companies, { company_name: saved.name }, overviewMap);
+    } else {
+      if (initialData) updateDashboard(initialData, overviewMap);
+      initCombobox(companies, initialData, overviewMap);
+    }
   }
 
 });
@@ -251,6 +263,7 @@ function initCombobox(companies, initialData, map) {
     input.value = name;
     listbox.hidden = true;
     combobox.setAttribute('aria-expanded', 'false');
+    localStorage.setItem(SELECTED_COMPANY_KEY, id);
     fetchCompany(id, map);
   }
 

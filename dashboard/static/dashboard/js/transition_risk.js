@@ -1,4 +1,4 @@
-const TR_COMPANY_KEY = 'tr-selected-company';
+const TR_COMPANY_KEY = 'selected-company-id';
 
 document.addEventListener('DOMContentLoaded', () => {
   const companiesEl = document.getElementById('companies-data');
