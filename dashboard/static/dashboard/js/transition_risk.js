@@ -53,7 +53,7 @@ function initTrCombobox(companies, initialData) {
     selected = id;
     input.value = opt.textContent;
     closeList();
-    fetch(TRANSITION_RISK_API_URL + id + '/')
+    fetch(TRANSITION_RISK_API_URL.replace('/0/', '/' + id + '/'))
       .then(r => r.json())
       .then(data => renderTransitionRisk(data));
   });

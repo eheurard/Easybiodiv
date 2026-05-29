@@ -80,6 +80,6 @@
 {% block extra_js %}
 {{ companies|json_script:"companies-data" }}
 {{ initial_data|json_script:"initial-data" }}
-<script>var TRANSITION_RISK_API_URL = "{% url 'dashboard:transition_risk_data' pk=0 %}".replace('0/', '');</script>
+<script>var TRANSITION_RISK_API_URL = "{% url 'dashboard:transition_risk_data' pk=0 %}";</script>
 <script src="{% static 'dashboard/js/transition_risk.js' %}" defer></script>
 {% endblock %}
