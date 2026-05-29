@@ -1087,3 +1087,191 @@ a.app-header__avatar {
   text-align: right;
   white-space: nowrap;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRANSITION RISK PAGE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Bar charts ─────────────────────────────────────────────────────────── */
+.tr-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tr-bars-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .tr-bars-row { grid-template-columns: 1fr; }
+}
+
+.tr-bars-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tr-bars-card__title {
+  margin-bottom: 4px;
+}
+
+.tr-bars-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tr-bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+}
+
+.tr-bar-label {
+  font-size: var(--text-body-sm-size);
+  color: var(--color-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tr-bar-track {
+  height: 8px;
+  background-color: var(--color-surface-container-high);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.tr-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
+  min-width: 2px;
+}
+
+.tr-bar-pct {
+  font-size: var(--text-body-sm-size);
+  color: var(--color-on-surface-variant);
+  text-align: right;
+}
+
+.tr-empty {
+  font-size: var(--text-body-sm-size);
+  color: var(--color-on-surface-variant);
+  font-style: italic;
+}
+
+/* ─── Sankey ─────────────────────────────────────────────────────────────── */
+.tr-sankey-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tr-sankey-card__title {
+  margin-bottom: 4px;
+}
+
+.tr-sankey-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.tr-sankey-svg {
+  width: 100%;
+  height: auto;
+  min-width: 600px;
+  display: block;
+}
+
+/* ─── Sidebar accordion ──────────────────────────────────────────────────── */
+.sidebar__nav-details {
+  list-style: none;
+}
+
+.sidebar__nav-details > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px;
+  border-radius: var(--radius-md);
+  color: var(--color-on-surface-variant);
+  font-size: var(--text-body-sm-size);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sidebar__nav-details > summary::-webkit-details-marker { display: none; }
+
+.sidebar__nav-details > summary:hover {
+  background-color: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
+.sidebar__nav-details > summary.active,
+.sidebar__nav-details[open] > summary {
+  color: var(--color-on-surface);
+}
+
+.sidebar__nav-chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  color: var(--color-on-surface-variant);
+}
+
+.sidebar__nav-details[open] > summary .sidebar__nav-chevron {
+  transform: rotate(90deg);
+}
+
+.sidebar__nav-sub {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 0 4px 32px;
+}
+
+.sidebar__nav-sublink {
+  display: block;
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sidebar__nav-sublink:hover {
+  background-color: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
+.sidebar__nav-sublink.active {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 500;
+}
+
+/* Collapsed sidebar hides sub-nav labels */
+.sidebar-collapsed .sidebar__nav-sub {
+  display: none;
+}
+
+.sidebar-collapsed .sidebar__nav-chevron {
+  display: none;
+}
