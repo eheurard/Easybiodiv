@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.db import transaction
 from dashboard.models import (
     Asset, Commodity, Company, Company_Policy, Company_Revenue,
@@ -240,7 +242,6 @@ def _import_ownership(rows, lookup):
 
 
 def _import_company_policy(rows, lookup):
-    from datetime import date
     created = 0
     for r in rows:
         d = r['data']
@@ -258,12 +259,13 @@ def _import_company_policy(rows, lookup):
             policy_date = date(int(parts[0]), int(parts[1]), int(parts[2]))
         except (ValueError, IndexError, AttributeError):
             policy_date = date(2026, 1, 1)
-        Company_Policy.objects.get_or_create(
+        _, was_created = Company_Policy.objects.get_or_create(
             company=company,
             policy_level=policy_level,
             defaults={'policy_date': policy_date},
         )
-        created += 1
+        if was_created:
+            created += 1
     return created
 
 
