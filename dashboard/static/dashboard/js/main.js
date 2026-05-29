@@ -117,7 +117,7 @@ function initMap() {
         .setLngLat(e.lngLat)
         .setHTML(
           `<strong>${escHtml(p.name)}</strong><br>` +
-          `${escHtml(p.country)} — ${escHtml(p.commodity)}<br>` +
+          `${escHtml(p.country)} — ${escHtml(p.commodities)}<br>` +
           `<small>${escHtml(p.region)}</small>`
         )
         .addTo(map);
@@ -172,6 +172,40 @@ function updateDashboard(data, map) {
             <span class="country-item__count">${c.asset_count} actif${c.asset_count > 1 ? 's' : ''}</span>
           </div>
           <div class="country-item__tags">${tags}</div>
+        </div>`;
+    })
+    .join('');
+
+  // Policy section
+  const policySection = document.getElementById('policy-section');
+  const policyRow = document.getElementById('policy-types-row');
+  if (!policySection || !policyRow) return;
+  if (!data.policies || data.policies.length === 0) {
+    policySection.hidden = true;
+    return;
+  }
+  policySection.hidden = false;
+  policyRow.innerHTML = data.policies
+    .map((pt) => {
+      const avgDisplay = pt.avg_score !== null ? pt.avg_score.toFixed(2) : '—';
+      const rows = pt.entries
+        .map((e) => `
+          <tr>
+            <td>${escHtml(e.subcategory)}</td>
+            <td><span class="policy-level">${escHtml(e.level)}</span></td>
+            <td class="policy-score">${e.score !== null ? Number(e.score).toFixed(2) : '—'}</td>
+          </tr>`)
+        .join('');
+      return `
+        <div class="policy-type-card">
+          <div class="policy-type-card__header">
+            <span class="policy-type-card__name">${escHtml(pt.type)}</span>
+            <span class="policy-type-card__avg">∅ ${escHtml(avgDisplay)}</span>
+          </div>
+          <table class="policy-table">
+            <thead><tr><th>Sous-catégorie</th><th>Niveau</th><th>Score</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
         </div>`;
     })
     .join('');
