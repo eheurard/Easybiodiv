@@ -101,6 +101,14 @@
       </nav>
 
       <div class="sidebar__footer">
+        {% if user.is_authenticated and user.role == 'CREATOR' %}
+        <a href="{% url 'imports:index' %}" class="sidebar__footer-link" aria-label="Import Excel">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 14V6M5 9l3-3 3 3M3 14h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="sidebar__footer-link-label">Import Excel</span>
+        </a>
+        {% endif %}
         <a href="#" class="sidebar__footer-link" aria-label="Exporter un rapport">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M8 2v8M5 7l3 3 3-3M3 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
