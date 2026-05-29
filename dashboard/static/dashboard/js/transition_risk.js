@@ -1,3 +1,5 @@
+const TR_COMPANY_KEY = 'tr-selected-company';
+
 document.addEventListener('DOMContentLoaded', () => {
   const companiesEl = document.getElementById('companies-data');
   if (!companiesEl) return;
@@ -6,8 +8,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const initialDataEl = document.getElementById('initial-data');
   const initialData = initialDataEl ? JSON.parse(initialDataEl.textContent) : null;
 
-  if (initialData) renderTransitionRisk(initialData);
-  initTrCombobox(companies, initialData);
+  const savedId = parseInt(localStorage.getItem(TR_COMPANY_KEY), 10);
+  const savedExists = savedId && companies.some(c => c.id === savedId);
+
+  if (savedExists && initialData && savedId !== initialData.company_id) {
+    // Saved company differs from server-rendered default — fetch it
+    fetch(TRANSITION_RISK_API_URL.replace('/0/', '/' + savedId + '/'))
+      .then(r => r.json())
+      .then(data => {
+        renderTransitionRisk(data);
+        initTrCombobox(companies, data);
+      });
+  } else {
+    if (initialData) renderTransitionRisk(initialData);
+    initTrCombobox(companies, initialData);
+  }
 });
 
 
@@ -53,6 +68,7 @@ function initTrCombobox(companies, initialData) {
     selected = id;
     input.value = opt.textContent;
     closeList();
+    localStorage.setItem(TR_COMPANY_KEY, id);
     fetch(TRANSITION_RISK_API_URL.replace('/0/', '/' + id + '/'))
       .then(r => r.json())
       .then(data => renderTransitionRisk(data));
