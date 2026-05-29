@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Risque de transition — Easybiodiv{% endblock %}
+
+{% block nav_risks_open %}open{% endblock %}
+{% block nav_transition_risk %}active{% endblock %}
+
+{% block header_left %}
+<div class="company-combobox" id="company-combobox" role="combobox"
+     aria-expanded="false" aria-haspopup="listbox" aria-owns="company-listbox">
+  <span class="company-combobox__label label-caps">Entreprise</span>
+  <div class="company-combobox__input-wrap">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M10 10l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+    <input type="text" id="company-search" class="company-combobox__input"
+           placeholder="Rechercher une entreprise…"
+           autocomplete="off" aria-autocomplete="list"
+           aria-controls="company-listbox" aria-label="Sélectionner une entreprise">
+    <svg class="company-combobox__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <ul id="company-listbox" class="company-combobox__listbox" role="listbox" hidden></ul>
+</div>
+{% endblock header_left %}
+
+{% block content %}
+<div class="tr-page">
+
+  <!-- KPI band -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="tr-total-impact">—</div>
+      <div class="kpi-card__label label-caps">Impact écosystème total</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="tr-year">—</div>
+      <div class="kpi-card__label label-caps">Année de référence</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="tr-commodity-count">—</div>
+      <div class="kpi-card__label label-caps">Commodités</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="tr-asset-count">—</div>
+      <div class="kpi-card__label label-caps">Actifs</div>
+    </div>
+  </div>
+
+  <!-- Bar charts row -->
+  <div class="tr-bars-row">
+    <div class="card tr-bars-card">
+      <div class="label-caps tr-bars-card__title">Par commodité</div>
+      <div id="commodity-bars" class="tr-bars-list"></div>
+    </div>
+    <div class="card tr-bars-card">
+      <div class="label-caps tr-bars-card__title">Par actif</div>
+      <div id="asset-bars" class="tr-bars-list"></div>
+    </div>
+    <div class="card tr-bars-card">
+      <div class="label-caps tr-bars-card__title">Par pays</div>
+      <div id="country-bars" class="tr-bars-list"></div>
+    </div>
+  </div>
+
+  <!-- Sankey diagram -->
+  <div class="card tr-sankey-card">
+    <div class="label-caps tr-sankey-card__title">Décomposition de l'impact</div>
+    <div class="tr-sankey-wrap">
+      <svg id="sankey-svg" class="tr-sankey-svg" aria-label="Diagramme Sankey de l'impact"></svg>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ companies|json_script:"companies-data" }}
+{{ initial_data|json_script:"initial-data" }}
+<script>var TRANSITION_RISK_API_URL = "{% url 'dashboard:transition_risk_data' pk=0 %}".replace('0/', '');</script>
+<script src="{% static 'dashboard/js/transition_risk.js' %}" defer></script>
+{% endblock %}
