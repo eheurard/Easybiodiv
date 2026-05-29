@@ -137,6 +137,7 @@ def _get_transition_risk_data(company):
     if not latest_years:
         return empty
 
+    # ref_year is the most recent data year across all assets (assets may contribute different years)
     ref_year = max(latest_years.values())
 
     productions = list(
@@ -154,7 +155,7 @@ def _get_transition_risk_data(company):
         impact = p.production * p.commodity.impact_endpoint_ReCiPe2016_ecosystem_diversity
         commodity_impact[p.commodity.name] += impact
         asset_impact[p.Asset_id] += impact
-        asset_meta[p.Asset_id] = {'name': p.Asset.name, 'country': p.Asset.country.name}
+        asset_meta.setdefault(p.Asset_id, {'name': p.Asset.name, 'country': p.Asset.country.name})
         link_commodity_asset[(p.commodity.name, p.Asset_id)] += impact
 
     country_impact = defaultdict(float)
