@@ -1,8 +1,208 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import Excel — Easybiodiv</title>
+  <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}">
+  <style>
+    body {
+      font-family: var(--font-sans, system-ui, sans-serif);
+      background: var(--color-bg, #f4f6f4);
+      color: var(--color-text, #1a1a1a);
+      margin: 0;
+      padding: 2rem;
+    }
+    .page-header {
+      margin-bottom: 1.5rem;
+    }
+    .page-header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-primary, #1F7A4A);
+      margin: 0 0 .25rem;
+    }
+    .page-header p {
+      margin: 0;
+      color: var(--color-text-muted, #555);
+      font-size: .9rem;
+    }
+    .alert {
+      padding: .85rem 1.1rem;
+      border-radius: 6px;
+      margin-bottom: 1.25rem;
+      font-size: .92rem;
+      border-left: 4px solid transparent;
+    }
+    .alert--success {
+      background: #e8f5ee;
+      border-color: var(--color-primary, #1F7A4A);
+      color: #155724;
+    }
+    .alert--error {
+      background: #fce8e8;
+      border-color: #c0392b;
+      color: #7b1c1c;
+    }
+    .alert ul {
+      margin: .4rem 0 0;
+      padding-left: 1.2rem;
+    }
+    .cards {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .card {
+      background: var(--color-surface, #fff);
+      border: 1px solid var(--color-border, #dde4d9);
+      border-radius: 8px;
+      padding: 1.5rem;
+      flex: 1 1 280px;
+      max-width: 480px;
+    }
+    .card__step {
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--color-primary, #1F7A4A);
+      margin-bottom: .4rem;
+    }
+    .card__title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin: 0 0 .75rem;
+    }
+    .card__desc {
+      font-size: .88rem;
+      color: var(--color-text-muted, #555);
+      margin: 0 0 1.1rem;
+      line-height: 1.5;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      padding: .55rem 1.1rem;
+      border-radius: 6px;
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+    }
+    .btn--primary {
+      background: var(--color-primary, #1F7A4A);
+      color: #fff;
+    }
+    .btn--primary:hover {
+      background: #185f39;
+    }
+    .btn--outline {
+      background: transparent;
+      color: var(--color-primary, #1F7A4A);
+      border: 1.5px solid var(--color-primary, #1F7A4A);
+    }
+    .btn--outline:hover {
+      background: #e8f5ee;
+    }
+    .file-input-wrapper {
+      margin-bottom: 1rem;
+    }
+    .file-input-wrapper label {
+      display: block;
+      font-size: .85rem;
+      font-weight: 500;
+      margin-bottom: .35rem;
+      color: var(--color-text, #1a1a1a);
+    }
+    .file-input-wrapper input[type="file"] {
+      display: block;
+      width: 100%;
+      padding: .45rem .6rem;
+      font-size: .88rem;
+      border: 1px solid var(--color-border, #dde4d9);
+      border-radius: 6px;
+      background: var(--color-bg, #f4f6f4);
+      box-sizing: border-box;
+    }
+    .icon {
+      width: 1em;
+      height: 1em;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
 <body>
-index
-{% if error %}<p>{{ error }}</p>{% endif %}
-{% if success %}<p>{{ success }}</p>{% endif %}
+
+  <div class="page-header">
+    <h1>Import Excel</h1>
+    <p>Importez vos données de référence depuis un fichier Excel.</p>
+  </div>
+
+  {% if success %}
+  <div class="alert alert--success" role="alert">
+    <strong>{{ success }}</strong>
+    {% if counts %}
+    <ul>
+      {% for label, count in counts.items %}
+      <li>{{ label }} : {{ count }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if error %}
+  <div class="alert alert--error" role="alert">
+    <strong>{{ error }}</strong>
+  </div>
+  {% endif %}
+
+  <div class="cards">
+
+    <!-- Card 1 : Télécharger le template -->
+    <div class="card">
+      <div class="card__step">Étape 1</div>
+      <h2 class="card__title">Télécharger le template</h2>
+      <p class="card__desc">
+        Téléchargez le fichier Excel modèle, remplissez-le avec vos données,
+        puis revenez sur cette page pour l'importer.
+      </p>
+      <a href="{% url 'imports:download_template' %}" class="btn btn--outline" download>
+        <svg class="icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+        Télécharger le template (.xlsx)
+      </a>
+    </div>
+
+    <!-- Card 2 : Importer un fichier rempli -->
+    <div class="card">
+      <div class="card__step">Étape 2</div>
+      <h2 class="card__title">Importer un fichier rempli</h2>
+      <p class="card__desc">
+        Sélectionnez le fichier Excel complété (.xlsx) pour l'analyser et
+        prévisualiser les données avant confirmation.
+      </p>
+      <form method="post" action="{% url 'imports:upload' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="file-input-wrapper">
+          <label for="excel_file">Fichier Excel (.xlsx)</label>
+          <input type="file" id="excel_file" name="excel_file" accept=".xlsx" required>
+        </div>
+        <button type="submit" class="btn btn--primary">
+          <svg class="icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+          </svg>
+          Analyser et prévisualiser
+        </button>
+      </form>
+    </div>
+
+  </div>
+
 </body>
 </html>

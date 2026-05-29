@@ -1,6 +1,284 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aperçu de l'import — Easybiodiv</title>
+  <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}">
+  <style>
+    body {
+      font-family: var(--font-sans, system-ui, sans-serif);
+      background: var(--color-bg, #f4f6f4);
+      color: var(--color-text, #1a1a1a);
+      margin: 0;
+      padding: 2rem;
+    }
+    .page-header {
+      margin-bottom: 1.5rem;
+    }
+    .page-header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-primary, #1F7A4A);
+      margin: 0 0 .25rem;
+    }
+    .page-header p {
+      margin: 0;
+      color: var(--color-text-muted, #555);
+      font-size: .9rem;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--color-border, #dde4d9);
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: .55rem 1.1rem;
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      color: var(--color-text-muted, #555);
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn:hover {
+      color: var(--color-primary, #1F7A4A);
+    }
+    .tab-btn.active {
+      color: var(--color-primary, #1F7A4A);
+      border-bottom-color: var(--color-primary, #1F7A4A);
+    }
+
+    /* ── Tab panels ── */
+    .tab-panel {
+      display: none;
+    }
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* ── Counters ── */
+    .counters {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .counter {
+      background: var(--color-surface, #fff);
+      border: 1px solid var(--color-border, #dde4d9);
+      border-radius: 6px;
+      padding: .5rem .9rem;
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .counter--ok    { border-left: 4px solid #1F7A4A; color: #155724; }
+    .counter--dup   { border-left: 4px solid #d4ac0d; color: #7d6608; }
+    .counter--error { border-left: 4px solid #c0392b; color: #7b1c1c; }
+
+    /* ── Table ── */
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--color-border, #dde4d9);
+      background: var(--color-surface, #fff);
+      margin-bottom: 1.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .85rem;
+    }
+    thead th {
+      background: var(--color-bg, #f4f6f4);
+      padding: .6rem .85rem;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 1px solid var(--color-border, #dde4d9);
+      white-space: nowrap;
+    }
+    tbody td {
+      padding: .55rem .85rem;
+      border-bottom: 1px solid #eef1ee;
+      vertical-align: top;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+    /* Row colouring */
+    tr.row--ok    { background: #f0faf4; }
+    tr.row--dup   { background: #fffde7; }
+    tr.row--error { background: #fff5f5; }
+
+    /* ── Status badge ── */
+    .badge {
+      display: inline-block;
+      padding: .18rem .55rem;
+      border-radius: 999px;
+      font-size: .76rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge--ok    { background: #c3e8d2; color: #155724; }
+    .badge--dup   { background: #fef9c3; color: #7d6608; }
+    .badge--error { background: #fcd3d3; color: #7b1c1c; }
+
+    .empty-notice {
+      padding: 1.25rem;
+      color: var(--color-text-muted, #555);
+      font-size: .88rem;
+      font-style: italic;
+    }
+
+    /* ── Actions ── */
+    .actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .55rem 1.2rem;
+      border-radius: 6px;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+    }
+    .btn--primary {
+      background: var(--color-primary, #1F7A4A);
+      color: #fff;
+    }
+    .btn--primary:hover:not(:disabled) { background: #185f39; }
+    .btn--primary:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+    .btn--ghost {
+      background: transparent;
+      color: var(--color-text-muted, #555);
+      border: 1px solid var(--color-border, #dde4d9);
+    }
+    .btn--ghost:hover { background: var(--color-bg, #f4f6f4); }
+  </style>
+</head>
 <body>
-preview
+
+  <div class="page-header">
+    <h1>Aperçu de l'import</h1>
+    <p>Vérifiez les données avant de confirmer l'import définitif.</p>
+  </div>
+
+  <!-- Tab buttons -->
+  <div class="tabs" role="tablist">
+    {% for sheet in sheets %}
+    <button
+      class="tab-btn{% if forloop.first %} active{% endif %}"
+      role="tab"
+      aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+      aria-controls="panel-{{ forloop.counter }}"
+      data-tab="{{ forloop.counter }}"
+    >{{ sheet.name }}</button>
+    {% endfor %}
+  </div>
+
+  <!-- Tab panels -->
+  {% for sheet in sheets %}
+  <div
+    class="tab-panel{% if forloop.first %} active{% endif %}"
+    id="panel-{{ forloop.counter }}"
+    role="tabpanel"
+  >
+    <!-- Counters -->
+    <div class="counters">
+      <div class="counter counter--ok">{{ sheet.count_ok }} à importer</div>
+      <div class="counter counter--dup">{{ sheet.count_dup }} doublon(s)</div>
+      <div class="counter counter--error">{{ sheet.count_error }} erreur(s)</div>
+    </div>
+
+    {% if sheet.rows %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            {% for col in sheet.columns %}
+            <th>{{ col }}</th>
+            {% endfor %}
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in sheet.rows %}
+          <tr class="row--{{ row.status }}">
+            {% for val in row.values %}
+            <td>{{ val }}</td>
+            {% endfor %}
+            <td>
+              {% if row.status == 'ok' %}
+                <span class="badge badge--ok">OK</span>
+              {% elif row.status == 'dup' %}
+                <span class="badge badge--dup">Doublon</span>
+              {% else %}
+                <span class="badge badge--error">Erreur{% if row.error %} — {{ row.error }}{% endif %}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="empty-notice">Aucune ligne dans cet onglet.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <!-- Actions -->
+  <div class="actions">
+    <form method="post" action="{% url 'imports:confirm' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn--primary" {% if not has_importable %}disabled{% endif %}>
+        Confirmer l'import
+      </button>
+    </form>
+    <a href="{% url 'imports:index' %}" class="btn btn--ghost">Annuler</a>
+  </div>
+
+  <script>
+    (function () {
+      const buttons = document.querySelectorAll('.tab-btn');
+      const panels  = document.querySelectorAll('.tab-panel');
+
+      buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const target = btn.dataset.tab;
+
+          buttons.forEach(function (b) {
+            b.classList.remove('active');
+            b.setAttribute('aria-selected', 'false');
+          });
+          panels.forEach(function (p) { p.classList.remove('active'); });
+
+          btn.classList.add('active');
+          btn.setAttribute('aria-selected', 'true');
+          const panel = document.getElementById('panel-' + target);
+          if (panel) { panel.classList.add('active'); }
+        });
+      });
+    })();
+  </script>
+
 </body>
 </html>
