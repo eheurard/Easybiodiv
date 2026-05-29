@@ -1,10 +1,11 @@
 from collections import defaultdict
 
+from django.db.models import Max
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET
 
-from .models import Asset, Company, Company_Policy
+from .models import Asset, Company, Company_Policy, Production
 
 
 def _get_company_data(company):
@@ -103,6 +104,124 @@ def _get_company_data(company):
     }
 
 
+def _get_transition_risk_data(company):
+    assets = list(
+        Asset.objects.filter(ownership__Company=company)
+        .select_related('country')
+        .distinct()
+    )
+
+    empty = {
+        'company_id': company.pk,
+        'company_name': company.name,
+        'year': None,
+        'total_impact': 0,
+        'commodities': [],
+        'assets': [],
+        'countries': [],
+        'sankey_links': [],
+    }
+
+    if not assets:
+        return empty
+
+    asset_ids = [a.pk for a in assets]
+
+    latest_years = dict(
+        Production.objects.filter(Asset_id__in=asset_ids)
+        .values('Asset_id')
+        .annotate(max_year=Max('year'))
+        .values_list('Asset_id', 'max_year')
+    )
+
+    if not latest_years:
+        return empty
+
+    ref_year = max(latest_years.values())
+
+    productions = list(
+        Production.objects.filter(Asset_id__in=asset_ids)
+        .select_related('commodity', 'Asset__country')
+    )
+    productions = [p for p in productions if latest_years.get(p.Asset_id) == p.year]
+
+    commodity_impact = defaultdict(float)
+    asset_impact = defaultdict(float)
+    asset_meta = {}
+    link_commodity_asset = defaultdict(float)
+
+    for p in productions:
+        impact = p.production * p.commodity.impact_endpoint_ReCiPe2016_ecosystem_diversity
+        commodity_impact[p.commodity.name] += impact
+        asset_impact[p.Asset_id] += impact
+        asset_meta[p.Asset_id] = {'name': p.Asset.name, 'country': p.Asset.country.name}
+        link_commodity_asset[(p.commodity.name, p.Asset_id)] += impact
+
+    country_impact = defaultdict(float)
+    for aid, imp in asset_impact.items():
+        country_impact[asset_meta[aid]['country']] += imp
+
+    total = sum(asset_impact.values())
+    if total == 0:
+        return {**empty, 'year': ref_year}
+
+    def norm(v):
+        return round(v / total, 4)
+
+    commodities = sorted(
+        [{'name': k, 'impact': round(v, 4), 'pct': norm(v)} for k, v in commodity_impact.items()],
+        key=lambda x: -x['pct'],
+    )
+    assets_list = sorted(
+        [
+            {
+                'id': aid,
+                'name': asset_meta[aid]['name'],
+                'country': asset_meta[aid]['country'],
+                'impact': round(imp, 4),
+                'pct': norm(imp),
+            }
+            for aid, imp in asset_impact.items()
+        ],
+        key=lambda x: -x['pct'],
+    )
+    countries = sorted(
+        [{'name': k, 'impact': round(v, 4), 'pct': norm(v)} for k, v in country_impact.items()],
+        key=lambda x: -x['pct'],
+    )
+
+    sankey_links = []
+    for (cname, aid), imp in link_commodity_asset.items():
+        sankey_links.append({
+            'source': f'commodity:{cname}',
+            'target': f'asset:{aid}',
+            'value': norm(imp),
+        })
+    for aid, imp in asset_impact.items():
+        sankey_links.append({
+            'source': f'asset:{aid}',
+            'target': f'country:{asset_meta[aid]["country"]}',
+            'value': norm(imp),
+        })
+    for cname, imp in country_impact.items():
+        sankey_links.append({
+            'source': f'country:{cname}',
+            'target': f'company:{company.pk}',
+            'value': norm(imp),
+        })
+
+    return {
+        'company_id': company.pk,
+        'company_name': company.name,
+        'year': ref_year,
+        'total_impact': round(total, 4),
+        'commodities': commodities,
+        'assets': assets_list,
+        'countries': countries,
+        'sankey_links': sankey_links,
+    }
+
+
 def index(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
     initial_data = None
@@ -119,3 +238,21 @@ def index(request):
 def company_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_company_data(company))
+
+
+def transition_risk(request):
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    initial_data = None
+    if companies:
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = _get_transition_risk_data(first)
+    return render(request, 'dashboard/transition_risk.html', {
+        'companies': companies,
+        'initial_data': initial_data,
+    })
+
+
+@require_GET
+def transition_risk_data(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    return JsonResponse(_get_transition_risk_data(company))
