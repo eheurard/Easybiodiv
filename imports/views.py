@@ -42,7 +42,12 @@ def upload(request):
             'error': 'Format invalide. Utilisez un fichier .xlsx.',
         })
 
-    parsed = parse_file(f)
+    try:
+        parsed = parse_file(f)
+    except Exception:
+        return render(request, 'imports/index.html', {
+            'error': 'Fichier invalide ou corrompu. Vérifiez que le fichier est un .xlsx valide.',
+        })
 
     tmp_dir = os.path.join(settings.MEDIA_ROOT, 'imports', 'tmp')
     os.makedirs(tmp_dir, exist_ok=True)
