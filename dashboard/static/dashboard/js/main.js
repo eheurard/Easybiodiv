@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
       toggleBtn.setAttribute('aria-expanded', String(!collapsed));
       toggleBtn.setAttribute('aria-label', collapsed ? 'Développer le menu' : 'Réduire le menu');
+      if (collapsed) {
+        document.querySelectorAll('.sidebar__nav-details').forEach(d => d.removeAttribute('open'));
+      }
     });
 
     function applyCollapsed(collapsed, animate) {

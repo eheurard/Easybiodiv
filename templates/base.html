@@ -48,13 +48,32 @@
             </a>
           </li>
           <li>
-            <a href="#" class="sidebar__nav-link {% block nav_risks %}{% endblock %}" aria-label="Analyse des risques">
-              <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <path d="M10 3L18 17H2L10 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                <path d="M10 8v4M10 13.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-              <span class="sidebar__nav-label">Analyse des risques</span>
-            </a>
+            <details class="sidebar__nav-details" id="nav-risks-group" {% block nav_risks_open %}{% endblock %}>
+              <summary class="sidebar__nav-link" aria-label="Analyse des risques">
+                <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M10 3L18 17H2L10 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                  <path d="M10 8v4M10 13.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span class="sidebar__nav-label">Analyse des risques</span>
+                <svg class="sidebar__nav-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </summary>
+              <ul class="sidebar__nav-sub" role="list">
+                <li>
+                  <a href="{% url 'dashboard:transition_risk' %}"
+                     class="sidebar__nav-sublink {% block nav_transition_risk %}{% endblock %}"
+                     aria-label="Risque de transition">
+                    Risque de transition
+                  </a>
+                </li>
+                <li>
+                  <a href="#" class="sidebar__nav-sublink" aria-label="Risque physique">
+                    Risque physique
+                  </a>
+                </li>
+              </ul>
+            </details>
           </li>
           <li>
             <a href="#" class="sidebar__nav-link {% block nav_dependencies %}{% endblock %}" aria-label="Dépendances">
