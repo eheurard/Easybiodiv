@@ -148,7 +148,7 @@ class TransitionRiskDataViewTests(TestCase):
         )
         region = SubnationalRegion.objects.create(name='Amazonie', country=country)
         commodity = Commodity.objects.create(
-            name='Soja',
+            name='SojaRisk',
             impact_endpoint_ReCiPe2016_ecosystem_diversity=impact_factor,
         )
         asset = Asset.objects.create(
@@ -199,6 +199,8 @@ class TransitionRiskDataViewTests(TestCase):
         # 100 * 2.0 = 200, not 10 * 2.0 = 20
         self.assertAlmostEqual(data['total_impact'], 200.0, places=2)
         self.assertEqual(data['year'], 2024)
+        # 220 = 10×2 + 100×2 — would appear if both years were summed
+        self.assertNotAlmostEqual(data['total_impact'], 220.0, places=2)
 
     def test_sankey_links_commodity_to_asset(self):
         company, *_ = self._setup_company()
@@ -243,7 +245,7 @@ class TransitionRiskDataViewTests(TestCase):
     def test_two_commodities_pct_sum_to_one(self):
         company = Company.objects.create(name='MultiCorp')
         country = Country.objects.create(
-            name='ArgentineT', water_ownership='Pub', land_ownership='Priv'
+            name='Argentine', water_ownership='Pub', land_ownership='Priv'
         )
         region = SubnationalRegion.objects.create(name='Pampa', country=country)
         asset = Asset.objects.create(
@@ -283,3 +285,13 @@ class TransitionRiskPageViewTests(TestCase):
         Company.objects.create(name='ZetaRisk')
         response = self.client.get(reverse('dashboard:transition_risk'))
         self.assertIn('companies', response.context)
+
+    def test_initial_data_none_without_companies(self):
+        response = self.client.get(reverse('dashboard:transition_risk'))
+        self.assertIsNone(response.context['initial_data'])
+
+    def test_initial_data_present_with_companies(self):
+        company, *_ = _make_world()
+        response = self.client.get(reverse('dashboard:transition_risk'))
+        self.assertIsNotNone(response.context['initial_data'])
+        self.assertIn('total_impact', response.context['initial_data'])
