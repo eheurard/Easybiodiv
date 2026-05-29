@@ -17,12 +17,13 @@ def parse_file(source):
     """
     wb = openpyxl.load_workbook(source)
     file_names = _collect_file_names(wb)
+    db_name_cache = _build_db_name_cache()
 
     result = {}
     for sheet_name in SHEET_COLUMNS:
         if sheet_name not in wb.sheetnames:
             continue
-        result[sheet_name] = _parse_sheet(wb[sheet_name], sheet_name, file_names)
+        result[sheet_name] = _parse_sheet(wb[sheet_name], sheet_name, file_names, db_name_cache)
     return result
 
 
@@ -50,23 +51,26 @@ def _collect_file_names(wb):
     return file_names
 
 
-def _db_names(model_key):
-    model_map = {
-        'country': Country,
-        'subnational_region': SubnationalRegion,
-        'commodity': Commodity,
-        'policy_type': Policy_Type,
-        'policy_subcategory': Policy_Subcategory,
-        'policy_level': Policy_Level,
-        'company': Company,
-        'asset': Asset,
+def _build_db_name_cache():
+    """
+    Fetch all FK-referenced name sets from the DB in one go.
+    Returns {model_key: {name_lower, …}}.
+    """
+    return {
+        'country': {n.lower() for n in Country.objects.values_list('name', flat=True)},
+        'subnational_region': {n.lower() for n in SubnationalRegion.objects.values_list('name', flat=True)},
+        'commodity': {n.lower() for n in Commodity.objects.values_list('name', flat=True)},
+        'policy_type': {n.lower() for n in Policy_Type.objects.values_list('name', flat=True)},
+        'policy_subcategory': {n.lower() for n in Policy_Subcategory.objects.values_list('name', flat=True)},
+        'policy_level': {n.lower() for n in Policy_Level.objects.values_list('name', flat=True)},
+        'company': {n.lower() for n in Company.objects.values_list('name', flat=True)},
+        'asset': {n.lower() for n in Asset.objects.values_list('name', flat=True)},
     }
-    return {n.lower() for n in model_map[model_key].objects.values_list('name', flat=True)}
 
 
-def _can_resolve(model_key, name, file_names):
+def _can_resolve(model_key, name, file_names, db_name_cache):
     key = name.strip().lower()
-    return key in _db_names(model_key) or key in file_names.get(model_key, set())
+    return key in db_name_cache.get(model_key, set()) or key in file_names.get(model_key, set())
 
 
 def _existing_keys(sheet_name):
@@ -112,7 +116,7 @@ def _existing_keys(sheet_name):
     return set()
 
 
-def _parse_sheet(ws, sheet_name, file_names):
+def _parse_sheet(ws, sheet_name, file_names, db_name_cache):
     columns = SHEET_COLUMNS[sheet_name]
     required = REQUIRED_FIELDS[sheet_name]
     fk_fields = FK_FIELDS.get(sheet_name, {})
@@ -149,7 +153,7 @@ def _parse_sheet(ws, sheet_name, file_names):
         fk_error = None
         for fk_col, model_key in fk_fields.items():
             val = data.get(fk_col, '')
-            if val and not _can_resolve(model_key, val, file_names):
+            if val and not _can_resolve(model_key, val, file_names, db_name_cache):
                 fk_error = f"Valeur introuvable pour '{fk_col}' : '{val}'"
                 break
         if fk_error:
