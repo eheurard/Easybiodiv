@@ -137,3 +137,149 @@ class DashboardIndexViewTests(TestCase):
     def test_initial_data_none_without_companies(self):
         response = self.client.get(reverse('dashboard:index'))
         self.assertIsNone(response.context['initial_data'])
+
+
+class TransitionRiskDataViewTests(TestCase):
+
+    def _setup_company(self, impact_factor=2.0, production_qty=100.0, year=2024):
+        company = Company.objects.create(name='RiskCorp')
+        country = Country.objects.create(
+            name='Brésil', water_ownership='Public', land_ownership='Private'
+        )
+        region = SubnationalRegion.objects.create(name='Amazonie', country=country)
+        commodity = Commodity.objects.create(
+            name='Soja',
+            impact_endpoint_ReCiPe2016_ecosystem_diversity=impact_factor,
+        )
+        asset = Asset.objects.create(
+            name='Ferme A', latitude=-5.0, longitude=-55.0,
+            country=country, subnational_region=region,
+        )
+        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Production.objects.create(
+            Asset=asset, commodity=commodity, year=year, production=production_qty
+        )
+        return company, country, commodity, asset
+
+    def test_returns_200(self):
+        company, *_ = self._setup_company()
+        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_content_type_is_json(self):
+        company, *_ = self._setup_company()
+        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        response = self.client.get(url)
+        self.assertIn('application/json', response['Content-Type'])
+
+    def test_total_impact_equals_production_times_factor(self):
+        company, *_ = self._setup_company(impact_factor=3.0, production_qty=50.0)
+        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        data = json.loads(self.client.get(url).content)
+        self.assertAlmostEqual(data['total_impact'], 150.0, places=2)
+
+    def test_single_commodity_pct_is_one(self):
+        company, *_ = self._setup_company()
+        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        data = json.loads(self.client.get(url).content)
+        self.assertEqual(len(data['commodities']), 1)
+        self.assertAlmostEqual(data['commodities'][0]['pct'], 1.0, places=3)
+
+    def test_uses_latest_year_only(self):
+        company, country, commodity, asset = self._setup_company(
+            impact_factor=2.0, production_qty=10.0, year=2022
+        )
+        # Add a newer production — this one should be used
+        Production.objects.create(
+            Asset=asset, commodity=commodity, year=2024, production=100.0
+        )
+        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        data = json.loads(self.client.get(url).content)
+        # 100 * 2.0 = 200, not 10 * 2.0 = 20
+        self.assertAlmostEqual(data['total_impact'], 200.0, places=2)
+        self.assertEqual(data['year'], 2024)
+
+    def test_sankey_links_commodity_to_asset(self):
+        company, *_ = self._setup_company()
+        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        data = json.loads(self.client.get(url).content)
+        sources = [lk['source'] for lk in data['sankey_links']]
+        self.assertTrue(any(s.startswith('commodity:') for s in sources))
+
+    def test_sankey_links_asset_to_country(self):
+        company, *_ = self._setup_company()
+        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        data = json.loads(self.client.get(url).content)
+        sources = [lk['source'] for lk in data['sankey_links']]
+        self.assertTrue(any(s.startswith('asset:') for s in sources))
+
+    def test_sankey_links_country_to_company(self):
+        company, *_ = self._setup_company()
+        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        data = json.loads(self.client.get(url).content)
+        sources = [lk['source'] for lk in data['sankey_links']]
+        self.assertTrue(any(s.startswith('country:') for s in sources))
+
+    def test_empty_company_returns_zero_impact(self):
+        empty = Company.objects.create(name='EmptyRisk')
+        url = reverse('dashboard:transition_risk_data', kwargs={'pk': empty.pk})
+        data = json.loads(self.client.get(url).content)
+        self.assertEqual(data['total_impact'], 0)
+        self.assertEqual(data['commodities'], [])
+        self.assertEqual(data['sankey_links'], [])
+
+    def test_not_found_returns_404(self):
+        url = reverse('dashboard:transition_risk_data', kwargs={'pk': 99999})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_post_not_allowed(self):
+        company, *_ = self._setup_company()
+        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 405)
+
+    def test_two_commodities_pct_sum_to_one(self):
+        company = Company.objects.create(name='MultiCorp')
+        country = Country.objects.create(
+            name='ArgentineT', water_ownership='Pub', land_ownership='Priv'
+        )
+        region = SubnationalRegion.objects.create(name='Pampa', country=country)
+        asset = Asset.objects.create(
+            name='Estancia', latitude=-30.0, longitude=-65.0,
+            country=country, subnational_region=region,
+        )
+        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        c1 = Commodity.objects.create(
+            name='Maïs', impact_endpoint_ReCiPe2016_ecosystem_diversity=1.0
+        )
+        c2 = Commodity.objects.create(
+            name='Blé', impact_endpoint_ReCiPe2016_ecosystem_diversity=3.0
+        )
+        Production.objects.create(Asset=asset, commodity=c1, year=2024, production=100.0)
+        Production.objects.create(Asset=asset, commodity=c2, year=2024, production=100.0)
+
+        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        data = json.loads(self.client.get(url).content)
+
+        pct_sum = sum(c['pct'] for c in data['commodities'])
+        self.assertAlmostEqual(pct_sum, 1.0, places=3)
+        # Blé has 3x impact → sorted first
+        self.assertEqual(data['commodities'][0]['name'], 'Blé')
+
+
+class TransitionRiskPageViewTests(TestCase):
+
+    def test_returns_200(self):
+        response = self.client.get(reverse('dashboard:transition_risk'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_uses_correct_template(self):
+        response = self.client.get(reverse('dashboard:transition_risk'))
+        self.assertTemplateUsed(response, 'dashboard/transition_risk.html')
+
+    def test_companies_in_context(self):
+        Company.objects.create(name='ZetaRisk')
+        response = self.client.get(reverse('dashboard:transition_risk'))
+        self.assertIn('companies', response.context)
