@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
       layout.classList.toggle('sidebar-collapsed', collapsed);
       toggleBtn.setAttribute('aria-expanded', String(!collapsed));
       toggleBtn.setAttribute('aria-label', collapsed ? 'Développer le menu' : 'Réduire le menu');
+      if (collapsed) {
+        document.querySelectorAll('.sidebar__nav-details').forEach(d => d.removeAttribute('open'));
+      }
       if (!animate) requestAnimationFrame(() => { layout.style.transition = ''; });
     }
   }
