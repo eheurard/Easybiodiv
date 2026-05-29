@@ -141,6 +141,12 @@ class DashboardIndexViewTests(TestCase):
 
 class TransitionRiskDataViewTests(TestCase):
 
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.force_login(self.user)
+
     def _setup_company(self, impact_factor=2.0, production_qty=100.0, year=2024):
         company = Company.objects.create(name='RiskCorp')
         country = Country.objects.create(
@@ -240,6 +246,7 @@ class TransitionRiskDataViewTests(TestCase):
         company, *_ = self._setup_company()
         url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
         response = self.client.post(url)
+        # Authenticated POST is blocked by @require_GET → 405
         self.assertEqual(response.status_code, 405)
 
     def test_two_commodities_pct_sum_to_one(self):
@@ -272,6 +279,12 @@ class TransitionRiskDataViewTests(TestCase):
 
 
 class TransitionRiskPageViewTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='pageuser', password='testpass')
+        self.client.force_login(self.user)
 
     def test_returns_200(self):
         response = self.client.get(reverse('dashboard:transition_risk'))

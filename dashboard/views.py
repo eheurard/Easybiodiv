@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from django.contrib.auth.decorators import login_required
 from django.db.models import Max
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
@@ -241,6 +242,8 @@ def company_data(request, pk):
     return JsonResponse(_get_company_data(company))
 
 
+@login_required
+@require_GET
 def transition_risk(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
     initial_data = None
@@ -253,6 +256,7 @@ def transition_risk(request):
     })
 
 
+@login_required
 @require_GET
 def transition_risk_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
