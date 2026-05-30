@@ -1558,6 +1558,7 @@ a.app-header__avatar {
   border-radius: 4px;
 }
 
+.dep-revenue-bar-fill--critical { background: var(--color-primary); }
 .dep-revenue-bar-fill--high     { background: var(--color-primary); }
 .dep-revenue-bar-fill--moderate { background: var(--color-secondary); }
 .dep-revenue-bar-fill--low      { background: var(--color-surface-dim); }
@@ -1579,6 +1580,7 @@ a.app-header__avatar {
   text-transform: uppercase;
 }
 
+.dep-exposure-badge--critical { color: var(--color-primary); }
 .dep-exposure-badge--high     { color: var(--color-primary); }
 .dep-exposure-badge--moderate { color: var(--color-secondary); }
 .dep-exposure-badge--low      { color: var(--color-outline); }
