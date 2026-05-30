@@ -55,9 +55,19 @@ Fonction helper Python : `SCORE_MAP = {'VL': 0.0, 'L': 0.2, 'M': 0.5, 'H': 0.7, 
 
 ### 3.1 Données de production de la company
 
-- Récupérer tous les `Production` dont `company` = company courante (champ `Production.company`).
-- **Note :** Le champ `company` sur `Production` est nullable. Certaines productions sont liées via `asset` (sans `company` direct). Pour la page dépendances, ne filtrer que les productions avec `company=company` (opérations déclarées directement). Si on veut inclure les productions via asset : ajouter `| Production.objects.filter(asset__ownership__Company=company)` — cette extension est hors périmètre de ce spec.
-- Prendre uniquement l'année la plus récente : `max_year = Production.objects.filter(company=company).aggregate(Max('year'))['year__max']`. Si `None` → pas de données.
+Récupérer l'union des productions liées à la company par les **deux voies** :
+
+```python
+from django.db.models import Q
+
+productions_qs = Production.objects.filter(
+    Q(company=company) |
+    Q(asset__ownership__Company=company)
+).select_related('commodity', 'asset').distinct()
+```
+
+- Prendre uniquement l'année la plus récente : `max_year = productions_qs.aggregate(Max('year'))['year__max']`. Si `None` → pas de données.
+- Filtrer ensuite : `productions = productions_qs.filter(year=max_year)`.
 - Pour chaque `Production`, les scores de dépendance sont ceux de la commodité associée.
 
 ### 3.2 Score de dépendance d'une commodité
