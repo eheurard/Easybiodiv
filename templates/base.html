@@ -76,7 +76,7 @@
             </details>
           </li>
           <li>
-            <a href="#" class="sidebar__nav-link {% block nav_dependencies %}{% endblock %}" aria-label="Dépendances">
+            <a href="{% url 'dashboard:dependencies' %}" class="sidebar__nav-link {% block nav_dependencies %}{% endblock %}" aria-label="Dépendances">
               <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/>
                 <circle cx="3.5" cy="5" r="1.5" stroke="currentColor" stroke-width="1.5"/>
