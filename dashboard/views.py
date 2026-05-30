@@ -473,3 +473,24 @@ def transition_risk(request):
 def transition_risk_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_transition_risk_data(company))
+
+
+@login_required
+@require_GET
+def dependencies(request):
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    initial_data = None
+    if companies:
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = _get_dependencies_data(first)
+    return render(request, 'dashboard/dependencies.html', {
+        'companies': companies,
+        'initial_data': initial_data,
+    })
+
+
+@login_required
+@require_GET
+def dependencies_data(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    return JsonResponse(_get_dependencies_data(company))

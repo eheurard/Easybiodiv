@@ -502,3 +502,58 @@ class DependenciesDataTests(TestCase):
             s for cat in se['categories'] for s in cat['services'] if s['key'] == 'water'
         )
         self.assertIsNone(water_svc['revenue_exposure'])
+
+
+class DependenciesPageViewTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='deppage', password='testpass')
+        self.client.force_login(self.user)
+
+    def test_redirects_anonymous(self):
+        self.client.logout()
+        response = self.client.get('/dependencies/')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+    def test_returns_200_authenticated(self):
+        response = self.client.get('/dependencies/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_uses_correct_template(self):
+        response = self.client.get('/dependencies/')
+        self.assertTemplateUsed(response, 'dashboard/dependencies.html')
+
+    def test_companies_in_context(self):
+        Company.objects.create(name='CtxCorp')
+        response = self.client.get('/dependencies/')
+        self.assertIn('companies', response.context)
+
+    def test_initial_data_none_without_companies(self):
+        response = self.client.get('/dependencies/')
+        self.assertIsNone(response.context['initial_data'])
+
+    def test_api_returns_200(self):
+        company = Company.objects.create(name='ApiCorp')
+        url = reverse('dashboard:dependencies_data', kwargs={'pk': company.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_api_content_type_is_json(self):
+        company = Company.objects.create(name='JsonCorp')
+        url = reverse('dashboard:dependencies_data', kwargs={'pk': company.pk})
+        response = self.client.get(url)
+        self.assertIn('application/json', response['Content-Type'])
+
+    def test_api_404_on_missing_company(self):
+        url = reverse('dashboard:dependencies_data', kwargs={'pk': 99999})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_api_post_not_allowed(self):
+        company = Company.objects.create(name='PostCorp')
+        url = reverse('dashboard:dependencies_data', kwargs={'pk': company.pk})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 405)
