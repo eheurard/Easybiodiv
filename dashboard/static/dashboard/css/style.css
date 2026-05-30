@@ -1275,3 +1275,324 @@ a.app-header__avatar {
 .sidebar-collapsed .sidebar__nav-chevron {
   display: none;
 }
+
+/* ── Dependencies page ───────────────────────────────────────────────────── */
+
+.dep-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Main two-column row */
+.dep-main-row {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.dep-supply-chain {
+  flex: 3;
+  min-width: 0;
+}
+
+.dep-service-exposure {
+  flex: 2;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .dep-main-row {
+    flex-direction: column;
+  }
+}
+
+/* Section headers inside cards */
+.dep-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.dep-section-title {
+  font-size: var(--text-body-lg-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+/* ── Supply chain tiers ─── */
+.dep-tier {
+  margin-bottom: 20px;
+}
+
+.dep-tier:last-child {
+  margin-bottom: 0;
+}
+
+.dep-tier__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dep-tier__bullet {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.dep-tier__label {
+  font-size: var(--text-body-sm-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.dep-tier__divider {
+  border: none;
+  border-top: 1px solid var(--color-outline-variant);
+  margin-bottom: 12px;
+}
+
+.dep-service-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+/* Individual service card inside a tier */
+.dep-service-card {
+  background: var(--color-surface-container-low);
+  border: var(--border-card);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.dep-service-card__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.dep-service-card__icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--color-on-surface-variant);
+}
+
+.dep-service-card__name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-on-surface);
+  line-height: 1.3;
+}
+
+.dep-reliance-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-surface-dim);
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+
+.dep-reliance-bar__fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.dep-reliance-bar__fill--critical { background: var(--color-primary); }
+.dep-reliance-bar__fill--high     { background: var(--color-secondary); }
+.dep-reliance-bar__fill--moderate { background: #8a8a70; }
+.dep-reliance-bar__fill--low      { background: var(--color-surface-dim); }
+
+.dep-service-card__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dep-service-card__label--critical { color: var(--color-primary); }
+.dep-service-card__label--high     { color: var(--color-secondary); }
+.dep-service-card__label--moderate { color: #8a8a70; }
+.dep-service-card__label--low      { color: var(--color-outline); }
+
+/* ── Service Exposure panel ─── */
+.dep-exposure-category {
+  margin-bottom: 18px;
+}
+
+.dep-exposure-category:last-child {
+  margin-bottom: 0;
+}
+
+.dep-exposure-cat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.dep-exposure-cat-name {
+  font-size: var(--text-body-sm-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.dep-exposure-cat-amount {
+  font-size: var(--text-body-sm-size);
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+}
+
+.dep-exposure-service-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.dep-exposure-service-name {
+  flex: 0 0 160px;
+  font-size: 13px;
+  color: var(--color-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dep-exposure-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--color-surface-dim);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dep-exposure-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-primary);
+}
+
+.dep-exposure-amount {
+  flex: 0 0 60px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.dep-exposure-note {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: var(--color-surface-container-low);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+  line-height: 1.5;
+}
+
+/* ── Revenue segments ─── */
+.dep-revenue-segments {
+  width: 100%;
+}
+
+.dep-revenue-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.dep-revenue-row:last-child {
+  border-bottom: none;
+}
+
+.dep-revenue-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--color-on-surface-variant);
+}
+
+.dep-revenue-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.dep-revenue-subsector {
+  font-size: var(--text-body-sm-size);
+  font-weight: 500;
+  color: var(--color-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dep-revenue-sector {
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+}
+
+.dep-revenue-bar-wrap {
+  flex: 2;
+  min-width: 0;
+}
+
+.dep-revenue-bar-track {
+  height: 8px;
+  background: var(--color-surface-dim);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dep-revenue-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.dep-revenue-bar-fill--high     { background: var(--color-primary); }
+.dep-revenue-bar-fill--moderate { background: var(--color-secondary); }
+.dep-revenue-bar-fill--low      { background: var(--color-surface-dim); }
+
+.dep-revenue-amount {
+  flex: 0 0 70px;
+  text-align: right;
+  font-size: var(--text-body-sm-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.dep-exposure-badge {
+  flex: 0 0 90px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dep-exposure-badge--high     { color: var(--color-primary); }
+.dep-exposure-badge--moderate { color: var(--color-secondary); }
+.dep-exposure-badge--low      { color: var(--color-outline); }
+
+.dep-empty {
+  color: var(--color-on-surface-variant);
+  font-size: var(--text-body-sm-size);
+  padding: 20px 0;
+  text-align: center;
+}
+
+/* KPI card icon/subtitle for primary service */
+.kpi-card__subtitle {
+  font-size: var(--text-body-sm-size);
+  color: var(--color-on-surface-variant);
+  margin-top: 2px;
+}
