@@ -171,7 +171,7 @@ def _get_dependencies_data(company):
             })
         categories.append({'name': cat_name, 'services': svcs_out})
 
-    # --- Revenue Segments ---
+    # --- Revenue Segments (grouped by sector) ---
     rev_sector_qs = (
         Company_Revenue_Sector.objects.filter(company=company)
         .select_related('subsector__sector')
@@ -182,23 +182,42 @@ def _get_dependencies_data(company):
         if rs.subsector_id not in seen:
             seen[rs.subsector_id] = rs
 
-    _RATING_ORDER = ['VL', 'L', 'M', 'H', 'VH']
-    _RATING_LABEL = {'VL': 'Low', 'L': 'Low', 'M': 'Moderate', 'H': 'High', 'VH': 'Critical'}
-
-    revenue_segments = []
-    for rs in sorted(seen.values(), key=lambda x: -x.revenue):
+    sector_groups = defaultdict(list)
+    for rs in seen.values():
         sub = rs.subsector
-        scores = [SCORE_MAP[getattr(sub, _SUBSECTOR_DEP_FIELDS[svc['key']])] for svc in SERVICES]
-        dep_score = sum(scores) / len(scores)
-        ratings = [getattr(sub, _SUBSECTOR_DEP_FIELDS[svc['key']]) for svc in SERVICES]
-        max_rating = max(ratings, key=lambda r: _RATING_ORDER.index(r))
-        revenue_segments.append({
+        scores = {svc['key']: SCORE_MAP[getattr(sub, _SUBSECTOR_DEP_FIELDS[svc['key']])]
+                  for svc in SERVICES}
+        dep_score = sum(scores.values()) / len(scores)
+        sector_groups[sub.sector.name].append({
             'subsector': sub.name,
-            'sector': sub.sector.name,
             'revenue': rs.revenue,
             'dep_score': round(dep_score, 3),
-            'exposure_label': _RATING_LABEL[max_rating],
+            'revenue_at_risk': round(dep_score * rs.revenue),
+            'exposure_label': _exposure_label(dep_score),
+            'services': [
+                {
+                    'key': svc['key'],
+                    'name': svc['name'],
+                    'score': round(scores[svc['key']], 3),
+                    'label': _exposure_label(scores[svc['key']]),
+                }
+                for svc in SERVICES
+            ],
         })
+
+    revenue_segments = []
+    for sector_name, subsectors in sector_groups.items():
+        total_revenue = sum(s['revenue'] for s in subsectors)
+        avg_dep_score = sum(s['dep_score'] for s in subsectors) / len(subsectors)
+        revenue_segments.append({
+            'sector': sector_name,
+            'revenue': total_revenue,
+            'dep_score': round(avg_dep_score, 3),
+            'revenue_at_risk': round(avg_dep_score * total_revenue),
+            'exposure_label': _exposure_label(avg_dep_score),
+            'subsectors': sorted(subsectors, key=lambda x: -x['revenue']),
+        })
+    revenue_segments.sort(key=lambda x: -x['revenue'])
 
     return {
         'company_id': company.pk,

@@ -252,16 +252,43 @@ function renderRevenueSegments(segments) {
 
   const maxRevenue = Math.max(...segments.map(s => s.revenue), 1);
 
-  body.innerHTML = segments.map(seg => {
+  body.innerHTML = segments.map((seg, idx) => {
     const widthPct = Math.round((seg.revenue / maxRevenue) * 100);
+    const atRiskPct = seg.revenue > 0 ? Math.round((seg.revenue_at_risk / seg.revenue) * 100) : 0;
     const levelClass = seg.exposure_label.toLowerCase();
     const revenueStr = formatRevenue(seg.revenue, null);
+    const atRiskStr = formatRevenue(seg.revenue_at_risk, null);
+    const detailId = 'dep-seg-detail-' + idx;
+
+    const subsectorRows = (seg.subsectors || []).map(sub => {
+      const subLevelClass = sub.exposure_label.toLowerCase();
+      const subAtRiskStr = formatRevenue(sub.revenue_at_risk, null);
+      const subRevenueStr = formatRevenue(sub.revenue, null);
+
+      const serviceChips = sub.services
+        .filter(svc => svc.score >= 0.2)
+        .map(svc => {
+          const chipClass = svc.label.toLowerCase();
+          return `<span class="dep-svc-chip dep-svc-chip--${chipClass}" title="${escHtml(svc.name)}">${escHtml(svc.name.split(' ')[0])}</span>`;
+        }).join('');
+
+      return `
+        <div class="dep-subsector-row">
+          <div class="dep-subsector-meta">
+            <span class="dep-subsector-name">${escHtml(sub.subsector)}</span>
+            <div class="dep-subsector-chips">${serviceChips || '<span class="dep-svc-chip dep-svc-chip--low">—</span>'}</div>
+          </div>
+          <span class="dep-subsector-revenue">${escHtml(subRevenueStr)}</span>
+          <span class="dep-subsector-atrisk dep-exposure-badge--${subLevelClass}">${escHtml(subAtRiskStr)} à risque</span>
+        </div>`;
+    }).join('');
+
     return `
-      <div class="dep-revenue-row">
+      <div class="dep-revenue-row" data-detail="${detailId}">
         ${REVENUE_ICON}
         <div class="dep-revenue-meta">
-          <div class="dep-revenue-subsector">${escHtml(seg.subsector)}</div>
-          <div class="dep-revenue-sector">${escHtml(seg.sector)}</div>
+          <div class="dep-revenue-subsector">${escHtml(seg.sector)}</div>
+          <div class="dep-revenue-sector">${escHtml(atRiskStr)} à risque (${atRiskPct} %)</div>
         </div>
         <div class="dep-revenue-bar-wrap">
           <div class="dep-revenue-bar-track">
@@ -271,8 +298,34 @@ function renderRevenueSegments(segments) {
         </div>
         <span class="dep-revenue-amount">${escHtml(revenueStr)}</span>
         <span class="dep-exposure-badge dep-exposure-badge--${levelClass}">${escHtml(seg.exposure_label)}</span>
+        <button class="dep-toggle-btn" aria-expanded="false" aria-controls="${detailId}" aria-label="Détail ${escHtml(seg.sector)}">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="dep-segment-detail" id="${detailId}" hidden>
+        ${subsectorRows}
       </div>`;
   }).join('');
+
+  // Wire toggle buttons
+  body.querySelectorAll('.dep-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const detailId = btn.closest('.dep-revenue-row').dataset.detail;
+      const detail = document.getElementById(detailId);
+      if (!detail) return;
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!expanded));
+      btn.classList.toggle('dep-toggle-btn--open', !expanded);
+      if (expanded) {
+        detail.setAttribute('hidden', '');
+      } else {
+        detail.removeAttribute('hidden');
+      }
+    });
+  });
 }
 
 

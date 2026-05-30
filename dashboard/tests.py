@@ -406,16 +406,26 @@ class DependenciesDataTests(TestCase):
 
     def test_revenue_segments_sorted_by_revenue_desc(self):
         from .views import _get_dependencies_data
-        sector = Sector.objects.create(name='Agri')
+        sector_a = Sector.objects.create(name='Agriculture')
+        sector_b = Sector.objects.create(name='Énergie')
+        # sub1 in Agriculture with Water=H: dep_score = 0.7/6
         sub1 = SubSector.objects.create(
-            name='Céréales', sector=sector,
+            name='Céréales', sector=sector_a,
             Water_dependency='H', Pollination_dependency='VL',
             Soil_quality_dependency='VL', Carbon_Sequestration='VL',
             Water_purification_dependency='VL', Pest_control_dependency='VL',
         )
+        # sub2 in Agriculture with Water=L: dep_score = 0.2/6
         sub2 = SubSector.objects.create(
-            name='Légumes', sector=sector,
+            name='Légumes', sector=sector_a,
             Water_dependency='L', Pollination_dependency='VL',
+            Soil_quality_dependency='VL', Carbon_Sequestration='VL',
+            Water_purification_dependency='VL', Pest_control_dependency='VL',
+        )
+        # sub3 in Énergie with Water=M: dep_score = 0.5/6
+        sub3 = SubSector.objects.create(
+            name='Pétrole', sector=sector_b,
+            Water_dependency='M', Pollination_dependency='VL',
             Soil_quality_dependency='VL', Carbon_Sequestration='VL',
             Water_purification_dependency='VL', Pest_control_dependency='VL',
         )
@@ -425,12 +435,47 @@ class DependenciesDataTests(TestCase):
         Company_Revenue_Sector.objects.create(
             company=self.company, subsector=sub2, year=2024, revenue=5_000_000
         )
+        Company_Revenue_Sector.objects.create(
+            company=self.company, subsector=sub3, year=2024, revenue=4_000_000
+        )
         data = _get_dependencies_data(self.company)
+
+        # Two sectors: Agriculture (17M) sorted before Énergie (4M)
         self.assertEqual(len(data['revenue_segments']), 2)
-        self.assertEqual(data['revenue_segments'][0]['subsector'], 'Céréales')
-        self.assertEqual(data['revenue_segments'][0]['exposure_label'], 'High')
-        self.assertEqual(data['revenue_segments'][1]['subsector'], 'Légumes')
-        self.assertEqual(data['revenue_segments'][1]['exposure_label'], 'Low')
+        agri = data['revenue_segments'][0]
+        energy = data['revenue_segments'][1]
+
+        self.assertEqual(agri['sector'], 'Agriculture')
+        self.assertEqual(agri['revenue'], 17_000_000)
+        # dep_score for Agriculture = avg of sub1 (0.7/6) and sub2 (0.2/6)
+        sub1_dep = round(0.7 / 6, 3)
+        sub2_dep = round(0.2 / 6, 3)
+        expected_agri_dep = round((sub1_dep + sub2_dep) / 2, 3)
+        self.assertAlmostEqual(agri['dep_score'], expected_agri_dep, places=2)
+        self.assertAlmostEqual(
+            agri['revenue_at_risk'], round(expected_agri_dep * 17_000_000), delta=5000
+        )
+
+        # Subsectors within Agriculture sorted by revenue desc
+        self.assertEqual(len(agri['subsectors']), 2)
+        self.assertEqual(agri['subsectors'][0]['subsector'], 'Céréales')
+        self.assertEqual(agri['subsectors'][1]['subsector'], 'Légumes')
+
+        # Each subsector has services list with 6 entries
+        self.assertEqual(len(agri['subsectors'][0]['services']), 6)
+        water_svc = next(s for s in agri['subsectors'][0]['services'] if s['key'] == 'water')
+        self.assertAlmostEqual(water_svc['score'], 0.7, places=3)
+        self.assertEqual(water_svc['label'], 'Critical')
+
+        # revenue_at_risk on subsector
+        self.assertAlmostEqual(
+            agri['subsectors'][0]['revenue_at_risk'],
+            round(sub1_dep * 12_000_000),
+            delta=5000
+        )
+
+        self.assertEqual(energy['sector'], 'Énergie')
+        self.assertEqual(energy['revenue'], 4_000_000)
 
     def test_uses_latest_year_only(self):
         from .views import _get_dependencies_data
