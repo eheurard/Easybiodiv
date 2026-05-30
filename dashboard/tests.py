@@ -2,9 +2,10 @@ import json
 from django.test import TestCase
 from django.urls import reverse
 from .models import (
-    Asset, Commodity, Company, Company_Policy, Country,
-    Ownership, Policy_Level, Policy_Subcategory, Policy_Type,
-    Production, SubnationalRegion,
+    Asset, Commodity, Company, Company_Policy, Company_Revenue,
+    Company_Revenue_Sector, Country, Ownership, Policy_Level,
+    Policy_Subcategory, Policy_Type, Production, Sector, SubnationalRegion,
+    SubSector,
 )
 
 
@@ -21,7 +22,7 @@ def _make_world():
         country=country, subnational_region=region,
     )
     Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
-    Production.objects.create(Asset=asset, commodity=commodity, year=2024, production=100.0)
+    Production.objects.create(asset=asset, commodity=commodity, year=2024, production=100.0)
     return company, country, region, commodity, asset
 
 
@@ -163,7 +164,7 @@ class TransitionRiskDataViewTests(TestCase):
         )
         Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
         Production.objects.create(
-            Asset=asset, commodity=commodity, year=year, production=production_qty
+            asset=asset, commodity=commodity, year=year, production=production_qty
         )
         return company, country, commodity, asset
 
@@ -198,7 +199,7 @@ class TransitionRiskDataViewTests(TestCase):
         )
         # Add a newer production — this one should be used
         Production.objects.create(
-            Asset=asset, commodity=commodity, year=2024, production=100.0
+            asset=asset, commodity=commodity, year=2024, production=100.0
         )
         url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
         data = json.loads(self.client.get(url).content)
@@ -266,8 +267,8 @@ class TransitionRiskDataViewTests(TestCase):
         c2 = Commodity.objects.create(
             name='Blé', impact_endpoint_ReCiPe2016_ecosystem_diversity=3.0
         )
-        Production.objects.create(Asset=asset, commodity=c1, year=2024, production=100.0)
-        Production.objects.create(Asset=asset, commodity=c2, year=2024, production=100.0)
+        Production.objects.create(asset=asset, commodity=c1, year=2024, production=100.0)
+        Production.objects.create(asset=asset, commodity=c2, year=2024, production=100.0)
 
         url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
         data = json.loads(self.client.get(url).content)
@@ -308,3 +309,196 @@ class TransitionRiskPageViewTests(TestCase):
         response = self.client.get(reverse('dashboard:transition_risk'))
         self.assertIsNotNone(response.context['initial_data'])
         self.assertIn('total_impact', response.context['initial_data'])
+
+
+class DependenciesDataTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='depuser', password='testpass')
+        self.client.force_login(self.user)
+
+        self.company = Company.objects.create(name='DepCorp')
+        self.country = Country.objects.create(
+            name='France', water_ownership='Public', land_ownership='Private'
+        )
+        self.region = SubnationalRegion.objects.create(name='IDF', country=self.country)
+        # Commodity with known dependency scores: water=H(0.7), soil=M(0.5), rest=VL(0.0)
+        self.commodity = Commodity.objects.create(
+            name='TestCom',
+            dependency_water='H',
+            dependency_soil_quality='M',
+            dependency_carbon_sequestration='VL',
+            dependency_water_purification='VL',
+            dependency_pest_control='VL',
+            dependency_pollination='VL',
+        )
+        Production.objects.create(
+            company=self.company,
+            commodity=self.commodity,
+            year=2024,
+            production=100.0,
+            scope='direct',
+        )
+
+    def test_score_map_conversion(self):
+        from .views import SCORE_MAP
+        self.assertEqual(SCORE_MAP['VL'], 0.0)
+        self.assertEqual(SCORE_MAP['L'],  0.2)
+        self.assertEqual(SCORE_MAP['M'],  0.5)
+        self.assertEqual(SCORE_MAP['H'],  0.7)
+        self.assertEqual(SCORE_MAP['VH'], 1.0)
+
+    def test_global_exposure_score(self):
+        from .views import _get_dependencies_data
+        data = _get_dependencies_data(self.company)
+        # 6 services: water=0.7, soil=0.5, rest=0.0 → avg = (0.7+0.5+0+0+0+0)/6
+        expected = round((0.7 + 0.5) / 6, 3)
+        self.assertAlmostEqual(data['global_exposure_score'], expected, places=3)
+
+    def test_critical_nodes_counts_h_or_vh(self):
+        from .views import _get_dependencies_data
+        data = _get_dependencies_data(self.company)
+        # water=H(0.7) → this commodity×scope is critical
+        self.assertEqual(data['critical_nodes'], 1)
+
+    def test_primary_service_is_highest_avg(self):
+        from .views import _get_dependencies_data
+        data = _get_dependencies_data(self.company)
+        self.assertEqual(data['primary_service']['key'], 'water')
+        self.assertAlmostEqual(data['primary_service']['score'], 0.7, places=3)
+
+    def test_supply_chain_grouped_by_scope(self):
+        from .views import _get_dependencies_data
+        data = _get_dependencies_data(self.company)
+        scopes = [t['scope'] for t in data['supply_chain']]
+        self.assertIn('direct', scopes)
+
+    def test_supply_chain_only_shows_services_above_threshold(self):
+        from .views import _get_dependencies_data
+        data = _get_dependencies_data(self.company)
+        direct_tier = next(t for t in data['supply_chain'] if t['scope'] == 'direct')
+        # Only water(0.7) and soil(0.5) are >= 0.2
+        service_keys = [s['key'] for s in direct_tier['services']]
+        self.assertIn('water', service_keys)
+        self.assertIn('soil_quality', service_keys)
+        self.assertNotIn('pollination', service_keys)
+
+    def test_supply_chain_labels(self):
+        from .views import _get_dependencies_data
+        data = _get_dependencies_data(self.company)
+        direct_tier = next(t for t in data['supply_chain'] if t['scope'] == 'direct')
+        water_svc = next(s for s in direct_tier['services'] if s['key'] == 'water')
+        self.assertEqual(water_svc['label'], 'Critical')
+        soil_svc = next(s for s in direct_tier['services'] if s['key'] == 'soil_quality')
+        self.assertEqual(soil_svc['label'], 'High')
+
+    def test_empty_company_returns_defaults(self):
+        from .views import _get_dependencies_data
+        empty = Company.objects.create(name='Empty')
+        data = _get_dependencies_data(empty)
+        self.assertIsNone(data['year'])
+        self.assertEqual(data['global_exposure_score'], 0)
+        self.assertEqual(data['critical_nodes'], 0)
+        self.assertIsNone(data['primary_service'])
+        self.assertEqual(data['supply_chain'], [])
+
+    def test_revenue_segments_sorted_by_revenue_desc(self):
+        from .views import _get_dependencies_data
+        sector = Sector.objects.create(name='Agri')
+        sub1 = SubSector.objects.create(
+            name='Céréales', sector=sector,
+            Water_dependency='H', Pollination_dependency='VL',
+            Soil_quality_dependency='VL', Carbon_Sequestration='VL',
+            Water_purification_dependency='VL', Pest_control_dependency='VL',
+        )
+        sub2 = SubSector.objects.create(
+            name='Légumes', sector=sector,
+            Water_dependency='L', Pollination_dependency='VL',
+            Soil_quality_dependency='VL', Carbon_Sequestration='VL',
+            Water_purification_dependency='VL', Pest_control_dependency='VL',
+        )
+        Company_Revenue_Sector.objects.create(
+            company=self.company, subsector=sub1, year=2024, revenue=12_000_000
+        )
+        Company_Revenue_Sector.objects.create(
+            company=self.company, subsector=sub2, year=2024, revenue=5_000_000
+        )
+        data = _get_dependencies_data(self.company)
+        self.assertEqual(len(data['revenue_segments']), 2)
+        self.assertEqual(data['revenue_segments'][0]['subsector'], 'Céréales')
+        self.assertEqual(data['revenue_segments'][0]['exposure_label'], 'High')
+        self.assertEqual(data['revenue_segments'][1]['subsector'], 'Légumes')
+        self.assertEqual(data['revenue_segments'][1]['exposure_label'], 'Low')
+
+    def test_uses_latest_year_only(self):
+        from .views import _get_dependencies_data
+        commodity2 = Commodity.objects.create(
+            name='OldCom',
+            dependency_water='VH',
+            dependency_soil_quality='VH',
+            dependency_carbon_sequestration='VH',
+            dependency_water_purification='VH',
+            dependency_pest_control='VH',
+            dependency_pollination='VH',
+        )
+        # Older year — should be ignored
+        Production.objects.create(
+            company=self.company, commodity=commodity2, year=2020,
+            production=999.0, scope='direct',
+        )
+        data = _get_dependencies_data(self.company)
+        self.assertEqual(data['year'], 2024)
+        # primary service should still reflect 2024 commodity, not 2020 VH one
+        expected_score = round((0.7 + 0.5) / 6, 3)
+        self.assertAlmostEqual(data['global_exposure_score'], expected_score, places=3)
+
+    def test_productions_via_asset_included(self):
+        from .views import _get_dependencies_data
+        asset = Asset.objects.create(
+            name='Site B', latitude=0.0, longitude=0.0,
+            country=self.country, subnational_region=self.region,
+        )
+        Ownership.objects.create(Asset=asset, Company=self.company, ownership='100%')
+        commodity_vh = Commodity.objects.create(
+            name='AssetCom',
+            dependency_water='VH',
+            dependency_soil_quality='VH',
+            dependency_carbon_sequestration='VH',
+            dependency_water_purification='VH',
+            dependency_pest_control='VH',
+            dependency_pollination='VH',
+        )
+        Production.objects.create(
+            asset=asset, commodity=commodity_vh, year=2024,
+            production=50.0, scope='tier 1',
+        )
+        data = _get_dependencies_data(self.company)
+        # 'tier 1' scope should appear because asset-linked production was included
+        scopes = [t['scope'] for t in data['supply_chain']]
+        self.assertIn('tier 1', scopes)
+
+    def test_service_exposure_with_revenue(self):
+        from .views import _get_dependencies_data
+        Company_Revenue.objects.create(
+            company=self.company, year=2024, revenue=10_000_000, currency='EUR'
+        )
+        data = _get_dependencies_data(self.company)
+        se = data['service_exposure']
+        self.assertEqual(se['total_revenue'], 10_000_000)
+        self.assertEqual(se['currency'], 'EUR')
+        water_svc = next(
+            s for cat in se['categories'] for s in cat['services'] if s['key'] == 'water'
+        )
+        self.assertAlmostEqual(water_svc['revenue_exposure'], round(0.7 * 10_000_000), delta=1)
+
+    def test_service_exposure_without_revenue(self):
+        from .views import _get_dependencies_data
+        data = _get_dependencies_data(self.company)
+        se = data['service_exposure']
+        self.assertIsNone(se['total_revenue'])
+        water_svc = next(
+            s for cat in se['categories'] for s in cat['services'] if s['key'] == 'water'
+        )
+        self.assertIsNone(water_svc['revenue_exposure'])
