@@ -49,21 +49,26 @@ _SCOPE_LABELS = {
 _SCOPE_ORDER = ['direct', 'tier 1', 'tier 2', 'raw material']
 
 PHYSICAL_RISKS = [
-    {'key': 'water',                   'name': 'Eau',                          'group': 'Services écosystémiques'},
-    {'key': 'pollination',             'name': 'Pollinisation',                'group': 'Services écosystémiques'},
-    {'key': 'soil_quality',            'name': 'Qualité des sols',             'group': 'Services écosystémiques'},
-    {'key': 'carbon_sequestration',    'name': 'Séquestration carbone',        'group': 'Services écosystémiques'},
-    {'key': 'water_purification',      'name': "Épuration de l'eau",           'group': 'Services écosystémiques'},
-    {'key': 'pest_control',            'name': 'Contrôle des ravageurs',       'group': 'Services écosystémiques'},
-    {'key': 'water_stress',            'name': 'Stress hydrique',              'group': 'Aléas climatiques'},
-    {'key': 'wildfire',                'name': 'Incendie',                     'group': 'Aléas climatiques'},
-    {'key': 'cyclone',                 'name': 'Cyclone',                      'group': 'Aléas climatiques'},
-    {'key': 'drought',                 'name': 'Sécheresse',                   'group': 'Aléas climatiques'},
-    {'key': 'flood',                   'name': 'Inondation',                   'group': 'Aléas climatiques'},
-    {'key': 'coastal_inundation',      'name': 'Submersion côtière',           'group': 'Aléas climatiques'},
-    {'key': 'heatwave',                'name': 'Canicule',                     'group': 'Aléas climatiques'},
-    {'key': 'temperature_variation',   'name': 'Variation de température',      'group': 'Aléas climatiques'},
-    {'key': 'precipitation_variation', 'name': 'Variation des précipitations', 'group': 'Aléas climatiques'},
+    {'key': 'water', 'name': 'Eau', 'group': 'Services écosystémiques'},
+    {'key': 'pollination', 'name': 'Pollinisation', 'group': 'Services écosystémiques'},
+    {'key': 'soil_quality', 'name': 'Qualité des sols', 'group': 'Services écosystémiques'},
+    {'key': 'carbon_sequestration', 'name': 'Séquestration carbone',
+     'group': 'Services écosystémiques'},
+    {'key': 'water_purification', 'name': "Épuration de l'eau",
+     'group': 'Services écosystémiques'},
+    {'key': 'pest_control', 'name': 'Contrôle des ravageurs',
+     'group': 'Services écosystémiques'},
+    {'key': 'water_stress', 'name': 'Stress hydrique', 'group': 'Aléas climatiques'},
+    {'key': 'wildfire', 'name': 'Incendie', 'group': 'Aléas climatiques'},
+    {'key': 'cyclone', 'name': 'Cyclone', 'group': 'Aléas climatiques'},
+    {'key': 'drought', 'name': 'Sécheresse', 'group': 'Aléas climatiques'},
+    {'key': 'flood', 'name': 'Inondation', 'group': 'Aléas climatiques'},
+    {'key': 'coastal_inundation', 'name': 'Submersion côtière', 'group': 'Aléas climatiques'},
+    {'key': 'heatwave', 'name': 'Canicule', 'group': 'Aléas climatiques'},
+    {'key': 'temperature_variation', 'name': 'Variation de température',
+     'group': 'Aléas climatiques'},
+    {'key': 'precipitation_variation', 'name': 'Variation des précipitations',
+     'group': 'Aléas climatiques'},
 ]
 
 
@@ -512,8 +517,10 @@ def _get_physical_risk_data(company):
     assets_out = []
     assets_high_risk = 0
     annual_loss = 0.0
+    risk_cache = {}
     for a in assets:
         risk_vals = {r['key']: getattr(a, f"risk_{r['key']}") for r in PHYSICAL_RISKS}
+        risk_cache[a.pk] = risk_vals
         expo = exposition.get(a.pk, 0.0)
         if max(risk_vals.values()) >= 0.7:
             assets_high_risk += 1
@@ -535,7 +542,7 @@ def _get_physical_risk_data(company):
     for r in PHYSICAL_RISKS:
         key = r['key']
         total = sum(
-            getattr(a, f"risk_{key}") * exposition.get(a.pk, 0.0) * vulnerabilities[key]
+            risk_cache[a.pk][key] * exposition.get(a.pk, 0.0) * vulnerabilities[key]
             for a in assets
         )
         hazards.append({

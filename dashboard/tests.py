@@ -709,7 +709,27 @@ class PhysicalRiskDataTests(TestCase):
         data = _get_physical_risk_data(empty)
         self.assertEqual(data['assets'], [])
         self.assertEqual(data['kpis']['assets_high_risk'], 0)
-        self.assertEqual(data['kpis']['annual_loss'], 0)
+        self.assertAlmostEqual(data['kpis']['annual_loss'], 0.0, places=2)
         # no policies -> every vulnerability defaults to 1.0
         self.assertAlmostEqual(data['kpis']['avg_vulnerability'], 1.0, places=4)
         self.assertTrue(all(h['avg_risk'] == 0.0 for h in data['hazards']))
+
+    def test_assets_without_policies_use_default_vulnerability(self):
+        from .views import _get_physical_risk_data
+        from .models import Ownership
+        company = Company.objects.create(name='NoPolicyPhys')
+        asset = Asset.objects.create(
+            name='Solo', latitude=1.0, longitude=1.0,
+            country=self.country, subnational_region=self.region,
+            risk_flood=0.5,
+        )
+        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Production.objects.create(
+            asset=asset, commodity=self.commodity, year=2024,
+            production=1.0, estimated_revenue=200.0,
+        )
+        data = _get_physical_risk_data(company)
+        flood = next(h for h in data['hazards'] if h['key'] == 'flood')
+        self.assertAlmostEqual(flood['vulnerability'], 1.0, places=4)
+        # annual_loss = 0.5 * 200 * 1.0 = 100 (only flood non-zero)
+        self.assertAlmostEqual(data['kpis']['annual_loss'], 100.0, places=2)
