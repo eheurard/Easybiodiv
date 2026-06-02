@@ -17,6 +17,13 @@ class SubnationalRegion(models.Model):
         return self.name
 
 class Commodity (models.Model):
+    DEPENDENCY_CHOICES = [
+        ('VL', 'Very low'),
+        ('L', 'Low'),
+        ('M', 'Medium'),
+        ('H', 'High'),
+        ('VH', 'Very High'),
+    ]
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     unit = models.CharField(max_length=255, default="tonnes")
@@ -34,6 +41,42 @@ class Commodity (models.Model):
     impact_endpoint_ReCiPe2016_ecosystem_diversity = models.FloatField(default=0)
     impact_endpoint_ReCiPe2016_resource_availability = models.FloatField(default=0)
     
+    dependency_water = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+    dependency_pollination = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+    dependency_soil_quality = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+    dependency_carbon_sequestration = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+    dependency_water_purification = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+    dependency_pest_control = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+
+    def __str__(self):
+        return self.name
+
+class Sector(models.Model):
+    name = models.CharField(max_length=255)
+    NACE_code = models.CharField(max_length=255, blank=True,null=True)
+    description = models.TextField(blank=True,null=True)
+    def __str__(self):
+        return self.name
+
+class SubSector(models.Model):
+    DEPENDENCY_CHOICES = [
+        ('VL', 'Very low'),
+        ('L', 'Low'),
+        ('M', 'Medium'),
+        ('H', 'High'),
+        ('VH', 'Very High'),
+    ]
+    name = models.CharField(max_length=255)
+    sector = models.ForeignKey(Sector, on_delete=models.CASCADE)
+    NACE_code = models.CharField(max_length=255, blank=True,null=True)
+    description = models.TextField(blank=True,null=True)
+    Water_dependency = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+    Pollination_dependency = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+    Soil_quality_dependency = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+    Carbon_Sequestration = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+    Water_purification_dependency = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+    Pest_control_dependency = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+
     def __str__(self):
         return self.name
 
@@ -44,22 +87,48 @@ class Asset(models.Model):
     longitude = models.FloatField()
     country = models.ForeignKey(Country, on_delete=models.CASCADE)
     subnational_region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE)
+    risk_water = models.FloatField(default=0)
+    risk_pollination = models.FloatField(default=0)
+    risk_soil_quality = models.FloatField(default=0)
+    risk_carbon_sequestration = models.FloatField(default=0)
+    risk_water_purification = models.FloatField(default=0)
+    risk_pest_control = models.FloatField(default=0)
+    risk_water_stress = models.FloatField(default=0)
+    risk_wildfire = models.FloatField(default=0)
+    risk_cyclone = models.FloatField(default=0)
+    risk_drought = models.FloatField(default=0)
+    risk_flood = models.FloatField(default=0)
+    risk_coastal_inundation = models.FloatField(default=0)
+    risk_heatwave = models.FloatField(default=0)
+    risk_temperature_variation = models.FloatField(default=0)
+    risk_precipitation_variation = models.FloatField(default=0)
+    
     def __str__(self):
         return self.name
-
-class Production(models.Model):
-    Asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
-    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE)
-    year = models.IntegerField()
-    production = models.FloatField()
-    def __str__(self):
-        return str(self.Asset.name) + " - " + str(self.commodity.name) + " - " + str(self.year)
 
 class Company (models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    isin = models.FloatField(default=0)
+    ticker = models.CharField(max_length=255, null=True, blank=True)
     def __str__(self):
         return self.name
+
+class Production(models.Model):
+    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE)
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
+    subnational_region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True)
+    country = models.ForeignKey(Country, on_delete=models.CASCADE, null=True, blank=True)
+    scope = models.CharField(max_length=15, choices=[('direct', 'direct'), ('tier 1', 'tier 1'), ('tier 2', 'tier 2'), ('raw material', 'raw material')], default='direct')
+    year = models.IntegerField()
+    production = models.FloatField()
+    estimated_revenue = models.FloatField(default = 0.0)
+    def __str__(self):
+        asset_name = self.asset.name if self.asset else "no asset"
+        return f"{asset_name} - {self.commodity.name} - {self.year}"
+
+
 
 class Company_Revenue(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
@@ -68,6 +137,14 @@ class Company_Revenue(models.Model):
     currency = models.CharField(max_length=255)
     def __str__(self):
         return str(self.company.name) + " - " + str(self.year)
+
+class Company_Revenue_Sector(models.Model):
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    subsector = models.ForeignKey(SubSector, on_delete=models.CASCADE)
+    year = models.IntegerField()
+    revenue = models.FloatField()
+    def __str__(self):
+        return str(self.company.name) + " - " + str(self.subsector.sector.name) + " - " + str(self.subsector.name) + " - " + str(self.year)
 
 class Policy_Type(models.Model):
     name = models.CharField(max_length=255)
@@ -87,6 +164,21 @@ class Policy_Level(models.Model):
     name = models.CharField(max_length=255) 
     score = models.FloatField(null=True,blank=True)
     description = models.TextField(blank=True)
+    vulnerability_water = models.FloatField(default=1.0)
+    vulnerability_pollination = models.FloatField(default=1.0)
+    vulnerability_soil_quality = models.FloatField(default=1.0)
+    vulnerability_carbon_sequestration = models.FloatField(default=1.0)
+    vulnerability_water_purification = models.FloatField(default=1.0)
+    vulnerability_pest_control = models.FloatField(default=1.0)
+    vulnerability_water_stress = models.FloatField(default=1.0)
+    vulnerability_wildfire = models.FloatField(default=1.0)
+    vulnerability_cyclone = models.FloatField(default=1.0)
+    vulnerability_drought = models.FloatField(default=1.0)
+    vulnerability_flood = models.FloatField(default=1.0)
+    vulnerability_coastal_inundation = models.FloatField(default=1.0)
+    vulnerability_heatwave = models.FloatField(default=1.0)
+    vulnerability_temperature_variation = models.FloatField(default=1.0)
+    vulnerability_precipitation_variation = models.FloatField(default=1.0)
     def __str__(self):
         return str(self.subcategory.policy_type.name) + " - " + str(self.subcategory.name) + " - " + str(self.name)
     
