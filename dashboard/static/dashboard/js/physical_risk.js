@@ -1,4 +1,4 @@
-const PR_COMPANY_KEY = 'selected-company-id';
+const PR_COMPANY_KEY = 'selected-company-id'; // shared localStorage slot across risk pages
 
 const PR_STATE = {
   data: null,
@@ -41,8 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (savedExists && initialData && savedId !== initialData.company_id) {
     fetch(PHYSICAL_RISK_API_URL.replace('/0/', '/' + savedId + '/'))
-      .then(r => r.json())
-      .then(data => { prRender(data); prInitCombobox(companies, data); });
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(data => { prRender(data); prInitCombobox(companies, data); })
+      .catch(err => console.error('physical_risk fetch failed:', err));
   } else {
     if (initialData) prRender(initialData);
     prInitCombobox(companies, initialData);
@@ -92,8 +93,9 @@ function prInitCombobox(companies, initialData) {
     closeList();
     localStorage.setItem(PR_COMPANY_KEY, id);
     fetch(PHYSICAL_RISK_API_URL.replace('/0/', '/' + id + '/'))
-      .then(r => r.json())
-      .then(data => prRender(data));
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(data => prRender(data))
+      .catch(err => console.error('physical_risk fetch failed:', err));
   });
 
   document.addEventListener('click', (e) => {
@@ -137,14 +139,18 @@ function prRenderKpis(data) {
   const highRisk = document.getElementById('pr-high-risk');
   if (highRisk) highRisk.textContent = data.kpis.assets_high_risk;
   const avgVuln = document.getElementById('pr-avg-vuln');
-  if (avgVuln) avgVuln.textContent = data.kpis.avg_vulnerability.toFixed(2);
+  if (avgVuln) {
+    const av = data.kpis.avg_vulnerability;
+    avgVuln.textContent = av != null ? av.toFixed(2) : '—';
+  }
   prRenderLoss();
 }
 
 function prRenderLoss() {
   const el = document.getElementById('pr-annual-loss');
   if (!el || !PR_STATE.data) return;
-  el.textContent = prFmtEuro(PR_STATE.data.kpis.annual_loss * PR_STATE.horizon);
+  const loss = PR_STATE.data.kpis.annual_loss;
+  el.textContent = loss != null ? prFmtEuro(loss * PR_STATE.horizon) : '—';
 }
 
 
@@ -156,14 +162,20 @@ function prRenderRanking(data) {
     container.innerHTML = '<p class="pr-empty">Aucune donnée disponible.</p>';
     return;
   }
-  const maxRisk = Math.max(...data.hazards.map(h => h.avg_risk), 0) || 1;
+  const maxRisk = data.hazards.reduce((m, h) => h.avg_risk > m ? h.avg_risk : m, 0) || 1;
   container.innerHTML = data.hazards.map(h => {
     const pct = (h.avg_risk / maxRisk) * 100;
-    const sel = h.key === PR_STATE.selectedKey ? ' pr-rank-row--selected' : '';
+    const isSel = h.key === PR_STATE.selectedKey;
+    const sel = isSel ? ' pr-rank-row--selected' : '';
     return `
-      <button type="button" class="pr-rank-row${sel}" data-key="${h.key}" aria-pressed="${h.key === PR_STATE.selectedKey}">
+      <button type="button"
+        class="pr-rank-row${sel}"
+        data-key="${h.key}"
+        aria-pressed="${isSel}">
         <span class="pr-rank-row__name">${escHtml(h.name)}</span>
-        <span class="pr-rank-row__track"><span class="pr-rank-row__fill" style="width:${pct.toFixed(1)}%"></span></span>
+        <span class="pr-rank-row__track">
+          <span class="pr-rank-row__fill" style="width:${pct.toFixed(1)}%"></span>
+        </span>
         <span class="pr-rank-row__val data-tabular">${prFmtEuro(h.avg_risk)}</span>
       </button>`;
   }).join('');
@@ -209,7 +221,7 @@ function prRenderTable() {
   }
 
   const key = hazard.key;
-  const vuln = hazard.vulnerability;
+  const vuln = hazard.vulnerability != null ? hazard.vulnerability : 0;
   const rows = data.assets.map(a => {
     const hz = a.risk[key] || 0;
     const risk = hz * a.exposition * vuln;
@@ -289,7 +301,7 @@ function prBuildGeojson() {
   const key = hazard.key;
   const vuln = hazard.vulnerability;
   const risks = data.assets.map(a => (a.risk[key] || 0) * a.exposition * vuln);
-  const maxRisk = Math.max(...risks, 0) || 1;
+  const maxRisk = risks.reduce((m, v) => v > m ? v : m, 0) || 1;
 
   const features = data.assets.map((a, i) => {
     const hz = a.risk[key] || 0;
