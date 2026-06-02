@@ -602,3 +602,114 @@ class DependenciesPageViewTests(TestCase):
         url = reverse('dashboard:dependencies_data', kwargs={'pk': company.pk})
         response = self.client.post(url)
         self.assertEqual(response.status_code, 405)
+
+
+class PhysicalRiskDataTests(TestCase):
+
+    def setUp(self):
+        from .models import Ownership
+        self.company = Company.objects.create(name='PhysCorp')
+        self.country = Country.objects.create(
+            name='France', water_ownership='Public', land_ownership='Private'
+        )
+        self.region = SubnationalRegion.objects.create(name='IDF', country=self.country)
+        self.commodity = Commodity.objects.create(name='Soja')
+
+        # Asset A1: flood=0.8 (high risk), drought=0.5, rest 0
+        self.a1 = Asset.objects.create(
+            name='Site A1', latitude=48.0, longitude=2.0,
+            country=self.country, subnational_region=self.region,
+            risk_flood=0.8, risk_drought=0.5,
+        )
+        # Asset A2: flood=0.2, rest 0 (not high risk)
+        self.a2 = Asset.objects.create(
+            name='Site A2', latitude=43.0, longitude=5.0,
+            country=self.country, subnational_region=self.region,
+            risk_flood=0.2,
+        )
+        Ownership.objects.create(Asset=self.a1, Company=self.company, ownership='100%')
+        Ownership.objects.create(Asset=self.a2, Company=self.company, ownership='100%')
+
+        # Exposition: A1 latest year 2024 = 1000 (older 2022 ignored); A2 2024 = 500
+        Production.objects.create(
+            asset=self.a1, commodity=self.commodity, year=2022,
+            production=1.0, estimated_revenue=9999.0,
+        )
+        Production.objects.create(
+            asset=self.a1, commodity=self.commodity, year=2024,
+            production=1.0, estimated_revenue=1000.0,
+        )
+        Production.objects.create(
+            asset=self.a2, commodity=self.commodity, year=2024,
+            production=1.0, estimated_revenue=500.0,
+        )
+
+        # Policies: two levels with vulnerability_flood 1.0 and 1.5 -> mean 1.25
+        pt = Policy_Type.objects.create(name='Climat')
+        sub = Policy_Subcategory.objects.create(name='Adaptation', policy_type=pt)
+        lvl1 = Policy_Level.objects.create(
+            name='Niveau 1', subcategory=sub, vulnerability_flood=1.0
+        )
+        lvl2 = Policy_Level.objects.create(
+            name='Niveau 2', subcategory=sub, vulnerability_flood=1.5
+        )
+        Company_Policy.objects.create(company=self.company, policy_level=lvl1)
+        Company_Policy.objects.create(company=self.company, policy_level=lvl2)
+
+    def test_exposition_uses_latest_year_only(self):
+        from .views import _get_physical_risk_data
+        data = _get_physical_risk_data(self.company)
+        a1 = next(a for a in data['assets'] if a['name'] == 'Site A1')
+        self.assertAlmostEqual(a1['exposition'], 1000.0, places=2)
+
+    def test_vulnerability_is_mean_across_policies(self):
+        from .views import _get_physical_risk_data
+        data = _get_physical_risk_data(self.company)
+        flood = next(h for h in data['hazards'] if h['key'] == 'flood')
+        self.assertAlmostEqual(flood['vulnerability'], 1.25, places=3)
+
+    def test_assets_high_risk_count(self):
+        from .views import _get_physical_risk_data
+        data = _get_physical_risk_data(self.company)
+        # only A1 has a hazard >= 0.7 (flood 0.8)
+        self.assertEqual(data['kpis']['assets_high_risk'], 1)
+
+    def test_annual_loss(self):
+        from .views import _get_physical_risk_data
+        data = _get_physical_risk_data(self.company)
+        # A1: flood 0.8*1000*1.25=1000 + drought 0.5*1000*1.0=500 = 1500
+        # A2: flood 0.2*500*1.25=125 = 125  -> total 1625
+        self.assertAlmostEqual(data['kpis']['annual_loss'], 1625.0, places=2)
+
+    def test_avg_vulnerability(self):
+        from .views import _get_physical_risk_data
+        data = _get_physical_risk_data(self.company)
+        # 14 hazards at 1.0 + flood 1.25, over 15
+        self.assertAlmostEqual(data['kpis']['avg_vulnerability'], (14 + 1.25) / 15, places=4)
+
+    def test_ranking_sorted_flood_first(self):
+        from .views import _get_physical_risk_data
+        data = _get_physical_risk_data(self.company)
+        # flood avg_risk = (1000+125)/2 = 562.5 ; drought = (500+0)/2 = 250
+        self.assertEqual(data['hazards'][0]['key'], 'flood')
+        self.assertAlmostEqual(data['hazards'][0]['avg_risk'], 562.5, places=2)
+        drought = next(h for h in data['hazards'] if h['key'] == 'drought')
+        self.assertAlmostEqual(drought['avg_risk'], 250.0, places=2)
+
+    def test_assets_carry_all_15_risk_keys(self):
+        from .views import _get_physical_risk_data, PHYSICAL_RISKS
+        data = _get_physical_risk_data(self.company)
+        a1 = next(a for a in data['assets'] if a['name'] == 'Site A1')
+        self.assertEqual(set(a1['risk'].keys()), {r['key'] for r in PHYSICAL_RISKS})
+        self.assertEqual(len(PHYSICAL_RISKS), 15)
+
+    def test_empty_company_defaults(self):
+        from .views import _get_physical_risk_data
+        empty = Company.objects.create(name='EmptyPhys')
+        data = _get_physical_risk_data(empty)
+        self.assertEqual(data['assets'], [])
+        self.assertEqual(data['kpis']['assets_high_risk'], 0)
+        self.assertEqual(data['kpis']['annual_loss'], 0)
+        # no policies -> every vulnerability defaults to 1.0
+        self.assertAlmostEqual(data['kpis']['avg_vulnerability'], 1.0, places=4)
+        self.assertTrue(all(h['avg_risk'] == 0.0 for h in data['hazards']))

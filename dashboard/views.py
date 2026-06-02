@@ -48,6 +48,24 @@ _SCOPE_LABELS = {
 
 _SCOPE_ORDER = ['direct', 'tier 1', 'tier 2', 'raw material']
 
+PHYSICAL_RISKS = [
+    {'key': 'water',                   'name': 'Eau',                          'group': 'Services écosystémiques'},
+    {'key': 'pollination',             'name': 'Pollinisation',                'group': 'Services écosystémiques'},
+    {'key': 'soil_quality',            'name': 'Qualité des sols',             'group': 'Services écosystémiques'},
+    {'key': 'carbon_sequestration',    'name': 'Séquestration carbone',        'group': 'Services écosystémiques'},
+    {'key': 'water_purification',      'name': "Épuration de l'eau",           'group': 'Services écosystémiques'},
+    {'key': 'pest_control',            'name': 'Contrôle des ravageurs',       'group': 'Services écosystémiques'},
+    {'key': 'water_stress',            'name': 'Stress hydrique',              'group': 'Aléas climatiques'},
+    {'key': 'wildfire',                'name': 'Incendie',                     'group': 'Aléas climatiques'},
+    {'key': 'cyclone',                 'name': 'Cyclone',                      'group': 'Aléas climatiques'},
+    {'key': 'drought',                 'name': 'Sécheresse',                   'group': 'Aléas climatiques'},
+    {'key': 'flood',                   'name': 'Inondation',                   'group': 'Aléas climatiques'},
+    {'key': 'coastal_inundation',      'name': 'Submersion côtière',           'group': 'Aléas climatiques'},
+    {'key': 'heatwave',                'name': 'Canicule',                     'group': 'Aléas climatiques'},
+    {'key': 'temperature_variation',   'name': 'Variation de température',      'group': 'Aléas climatiques'},
+    {'key': 'precipitation_variation', 'name': 'Variation des précipitations', 'group': 'Aléas climatiques'},
+]
+
 
 def _exposure_label(score):
     if score >= 0.7:
@@ -452,6 +470,95 @@ def _get_transition_risk_data(company):
         'assets': assets_list,
         'countries': countries,
         'sankey_links': sankey_links,
+    }
+
+
+def _get_physical_risk_data(company):
+    assets = list(
+        Asset.objects.filter(ownership__Company=company)
+        .select_related('country')
+        .distinct()
+    )
+
+    # --- Vulnerability: mean of vulnerability_<key> across the company's policies ---
+    levels = [
+        cp.policy_level
+        for cp in Company_Policy.objects.filter(company=company).select_related('policy_level')
+        if cp.policy_level_id
+    ]
+
+    def _vuln(key):
+        vals = [getattr(level, f'vulnerability_{key}') for level in levels]
+        return sum(vals) / len(vals) if vals else 1.0
+
+    vulnerabilities = {r['key']: _vuln(r['key']) for r in PHYSICAL_RISKS}
+
+    # --- Exposition: sum of estimated_revenue for each asset's latest production year ---
+    asset_ids = [a.pk for a in assets]
+    latest_years = dict(
+        Production.objects.filter(asset_id__in=asset_ids)
+        .values('asset_id')
+        .annotate(max_year=Max('year'))
+        .values_list('asset_id', 'max_year')
+    )
+    exposition = defaultdict(float)
+    for p in Production.objects.filter(asset_id__in=asset_ids).values(
+        'asset_id', 'year', 'estimated_revenue'
+    ):
+        if latest_years.get(p['asset_id']) == p['year']:
+            exposition[p['asset_id']] += p['estimated_revenue']
+
+    # --- Per-asset payload + KPI accumulation ---
+    assets_out = []
+    assets_high_risk = 0
+    annual_loss = 0.0
+    for a in assets:
+        risk_vals = {r['key']: getattr(a, f"risk_{r['key']}") for r in PHYSICAL_RISKS}
+        expo = exposition.get(a.pk, 0.0)
+        if max(risk_vals.values()) >= 0.7:
+            assets_high_risk += 1
+        for key, hazard in risk_vals.items():
+            annual_loss += hazard * expo * vulnerabilities[key]
+        assets_out.append({
+            'id': a.pk,
+            'name': a.name,
+            'latitude': a.latitude,
+            'longitude': a.longitude,
+            'country': a.country.name,
+            'exposition': round(expo, 2),
+            'risk': {k: round(v, 4) for k, v in risk_vals.items()},
+        })
+
+    # --- Hazard ranking (also drives the client-side selector) ---
+    n_assets = len(assets)
+    hazards = []
+    for r in PHYSICAL_RISKS:
+        key = r['key']
+        total = sum(
+            getattr(a, f"risk_{key}") * exposition.get(a.pk, 0.0) * vulnerabilities[key]
+            for a in assets
+        )
+        hazards.append({
+            'key': key,
+            'name': r['name'],
+            'group': r['group'],
+            'vulnerability': round(vulnerabilities[key], 4),
+            'avg_risk': round(total / n_assets, 2) if n_assets else 0.0,
+        })
+    hazards.sort(key=lambda h: -h['avg_risk'])
+
+    avg_vulnerability = sum(vulnerabilities.values()) / len(PHYSICAL_RISKS)
+
+    return {
+        'company_id': company.pk,
+        'company_name': company.name,
+        'kpis': {
+            'assets_high_risk': assets_high_risk,
+            'avg_vulnerability': round(avg_vulnerability, 4),
+            'annual_loss': round(annual_loss, 2),
+        },
+        'hazards': hazards,
+        'assets': assets_out,
     }
 
 
