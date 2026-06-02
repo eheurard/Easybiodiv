@@ -68,7 +68,9 @@
                   </a>
                 </li>
                 <li>
-                  <a href="#" class="sidebar__nav-sublink" aria-label="Risque physique">
+                  <a href="{% url 'dashboard:physical_risk' %}"
+                     class="sidebar__nav-sublink {% block nav_physical_risk %}{% endblock %}"
+                     aria-label="Risque physique">
                     Risque physique
                   </a>
                 </li>
