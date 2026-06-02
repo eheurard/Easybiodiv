@@ -29,8 +29,8 @@ chargé par la page Vue d'ensemble).
 | Élément | Fichier | Détail |
 |---|---|---|
 | Builder | `dashboard/views.py` | `_get_physical_risk_data(company)` |
-| Vue page | `dashboard/views.py` | `physical_risk(request)` — `@login_required @require_GET` |
-| Vue API | `dashboard/views.py` | `physical_risk_data(request, pk)` — `@login_required @require_GET`, renvoie `JsonResponse` |
+| Vue page | `dashboard/views.py` | `physical_risk(request)` — `@require_GET` (page publique, pas de login) |
+| Vue API | `dashboard/views.py` | `physical_risk_data(request, pk)` — `@require_GET`, renvoie `JsonResponse` (page publique, pas de login) |
 | URLs | `dashboard/urls.py` | `physical-risk/` et `api/company/<int:pk>/physical-risk/` |
 | Template | `templates/dashboard/physical_risk.html` | extends `base.html`, charge MapLibre CSS/JS, réutilise le combobox entreprise |
 | Nav | `templates/base.html` | brancher le sous-lien « Risque physique » sur l'URL + ajouter le bloc `nav_physical_risk` actif |
@@ -197,10 +197,9 @@ Le JS calcule, pour l'aléa sélectionné `k` :
   moyenne de vulnérabilité sur plusieurs politiques.
 - Cas limites : entreprise sans actif (zéros, listes vides) ; entreprise sans
   politique (vuln = 1.0).
-- Vue `physical_risk` : `200` connecté, redirection si non connecté
-  (`@login_required`).
-- Vue `physical_risk_data` : `200` + forme JSON attendue ; `404` sur pk inexistant ;
-  redirection si non connecté.
+- Vue `physical_risk` : `200` (accessible sans connexion).
+- Vue `physical_risk_data` : `200` + forme JSON attendue (accessible sans
+  connexion) ; `404` sur pk inexistant.
 
 ## 12. Conformité projet
 
