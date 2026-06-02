@@ -70,8 +70,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Overview page ──────────────────────────────────────────────────────
+  // Gated on #overview-map so this block runs ONLY on the overview page: other
+  // pages (transition_risk, dependencies, physical_risk) also emit #companies-data
+  // but have their own combobox/fetch logic and no COMPANY_API_URL.
   const companiesEl = document.getElementById('companies-data');
-  if (companiesEl) {
+  if (companiesEl && document.getElementById('overview-map')) {
     const companies = JSON.parse(companiesEl.textContent);
     const initialDataEl = document.getElementById('initial-data');
     const initialData = initialDataEl ? JSON.parse(initialDataEl.textContent) : null;
