@@ -627,3 +627,22 @@ def dependencies(request):
 def dependencies_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_dependencies_data(company))
+
+
+@require_GET
+def physical_risk(request):
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    initial_data = None
+    if companies:
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = _get_physical_risk_data(first)
+    return render(request, 'dashboard/physical_risk.html', {
+        'companies': companies,
+        'initial_data': initial_data,
+    })
+
+
+@require_GET
+def physical_risk_data(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    return JsonResponse(_get_physical_risk_data(company))

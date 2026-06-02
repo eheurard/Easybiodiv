@@ -733,3 +733,52 @@ class PhysicalRiskDataTests(TestCase):
         self.assertAlmostEqual(flood['vulnerability'], 1.0, places=4)
         # annual_loss = 0.5 * 200 * 1.0 = 100 (only flood non-zero)
         self.assertAlmostEqual(data['kpis']['annual_loss'], 100.0, places=2)
+
+
+class PhysicalRiskPageViewTests(TestCase):
+
+    def test_page_returns_200_without_login(self):
+        response = self.client.get(reverse('dashboard:physical_risk'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_page_uses_correct_template(self):
+        response = self.client.get(reverse('dashboard:physical_risk'))
+        self.assertTemplateUsed(response, 'dashboard/physical_risk.html')
+
+    def test_companies_in_context(self):
+        Company.objects.create(name='CtxPhys')
+        response = self.client.get(reverse('dashboard:physical_risk'))
+        self.assertIn('companies', response.context)
+
+    def test_initial_data_none_without_companies(self):
+        response = self.client.get(reverse('dashboard:physical_risk'))
+        self.assertIsNone(response.context['initial_data'])
+
+    def test_initial_data_present_with_companies(self):
+        Company.objects.create(name='HasDataPhys')
+        response = self.client.get(reverse('dashboard:physical_risk'))
+        self.assertIsNotNone(response.context['initial_data'])
+        self.assertIn('kpis', response.context['initial_data'])
+
+    def test_api_returns_200_without_login(self):
+        company = Company.objects.create(name='ApiPhys')
+        url = reverse('dashboard:physical_risk_data', kwargs={'pk': company.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_api_content_type_is_json(self):
+        company = Company.objects.create(name='JsonPhys')
+        url = reverse('dashboard:physical_risk_data', kwargs={'pk': company.pk})
+        response = self.client.get(url)
+        self.assertIn('application/json', response['Content-Type'])
+
+    def test_api_404_on_missing_company(self):
+        url = reverse('dashboard:physical_risk_data', kwargs={'pk': 99999})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_api_post_not_allowed(self):
+        company = Company.objects.create(name='PostPhys')
+        url = reverse('dashboard:physical_risk_data', kwargs={'pk': company.pk})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 405)
