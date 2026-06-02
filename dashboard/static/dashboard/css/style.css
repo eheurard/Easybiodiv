@@ -1693,3 +1693,153 @@ a.app-header__avatar {
   font-weight: 700;
   letter-spacing: 0.03em;
 }
+
+/* ─── Physical risk page ─────────────────────────────────────────────────── */
+.pr-empty {
+  font-size: var(--text-body-sm-size);
+  color: var(--color-outline);
+  font-style: italic;
+}
+
+.pr-horizon {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.pr-horizon__btn {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-outline-variant);
+  background: var(--color-surface-container-lowest);
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+}
+
+.pr-horizon__btn.active {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
+}
+
+.pr-mid-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.pr-mid-row .map-card {
+  flex: 2;
+}
+
+.pr-ranking-card {
+  flex: 1;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.pr-ranking-card__title {
+  margin-bottom: 12px;
+  display: block;
+}
+
+.pr-rank-row {
+  display: grid;
+  grid-template-columns: 1fr 80px auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: var(--text-body-sm-size);
+  color: var(--color-on-surface);
+}
+
+.pr-rank-row:hover {
+  background: var(--color-surface-container-low);
+}
+
+.pr-rank-row--selected {
+  background: var(--color-surface-container);
+  border-color: var(--color-primary);
+}
+
+.pr-rank-row__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pr-rank-row__track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-surface-dim);
+  overflow: hidden;
+}
+
+.pr-rank-row__fill {
+  display: block;
+  height: 100%;
+  background: var(--color-primary);
+}
+
+.pr-rank-row__val {
+  font-size: 11px;
+  color: var(--color-on-surface-variant);
+  white-space: nowrap;
+}
+
+.pr-table-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.pr-table-card__hazard {
+  font-size: var(--text-body-sm-size);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.pr-table-wrap {
+  overflow-x: auto;
+}
+
+.pr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-body-sm-size);
+}
+
+.pr-table th {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-outline-variant);
+  color: var(--color-on-surface-variant);
+  font-weight: 600;
+}
+
+.pr-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-surface-container-high);
+  color: var(--color-on-surface);
+}
+
+.pr-table th:not(:first-child),
+.pr-table td:not(:first-child) {
+  text-align: right;
+}
+
+.pr-table__risk {
+  font-weight: 700;
+  color: var(--color-primary);
+}
