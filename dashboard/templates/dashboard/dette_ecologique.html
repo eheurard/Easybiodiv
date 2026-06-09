@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dette écologique — Easybiodiv{% endblock %}
+
+{% block nav_risks_open %}open{% endblock %}
+{% block nav_dette_ecologique %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
+{% endblock %}
+
+{% block header_left %}
+<div class="company-combobox" id="company-combobox" role="combobox"
+     aria-expanded="false" aria-haspopup="listbox" aria-owns="company-listbox">
+  <span class="company-combobox__label label-caps">Entreprise</span>
+  <div class="company-combobox__input-wrap">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M10 10l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+    <input type="text" id="company-search" class="company-combobox__input"
+           placeholder="Rechercher une entreprise…"
+           autocomplete="off" aria-autocomplete="list"
+           aria-controls="company-listbox" aria-label="Sélectionner une entreprise">
+    <svg class="company-combobox__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <ul id="company-listbox" class="company-combobox__listbox" role="listbox" hidden></ul>
+</div>
+{% endblock header_left %}
+
+{% block content %}
+<div class="de-page">
+
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="de-total-lbiodiv">—</div>
+      <div class="kpi-card__label label-caps">Lbiodiv total</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="de-year">—</div>
+      <div class="kpi-card__label label-caps">Année de référence</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="de-point-count">—</div>
+      <div class="kpi-card__label label-caps" id="de-point-count-label">Assets</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="de-top-commodity">—</div>
+      <div class="kpi-card__label label-caps">Top commodité</div>
+    </div>
+  </div>
+
+  <div class="de-toggle-row">
+    <span class="label-caps de-toggle-label">Regrouper par :</span>
+    <div class="de-toggle" role="group" aria-label="Mode d'affichage">
+      <button class="de-toggle__btn de-toggle__btn--active"
+              data-mode="asset" aria-pressed="true">Par asset</button>
+      <button class="de-toggle__btn"
+              data-mode="region" aria-pressed="false">Par région subnational</button>
+    </div>
+  </div>
+
+  <div class="card de-map-card">
+    <div id="de-map" class="de-map"></div>
+    <div class="de-legend" id="de-legend" aria-label="Légende commodités">
+      <div class="de-legend__title label-caps">Commodités</div>
+      <ul class="de-legend__list" id="de-legend-list"></ul>
+    </div>
+    <div class="de-tooltip" id="de-tooltip" hidden></div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ initial_data|json_script:"de-data" }}
+{{ companies|json_script:"de-companies" }}
+<script>var DE_API_URL = "{% url 'dashboard:dette_ecologique_data' pk=0 %}";</script>
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+<script src="{% static 'dashboard/js/dette_ecologique.js' %}" defer></script>
+{% endblock %}

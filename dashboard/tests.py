@@ -894,3 +894,22 @@ class DetteEcologiqueDataTests(TestCase):
         self.assertEqual(len(result['regions']), 1)
         # 2.0*10.0*100.0*0.5 + 2.0*10.0*50.0*0.5 = 1000 + 500 = 1500
         self.assertAlmostEqual(result['regions'][0]['total_lbiodiv'], 1500.0, places=2)
+
+
+from django.contrib.auth import get_user_model
+
+
+class DetteEcologiqueViewTests(TestCase):
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='tester', password='pass')
+        self.client.login(username='tester', password='pass')
+
+    def test_mesure_empreinte_returns_200(self):
+        response = self.client.get(reverse('dashboard:mesure_empreinte'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dette_ecologique_returns_200(self):
+        response = self.client.get(reverse('dashboard:dette_ecologique'))
+        self.assertEqual(response.status_code, 200)

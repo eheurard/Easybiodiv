@@ -12,4 +12,6 @@ urlpatterns = [
     path('api/company/<int:pk>/dependencies/', views.dependencies_data, name='dependencies_data'),
     path('physical-risk/', views.physical_risk, name='physical_risk'),
     path('api/company/<int:pk>/physical-risk/', views.physical_risk_data, name='physical_risk_data'),
+    path('dette-ecologique/', views.dette_ecologique, name='dette_ecologique'),
+    path('api/company/<int:pk>/dette-ecologique/', views.dette_ecologique_data, name='dette_ecologique_data'),
 ]

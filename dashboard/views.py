@@ -789,3 +789,24 @@ def physical_risk(request):
 def physical_risk_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_physical_risk_data(company))
+
+
+@login_required
+@require_GET
+def dette_ecologique(request):
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    initial_data = None
+    if companies:
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = _get_dette_ecologique_data(first)
+    return render(request, 'dashboard/dette_ecologique.html', {
+        'companies': companies,
+        'initial_data': initial_data,
+    })
+
+
+@login_required
+@require_GET
+def dette_ecologique_data(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    return JsonResponse(_get_dette_ecologique_data(company))
