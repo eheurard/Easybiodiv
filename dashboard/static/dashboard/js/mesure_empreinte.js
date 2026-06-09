@@ -1,4 +1,4 @@
-const TR_COMPANY_KEY = 'selected-company-id';
+const ME_COMPANY_KEY = 'selected-company-id';
 
 document.addEventListener('DOMContentLoaded', () => {
   const companiesEl = document.getElementById('companies-data');
@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const initialDataEl = document.getElementById('initial-data');
   const initialData = initialDataEl ? JSON.parse(initialDataEl.textContent) : null;
 
-  const savedId = parseInt(localStorage.getItem(TR_COMPANY_KEY), 10);
+  const savedId = parseInt(localStorage.getItem(ME_COMPANY_KEY), 10);
   const savedExists = savedId && companies.some(c => c.id === savedId);
 
   if (savedExists && initialData && savedId !== initialData.company_id) {
@@ -68,7 +68,7 @@ function initTrCombobox(companies, initialData) {
     selected = id;
     input.value = opt.textContent;
     closeList();
-    localStorage.setItem(TR_COMPANY_KEY, id);
+    localStorage.setItem(ME_COMPANY_KEY, id);
     fetch(MESURE_EMPREINTE_API_URL.replace('/0/', '/' + id + '/'))
       .then(r => r.json())
       .then(data => renderTransitionRisk(data));

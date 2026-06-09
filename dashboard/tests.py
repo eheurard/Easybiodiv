@@ -140,7 +140,7 @@ class DashboardIndexViewTests(TestCase):
         self.assertIsNone(response.context['initial_data'])
 
 
-class TransitionRiskDataViewTests(TestCase):
+class MesureEmpreinteDataViewTests(TestCase):
 
     def setUp(self):
         from django.contrib.auth import get_user_model
@@ -279,7 +279,7 @@ class TransitionRiskDataViewTests(TestCase):
         self.assertEqual(data['commodities'][0]['name'], 'Blé')
 
 
-class TransitionRiskPageViewTests(TestCase):
+class MesureEmpreintePageViewTests(TestCase):
 
     def setUp(self):
         from django.contrib.auth import get_user_model
