@@ -7,6 +7,7 @@ from .models import (
     Policy_Subcategory, Policy_Type, Production, Sector, SubnationalRegion,
     SubSector,
 )
+from .views import _get_dette_ecologique_data
 
 
 def _make_world():
@@ -782,3 +783,114 @@ class PhysicalRiskPageViewTests(TestCase):
         url = reverse('dashboard:physical_risk_data', kwargs={'pk': company.pk})
         response = self.client.post(url)
         self.assertEqual(response.status_code, 405)
+
+
+class DetteEcologiqueDataTests(TestCase):
+
+    def setUp(self):
+        self.company = Company.objects.create(name='TestCorp')
+        self.country = Country.objects.create(
+            name='France',
+            water_ownership='Public',
+            land_ownership='Private',
+            biodiversity_loss_agriculture=2.0,
+            biodiversity_loss_urbanization=3.0,
+            biodiversity_loss_mining=1.5,
+        )
+        self.region = SubnationalRegion.objects.create(
+            name='IDF', country=self.country,
+            restoration_cost_m2=10.0,
+            Mean_X=2.3, Mean_Y=48.8,
+        )
+        self.commodity_agri = Commodity.objects.create(
+            name='Soja',
+            impact_endpoint_ReCiPe2016_ecosystem_diversity=0.5,
+            biodiversity_loss_class='Agriculture',
+        )
+        self.asset = Asset.objects.create(
+            name='Site A', latitude=48.8, longitude=2.3,
+            country=self.country, subnational_region=self.region,
+        )
+        Ownership.objects.create(Asset=self.asset, Company=self.company, ownership='100%')
+
+    def test_no_assets_returns_empty(self):
+        other = Company.objects.create(name='Empty')
+        result = _get_dette_ecologique_data(other)
+        self.assertEqual(result['total_lbiodiv'], 0)
+        self.assertEqual(result['assets'], [])
+        self.assertEqual(result['regions'], [])
+
+    def test_excludes_asset_without_region(self):
+        asset_no_region = Asset.objects.create(
+            name='No Region', latitude=0.0, longitude=0.0,
+            country=self.country, subnational_region=None,
+        )
+        Ownership.objects.create(Asset=asset_no_region, Company=self.company, ownership='100%')
+        Production.objects.create(
+            asset=asset_no_region, commodity=self.commodity_agri, year=2024, production=100.0,
+        )
+        result = _get_dette_ecologique_data(self.company)
+        asset_ids = [a['id'] for a in result['assets']]
+        self.assertNotIn(asset_no_region.pk, asset_ids)
+
+    def test_lbiodiv_formula_agriculture(self):
+        # 2.0 * 10.0 * 100.0 * 0.5 = 1000.0
+        Production.objects.create(
+            asset=self.asset, commodity=self.commodity_agri, year=2024, production=100.0,
+        )
+        result = _get_dette_ecologique_data(self.company)
+        self.assertAlmostEqual(result['total_lbiodiv'], 1000.0, places=2)
+
+    def test_lbiodiv_formula_urbanisation(self):
+        # biodiversity_loss_urbanization=3.0 → 3.0 * 10.0 * 100.0 * 0.5 = 1500.0
+        commodity_urb = Commodity.objects.create(
+            name='Béton',
+            impact_endpoint_ReCiPe2016_ecosystem_diversity=0.5,
+            biodiversity_loss_class='Urbanisation',
+        )
+        Production.objects.create(
+            asset=self.asset, commodity=commodity_urb, year=2024, production=100.0,
+        )
+        result = _get_dette_ecologique_data(self.company)
+        self.assertAlmostEqual(result['total_lbiodiv'], 1500.0, places=2)
+
+    def test_lbiodiv_formula_mining(self):
+        # biodiversity_loss_mining=1.5 → 1.5 * 10.0 * 100.0 * 0.5 = 750.0
+        commodity_min = Commodity.objects.create(
+            name='Lithium',
+            impact_endpoint_ReCiPe2016_ecosystem_diversity=0.5,
+            biodiversity_loss_class='Mining',
+        )
+        Production.objects.create(
+            asset=self.asset, commodity=commodity_min, year=2024, production=100.0,
+        )
+        result = _get_dette_ecologique_data(self.company)
+        self.assertAlmostEqual(result['total_lbiodiv'], 750.0, places=2)
+
+    def test_latest_year_only(self):
+        Production.objects.create(
+            asset=self.asset, commodity=self.commodity_agri, year=2022, production=999.0,
+        )
+        Production.objects.create(
+            asset=self.asset, commodity=self.commodity_agri, year=2024, production=100.0,
+        )
+        # Only 2024 : 2.0 * 10.0 * 100.0 * 0.5 = 1000.0
+        result = _get_dette_ecologique_data(self.company)
+        self.assertAlmostEqual(result['total_lbiodiv'], 1000.0, places=2)
+
+    def test_region_aggregation(self):
+        asset2 = Asset.objects.create(
+            name='Site B', latitude=48.9, longitude=2.4,
+            country=self.country, subnational_region=self.region,
+        )
+        Ownership.objects.create(Asset=asset2, Company=self.company, ownership='100%')
+        Production.objects.create(
+            asset=self.asset, commodity=self.commodity_agri, year=2024, production=100.0,
+        )
+        Production.objects.create(
+            asset=asset2, commodity=self.commodity_agri, year=2024, production=50.0,
+        )
+        result = _get_dette_ecologique_data(self.company)
+        self.assertEqual(len(result['regions']), 1)
+        # 2.0*10.0*100.0*0.5 + 2.0*10.0*50.0*0.5 = 1000 + 500 = 1500
+        self.assertAlmostEqual(result['regions'][0]['total_lbiodiv'], 1500.0, places=2)

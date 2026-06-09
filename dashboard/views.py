@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET
 
 from django.db.models import Q
-from .models import Asset, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector, Production
+from .models import Asset, Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector, Ownership, Production
 
 
 SCORE_MAP = {'VL': 0.0, 'L': 0.2, 'M': 0.5, 'H': 0.7, 'VH': 1.0}
@@ -476,6 +476,148 @@ def _get_mesure_empreinte_data(company):
         'assets': assets_list,
         'countries': countries,
         'sankey_links': sankey_links,
+    }
+
+
+_BIODIV_LOSS_FIELDS = {
+    'Agriculture':  'biodiversity_loss_agriculture',
+    'Urbanisation': 'biodiversity_loss_urbanization',
+    'Mining':       'biodiversity_loss_mining',
+}
+
+
+def _get_dette_ecologique_data(company):
+    empty = {
+        'company_id': company.pk,
+        'company_name': company.name,
+        'year': None,
+        'total_lbiodiv': 0,
+        'commodities': [],
+        'assets': [],
+        'regions': [],
+    }
+
+    assets = list(
+        Asset.objects.filter(ownership__Company=company)
+        .select_related('country', 'subnational_region')
+        .distinct()
+    )
+    assets = [a for a in assets if a.subnational_region_id is not None]
+
+    if not assets:
+        return empty
+
+    asset_ids = [a.pk for a in assets]
+
+    latest_years = dict(
+        Production.objects.filter(asset_id__in=asset_ids)
+        .values('asset_id')
+        .annotate(max_year=Max('year'))
+        .values_list('asset_id', 'max_year')
+    )
+    if not latest_years:
+        return empty
+
+    ref_year = max(latest_years.values())
+
+    productions = list(
+        Production.objects.filter(asset_id__in=asset_ids)
+        .select_related('commodity', 'asset__country', 'asset__subnational_region')
+    )
+    productions = [p for p in productions if latest_years.get(p.asset_id) == p.year]
+
+    asset_map = {a.pk: a for a in assets}
+    asset_comm = defaultdict(lambda: defaultdict(float))
+    global_comm = defaultdict(float)
+
+    for p in productions:
+        asset = asset_map.get(p.asset_id)
+        if asset is None:
+            continue
+        field = _BIODIV_LOSS_FIELDS.get(
+            p.commodity.biodiversity_loss_class, 'biodiversity_loss_agriculture'
+        )
+        biodiv_loss = getattr(asset.country, field, 0.0)
+        restoration = asset.subnational_region.restoration_cost_m2
+        lbiodiv = (
+            biodiv_loss
+            * restoration
+            * p.production
+            * p.commodity.impact_endpoint_ReCiPe2016_ecosystem_diversity
+        )
+        asset_comm[p.asset_id][p.commodity.name] += lbiodiv
+        global_comm[p.commodity.name] += lbiodiv
+
+    total = sum(global_comm.values())
+    if total == 0:
+        return {**empty, 'year': ref_year}
+
+    commodities = sorted(
+        [{'name': k, 'lbiodiv': round(v, 4), 'pct': round(v / total, 4)}
+         for k, v in global_comm.items()],
+        key=lambda x: -x['lbiodiv'],
+    )
+
+    assets_out = []
+    for asset in assets:
+        ac = asset_comm.get(asset.pk, {})
+        asset_total = sum(ac.values())
+        if asset_total == 0:
+            continue
+        assets_out.append({
+            'id': asset.pk,
+            'name': asset.name,
+            'latitude': asset.latitude,
+            'longitude': asset.longitude,
+            'total_lbiodiv': round(asset_total, 4),
+            'pct': round(asset_total / total, 4),
+            'commodities': sorted(
+                [{'name': k, 'lbiodiv': round(v, 4), 'pct': round(v / asset_total, 4)}
+                 for k, v in ac.items()],
+                key=lambda x: -x['lbiodiv'],
+            ),
+        })
+    assets_out.sort(key=lambda x: -x['total_lbiodiv'])
+
+    region_comm = defaultdict(lambda: defaultdict(float))
+    region_meta = {}
+    for asset in assets:
+        reg = asset.subnational_region
+        if reg is None:
+            continue
+        region_meta[reg.pk] = reg
+        for comm_name, val in asset_comm.get(asset.pk, {}).items():
+            region_comm[reg.pk][comm_name] += val
+
+    regions_out = []
+    for reg_pk, reg in region_meta.items():
+        rc = region_comm[reg_pk]
+        reg_total = sum(rc.values())
+        if reg_total == 0:
+            continue
+        regions_out.append({
+            'id': reg.pk,
+            'name': reg.name,
+            'latitude': reg.Mean_Y,
+            'longitude': reg.Mean_X,
+            'total_lbiodiv': round(reg_total, 4),
+            'pct': round(reg_total / total, 4),
+            'commodities': sorted(
+                [{'name': k, 'lbiodiv': round(v, 4), 'pct': round(v / reg_total, 4)}
+                 for k, v in rc.items()],
+                key=lambda x: -x['lbiodiv'],
+            ),
+        })
+    regions_out.sort(key=lambda x: -x['total_lbiodiv'])
+
+    return {
+        'company_id': company.pk,
+        'company_name': company.name,
+        'year': ref_year,
+        'total_lbiodiv': round(total, 4),
+        'commodities': commodities,
+        'assets': assets_out,
+        'regions': regions_out,
     }
 
 
