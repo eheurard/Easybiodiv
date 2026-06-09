@@ -280,7 +280,8 @@ def _get_company_data(company):
     for asset in assets:
         asset_commodities = {p.commodity.name for p in asset.production_set.all()}
         country_names.add(asset.country.name)
-        region_names.add(asset.subnational_region.name)
+        if asset.subnational_region is not None:
+            region_names.add(asset.subnational_region.name)
         commodity_names.update(asset_commodities)
         cd = country_data[asset.country.name]
         cd['asset_count'] += 1
@@ -311,7 +312,7 @@ def _get_company_data(company):
                 'name': asset.name,
                 'country': asset.country.name,
                 'commodities': ', '.join(sorted({p.commodity.name for p in asset.production_set.all()})),
-                'region': asset.subnational_region.name,
+                'region': asset.subnational_region.name if asset.subnational_region else '',
             },
         }
         for asset in assets
@@ -359,7 +360,7 @@ def _get_company_data(company):
     }
 
 
-def _get_transition_risk_data(company):
+def _get_mesure_empreinte_data(company):
     assets = list(
         Asset.objects.filter(ownership__Company=company)
         .select_related('country')
@@ -589,13 +590,13 @@ def company_data(request, pk):
 
 @login_required
 @require_GET
-def transition_risk(request):
+def mesure_empreinte(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
     initial_data = None
     if companies:
         first = Company.objects.get(pk=companies[0]['id'])
-        initial_data = _get_transition_risk_data(first)
-    return render(request, 'dashboard/transition_risk.html', {
+        initial_data = _get_mesure_empreinte_data(first)
+    return render(request, 'dashboard/mesure_empreinte.html', {
         'companies': companies,
         'initial_data': initial_data,
     })
@@ -603,9 +604,9 @@ def transition_risk(request):
 
 @login_required
 @require_GET
-def transition_risk_data(request, pk):
+def mesure_empreinte_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
-    return JsonResponse(_get_transition_risk_data(company))
+    return JsonResponse(_get_mesure_empreinte_data(company))
 
 
 @login_required

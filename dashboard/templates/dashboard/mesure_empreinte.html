@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Risque de transition — Easybiodiv{% endblock %}
+{% block title %}Mesure d'empreinte — Easybiodiv{% endblock %}
 
 {% block nav_risks_open %}open{% endblock %}
-{% block nav_transition_risk %}active{% endblock %}
+{% block nav_mesure_empreinte %}active{% endblock %}
 
 {% block header_left %}
 <div class="company-combobox" id="company-combobox" role="combobox"
@@ -80,6 +80,6 @@
 {% block extra_js %}
 {{ companies|json_script:"companies-data" }}
 {{ initial_data|json_script:"initial-data" }}
-<script>var TRANSITION_RISK_API_URL = "{% url 'dashboard:transition_risk_data' pk=0 %}";</script>
-<script src="{% static 'dashboard/js/transition_risk.js' %}" defer></script>
+<script>var MESURE_EMPREINTE_API_URL = "{% url 'dashboard:mesure_empreinte_data' pk=0 %}";</script>
+<script src="{% static 'dashboard/js/mesure_empreinte.js' %}" defer></script>
 {% endblock %}

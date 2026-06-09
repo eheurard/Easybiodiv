@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (savedExists && initialData && savedId !== initialData.company_id) {
     // Saved company differs from server-rendered default — fetch it
-    fetch(TRANSITION_RISK_API_URL.replace('/0/', '/' + savedId + '/'))
+    fetch(MESURE_EMPREINTE_API_URL.replace('/0/', '/' + savedId + '/'))
       .then(r => r.json())
       .then(data => {
         renderTransitionRisk(data);
@@ -69,7 +69,7 @@ function initTrCombobox(companies, initialData) {
     input.value = opt.textContent;
     closeList();
     localStorage.setItem(TR_COMPANY_KEY, id);
-    fetch(TRANSITION_RISK_API_URL.replace('/0/', '/' + id + '/'))
+    fetch(MESURE_EMPREINTE_API_URL.replace('/0/', '/' + id + '/'))
       .then(r => r.json())
       .then(data => renderTransitionRisk(data));
   });
@@ -171,8 +171,39 @@ function renderSankey(data) {
   const cols = [[], [], [], []];
   Object.entries(nodes).forEach(([id, n]) => { n.id = id; cols[n.col].push(n); });
 
-  cols.forEach(colNodes => {
-    colNodes.sort((a, b) => b.pct - a.pct);
+  // Map each asset to its dominant country (highest link value)
+  const assetToCountry = {};
+  const assetToCountryValue = {};
+  data.sankey_links.forEach(link => {
+    if (link.source.startsWith('asset:') && link.target.startsWith('country:')) {
+      const prev = assetToCountryValue[link.source] || 0;
+      if (link.value > prev) {
+        assetToCountry[link.source] = link.target;
+        assetToCountryValue[link.source] = link.value;
+      }
+    }
+  });
+
+  // Sort countries by pct desc to define grouping order
+  cols[2].sort((a, b) => b.pct - a.pct);
+  const countryOrder = cols[2].map(c => c.id);
+
+  // Group assets by their dominant country, then order by country rank
+  const assetsByCountry = {};
+  cols[1].forEach(asset => {
+    const cid = assetToCountry[asset.id] || '__none__';
+    if (!assetsByCountry[cid]) assetsByCountry[cid] = [];
+    assetsByCountry[cid].push(asset);
+  });
+  const orderedAssets = [];
+  countryOrder.forEach(cid => {
+    (assetsByCountry[cid] || []).sort((a, b) => b.pct - a.pct).forEach(a => orderedAssets.push(a));
+  });
+  (assetsByCountry['__none__'] || []).sort((a, b) => b.pct - a.pct).forEach(a => orderedAssets.push(a));
+  cols[1] = orderedAssets;
+
+  cols.forEach((colNodes, colIdx) => {
+    if (colIdx !== 1) colNodes.sort((a, b) => b.pct - a.pct);
     const totalPct = colNodes.reduce((s, n) => s + n.pct, 0) || 1;
     const totalGap = (colNodes.length - 1) * NODE_GAP;
     let y = TOP_MARGIN;

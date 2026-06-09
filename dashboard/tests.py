@@ -170,25 +170,25 @@ class TransitionRiskDataViewTests(TestCase):
 
     def test_returns_200(self):
         company, *_ = self._setup_company()
-        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': company.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
 
     def test_content_type_is_json(self):
         company, *_ = self._setup_company()
-        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': company.pk})
         response = self.client.get(url)
         self.assertIn('application/json', response['Content-Type'])
 
     def test_total_impact_equals_production_times_factor(self):
         company, *_ = self._setup_company(impact_factor=3.0, production_qty=50.0)
-        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': company.pk})
         data = json.loads(self.client.get(url).content)
         self.assertAlmostEqual(data['total_impact'], 150.0, places=2)
 
     def test_single_commodity_pct_is_one(self):
         company, *_ = self._setup_company()
-        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': company.pk})
         data = json.loads(self.client.get(url).content)
         self.assertEqual(len(data['commodities']), 1)
         self.assertAlmostEqual(data['commodities'][0]['pct'], 1.0, places=3)
@@ -201,7 +201,7 @@ class TransitionRiskDataViewTests(TestCase):
         Production.objects.create(
             asset=asset, commodity=commodity, year=2024, production=100.0
         )
-        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': company.pk})
         data = json.loads(self.client.get(url).content)
         # 100 * 2.0 = 200, not 10 * 2.0 = 20
         self.assertAlmostEqual(data['total_impact'], 200.0, places=2)
@@ -211,41 +211,41 @@ class TransitionRiskDataViewTests(TestCase):
 
     def test_sankey_links_commodity_to_asset(self):
         company, *_ = self._setup_company()
-        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': company.pk})
         data = json.loads(self.client.get(url).content)
         sources = [lk['source'] for lk in data['sankey_links']]
         self.assertTrue(any(s.startswith('commodity:') for s in sources))
 
     def test_sankey_links_asset_to_country(self):
         company, *_ = self._setup_company()
-        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': company.pk})
         data = json.loads(self.client.get(url).content)
         sources = [lk['source'] for lk in data['sankey_links']]
         self.assertTrue(any(s.startswith('asset:') for s in sources))
 
     def test_sankey_links_country_to_company(self):
         company, *_ = self._setup_company()
-        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': company.pk})
         data = json.loads(self.client.get(url).content)
         sources = [lk['source'] for lk in data['sankey_links']]
         self.assertTrue(any(s.startswith('country:') for s in sources))
 
     def test_empty_company_returns_zero_impact(self):
         empty = Company.objects.create(name='EmptyRisk')
-        url = reverse('dashboard:transition_risk_data', kwargs={'pk': empty.pk})
+        url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': empty.pk})
         data = json.loads(self.client.get(url).content)
         self.assertEqual(data['total_impact'], 0)
         self.assertEqual(data['commodities'], [])
         self.assertEqual(data['sankey_links'], [])
 
     def test_not_found_returns_404(self):
-        url = reverse('dashboard:transition_risk_data', kwargs={'pk': 99999})
+        url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': 99999})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
 
     def test_post_not_allowed(self):
         company, *_ = self._setup_company()
-        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': company.pk})
         response = self.client.post(url)
         # Authenticated POST is blocked by @require_GET → 405
         self.assertEqual(response.status_code, 405)
@@ -270,7 +270,7 @@ class TransitionRiskDataViewTests(TestCase):
         Production.objects.create(asset=asset, commodity=c1, year=2024, production=100.0)
         Production.objects.create(asset=asset, commodity=c2, year=2024, production=100.0)
 
-        url = reverse('dashboard:transition_risk_data', kwargs={'pk': company.pk})
+        url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': company.pk})
         data = json.loads(self.client.get(url).content)
 
         pct_sum = sum(c['pct'] for c in data['commodities'])
@@ -288,25 +288,25 @@ class TransitionRiskPageViewTests(TestCase):
         self.client.force_login(self.user)
 
     def test_returns_200(self):
-        response = self.client.get(reverse('dashboard:transition_risk'))
+        response = self.client.get(reverse('dashboard:mesure_empreinte'))
         self.assertEqual(response.status_code, 200)
 
     def test_uses_correct_template(self):
-        response = self.client.get(reverse('dashboard:transition_risk'))
-        self.assertTemplateUsed(response, 'dashboard/transition_risk.html')
+        response = self.client.get(reverse('dashboard:mesure_empreinte'))
+        self.assertTemplateUsed(response, 'dashboard/mesure_empreinte.html')
 
     def test_companies_in_context(self):
         Company.objects.create(name='ZetaRisk')
-        response = self.client.get(reverse('dashboard:transition_risk'))
+        response = self.client.get(reverse('dashboard:mesure_empreinte'))
         self.assertIn('companies', response.context)
 
     def test_initial_data_none_without_companies(self):
-        response = self.client.get(reverse('dashboard:transition_risk'))
+        response = self.client.get(reverse('dashboard:mesure_empreinte'))
         self.assertIsNone(response.context['initial_data'])
 
     def test_initial_data_present_with_companies(self):
         company, *_ = _make_world()
-        response = self.client.get(reverse('dashboard:transition_risk'))
+        response = self.client.get(reverse('dashboard:mesure_empreinte'))
         self.assertIsNotNone(response.context['initial_data'])
         self.assertIn('total_impact', response.context['initial_data'])
 
