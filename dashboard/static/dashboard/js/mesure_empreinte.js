@@ -346,16 +346,23 @@ function renderTree(data) {
 
   let nodeRects = '';
   let labels = '';
-  const maxLen = 14;
   Object.values(nodes).forEach(n => {
     const x = TREE_COL_X[n.col];
-    const shortLabel = n.label.length > maxLen ? n.label.slice(0, maxLen - 1) + '…' : n.label;
     const pctText = n.col === 3 ? '100 %' : `${(n.pct * 100).toFixed(1)} %`;
     nodeRects += `<rect x="${x}" y="${n.y}" width="${TREE_NODE_W}" height="${TREE_NODE_H}" rx="4" fill="${TREE_COLORS[n.col]}"/>`;
-    labels += `<text x="${x + TREE_NODE_W / 2}" y="${n.y + 12}" text-anchor="middle" font-size="10" font-family="Inter,sans-serif" fill="white" font-weight="600">${escHtml(shortLabel)}</text>`;
-    labels += `<text x="${x + TREE_NODE_W / 2}" y="${n.y + 25}" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="rgba(255,255,255,0.75)">${pctText}</text>`;
+    labels += `<text class="tree-lbl" x="${x + TREE_NODE_W / 2}" y="${n.y + 12}" text-anchor="middle" font-size="10" font-family="Inter,sans-serif" fill="white" font-weight="600">${escHtml(n.label)}</text>`;
+    labels += `<text x="${x + TREE_NODE_W / 2}" y="${n.y + 26}" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="rgba(255,255,255,0.75)">${pctText}</text>`;
   });
 
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.innerHTML = headers + paths + nodeRects + labels;
+
+  // Compress labels that overflow the node width
+  const availW = TREE_NODE_W - 12;
+  svg.querySelectorAll('.tree-lbl').forEach(t => {
+    if (t.getComputedTextLength() > availW) {
+      t.setAttribute('textLength', availW);
+      t.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+    }
+  });
 }
