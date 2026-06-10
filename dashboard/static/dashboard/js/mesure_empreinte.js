@@ -289,7 +289,7 @@ function renderTree(data) {
   if (!svg) return;
 
   if (!data.sankey_links || data.sankey_links.length === 0) {
-    svg.setAttribute('viewBox', '0 0 800 120');
+    svg.setAttribute('viewBox', '0 0 820 120');
     svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" font-size="13" font-family="Inter,sans-serif" fill="#87736d">Aucune donnée à afficher.</text>';
     return;
   }
