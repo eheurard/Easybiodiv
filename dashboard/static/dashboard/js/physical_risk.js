@@ -141,7 +141,7 @@ function prRenderKpis(data) {
   const avgVuln = document.getElementById('pr-avg-vuln');
   if (avgVuln) {
     const av = data.kpis.avg_vulnerability;
-    avgVuln.textContent = av != null ? av.toFixed(2) : '—';
+    avgVuln.textContent = av != null ? (av * 100).toFixed(1) + '%' : '—';
   }
   prRenderLoss();
 }
@@ -231,9 +231,9 @@ function prRenderTable() {
   body.innerHTML = rows.map(r => `
     <tr>
       <td>${escHtml(r.name)}</td>
-      <td class="data-tabular">${r.hz.toFixed(3)}</td>
+      <td class="data-tabular">${(r.hz * 100).toFixed(1)}%</td>
       <td class="data-tabular">${prFmtEuro(r.expo)}</td>
-      <td class="data-tabular">${vuln.toFixed(2)}</td>
+      <td class="data-tabular">${(vuln * 100).toFixed(1)}%</td>
       <td class="data-tabular pr-table__risk">${prFmtEuro(r.risk)}</td>
     </tr>`).join('');
 }
@@ -275,7 +275,7 @@ function prInitMap() {
         .setLngLat(e.lngLat)
         .setHTML(
           `<strong>${escHtml(p.name)}</strong><br>` +
-          `${escHtml(p.hazardName)} : ${Number(p.hazard).toFixed(3)}<br>` +
+          `${escHtml(p.hazardName)} : ${(Number(p.hazard) * 100).toFixed(1)}%<br>` +
           `Exposition : ${prFmtEuro(Number(p.exposition))}<br>` +
           `Risk : ${prFmtEuro(Number(p.risk))}`
         )

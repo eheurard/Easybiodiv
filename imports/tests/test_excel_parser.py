@@ -3,6 +3,7 @@ import openpyxl
 from django.test import TestCase
 from dashboard.models import Country, SubnationalRegion, Policy_Type, Policy_Subcategory
 from imports.services.excel_parser import parse_file
+from imports.services.constants import SHEET_COLUMNS
 
 
 def _make_xlsx(sheet_data):
@@ -114,9 +115,9 @@ class ParserFKTest(TestCase):
     def test_policy_level_subcategory_fk(self):
         pt = Policy_Type.objects.create(name='TypeA')
         Policy_Subcategory.objects.create(name='SubA', policy_type=pt)
-        buf = _make_xlsx({'Policy_Level': [
-            ['name', 'score', 'description', 'subcategory_name', 'policy_type_name'],
-            ['Level1', '3.0', '', 'SubA', 'TypeA'],
-        ]})
+        cols = SHEET_COLUMNS['Policy_Level']
+        values = {col: '' for col in cols}
+        values.update({'name': 'Level1', 'score': '3.0', 'subcategory_name': 'SubA', 'policy_type_name': 'TypeA'})
+        buf = _make_xlsx({'Policy_Level': [cols, [values[c] for c in cols]]})
         result = parse_file(buf)
         self.assertEqual(result['Policy_Level'][0]['status'], 'ok')

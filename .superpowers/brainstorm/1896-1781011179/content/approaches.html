@@ -1,0 +1,43 @@
+<h2>Rendu des marqueurs pie chart sur la carte</h2>
+<p class="subtitle">La dette écologique (Lbiodiv) est affichée comme des points pie chart sur la carte. Quelle approche de rendu ?</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>SVG custom markers (MapLibre Marker API)</h3>
+      <p>Chaque point = un élément SVG injecté comme marqueur MapLibre. Le camembert est dessiné avec des <code>&lt;path&gt;</code> SVG, la taille scale avec le Lbiodiv. Tooltips HTML natifs au survol.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Avantages</h4><ul><li>Vanilla JS pur — cohérent avec le projet</li><li>Facile à styliser et maintenir</li><li>Tooltips DOM natifs</li></ul></div>
+        <div class="cons"><h4>Inconvénients</h4><ul><li>Peut ralentir avec >500 points</li></ul></div>
+      </div>
+      <p><strong>Recommandé</strong> — nombre de points &lt; 100 sur ce dashboard.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Canvas → PNG → Symbol layer MapLibre</h3>
+      <p>Chaque pie chart est pré-rendu sur un <code>&lt;canvas&gt;</code> offscreen, converti en dataURL PNG, puis injecté comme icône dans un layer MapLibre symbol.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Avantages</h4><ul><li>Très performant (WebGL rendering)</li><li>Supporte des milliers de points</li></ul></div>
+        <div class="cons"><h4>Inconvénients</h4><ul><li>Plus complexe à implémenter</li><li>Tooltips moins naturels</li><li>Surqualifié pour ce cas d'usage</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>SVG overlay D3-style (couche au-dessus de MapLibre)</h3>
+      <p>Un <code>&lt;svg&gt;</code> est superposé à la carte. Les positions sont converties en pixels via la projection MapLibre. D3 dessine les pie charts sur ce calque.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Avantages</h4><ul><li>Très flexible visuellement</li><li>Pas de dépendance D3 — géométrie SVG manuelle possible</li></ul></div>
+        <div class="cons"><h4>Inconvénients</h4><ul><li>Sync coordonnées complexe au zoom/pan</li><li>Plus de code, plus fragile</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>

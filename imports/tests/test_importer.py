@@ -51,6 +51,22 @@ class ImporterCountryTest(TestCase):
         self.assertEqual(counts['SubnationalRegion'], 1)
         self.assertTrue(SubnationalRegion.objects.filter(name='Bretagne').exists())
 
+    def test_asset_imports_without_subnational_region(self):
+        counts = save_import({
+            'Country': [
+                _ok({'name': 'France', 'water_ownership': 'pub',
+                     'land_ownership': 'priv', 'water_Governance': '', 'land_Governance': ''}),
+            ],
+            'Asset': [
+                _ok({'name': 'Usine A', 'description': '', 'latitude': '48.85',
+                     'longitude': '2.35', 'country_name': 'France',
+                     'subnational_region_name': ''}),
+            ],
+        })
+        self.assertEqual(counts['Asset'], 1)
+        asset = Asset.objects.get(name='Usine A')
+        self.assertIsNone(asset.subnational_region)
+
     def test_returns_empty_for_empty_input(self):
         counts = save_import({})
         self.assertEqual(counts, {})

@@ -97,8 +97,8 @@ def _existing_keys(sheet_name):
         return {(n.lower(), c.lower()) for n, c in
                 Asset.objects.values_list('name', 'country__name')}
     if sheet_name == 'Production':
-        return {(a.lower(), c.lower(), str(y)) for a, c, y in
-                Production.objects.values_list('Asset__name', 'commodity__name', 'year')}
+        return {((a or '').lower(), c.lower(), str(y)) for a, c, y in
+                Production.objects.values_list('asset__name', 'commodity__name', 'year')}
     if sheet_name == 'Company_Revenue':
         return {(c.lower(), str(y)) for c, y in
                 Company_Revenue.objects.values_list('company__name', 'year')}
@@ -106,8 +106,8 @@ def _existing_keys(sheet_name):
         return {(a.lower(), c.lower()) for a, c in
                 Ownership.objects.values_list('Asset__name', 'Company__name')}
     if sheet_name == 'Company_Policy':
-        return {(co.lower(), pt.lower(), ps.lower(), pl.lower()) for co, pt, ps, pl in
-                Company_Policy.objects.values_list(
+        return {(co.lower(), (pt or '').lower(), (ps or '').lower(), (pl or '').lower())
+                for co, pt, ps, pl in Company_Policy.objects.values_list(
                     'company__name',
                     'policy_level__subcategory__policy_type__name',
                     'policy_level__subcategory__name',
@@ -127,13 +127,16 @@ def _parse_sheet(ws, sheet_name, file_names, db_name_cache):
     rows_out = []
 
     header = [c.value for c in ws[1]]
+    header_map = {name: idx for idx, name in enumerate(header) if name is not None}
 
     for ws_row in ws.iter_rows(min_row=2):
         data = {}
-        for col_idx, col_name in enumerate(columns):
-            cell_val = None
-            if col_idx < len(header) and header[col_idx] == col_name:
-                cell_val = ws_row[col_idx].value if col_idx < len(ws_row) else None
+        for col_name in columns:
+            col_idx = header_map.get(col_name)
+            if col_idx is not None and col_idx < len(ws_row):
+                cell_val = ws_row[col_idx].value
+            else:
+                cell_val = None
             data[col_name] = str(cell_val).strip() if cell_val is not None else ''
 
         if all(v == '' for v in data.values()):

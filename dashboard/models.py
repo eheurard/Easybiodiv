@@ -6,13 +6,22 @@ class Country(models.Model):
     land_ownership = models.CharField(max_length=255)
     water_Governance=models.TextField(blank=True)
     land_Governance=models.TextField(blank=True)
+    restoration_cost_m2 = models.FloatField(default=0)
+    biodiversity_loss_agriculture=models.FloatField(default=0)
+    biodiversity_loss_urbanization=models.FloatField(default=0)
+    biodiversity_loss_mining=models.FloatField(default=0)
+    
     def __str__(self):
-        return self.name
+        return self.name    
+
 
 class SubnationalRegion(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     country = models.ForeignKey(Country, on_delete=models.CASCADE)
+    restoration_cost_m2 = models.FloatField(default=0)
+    Mean_X=models.FloatField(default=0)
+    Mean_Y=models.FloatField(default=0)
     def __str__(self):
         return self.name
 
@@ -37,9 +46,13 @@ class Commodity (models.Model):
     impact_midpoint_ReCiPe2016_ozonedepletion = models.FloatField(default=0)
     impact_midpoint_ReCiPe2016_resource_depletion_fossil = models.FloatField(default=0)
     impact_midpoint_ReCiPe2016_resource_depletion_minerals = models.FloatField(default=0)
+    impact_midpoint_ReCiPe2016_land_use=models.FloatField(default=0)
     impact_endpoint_ReCiPe2016_human_health = models.FloatField(default=0)
     impact_endpoint_ReCiPe2016_ecosystem_diversity = models.FloatField(default=0)
     impact_endpoint_ReCiPe2016_resource_availability = models.FloatField(default=0)
+
+    impact_endpoint_GBS_terrestrial_dynamic = models.FloatField(default=0)
+    impact_endpoint_GBS_terrestrial_static = models.FloatField(default=0)
     
     dependency_water = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
     dependency_pollination = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
@@ -47,6 +60,8 @@ class Commodity (models.Model):
     dependency_carbon_sequestration = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
     dependency_water_purification = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
     dependency_pest_control = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+
+    biodiversity_loss_class = models.CharField(choices=[('Agriculture','Agriculture'),('Urbanisation','Urbanisation'),('Mining','Mining')],default="Agriculture")
 
     def __str__(self):
         return self.name
@@ -86,7 +101,8 @@ class Asset(models.Model):
     latitude = models.FloatField()
     longitude = models.FloatField()
     country = models.ForeignKey(Country, on_delete=models.CASCADE)
-    subnational_region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE)
+    subnational_region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE,null=True,blank=True)
+
     risk_water = models.FloatField(default=0)
     risk_pollination = models.FloatField(default=0)
     risk_soil_quality = models.FloatField(default=0)
@@ -109,8 +125,8 @@ class Asset(models.Model):
 class Company (models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    isin = models.FloatField(default=0)
-    ticker = models.CharField(max_length=255, null=True, blank=True)
+    isin = models.CharField(max_length=255, default="0")
+    ticker = models.CharField(max_length=255, default="0")
     def __str__(self):
         return self.name
 
@@ -128,6 +144,16 @@ class Production(models.Model):
         asset_name = self.asset.name if self.asset else "no asset"
         return f"{asset_name} - {self.commodity.name} - {self.year}"
 
+class Asset_consumption(models.Model):
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True)
+    surface_area = models.FloatField(default=0)
+    water_consumption = models.FloatField(default=0)
+    energy_consumption = models.FloatField(default=0)
+    CO2_emissions = models.FloatField(default=0)
+    waste_generated = models.FloatField(default=0)
+    def __str__(self):
+        asset_name = self.asset.name if self.asset else "no asset"
+        return f"{asset_name}"
 
 
 class Company_Revenue(models.Model):

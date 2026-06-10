@@ -29,6 +29,20 @@ def save_import(parsed_data):
     return counts
 
 
+# ── helpers ───────────────────────────────────────────────────────────────────
+
+def _f(val, default=0.0):
+    """Parse a cell value as float, returning default on failure."""
+    try:
+        return float(val) if val else default
+    except (ValueError, TypeError):
+        return default
+
+
+def _s(val, default=''):
+    return val if val else default
+
+
 # ── per-sheet import functions ────────────────────────────────────────────────
 
 def _import_country(rows, lookup):
@@ -39,8 +53,12 @@ def _import_country(rows, lookup):
             name=d['name'],
             water_ownership=d.get('water_ownership', ''),
             land_ownership=d.get('land_ownership', ''),
-            water_Governance=d.get('water_Governance', ''),
-            land_Governance=d.get('land_Governance', ''),
+            water_Governance=d.get('water_governance', ''),
+            land_Governance=d.get('land_governance', ''),
+            restoration_cost_m2=_f(d.get('restoration_cost_m2')),
+            biodiversity_loss_agriculture=_f(d.get('biodiversity_loss_agriculture')),
+            biodiversity_loss_urbanization=_f(d.get('biodiversity_loss_urbanization')),
+            biodiversity_loss_mining=_f(d.get('biodiversity_loss_mining')),
         )
         lookup['country'][d['name'].lower()] = obj
         created += 1
@@ -56,8 +74,9 @@ def _import_subnational_region(rows, lookup):
             continue
         obj = SubnationalRegion.objects.create(
             name=d['name'],
-            description=d.get('description', ''),
+            description=_s(d.get('description')),
             country=country,
+            restoration_cost_m2=_f(d.get('restoration_cost_m2')),
         )
         lookup['subnational_region'][d['name'].lower()] = obj
         created += 1
@@ -65,19 +84,14 @@ def _import_subnational_region(rows, lookup):
 
 
 def _import_commodity(rows, lookup):
-    def _f(val, default=0.0):
-        try:
-            return float(val) if val else default
-        except (ValueError, TypeError):
-            return default
-
     created = 0
     for r in rows:
         d = r['data']
         obj = Commodity.objects.create(
             name=d['name'],
-            description=d.get('description', ''),
-            unit=d.get('unit', 'tonnes'),
+            description=_s(d.get('description')),
+            unit=d.get('unit') or 'tonnes',
+            biodiversity_loss_class=d.get('biodiversity_loss_class') or 'Agriculture',
             impact_midpoint_ReCiPe2016_water_consumption=_f(d.get('impact_midpoint_ReCiPe2016_water_consumption')),
             impact_midpoint_ReCiPe2016_climate_change=_f(d.get('impact_midpoint_ReCiPe2016_climate_change')),
             impact_midpoint_ReCiPe2016_freshwater_ecotoxicity=_f(d.get('impact_midpoint_ReCiPe2016_freshwater_ecotoxicity')),
@@ -88,9 +102,18 @@ def _import_commodity(rows, lookup):
             impact_midpoint_ReCiPe2016_ozonedepletion=_f(d.get('impact_midpoint_ReCiPe2016_ozonedepletion')),
             impact_midpoint_ReCiPe2016_resource_depletion_fossil=_f(d.get('impact_midpoint_ReCiPe2016_resource_depletion_fossil')),
             impact_midpoint_ReCiPe2016_resource_depletion_minerals=_f(d.get('impact_midpoint_ReCiPe2016_resource_depletion_minerals')),
+            impact_midpoint_ReCiPe2016_land_use=_f(d.get('impact_midpoint_ReCiPe2016_land_use')),
             impact_endpoint_ReCiPe2016_human_health=_f(d.get('impact_endpoint_ReCiPe2016_human_health')),
             impact_endpoint_ReCiPe2016_ecosystem_diversity=_f(d.get('impact_endpoint_ReCiPe2016_ecosystem_diversity')),
             impact_endpoint_ReCiPe2016_resource_availability=_f(d.get('impact_endpoint_ReCiPe2016_resource_availability')),
+            impact_endpoint_GBS_terrestrial_dynamic=_f(d.get('impact_endpoint_GBS_terrestrial_dynamic')),
+            impact_endpoint_GBS_terrestrial_static=_f(d.get('impact_endpoint_GBS_terrestrial_static')),
+            dependency_water=d.get('dependency_water') or 'VL',
+            dependency_pollination=d.get('dependency_pollination') or 'VL',
+            dependency_soil_quality=d.get('dependency_soil_quality') or 'VL',
+            dependency_carbon_sequestration=d.get('dependency_carbon_sequestration') or 'VL',
+            dependency_water_purification=d.get('dependency_water_purification') or 'VL',
+            dependency_pest_control=d.get('dependency_pest_control') or 'VL',
         )
         lookup['commodity'][d['name'].lower()] = obj
         created += 1
@@ -101,7 +124,7 @@ def _import_policy_type(rows, lookup):
     created = 0
     for r in rows:
         d = r['data']
-        obj = Policy_Type.objects.create(name=d['name'], description=d.get('description', ''))
+        obj = Policy_Type.objects.create(name=d['name'], description=_s(d.get('description')))
         lookup['policy_type'][d['name'].lower()] = obj
         created += 1
     return created
@@ -116,7 +139,7 @@ def _import_policy_subcategory(rows, lookup):
             continue
         obj = Policy_Subcategory.objects.create(
             name=d['name'],
-            description=d.get('description', ''),
+            description=_s(d.get('description')),
             policy_type=pt,
         )
         lookup['policy_subcategory'][f"{d['policy_type_name'].lower()}|{d['name'].lower()}"] = obj
@@ -141,8 +164,23 @@ def _import_policy_level(rows, lookup):
         obj = Policy_Level.objects.create(
             name=d['name'],
             score=score,
-            description=d.get('description', ''),
+            description=_s(d.get('description')),
             subcategory=sub,
+            vulnerability_water=_f(d.get('vulnerability_water'), 1.0),
+            vulnerability_pollination=_f(d.get('vulnerability_pollination'), 1.0),
+            vulnerability_soil_quality=_f(d.get('vulnerability_soil_quality'), 1.0),
+            vulnerability_carbon_sequestration=_f(d.get('vulnerability_carbon_sequestration'), 1.0),
+            vulnerability_water_purification=_f(d.get('vulnerability_water_purification'), 1.0),
+            vulnerability_pest_control=_f(d.get('vulnerability_pest_control'), 1.0),
+            vulnerability_water_stress=_f(d.get('vulnerability_water_stress'), 1.0),
+            vulnerability_wildfire=_f(d.get('vulnerability_wildfire'), 1.0),
+            vulnerability_cyclone=_f(d.get('vulnerability_cyclone'), 1.0),
+            vulnerability_drought=_f(d.get('vulnerability_drought'), 1.0),
+            vulnerability_flood=_f(d.get('vulnerability_flood'), 1.0),
+            vulnerability_coastal_inundation=_f(d.get('vulnerability_coastal_inundation'), 1.0),
+            vulnerability_heatwave=_f(d.get('vulnerability_heatwave'), 1.0),
+            vulnerability_temperature_variation=_f(d.get('vulnerability_temperature_variation'), 1.0),
+            vulnerability_precipitation_variation=_f(d.get('vulnerability_precipitation_variation'), 1.0),
         )
         level_key = f"{d['policy_type_name'].lower()}|{d['subcategory_name'].lower()}|{d['name'].lower()}"
         lookup['policy_level'][level_key] = obj
@@ -154,7 +192,12 @@ def _import_company(rows, lookup):
     created = 0
     for r in rows:
         d = r['data']
-        obj = Company.objects.create(name=d['name'], description=d.get('description', ''))
+        obj = Company.objects.create(
+            name=d['name'],
+            description=_s(d.get('description')),
+            isin=d.get('isin') or '0',
+            ticker=d.get('ticker') or '0',
+        )
         lookup['company'][d['name'].lower()] = obj
         created += 1
     return created
@@ -165,9 +208,10 @@ def _import_asset(rows, lookup):
     for r in rows:
         d = r['data']
         country = lookup['country'].get(d['country_name'].lower())
-        region = lookup['subnational_region'].get(d['subnational_region_name'].lower())
-        if not country or not region:
+        if not country:
             continue
+        region_name = d.get('subnational_region_name', '')
+        region = lookup['subnational_region'].get(region_name.lower()) if region_name else None
         try:
             lat = float(d['latitude'])
             lon = float(d['longitude'])
@@ -175,11 +219,26 @@ def _import_asset(rows, lookup):
             continue
         obj = Asset.objects.create(
             name=d['name'],
-            description=d.get('description', ''),
+            description=_s(d.get('description')),
             latitude=lat,
             longitude=lon,
             country=country,
             subnational_region=region,
+            risk_water=_f(d.get('risk_water')),
+            risk_pollination=_f(d.get('risk_pollination')),
+            risk_soil_quality=_f(d.get('risk_soil_quality')),
+            risk_carbon_sequestration=_f(d.get('risk_carbon_sequestration')),
+            risk_water_purification=_f(d.get('risk_water_purification')),
+            risk_pest_control=_f(d.get('risk_pest_control')),
+            risk_water_stress=_f(d.get('risk_water_stress')),
+            risk_wildfire=_f(d.get('risk_wildfire')),
+            risk_cyclone=_f(d.get('risk_cyclone')),
+            risk_drought=_f(d.get('risk_drought')),
+            risk_flood=_f(d.get('risk_flood')),
+            risk_coastal_inundation=_f(d.get('risk_coastal_inundation')),
+            risk_heatwave=_f(d.get('risk_heatwave')),
+            risk_temperature_variation=_f(d.get('risk_temperature_variation')),
+            risk_precipitation_variation=_f(d.get('risk_precipitation_variation')),
         )
         lookup['asset'][d['name'].lower()] = obj
         created += 1
@@ -199,7 +258,14 @@ def _import_production(rows, lookup):
             production = float(d['production'])
         except (ValueError, TypeError):
             continue
-        Production.objects.create(Asset=asset, commodity=commodity, year=year, production=production)
+        Production.objects.create(
+            asset=asset,
+            commodity=commodity,
+            year=year,
+            production=production,
+            estimated_revenue=_f(d.get('estimated_revenue')),
+            scope=d.get('scope') or 'direct',
+        )
         created += 1
     return created
 
@@ -235,7 +301,7 @@ def _import_ownership(rows, lookup):
         Ownership.objects.create(
             Asset=asset, Company=company,
             ownership=d.get('ownership', ''),
-            description=d.get('description', ''),
+            description=_s(d.get('description')),
         )
         created += 1
     return created

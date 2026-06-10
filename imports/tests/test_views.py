@@ -64,6 +64,19 @@ class ViewsAccessTest(TestCase):
         self.assertRedirects(resp, reverse('imports:preview'), fetch_redirect_response=False)
         self.assertIn('import_key', self.client.session)
 
+    def test_preview_renders_data_rows(self):
+        self.client.login(username='creator', password='pass')
+        xlsx_bytes = _make_minimal_xlsx()
+        f = SimpleUploadedFile('data.xlsx', xlsx_bytes,
+                               content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        self.client.post(reverse('imports:upload'), {'excel_file': f})
+        resp = self.client.get(reverse('imports:preview'))
+        self.assertEqual(resp.status_code, 200)
+        # The actual data row must be rendered, not the empty-tab notice.
+        self.assertContains(resp, 'TestLand')
+        self.assertContains(resp, 'badge--ok')
+        self.assertNotContains(resp, 'Aucune ligne dans cet onglet')
+
     def test_preview_without_session_redirects(self):
         self.client.login(username='creator', password='pass')
         resp = self.client.get(reverse('imports:preview'))

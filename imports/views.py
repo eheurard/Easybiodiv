@@ -8,9 +8,12 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
 from .decorators import creator_required
+from .services.constants import SHEET_COLUMNS
 from .services.excel_parser import parse_file
 from .services.excel_template import build_template
 from .services.importer import save_import
+
+_STATUS_MAP = {'ok': 'ok', 'duplicate': 'dup', 'error': 'error'}
 
 
 @creator_required
@@ -74,18 +77,25 @@ def preview(request):
     with open(json_path, encoding='utf-8') as fp:
         data = json.load(fp)
 
-    sheet_summaries = {}
+    sheets = []
     for sheet_name, rows in data['sheets'].items():
-        sheet_summaries[sheet_name] = {
-            'rows': rows,
-            'ok_count': sum(1 for r in rows if r['status'] == 'ok'),
-            'duplicate_count': sum(1 for r in rows if r['status'] == 'duplicate'),
-            'error_count': sum(1 for r in rows if r['status'] == 'error'),
-        }
+        columns = SHEET_COLUMNS.get(sheet_name, [])
+        sheets.append({
+            'name': sheet_name,
+            'columns': columns,
+            'rows': [{
+                'status': _STATUS_MAP.get(r['status'], r['status']),
+                'values': [r['data'].get(col, '') for col in columns],
+                'error': r.get('message', ''),
+            } for r in rows],
+            'count_ok': sum(1 for r in rows if r['status'] == 'ok'),
+            'count_dup': sum(1 for r in rows if r['status'] == 'duplicate'),
+            'count_error': sum(1 for r in rows if r['status'] == 'error'),
+        })
 
-    has_importable = any(s['ok_count'] > 0 for s in sheet_summaries.values())
+    has_importable = any(s['count_ok'] > 0 for s in sheets)
     return render(request, 'imports/preview.html', {
-        'sheets': sheet_summaries,
+        'sheets': sheets,
         'has_importable': has_importable,
     })
 

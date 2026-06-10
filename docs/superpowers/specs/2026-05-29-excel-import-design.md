@@ -18,7 +18,7 @@ Nouvel app Django `imports`, ajoutée à `INSTALLED_APPS`. URLs sous `/imports/`
 |---------|------|
 | `imports/apps.py` | Déclaration de l'app |
 | `imports/urls.py` | Routes de l'app |
-| `imports/views.py` | 3 vues : index, upload, preview, confirm |
+| `imports/views.py` | 4 vues : index, upload, preview, confirm |
 | `imports/services/excel_template.py` | Génère le `.xlsx` template |
 | `imports/services/excel_parser.py` | Parse le fichier uploadé, résout FK, produit rapport |
 | `imports/services/importer.py` | Sauvegarde les lignes valides en base |
@@ -36,7 +36,8 @@ Décorateur `@creator_required` appliqué sur toutes les vues de l'app.
 
 ```python
 def creator_required(view_func):
-    # redirige vers HTTP 403 si user.role != 'CREATOR'
+    # si non connecté : redirect vers login
+    # si connecté mais role != 'CREATOR' : HTTP 403
 ```
 
 Le bouton d'accès dans la sidebar n'est rendu que si `user.role == 'CREATOR'` via
