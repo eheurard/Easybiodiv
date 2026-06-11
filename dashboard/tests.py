@@ -1111,6 +1111,12 @@ class ComplianceDataTests(TestCase):
 
 class CompliancePageViewTests(TestCase):
 
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='compuser', password='pass')
+        self.client.force_login(self.user)
+
     def test_page_returns_200(self):
         response = self.client.get(reverse('dashboard:compliance'))
         self.assertEqual(response.status_code, 200)
@@ -1156,6 +1162,11 @@ class CompliancePageViewTests(TestCase):
         url = reverse('dashboard:compliance_data', kwargs={'pk': company.pk})
         response = self.client.post(url)
         self.assertEqual(response.status_code, 405)
+
+    def test_page_redirects_anonymous(self):
+        self.client.logout()
+        response = self.client.get(reverse('dashboard:compliance'))
+        self.assertEqual(response.status_code, 302)
 
 
 class E4AdminTests(TestCase):

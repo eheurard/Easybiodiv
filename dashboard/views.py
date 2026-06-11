@@ -1132,6 +1132,7 @@ def compare_data(request, pk):
     return JsonResponse(_get_comparison_data(company))
 
 
+@login_required
 @require_GET
 def compliance(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
@@ -1145,6 +1146,7 @@ def compliance(request):
     })
 
 
+@login_required
 @require_GET
 def compliance_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
