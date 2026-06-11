@@ -556,18 +556,28 @@ function handleNodeClick(nodeId, data) {
 }
 
 function applyTreeHighlight(nodeId) {
+  // BFS bidirectionnel : remonte et descend le graphe depuis nodeId
   const connectedIds = new Set([nodeId]);
-  _treeLinkEls.forEach(({ src, tgt }) => {
-    if (src === nodeId) connectedIds.add(tgt);
-    if (tgt === nodeId) connectedIds.add(src);
-  });
+  let frontier = [nodeId];
+  while (frontier.length > 0) {
+    const next = [];
+    _treeLinkEls.forEach(({ src, tgt }) => {
+      if (frontier.includes(src) && !connectedIds.has(tgt)) {
+        connectedIds.add(tgt); next.push(tgt);
+      }
+      if (frontier.includes(tgt) && !connectedIds.has(src)) {
+        connectedIds.add(src); next.push(src);
+      }
+    });
+    frontier = next;
+  }
 
   Object.entries(_treeNodeEls).forEach(([id, g]) => {
     g.style.opacity = connectedIds.has(id) ? '1' : '0.15';
   });
 
   _treeLinkEls.forEach(({ el, src, tgt }) => {
-    const active = src === nodeId || tgt === nodeId;
+    const active = connectedIds.has(src) && connectedIds.has(tgt);
     el.setAttribute('stroke-opacity', active ? '0.9' : '0.06');
   });
 }
