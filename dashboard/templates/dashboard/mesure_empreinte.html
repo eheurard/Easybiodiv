@@ -77,8 +77,27 @@
   <!-- Tree diagram -->
   <div class="card tr-tree-card">
     <div class="label-caps tr-tree-card__title">Répartition hiérarchique</div>
-    <div class="tr-tree-wrap">
-      <svg id="tree-svg" class="tr-tree-svg" role="img" aria-label="Diagramme arborescent de l'impact"></svg>
+
+    <div class="tr-tree-filters">
+      <div class="tr-tree-filter-group">
+        <label class="label-caps" for="tree-threshold">Seuil</label>
+        <input type="range" id="tree-threshold" min="0" max="30" value="0" step="1">
+        <span id="tree-threshold-label">≥ 0 %</span>
+      </div>
+      <div class="tr-tree-filter-sep"></div>
+      <div class="tr-tree-filter-group" id="tree-commodity-filters">
+        <span class="label-caps">Commodité</span>
+      </div>
+    </div>
+
+    <div class="tr-tree-body">
+      <div class="tr-tree-wrap">
+        <svg id="tree-svg" class="tr-tree-svg" role="img" aria-label="Diagramme arborescent de l'impact"></svg>
+      </div>
+      <div class="tr-tree-panel" id="tree-panel" hidden>
+        <button class="tr-tree-panel__close" id="tree-panel-close" aria-label="Fermer le panneau">×</button>
+        <div id="tree-panel-content"></div>
+      </div>
     </div>
   </div>
 
