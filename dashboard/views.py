@@ -7,7 +7,16 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET
 
 from django.db.models import Q
-from .models import Asset, Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector, Ownership, Production
+from .models import (
+    Asset, Commodity, Company, Company_Policy, Company_Revenue,
+    Company_Revenue_Sector, DisclosureRequirement, E4Assessment, Ownership,
+    Production,
+)
+
+from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
+
+DR_STATUS_LABELS = {s.value: s.label for s in DisclosureRequirement.Status}
+LEAP_STATUS_LABELS = {s.value: s.label for s in E4Assessment.LeapStatus}
 
 
 SCORE_MAP = {'VL': 0.0, 'L': 0.2, 'M': 0.5, 'H': 0.7, 'VH': 1.0}
@@ -853,6 +862,155 @@ def _get_comparison_data(company):
         result[f'avg_{f}'] = round(sum(sc) / len(sc), 4) if sc else 0
 
     return result
+
+
+def _compliance_suggestions(company, has_sensitive_sites):
+    """Suggestions de statut dérivées des données existantes (indicatives)."""
+    suggestions = {}
+    if Company_Policy.objects.filter(company=company).exists():
+        suggestions['E4_2'] = 'PARTIAL'
+    if has_sensitive_sites:
+        suggestions['E4_5'] = 'PARTIAL'
+    return suggestions
+
+
+def _build_disclosure_requirements(version, dr_state, suggestions):
+    out = []
+    for code in APPLICABLE_DRS[version]:
+        meta = DR_CATALOG[code]
+        dr = dr_state.get(code)
+        status = dr.status if dr else 'NOT_STARTED'
+        out.append({
+            'code': code,
+            'code_label': code.replace('_', '-'),
+            'title': meta['title'],
+            'description': meta['description'],
+            'reference': meta['reference'],
+            'is_conditional': (code == 'E4_1' and version == 'AMENDED_2025'),
+            'status': status,
+            'status_label': DR_STATUS_LABELS[status],
+            'justification': dr.justification if dr else '',
+            'auto_suggestion': suggestions.get(code),
+        })
+    return out
+
+
+def _build_leap(assessment, sensitive_sites_count, company):
+    dep = _get_dependencies_data(company)
+    primary = dep.get('primary_service')
+    emp = _get_mesure_empreinte_data(company)
+    summaries = {
+        'locate': f"{sensitive_sites_count} site(s) en/près d'une zone sensible",
+        'evaluate': (
+            f"Dépendance principale : {primary['name']}"
+            if primary else "Aucune dépendance évaluée"
+        ),
+        'assess': f"Empreinte écosystèmes : {emp.get('total_impact', 0)}",
+    }
+    phases = [
+        ('locate', 'Locate', 'leap_locate_status', 'leap_locate_notes'),
+        ('evaluate', 'Evaluate', 'leap_evaluate_status', 'leap_evaluate_notes'),
+        ('assess', 'Assess', 'leap_assess_status', 'leap_assess_notes'),
+    ]
+    out = []
+    for key, label, status_field, notes_field in phases:
+        status = getattr(assessment, status_field) if assessment else 'TODO'
+        notes = getattr(assessment, notes_field) if assessment else ''
+        out.append({
+            'phase': key,
+            'label': label,
+            'status': status,
+            'status_label': LEAP_STATUS_LABELS[status],
+            'notes': notes,
+            'derived_summary': summaries[key],
+        })
+    return out
+
+
+def _compliance_synthesis(drs):
+    counts = {s.value: 0 for s in DisclosureRequirement.Status}
+    for d in drs:
+        counts[d['status']] += 1
+    applicable = [d for d in drs if d['status'] != 'NOT_APPLICABLE']
+    score = sum(
+        1.0 if d['status'] == 'COMPLIANT' else 0.5 if d['status'] == 'PARTIAL' else 0.0
+        for d in applicable
+    )
+    pct = round(100 * score / len(applicable)) if applicable else 0
+    return {
+        'compliance_pct': pct,
+        'counts_by_status': counts,
+        'applicable_count': len(applicable),
+    }
+
+
+def _get_compliance_data(company):
+    assessment = (
+        E4Assessment.objects
+        .filter(company=company)
+        .order_by('-reporting_year', '-updated_at')
+        .first()
+    )
+
+    sensitive_assets = list(
+        Asset.objects
+        .filter(ownership__Company=company, near_sensitive_zone=True)
+        .distinct()
+    )
+    e4_5_metric = {
+        'sites_count': len(sensitive_assets),
+        'total_area_ha': round(sum(a.sensitive_zone_area_ha for a in sensitive_assets), 2),
+        'sites': [
+            {
+                'name': a.name,
+                'zone_type': a.get_sensitive_zone_type_display() if a.sensitive_zone_type else '',
+                'zone_name': a.sensitive_zone_name,
+                'area_ha': round(a.sensitive_zone_area_ha, 2),
+            }
+            for a in sensitive_assets
+        ],
+    }
+
+    suggestions = _compliance_suggestions(company, bool(sensitive_assets))
+
+    if assessment is None:
+        version = E4Assessment.StandardVersion.AMENDED_2025
+        version_label = E4Assessment.StandardVersion.AMENDED_2025.label
+        materiality_status = 'NOT_ASSESSED'
+        materiality_justification = ''
+        reporting_year = None
+        dr_state = {}
+    else:
+        version = assessment.standard_version
+        version_label = assessment.get_standard_version_display()
+        materiality_status = assessment.materiality_status
+        materiality_justification = assessment.materiality_justification
+        reporting_year = assessment.reporting_year
+        dr_state = {dr.code: dr for dr in assessment.disclosure_requirements.all()}
+
+    if materiality_status == 'NOT_MATERIAL':
+        drs = []
+    else:
+        drs = _build_disclosure_requirements(version, dr_state, suggestions)
+
+    return {
+        'company_id': company.pk,
+        'company_name': company.name,
+        'configured': assessment is not None,
+        'standard_version': version,
+        'standard_version_label': version_label,
+        'reporting_year': reporting_year,
+        'materiality': {
+            'status': materiality_status,
+            'status_label': dict(E4Assessment.Materiality.choices)[materiality_status],
+            'is_material': materiality_status == 'MATERIAL',
+            'justification': materiality_justification,
+        },
+        'leap': _build_leap(assessment, len(sensitive_assets), company),
+        'disclosure_requirements': drs,
+        'synthesis': _compliance_synthesis(drs),
+        'e4_5_metric': e4_5_metric,
+    }
 
 
 def index(request):

@@ -975,3 +975,112 @@ class E4CatalogTests(TestCase):
             self.assertIn('title', DR_CATALOG[code])
             self.assertIn('description', DR_CATALOG[code])
             self.assertIn('reference', DR_CATALOG[code])
+
+
+class ComplianceDataTests(TestCase):
+
+    def _company_with_asset(self, near_zone=False, area=0.0):
+        company = Company.objects.create(name='CompCorp')
+        country = Country.objects.create(
+            name='France', water_ownership='Public', land_ownership='Private'
+        )
+        asset = Asset.objects.create(
+            name='Site', latitude=1.0, longitude=1.0, country=country,
+            near_sensitive_zone=near_zone, sensitive_zone_area_ha=area,
+            sensitive_zone_type=('NATURA_2000' if near_zone else ''),
+        )
+        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        return company, asset
+
+    def test_unconfigured_company(self):
+        from .views import _get_compliance_data
+        company, _ = self._company_with_asset()
+        data = _get_compliance_data(company)
+        self.assertFalse(data['configured'])
+        self.assertEqual(data['materiality']['status'], 'NOT_ASSESSED')
+        self.assertEqual(len(data['disclosure_requirements']), 5)
+
+    def test_suggestion_e4_2_when_policy_exists(self):
+        from .views import _get_compliance_data
+        company, _ = self._company_with_asset()
+        pt = Policy_Type.objects.create(name='Bio')
+        sub = Policy_Subcategory.objects.create(name='Sub', policy_type=pt)
+        lvl = Policy_Level.objects.create(name='Lvl', subcategory=sub, score=0.5)
+        Company_Policy.objects.create(company=company, policy_level=lvl)
+        data = _get_compliance_data(company)
+        dr2 = next(d for d in data['disclosure_requirements'] if d['code'] == 'E4_2')
+        self.assertEqual(dr2['auto_suggestion'], 'PARTIAL')
+
+    def test_material_amended_shows_five_drs(self):
+        from .views import _get_compliance_data
+        from .models import E4Assessment
+        company, _ = self._company_with_asset()
+        E4Assessment.objects.create(
+            company=company, reporting_year=2024,
+            materiality_status=E4Assessment.Materiality.MATERIAL,
+        )
+        data = _get_compliance_data(company)
+        self.assertTrue(data['configured'])
+        self.assertTrue(data['materiality']['is_material'])
+        self.assertEqual(len(data['disclosure_requirements']), 5)
+        e4_1 = next(d for d in data['disclosure_requirements'] if d['code'] == 'E4_1')
+        self.assertTrue(e4_1['is_conditional'])
+
+    def test_not_material_hides_drs(self):
+        from .views import _get_compliance_data
+        from .models import E4Assessment
+        company, _ = self._company_with_asset()
+        E4Assessment.objects.create(
+            company=company, reporting_year=2024,
+            materiality_status=E4Assessment.Materiality.NOT_MATERIAL,
+            materiality_justification='Screening site par site : non matériel.',
+        )
+        data = _get_compliance_data(company)
+        self.assertEqual(data['disclosure_requirements'], [])
+        self.assertIn('non matériel', data['materiality']['justification'])
+
+    def test_e4_5_metric_counts_sensitive_sites(self):
+        from .views import _get_compliance_data
+        company, _ = self._company_with_asset(near_zone=True, area=120.0)
+        country = Country.objects.get(name='France')
+        a2 = Asset.objects.create(
+            name='Site2', latitude=2.0, longitude=2.0, country=country,
+            near_sensitive_zone=True, sensitive_zone_area_ha=80.0,
+            sensitive_zone_type='UNESCO',
+        )
+        Ownership.objects.create(Asset=a2, Company=company, ownership='100%')
+        data = _get_compliance_data(company)
+        self.assertEqual(data['e4_5_metric']['sites_count'], 2)
+        self.assertAlmostEqual(data['e4_5_metric']['total_area_ha'], 200.0, places=2)
+
+    def test_original_2023_includes_e4_1_mandatory_and_e4_6(self):
+        from .views import _get_compliance_data
+        from .models import E4Assessment
+        company, _ = self._company_with_asset()
+        E4Assessment.objects.create(
+            company=company, reporting_year=2024,
+            standard_version=E4Assessment.StandardVersion.ORIGINAL_2023,
+            materiality_status=E4Assessment.Materiality.MATERIAL,
+        )
+        data = _get_compliance_data(company)
+        codes = [d['code'] for d in data['disclosure_requirements']]
+        self.assertEqual(len(codes), 6)
+        self.assertIn('E4_6', codes)
+        e4_1 = next(d for d in data['disclosure_requirements'] if d['code'] == 'E4_1')
+        self.assertFalse(e4_1['is_conditional'])
+
+    def test_latest_assessment_used(self):
+        from .views import _get_compliance_data
+        from .models import E4Assessment
+        company, _ = self._company_with_asset()
+        E4Assessment.objects.create(
+            company=company, reporting_year=2022,
+            materiality_status=E4Assessment.Materiality.NOT_MATERIAL,
+        )
+        E4Assessment.objects.create(
+            company=company, reporting_year=2024,
+            materiality_status=E4Assessment.Materiality.MATERIAL,
+        )
+        data = _get_compliance_data(company)
+        self.assertEqual(data['reporting_year'], 2024)
+        self.assertTrue(data['materiality']['is_material'])
