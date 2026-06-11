@@ -1,6 +1,16 @@
 const ME_COMPANY_KEY = 'selected-company-id';
 
+let currentData = null;
+
+const treeState = {
+  selected: null,   // string node id ou null
+  threshold: 0,     // float 0–1 (ex. 0.05 = 5 %)
+  commodity: null,  // string nom commodité ou null = toutes
+};
+
 document.addEventListener('DOMContentLoaded', () => {
+  initTreeFilters();
+
   const companiesEl = document.getElementById('companies-data');
   if (!companiesEl) return;
 
@@ -84,7 +94,34 @@ function initTrCombobox(companies, initialData) {
 }
 
 
+function initTreeFilters() {
+  const slider = document.getElementById('tree-threshold');
+  const label  = document.getElementById('tree-threshold-label');
+  if (!slider) return;
+
+  slider.addEventListener('input', () => {
+    const pct = parseInt(slider.value, 10);
+    if (label) label.textContent = `≥ ${pct} %`;
+    treeState.threshold = pct / 100;
+    treeState.selected = null;
+    hideTreePanel();
+    if (currentData) renderTree(currentData);
+  });
+
+  const closeBtn = document.getElementById('tree-panel-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      treeState.selected = null;
+      resetTreeHighlight();
+      hideTreePanel();
+    });
+  }
+}
+
+
 function renderTransitionRisk(data) {
+  currentData = data;
+
   const kpiImpact = document.getElementById('tr-total-impact');
   if (kpiImpact) kpiImpact.textContent = data.total_impact
     ? data.total_impact.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
@@ -103,6 +140,7 @@ function renderTransitionRisk(data) {
   renderBars('asset-bars', data.assets);
   renderBars('country-bars', data.countries);
   renderSankey(data);
+  buildCommodityPills(data);
   renderTree(data);
 }
 
