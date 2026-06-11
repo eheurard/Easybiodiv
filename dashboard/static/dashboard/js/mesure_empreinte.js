@@ -119,6 +119,39 @@ function initTreeFilters() {
 }
 
 
+function buildCommodityPills(data) {
+  const container = document.getElementById('tree-commodity-filters');
+  if (!container) return;
+
+  treeState.commodity = null;
+
+  const names = data.commodities.map(c => c.name);
+
+  let html = '<span class="label-caps">Commodité</span>';
+  html += '<button class="tr-tree-commodity-pill tr-tree-commodity-pill--active" data-commodity="">Toutes</button>';
+  names.forEach(name => {
+    html += `<button class="tr-tree-commodity-pill" data-commodity="${escHtml(name)}">${escHtml(name)}</button>`;
+  });
+  container.innerHTML = html;
+
+  container.querySelectorAll('.tr-tree-commodity-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = btn.dataset.commodity || null;
+      treeState.commodity = val;
+      treeState.selected = null;
+
+      container.querySelectorAll('.tr-tree-commodity-pill').forEach(b =>
+        b.classList.remove('tr-tree-commodity-pill--active')
+      );
+      btn.classList.add('tr-tree-commodity-pill--active');
+
+      hideTreePanel();
+      if (currentData) renderTree(currentData);
+    });
+  });
+}
+
+
 function renderTransitionRisk(data) {
   currentData = data;
 
@@ -180,6 +213,9 @@ const TREE_COL_X = [20, 250, 470, 700];
 const TREE_COL_LABELS = ['COMMODITÉS', 'ACTIFS', 'PAYS', 'COMPANY'];
 const TREE_COLORS = ['#4a7a5c', '#625a4e', '#865220', '#91452d'];
 const TREE_TOP = 28;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+let _treeNodeEls  = {};
+let _treeLinkEls  = [];
 
 function renderSankey(data) {
   const svg = document.getElementById('sankey-svg');
@@ -326,32 +362,76 @@ function renderTree(data) {
   const svg = document.getElementById('tree-svg');
   if (!svg) return;
 
+  _treeNodeEls = {};
+  _treeLinkEls = [];
+
   if (!data.sankey_links || data.sankey_links.length === 0) {
     svg.setAttribute('viewBox', '0 0 820 120');
-    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" font-size="13" font-family="Inter,sans-serif" fill="#87736d">Aucune donnée à afficher.</text>';
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const t = document.createElementNS(SVG_NS, 'text');
+    t.setAttribute('x', '50%');
+    t.setAttribute('y', '50%');
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '13');
+    t.setAttribute('font-family', 'Inter,sans-serif');
+    t.setAttribute('fill', '#87736d');
+    t.textContent = 'Aucune donnée à afficher.';
+    svg.appendChild(t);
     return;
   }
 
-  // Build node map: key → {label, col, pct, y}
-  const nodes = {};
+  const allNodes = {};
   data.commodities.forEach(c => {
-    nodes[`commodity:${c.name}`] = { label: c.name, col: 0, pct: c.pct };
+    allNodes[`commodity:${c.name}`] = { label: c.name, col: 0, pct: c.pct };
   });
   data.assets.forEach(a => {
-    nodes[`asset:${a.id}`] = { label: a.name, col: 1, pct: a.pct };
+    allNodes[`asset:${a.id}`] = { label: a.name, col: 1, pct: a.pct };
   });
   data.countries.forEach(c => {
-    nodes[`country:${c.name}`] = { label: c.name, col: 2, pct: c.pct };
+    allNodes[`country:${c.name}`] = { label: c.name, col: 2, pct: c.pct };
   });
-  nodes[`company:${data.company_id}`] = { label: data.company_name, col: 3, pct: 1.0 };
+  allNodes[`company:${data.company_id}`] = { label: data.company_name, col: 3, pct: 1.0 };
 
-  // Sort each column by pct descending
+  const { threshold, commodity } = treeState;
+
+  let visibleIds = new Set(
+    Object.entries(allNodes)
+      .filter(([id, n]) => n.col === 3 || n.pct >= threshold)
+      .map(([id]) => id)
+  );
+
+  if (commodity) {
+    const commodityId = `commodity:${commodity}`;
+    if (visibleIds.has(commodityId)) {
+      const connected = new Set([commodityId, `company:${data.company_id}`]);
+      data.sankey_links.forEach(link => {
+        if (link.source === commodityId && visibleIds.has(link.target))
+          connected.add(link.target);
+      });
+      data.sankey_links.forEach(link => {
+        if (connected.has(link.source) && link.source.startsWith('asset:') && visibleIds.has(link.target))
+          connected.add(link.target);
+      });
+      visibleIds = connected;
+    } else {
+      visibleIds = new Set([`company:${data.company_id}`]);
+    }
+  }
+
+  const visibleLinks = data.sankey_links.filter(
+    l => visibleIds.has(l.source) && visibleIds.has(l.target)
+  );
+
+  const nodes = {};
+  Object.entries(allNodes).forEach(([id, n]) => {
+    if (visibleIds.has(id)) nodes[id] = { ...n, id };
+  });
+
   const cols = [[], [], [], []];
-  Object.entries(nodes).forEach(([id, n]) => { n.id = id; cols[n.col].push(n); });
+  Object.values(nodes).forEach(n => cols[n.col].push(n));
   cols.forEach(col => col.sort((a, b) => b.pct - a.pct));
 
-  // Compute y positions — center each column vertically
-  const maxNodes = Math.max(...cols.map(c => c.length));
+  const maxNodes = Math.max(...cols.map(c => c.length), 1);
   const H = TREE_TOP + maxNodes * (TREE_NODE_H + TREE_NODE_GAP) + 10;
 
   cols.forEach(colNodes => {
@@ -361,46 +441,236 @@ function renderTree(data) {
   });
 
   const W = TREE_COL_X[3] + TREE_NODE_W + 20;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
-  // Render order: headers → links → node rects → labels
-  let headers = '';
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const gHeaders = document.createElementNS(SVG_NS, 'g');
   TREE_COL_X.forEach((x, i) => {
-    headers += `<text x="${x}" y="16" font-size="8" font-family="Inter,sans-serif" fill="#87736d" font-weight="700" letter-spacing="0.08em">${escHtml(TREE_COL_LABELS[i])}</text>`;
+    const t = document.createElementNS(SVG_NS, 'text');
+    t.setAttribute('x', x);
+    t.setAttribute('y', '16');
+    t.setAttribute('font-size', '8');
+    t.setAttribute('font-family', 'Inter,sans-serif');
+    t.setAttribute('fill', '#87736d');
+    t.setAttribute('font-weight', '700');
+    t.setAttribute('letter-spacing', '0.08em');
+    t.textContent = TREE_COL_LABELS[i];
+    gHeaders.appendChild(t);
   });
+  svg.appendChild(gHeaders);
 
-  let paths = '';
-  data.sankey_links.forEach(link => {
+  const gLinks = document.createElementNS(SVG_NS, 'g');
+  visibleLinks.forEach(link => {
     const src = nodes[link.source];
     const tgt = nodes[link.target];
     if (!src || !tgt) return;
+
     const x1 = TREE_COL_X[src.col] + TREE_NODE_W;
     const y1 = src.y + TREE_NODE_H / 2;
     const x2 = TREE_COL_X[tgt.col];
     const y2 = tgt.y + TREE_NODE_H / 2;
     const mx = (x1 + x2) / 2;
     const sw = Math.max(1, link.value * 20);
-    paths += `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="${TREE_COLORS[src.col]}" stroke-width="${sw}" stroke-opacity="0.25"/>`;
-  });
 
-  let nodeRects = '';
-  let labels = '';
+    const path = document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', TREE_COLORS[src.col]);
+    path.setAttribute('stroke-width', sw);
+    path.setAttribute('stroke-opacity', '0.25');
+    gLinks.appendChild(path);
+    _treeLinkEls.push({ el: path, src: link.source, tgt: link.target });
+  });
+  svg.appendChild(gLinks);
+
+  const gNodes = document.createElementNS(SVG_NS, 'g');
   Object.values(nodes).forEach(n => {
-    const x = TREE_COL_X[n.col];
+    const x     = TREE_COL_X[n.col];
+    const color = TREE_COLORS[n.col];
     const pctText = n.col === 3 ? '100 %' : `${(n.pct * 100).toFixed(1)} %`;
-    nodeRects += `<rect x="${x}" y="${n.y}" width="${TREE_NODE_W}" height="${TREE_NODE_H}" rx="4" fill="${TREE_COLORS[n.col]}"/>`;
-    labels += `<text class="tree-lbl" x="${x + TREE_NODE_W / 2}" y="${n.y + 12}" text-anchor="middle" font-size="10" font-family="Inter,sans-serif" fill="white" font-weight="600">${escHtml(n.label)}</text>`;
-    labels += `<text x="${x + TREE_NODE_W / 2}" y="${n.y + 26}" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="rgba(255,255,255,0.75)">${pctText}</text>`;
+
+    const g = document.createElementNS(SVG_NS, 'g');
+    g.setAttribute('class', 'tree-node');
+    g.style.cursor = 'pointer';
+
+    const rect = document.createElementNS(SVG_NS, 'rect');
+    rect.setAttribute('x', x);
+    rect.setAttribute('y', n.y);
+    rect.setAttribute('width', TREE_NODE_W);
+    rect.setAttribute('height', TREE_NODE_H);
+    rect.setAttribute('rx', '4');
+    rect.setAttribute('fill', color);
+
+    const tLabel = document.createElementNS(SVG_NS, 'text');
+    tLabel.setAttribute('class', 'tree-lbl');
+    tLabel.setAttribute('x', x + TREE_NODE_W / 2);
+    tLabel.setAttribute('y', n.y + 12);
+    tLabel.setAttribute('text-anchor', 'middle');
+    tLabel.setAttribute('font-size', '10');
+    tLabel.setAttribute('font-family', 'Inter,sans-serif');
+    tLabel.setAttribute('fill', 'white');
+    tLabel.setAttribute('font-weight', '600');
+    tLabel.textContent = n.label;
+
+    const tPct = document.createElementNS(SVG_NS, 'text');
+    tPct.setAttribute('x', x + TREE_NODE_W / 2);
+    tPct.setAttribute('y', n.y + 26);
+    tPct.setAttribute('text-anchor', 'middle');
+    tPct.setAttribute('font-size', '9');
+    tPct.setAttribute('font-family', 'Inter,sans-serif');
+    tPct.setAttribute('fill', 'rgba(255,255,255,0.75)');
+    tPct.textContent = pctText;
+
+    g.appendChild(rect);
+    g.appendChild(tLabel);
+    g.appendChild(tPct);
+
+    g.addEventListener('click', () => handleNodeClick(n.id, data));
+
+    gNodes.appendChild(g);
+    _treeNodeEls[n.id] = g;
   });
+  svg.appendChild(gNodes);
 
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  svg.innerHTML = headers + paths + nodeRects + labels;
-
-  // Compress labels that overflow the node width
   const availW = TREE_NODE_W - 12;
   svg.querySelectorAll('.tree-lbl').forEach(t => {
-    if (t.getComputedTextLength() > availW) {
+    if (t.getComputedTextLength && t.getComputedTextLength() > availW) {
       t.setAttribute('textLength', availW);
       t.setAttribute('lengthAdjust', 'spacingAndGlyphs');
     }
   });
+}
+
+
+function handleNodeClick(nodeId, data) {
+  if (treeState.selected === nodeId) {
+    treeState.selected = null;
+    resetTreeHighlight();
+    hideTreePanel();
+  } else {
+    treeState.selected = nodeId;
+    applyTreeHighlight(nodeId);
+    showTreePanel(nodeId, data);
+  }
+}
+
+function applyTreeHighlight(nodeId) {
+  const connectedIds = new Set([nodeId]);
+  _treeLinkEls.forEach(({ src, tgt }) => {
+    if (src === nodeId) connectedIds.add(tgt);
+    if (tgt === nodeId) connectedIds.add(src);
+  });
+
+  Object.entries(_treeNodeEls).forEach(([id, g]) => {
+    g.style.opacity = connectedIds.has(id) ? '1' : '0.15';
+  });
+
+  _treeLinkEls.forEach(({ el, src, tgt }) => {
+    const active = src === nodeId || tgt === nodeId;
+    el.setAttribute('stroke-opacity', active ? '0.9' : '0.06');
+  });
+}
+
+function resetTreeHighlight() {
+  Object.values(_treeNodeEls).forEach(g => { g.style.opacity = '1'; });
+  _treeLinkEls.forEach(({ el }) => { el.setAttribute('stroke-opacity', '0.25'); });
+}
+
+
+function hideTreePanel() {
+  const panel = document.getElementById('tree-panel');
+  if (panel) panel.hidden = true;
+}
+
+function showTreePanel(nodeId, data) {
+  const panel   = document.getElementById('tree-panel');
+  const content = document.getElementById('tree-panel-content');
+  if (!panel || !content) return;
+  content.innerHTML = buildPanelHTML(nodeId, data);
+  panel.hidden = false;
+}
+
+function buildPanelHTML(nodeId, data) {
+  const colonIdx = nodeId.indexOf(':');
+  const type  = nodeId.slice(0, colonIdx);
+  const idVal = nodeId.slice(colonIdx + 1);
+
+  const typeLabels = { commodity: 'COMMODITÉ', asset: 'ACTIF', country: 'PAYS', company: 'ENTREPRISE' };
+  const typeColors = { commodity: '#865220',   asset: '#625a4e', country: '#4a7a5c', company: '#91452d' };
+  const color = typeColors[type] || '#625a4e';
+  const label = typeLabels[type] || type.toUpperCase();
+
+  const badge = `<span class="tr-tree-panel__badge" style="background:${color}22;color:${color}">${label}</span>`;
+
+  let name = idVal;
+  let pct  = null;
+  let body = '';
+
+  if (type === 'commodity') {
+    const c = data.commodities.find(c => c.name === idVal);
+    if (c) { name = c.name; pct = c.pct; }
+
+    const assets = data.sankey_links
+      .filter(l => l.source === nodeId && l.target.startsWith('asset:'))
+      .map(l => {
+        const aid = l.target.slice('asset:'.length);
+        return data.assets.find(a => String(a.id) === aid);
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.pct - a.pct);
+
+    body = '<div class="tr-tree-panel__section">Actifs</div>' +
+      (assets.length
+        ? assets.map(a => `<div class="tr-tree-panel__row"><span>${escHtml(a.name)}</span><b>${(a.pct * 100).toFixed(1)} %</b></div>`).join('')
+        : '<div class="tr-tree-panel__row"><span>—</span></div>');
+
+  } else if (type === 'asset') {
+    const a = data.assets.find(a => String(a.id) === idVal);
+    if (a) { name = a.name; pct = a.pct; }
+
+    const countryLink = data.sankey_links.find(l => l.source === nodeId && l.target.startsWith('country:'));
+    const countryName = countryLink ? countryLink.target.slice('country:'.length) : '—';
+
+    const commodities = data.sankey_links
+      .filter(l => l.target === nodeId && l.source.startsWith('commodity:'))
+      .map(l => l.source.slice('commodity:'.length));
+
+    body = `<div class="tr-tree-panel__row"><span>Pays</span><b>${escHtml(countryName)}</b></div>` +
+      '<div class="tr-tree-panel__section">Commodités</div>' +
+      (commodities.length
+        ? commodities.map(c => `<div class="tr-tree-panel__row"><span>${escHtml(c)}</span></div>`).join('')
+        : '<div class="tr-tree-panel__row"><span>—</span></div>');
+
+  } else if (type === 'country') {
+    const c = data.countries.find(c => c.name === idVal);
+    if (c) { name = c.name; pct = c.pct; }
+
+    const assets = data.sankey_links
+      .filter(l => l.target === nodeId && l.source.startsWith('asset:'))
+      .map(l => {
+        const aid = l.source.slice('asset:'.length);
+        return data.assets.find(a => String(a.id) === aid);
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.pct - a.pct);
+
+    body = '<div class="tr-tree-panel__section">Actifs</div>' +
+      (assets.length
+        ? assets.map(a => `<div class="tr-tree-panel__row"><span>${escHtml(a.name)}</span><b>${(a.pct * 100).toFixed(1)} %</b></div>`).join('')
+        : '<div class="tr-tree-panel__row"><span>—</span></div>');
+
+  } else if (type === 'company') {
+    name = data.company_name;
+    pct  = 1.0;
+    body = `<div class="tr-tree-panel__row"><span>Pays</span><b>${data.countries.length}</b></div>` +
+           `<div class="tr-tree-panel__row"><span>Actifs</span><b>${data.assets.length}</b></div>` +
+           `<div class="tr-tree-panel__row"><span>Commodités</span><b>${data.commodities.length}</b></div>`;
+  }
+
+  const pctLine = pct !== null
+    ? `<div class="tr-tree-panel__row"><span>Impact</span><b>${pct === 1.0 ? '100' : (pct * 100).toFixed(1)} %</b></div>`
+    : '';
+
+  return `<h4 class="tr-tree-panel__title">${escHtml(name)}</h4>${badge}${pctLine}${body}`;
 }
