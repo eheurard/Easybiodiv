@@ -1156,3 +1156,22 @@ class CompliancePageViewTests(TestCase):
         url = reverse('dashboard:compliance_data', kwargs={'pk': company.pk})
         response = self.client.post(url)
         self.assertEqual(response.status_code, 405)
+
+
+class E4AdminTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.admin = User.objects.create_superuser(
+            username='boss', password='pass', email='b@b.fr'
+        )
+        self.client.force_login(self.admin)
+
+    def test_assessment_changelist_loads(self):
+        response = self.client.get('/admin/dashboard/e4assessment/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_assessment_add_form_loads(self):
+        response = self.client.get('/admin/dashboard/e4assessment/add/')
+        self.assertEqual(response.status_code, 200)

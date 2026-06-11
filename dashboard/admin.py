@@ -4,6 +4,7 @@ from .models import (
     Asset, Asset_consumption, Company, Production, Ownership,
     Company_Revenue, Company_Revenue_Sector,
     Policy_Type, Policy_Subcategory, Policy_Level, Company_Policy,
+    DisclosureRequirement, E4Assessment,
 )
 
 
@@ -50,8 +51,11 @@ class SubSectorAdmin(admin.ModelAdmin):
 @admin.register(Asset)
 class AssetAdmin(admin.ModelAdmin):
     search_fields = ('name', 'country__name', 'subnational_region__name')
-    list_display = ('name', 'country', 'subnational_region', 'latitude', 'longitude')
-    list_filter = ('country',)
+    list_display = (
+        'name', 'country', 'subnational_region',
+        'near_sensitive_zone', 'sensitive_zone_type',
+    )
+    list_filter = ('country', 'near_sensitive_zone', 'sensitive_zone_type')
     autocomplete_fields = ('country', 'subnational_region')
 
 
@@ -130,3 +134,35 @@ class CompanyPolicyAdmin(admin.ModelAdmin):
     list_display = ('company', 'policy_level', 'policy_date')
     list_filter = ('policy_date',)
     autocomplete_fields = ('company', 'policy_level')
+
+
+class DisclosureRequirementInline(admin.TabularInline):
+    model = DisclosureRequirement
+    extra = 0
+    fields = ('code', 'status', 'justification')
+
+
+@admin.register(E4Assessment)
+class E4AssessmentAdmin(admin.ModelAdmin):
+    search_fields = ('company__name',)
+    list_display = (
+        'company', 'reporting_year', 'standard_version', 'materiality_status',
+    )
+    list_filter = ('standard_version', 'materiality_status', 'reporting_year')
+    autocomplete_fields = ('company',)
+    inlines = (DisclosureRequirementInline,)
+    fieldsets = (
+        (None, {
+            'fields': (
+                'company', 'reporting_year', 'standard_version',
+                'materiality_status', 'materiality_justification', 'created_by',
+            )
+        }),
+        ('Approche LEAP', {
+            'fields': (
+                ('leap_locate_status', 'leap_locate_notes'),
+                ('leap_evaluate_status', 'leap_evaluate_notes'),
+                ('leap_assess_status', 'leap_assess_notes'),
+            )
+        }),
+    )
