@@ -53,11 +53,29 @@
   </div>
 
   <div class="overview-bottom">
-    <div class="map-card" id="overview-map" aria-label="Carte des actifs"></div>
+    <div class="map-wrapper">
+      <div class="map-card" id="overview-map" aria-label="Carte des actifs"></div>
+      <div class="map-layer-toggle" role="group" aria-label="Style de carte">
+        <button class="map-layer-btn map-layer-btn--active" data-layer="classic">Classique</button>
+        <button class="map-layer-btn" data-layer="grayscale">Gris</button>
+        <button class="map-layer-btn" data-layer="satellite">Satellite</button>
+      </div>
+    </div>
     <div class="country-panel card">
-      <div class="country-panel__header label-caps">Exposition par pays</div>
-      <div class="country-panel__list" id="country-list">
-        <p class="country-panel__empty">Sélectionnez une entreprise pour afficher l'exposition.</p>
+      <div class="country-panel__tabs">
+        <span class="country-panel__tab-indicator" aria-hidden="true"></span>
+        <button class="country-panel__tab country-panel__tab--active" data-tab="pays" aria-pressed="true">Exposition par pays</button>
+        <button class="country-panel__tab" data-tab="asset" aria-pressed="false">Exposition par asset</button>
+      </div>
+      <div class="country-panel__view country-panel__view--active" id="country-view">
+        <div class="country-panel__list" id="country-list">
+          <p class="country-panel__empty">Sélectionnez une entreprise pour afficher l'exposition.</p>
+        </div>
+      </div>
+      <div class="country-panel__view" id="asset-view">
+        <div id="asset-list">
+          <p class="country-panel__empty">Sélectionnez une entreprise pour afficher l'exposition.</p>
+        </div>
       </div>
     </div>
   </div>

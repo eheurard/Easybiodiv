@@ -301,8 +301,46 @@ def _get_company_data(company):
             ],
         })
 
-    features = [
-        {
+    features = []
+    for asset in assets:
+        prods_all = list(asset.production_set.all())
+        latest_year = max((p.year for p in prods_all), default=None)
+        recent_prods = [p for p in prods_all if p.year == latest_year] if latest_year else []
+
+        footprint = sum(
+            p.production * p.commodity.impact_endpoint_ReCiPe2016_ecosystem_diversity
+            for p in recent_prods
+        )
+
+        restoration_cost = (
+            asset.subnational_region.restoration_cost_m2
+            if asset.subnational_region
+            else asset.country.restoration_cost_m2
+        )
+        dette_eco = 0.0
+        for p in recent_prods:
+            field = _BIODIV_LOSS_FIELDS.get(
+                p.commodity.biodiversity_loss_class, 'biodiversity_loss_agriculture'
+            )
+            biodiv_loss = getattr(asset.country, field, 0.0)
+            dette_eco += (
+                biodiv_loss
+                * restoration_cost
+                * p.production
+                * p.commodity.impact_endpoint_ReCiPe2016_ecosystem_diversity
+            )
+
+        productions_data = [
+            {
+                'commodity': p.commodity.name,
+                'quantity': round(p.production, 2),
+                'unit': p.commodity.unit,
+                'revenue': round(p.estimated_revenue, 2),
+            }
+            for p in sorted(recent_prods, key=lambda x: -x.production)
+        ]
+
+        features.append({
             'type': 'Feature',
             'geometry': {
                 'type': 'Point',
@@ -311,12 +349,14 @@ def _get_company_data(company):
             'properties': {
                 'name': asset.name,
                 'country': asset.country.name,
-                'commodities': ', '.join(sorted({p.commodity.name for p in asset.production_set.all()})),
+                'commodities': ', '.join(sorted({p.commodity.name for p in prods_all})),
                 'region': asset.subnational_region.name if asset.subnational_region else '',
+                'year': latest_year,
+                'productions': productions_data,
+                'footprint': round(footprint, 6),
+                'dette_eco': round(dette_eco, 2),
             },
-        }
-        for asset in assets
-    ]
+        })
 
     # Policies grouped by type with average score
     policies_qs = (
@@ -712,6 +752,109 @@ def _get_physical_risk_data(company):
     }
 
 
+_IMPACT_FIELDS = [
+    ('impact_midpoint_ReCiPe2016_water_consumption',          'Conso. eau (ReCiPe midpoint)'),
+    ('impact_midpoint_ReCiPe2016_climate_change',             'Changement climatique (ReCiPe)'),
+    ('impact_midpoint_ReCiPe2016_freshwater_ecotoxicity',     'Écotoxicité eau douce (ReCiPe)'),
+    ('impact_midpoint_ReCiPe2016_freshwater_eutrophication',  'Eutrophisation eau douce (ReCiPe)'),
+    ('impact_midpoint_ReCiPe2016_marine_eutrophication',      'Eutrophisation marine (ReCiPe)'),
+    ('impact_midpoint_ReCiPe2016_terrestrial_acidification',  'Acidification terrestre (ReCiPe)'),
+    ('impact_midpoint_ReCiPe2016_soil_acidification',         'Acidification sols (ReCiPe)'),
+    ('impact_midpoint_ReCiPe2016_ozonedepletion',             'Dépletion ozone (ReCiPe)'),
+    ('impact_midpoint_ReCiPe2016_resource_depletion_fossil',  'Dépletion fossile (ReCiPe)'),
+    ('impact_midpoint_ReCiPe2016_resource_depletion_minerals','Dépletion minéraux (ReCiPe)'),
+    ('impact_midpoint_ReCiPe2016_land_use',                   "Utilisation des terres (ReCiPe)"),
+    ('impact_endpoint_ReCiPe2016_human_health',               'Santé humaine (ReCiPe endpoint)'),
+    ('impact_endpoint_ReCiPe2016_ecosystem_diversity',        'Diversité écosystèmes (ReCiPe endpoint)'),
+    ('impact_endpoint_ReCiPe2016_resource_availability',      'Disponibilité ressources (ReCiPe endpoint)'),
+    ('impact_endpoint_GBS_terrestrial_dynamic',               'Terrestre dynamique (GBS endpoint)'),
+    ('impact_endpoint_GBS_terrestrial_static',                'Terrestre statique (GBS endpoint)'),
+]
+
+_DEPENDENCY_FIELDS = [
+    ('dependency_water',                "Dépendance eau"),
+    ('dependency_pollination',          'Dépendance pollinisation'),
+    ('dependency_soil_quality',         'Dépendance qualité sols'),
+    ('dependency_carbon_sequestration', 'Dépendance séquestration carbone'),
+    ('dependency_water_purification',   "Dépendance épuration eau"),
+    ('dependency_pest_control',         'Dépendance contrôle ravageurs'),
+]
+
+METRICS = (
+    [
+        {'key': 'number_of_assets', 'label': "Nombre d'actifs"},
+        {'key': 'total_lbiodiv',    'label': 'Dette écologique (L biodiv)'},
+    ]
+    + [{'key': f'total_{f}', 'label': label} for f, label in _IMPACT_FIELDS]
+    + [{'key': f'avg_{f}',   'label': label} for f, label in _DEPENDENCY_FIELDS]
+)
+
+
+def _get_comparison_data(company):
+    assets = list(
+        Asset.objects.filter(ownership__Company=company)
+        .select_related('country', 'subnational_region')
+        .distinct()
+    )
+    asset_ids = [a.pk for a in assets]
+
+    latest_years = dict(
+        Production.objects.filter(asset_id__in=asset_ids)
+        .values('asset_id')
+        .annotate(max_year=Max('year'))
+        .values_list('asset_id', 'max_year')
+    )
+
+    result = {
+        'company_id': company.pk,
+        'company_name': company.name,
+        'number_of_assets': len(assets),
+        'total_lbiodiv': 0,
+        **{f'total_{f}': 0 for f, _ in _IMPACT_FIELDS},
+        **{f'avg_{f}': 0  for f, _ in _DEPENDENCY_FIELDS},
+    }
+    if not latest_years:
+        return result
+
+    productions = list(
+        Production.objects.filter(asset_id__in=asset_ids)
+        .select_related('commodity', 'asset__country', 'asset__subnational_region')
+    )
+    productions = [p for p in productions if latest_years.get(p.asset_id) == p.year]
+
+    asset_map     = {a.pk: a for a in assets}
+    impact_totals = {f: 0.0 for f, _ in _IMPACT_FIELDS}
+    dep_scores    = {f: []  for f, _ in _DEPENDENCY_FIELDS}
+    total_lbiodiv = 0.0
+
+    for p in productions:
+        for f, _ in _IMPACT_FIELDS:
+            impact_totals[f] += p.production * getattr(p.commodity, f, 0.0)
+        for f, _ in _DEPENDENCY_FIELDS:
+            dep_scores[f].append(SCORE_MAP.get(getattr(p.commodity, f, 'VL'), 0.0))
+
+        asset = asset_map.get(p.asset_id)
+        if asset and asset.subnational_region:
+            biodiv_field = _BIODIV_LOSS_FIELDS.get(
+                p.commodity.biodiversity_loss_class, 'biodiversity_loss_agriculture'
+            )
+            total_lbiodiv += (
+                getattr(asset.country, biodiv_field, 0.0)
+                * asset.subnational_region.restoration_cost_m2
+                * p.production
+                * p.commodity.impact_endpoint_ReCiPe2016_ecosystem_diversity
+            )
+
+    result['total_lbiodiv'] = round(total_lbiodiv, 4)
+    for f, _ in _IMPACT_FIELDS:
+        result[f'total_{f}'] = round(impact_totals[f], 4)
+    for f, _ in _DEPENDENCY_FIELDS:
+        sc = dep_scores[f]
+        result[f'avg_{f}'] = round(sum(sc) / len(sc), 4) if sc else 0
+
+    return result
+
+
 def index(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
     initial_data = None
@@ -810,3 +953,18 @@ def dette_ecologique(request):
 def dette_ecologique_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_dette_ecologique_data(company))
+
+
+@require_GET
+def compare(request):
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    return render(request, 'dashboard/compare.html', {
+        'companies': companies,
+        'metrics': METRICS,
+    })
+
+
+@require_GET
+def compare_data(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    return JsonResponse(_get_comparison_data(company))

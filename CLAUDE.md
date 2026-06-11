@@ -94,6 +94,7 @@ easybiodiv/
 Chaque app suit le squelette Django standard : `models.py`, `views.py`, `urls.py`,
 `forms.py`, `admin.py`, `templates/<app>/`, `tests/`.
 
+l'environnement python est ./venv/scripts/activate.ps1
 ---
 
 ## 4. Modèle de données — principes

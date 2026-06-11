@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function deInitMap() {
   return new maplibregl.Map({
     container: 'de-map',
-    style: 'https://demotiles.maplibre.org/style.json',
+    style: 'https://tiles.openfreemap.org/styles/liberty',
     center: [0, 20],
     zoom: 1.5,
   });
@@ -137,11 +137,11 @@ function deRenderMarkers(data) {
   if (!points.length) return;
 
   const maxLbiodiv = points.reduce((m, p) => p.total_lbiodiv > m ? p.total_lbiodiv : m, 0);
-  const MIN_R = 18, MAX_R = 60;
+  const MIN_R = 8, MAX_R = 30;
 
   points.forEach(point => {
     const r = maxLbiodiv > 0
-      ? MIN_R + (MAX_R - MIN_R) * Math.sqrt(point.total_lbiodiv / maxLbiodiv)
+      ? Math.max(MIN_R, MAX_R * Math.sqrt(point.total_lbiodiv / maxLbiodiv))
       : MIN_R;
     const el = deBuildPieEl(point, r);
     const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
@@ -164,29 +164,39 @@ function deBuildPieEl(point, r) {
   svg.style.cursor = 'pointer';
   svg.style.overflow = 'visible';
 
-  let startAngle = -Math.PI / 2;
-  point.commodities.forEach(c => {
-    const slice = c.pct * 2 * Math.PI;
-    const endAngle = startAngle + slice;
-    const x1 = cx + r * Math.cos(startAngle);
-    const y1 = cy + r * Math.sin(startAngle);
-    const x2 = cx + r * Math.cos(endAngle);
-    const y2 = cy + r * Math.sin(endAngle);
-    const large = slice > Math.PI ? 1 : 0;
-    const color = DE_STATE.colorMap[c.name] || '#ccc';
+  if (point.commodities.length === 1) {
+    const color = DE_STATE.colorMap[point.commodities[0].name] || '#ccc';
+    const disc = document.createElementNS(NS, 'circle');
+    disc.setAttribute('cx', cx);
+    disc.setAttribute('cy', cy);
+    disc.setAttribute('r', r);
+    disc.setAttribute('fill', color);
+    svg.appendChild(disc);
+  } else {
+    let startAngle = -Math.PI / 2;
+    point.commodities.forEach(c => {
+      const slice = c.pct * 2 * Math.PI;
+      const endAngle = startAngle + slice;
+      const x1 = cx + r * Math.cos(startAngle);
+      const y1 = cy + r * Math.sin(startAngle);
+      const x2 = cx + r * Math.cos(endAngle);
+      const y2 = cy + r * Math.sin(endAngle);
+      const large = slice > Math.PI ? 1 : 0;
+      const color = DE_STATE.colorMap[c.name] || '#ccc';
 
-    const path = document.createElementNS(NS, 'path');
-    path.setAttribute('d',
-      'M' + cx + ',' + cy +
-      ' L' + x1 + ',' + y1 +
-      ' A' + r + ',' + r + ' 0 ' + large + ',1 ' + x2 + ',' + y2 + ' Z'
-    );
-    path.setAttribute('fill', color);
-    path.setAttribute('stroke', '#fff');
-    path.setAttribute('stroke-width', '1');
-    svg.appendChild(path);
-    startAngle = endAngle;
-  });
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('d',
+        'M' + cx + ',' + cy +
+        ' L' + x1 + ',' + y1 +
+        ' A' + r + ',' + r + ' 0 ' + large + ',1 ' + x2 + ',' + y2 + ' Z'
+      );
+      path.setAttribute('fill', color);
+      path.setAttribute('stroke', '#fff');
+      path.setAttribute('stroke-width', '1');
+      svg.appendChild(path);
+      startAngle = endAngle;
+    });
+  }
 
   const border = document.createElementNS(NS, 'circle');
   border.setAttribute('cx', cx);

@@ -98,6 +98,14 @@
             </a>
           </li>
           <li>
+            <a href="{% url 'dashboard:compare' %}" class="sidebar__nav-link {% block nav_compare %}{% endblock %}" aria-label="Comparaison">
+              <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M4 4h5v12H4zM11 4h5v12h-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              </svg>
+              <span class="sidebar__nav-label">Comparaison</span>
+            </a>
+          </li>
+          <li>
             <a href="#" class="sidebar__nav-link {% block nav_compliance %}{% endblock %}" aria-label="Conformité CSRD">
               <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <rect x="4" y="2" width="12" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/>
