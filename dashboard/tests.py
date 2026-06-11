@@ -1084,3 +1084,26 @@ class ComplianceDataTests(TestCase):
         data = _get_compliance_data(company)
         self.assertEqual(data['reporting_year'], 2024)
         self.assertTrue(data['materiality']['is_material'])
+
+    def test_not_applicable_excluded_from_compliance_pct(self):
+        from .views import _get_compliance_data
+        from .models import E4Assessment, DisclosureRequirement
+        company, _ = self._company_with_asset()
+        a = E4Assessment.objects.create(
+            company=company, reporting_year=2024,
+            materiality_status=E4Assessment.Materiality.MATERIAL,
+        )
+        # 1 COMPLIANT, 1 NOT_APPLICABLE, rest NOT_STARTED (5 DRs in AMENDED_2025)
+        DisclosureRequirement.objects.create(
+            assessment=a, code='E4_2', status='COMPLIANT'
+        )
+        DisclosureRequirement.objects.create(
+            assessment=a, code='E4_3', status='NOT_APPLICABLE'
+        )
+        data = _get_compliance_data(company)
+        synth = data['synthesis']
+        # applicable = 5 total - 1 NOT_APPLICABLE = 4 ; score = 1 COMPLIANT / 4 = 25%
+        self.assertEqual(synth['applicable_count'], 4)
+        self.assertEqual(synth['compliance_pct'], 25)
+        self.assertEqual(synth['counts_by_status']['NOT_APPLICABLE'], 1)
+        self.assertEqual(synth['counts_by_status']['COMPLIANT'], 1)

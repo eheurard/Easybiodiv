@@ -17,6 +17,7 @@ from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
 
 DR_STATUS_LABELS = {s.value: s.label for s in DisclosureRequirement.Status}
 LEAP_STATUS_LABELS = {s.value: s.label for s in E4Assessment.LeapStatus}
+MATERIALITY_LABELS = {s.value: s.label for s in E4Assessment.Materiality}
 
 
 SCORE_MAP = {'VL': 0.0, 'L': 0.2, 'M': 0.5, 'H': 0.7, 'VH': 1.0}
@@ -875,6 +876,7 @@ def _compliance_suggestions(company, has_sensitive_sites):
 
 
 def _build_disclosure_requirements(version, dr_state, suggestions):
+    """Fusionne le catalogue réglementaire avec l'état DB des DR applicables."""
     out = []
     for code in APPLICABLE_DRS[version]:
         meta = DR_CATALOG[code]
@@ -896,6 +898,7 @@ def _build_disclosure_requirements(version, dr_state, suggestions):
 
 
 def _build_leap(assessment, sensitive_sites_count, company):
+    """Construit les 3 phases LEAP (statut/notes + résumé dérivé des données)."""
     dep = _get_dependencies_data(company)
     primary = dep.get('primary_service')
     emp = _get_mesure_empreinte_data(company)
@@ -928,6 +931,7 @@ def _build_leap(assessment, sensitive_sites_count, company):
 
 
 def _compliance_synthesis(drs):
+    """Calcule le % de conformité et les comptes par statut sur les DR applicables."""
     counts = {s.value: 0 for s in DisclosureRequirement.Status}
     for d in drs:
         counts[d['status']] += 1
@@ -1002,7 +1006,7 @@ def _get_compliance_data(company):
         'reporting_year': reporting_year,
         'materiality': {
             'status': materiality_status,
-            'status_label': dict(E4Assessment.Materiality.choices)[materiality_status],
+            'status_label': MATERIALITY_LABELS[materiality_status],
             'is_material': materiality_status == 'MATERIAL',
             'justification': materiality_justification,
         },
