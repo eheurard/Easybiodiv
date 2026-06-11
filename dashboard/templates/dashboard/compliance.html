@@ -1,5 +1,76 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}Conformité ESRS E4 — Easybiodiv{% endblock %}
+
 {% block nav_compliance %}active{% endblock %}
-{% block content %}<div class="comp-page" id="comp-page"></div>{% endblock %}
+
+{% block header_left %}
+<div class="comp-company-picker">
+  <label for="comp-company-select" class="label-caps">Entreprise</label>
+  <select id="comp-company-select" class="form-input comp-company-select"
+          aria-label="Sélectionner une entreprise">
+    {% for c in companies %}
+      <option value="{{ c.id }}">{{ c.name }}</option>
+    {% endfor %}
+  </select>
+</div>
+{% endblock header_left %}
+
+{% block content %}
+<div class="comp-page">
+
+  <!-- Verrou de matérialité -->
+  <section class="comp-gate" id="comp-materiality" aria-live="polite">
+    <div class="comp-gate__main">
+      <span class="comp-gate__label label-caps">Matérialité (DMA)</span>
+      <span class="comp-gate__status" id="comp-materiality-status">—</span>
+      <span class="comp-gate__version" id="comp-version">—</span>
+    </div>
+    <p class="comp-gate__justif" id="comp-materiality-justif"></p>
+  </section>
+
+  <!-- KPIs de synthèse -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="comp-kpi-pct">—</div>
+      <div class="kpi-card__label label-caps">Conformité globale</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="comp-kpi-compliant">—</div>
+      <div class="kpi-card__label label-caps">DR conformes</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="comp-kpi-sites">—</div>
+      <div class="kpi-card__label label-caps">Sites zone sensible (E4-5)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="comp-kpi-ha">—</div>
+      <div class="kpi-card__label label-caps">Surface sensible (ha)</div>
+    </div>
+  </div>
+
+  <!-- Frise LEAP -->
+  <section class="card comp-leap-card">
+    <h2 class="comp-section-title">Approche LEAP</h2>
+    <div class="comp-leap" id="comp-leap"></div>
+  </section>
+
+  <!-- Encart non-matérialité (affiché si NOT_MATERIAL) -->
+  <section class="card comp-not-material" id="comp-not-material" hidden>
+    <h2 class="comp-section-title">Conclusion de non-matérialité</h2>
+    <p class="comp-not-material__text" id="comp-not-material-text"></p>
+  </section>
+
+  <!-- Détail des Disclosure Requirements -->
+  <section class="comp-drs" id="comp-drs" aria-label="Exigences de publication"></section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ initial_data|json_script:"comp-data" }}
+{{ companies|json_script:"comp-companies" }}
+<script>var COMP_API_URL = "{% url 'dashboard:compliance_data' pk=0 %}";</script>
+<script src="{% static 'dashboard/js/compliance.js' %}" defer></script>
+{% endblock %}

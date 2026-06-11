@@ -106,7 +106,7 @@
             </a>
           </li>
           <li>
-            <a href="#" class="sidebar__nav-link {% block nav_compliance %}{% endblock %}" aria-label="Conformité CSRD">
+            <a href="{% url 'dashboard:compliance' %}" class="sidebar__nav-link {% block nav_compliance %}{% endblock %}" aria-label="Conformité CSRD">
               <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <rect x="4" y="2" width="12" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/>
                 <path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
