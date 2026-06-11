@@ -3,9 +3,9 @@ from django.db import transaction
 
 from dashboard.models import (
     Asset, Commodity, Company, Company_Policy, Company_Revenue,
-    Company_Revenue_Sector, Country, Ownership, Policy_Level,
-    Policy_Subcategory, Policy_Type, Production, Sector, SubSector,
-    SubnationalRegion,
+    Company_Revenue_Sector, Country, DisclosureRequirement, E4Assessment,
+    Ownership, Policy_Level, Policy_Subcategory, Policy_Type, Production,
+    Sector, SubSector, SubnationalRegion,
 )
 
 
@@ -744,6 +744,71 @@ class Command(BaseCommand):
                 company=acme,
                 policy_level=policy_level,
                 defaults={"policy_date": date_str},
+            )
+
+        # ── Conformité ESRS E4 (démo) ─────────────────────────────────────────
+
+        a_para.near_sensitive_zone = True
+        a_para.sensitive_zone_type = Asset.SensitiveZoneType.IUCN_KBA
+        a_para.sensitive_zone_name = "Amazonie orientale — Key Biodiversity Area"
+        a_para.sensitive_zone_area_ha = 1850.0
+        a_para.save()
+
+        a_sumatra.near_sensitive_zone = True
+        a_sumatra.sensitive_zone_type = Asset.SensitiveZoneType.NATIONAL_PROTECTED
+        a_sumatra.sensitive_zone_name = "Parc national de Tesso Nilo"
+        a_sumatra.sensitive_zone_area_ha = 1230.0
+        a_sumatra.save()
+
+        assessment, _ = E4Assessment.objects.get_or_create(
+            company=acme,
+            reporting_year=2024,
+            defaults={
+                "standard_version": E4Assessment.StandardVersion.AMENDED_2025,
+                "materiality_status": E4Assessment.Materiality.MATERIAL,
+                "materiality_justification": (
+                    "Biodiversité jugée matérielle : exposition forte (soja Cerrado, "
+                    "palme Sumatra) à proximité de zones sensibles, dépendances "
+                    "écosystémiques élevées sur les filières oléagineuses."
+                ),
+                "leap_locate_status": E4Assessment.LeapStatus.DONE,
+                "leap_evaluate_status": E4Assessment.LeapStatus.IN_PROGRESS,
+                "leap_assess_status": E4Assessment.LeapStatus.IN_PROGRESS,
+                "leap_locate_notes": (
+                    "2 sites identifiés en/près de zones sensibles (Pará, Sumatra)."
+                ),
+                "leap_evaluate_notes": (
+                    "Dépendances eau et qualité des sols évaluées ; pollinisation en cours."
+                ),
+                "leap_assess_notes": (
+                    "Impacts matériels confirmés sur la déforestation ; risques en cours "
+                    "de chiffrage."
+                ),
+            },
+        )
+
+        e4_demo = [
+            ("E4_1", DisclosureRequirement.Status.PARTIAL,
+             "Plan de transition en cours de rédaction, alignement Kunming-Montréal visé "
+             "pour 2027 ; objectifs intermédiaires non encore publiés."),
+            ("E4_2", DisclosureRequirement.Status.COMPLIANT,
+             "Politique biodiversité couvrant la traçabilité soja/palme et les sites "
+             "proches de zones sensibles (RSPO, EUDR)."),
+            ("E4_3", DisclosureRequirement.Status.PARTIAL,
+             "Actions de restauration financées sur 2 sites ; hiérarchie d'atténuation "
+             "appliquée hors compensation, offsets non encore engagés."),
+            ("E4_4", DisclosureRequirement.Status.NON_COMPLIANT,
+             "Cibles chiffrées absentes : seuils écologiques et portée géographique non "
+             "définis à ce jour."),
+            ("E4_5", DisclosureRequirement.Status.COMPLIANT,
+             "Métrique géospatiale publiée : 2 sites en zone sensible, 3 080 ha au total, "
+             "avec impacts négatifs documentés."),
+        ]
+        for code, status, justif in e4_demo:
+            DisclosureRequirement.objects.get_or_create(
+                assessment=assessment,
+                code=code,
+                defaults={"status": status, "justification": justif},
             )
 
         self.stdout.write(self.style.SUCCESS(

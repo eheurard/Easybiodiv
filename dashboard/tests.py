@@ -1175,3 +1175,29 @@ class E4AdminTests(TestCase):
     def test_assessment_add_form_loads(self):
         response = self.client.get('/admin/dashboard/e4assessment/add/')
         self.assertEqual(response.status_code, 200)
+
+
+class PopulateAcmeE4Tests(TestCase):
+
+    def test_populate_creates_e4_assessment(self):
+        from django.core.management import call_command
+        from .models import E4Assessment, DisclosureRequirement, Asset
+        call_command('populate_acme')
+        assessment = E4Assessment.objects.get(company__name='Acme Corp')
+        self.assertEqual(assessment.materiality_status, 'MATERIAL')
+        self.assertEqual(assessment.disclosure_requirements.count(), 5)
+        statuses = set(
+            assessment.disclosure_requirements.values_list('status', flat=True)
+        )
+        self.assertIn('COMPLIANT', statuses)
+        self.assertIn('NON_COMPLIANT', statuses)
+        self.assertTrue(Asset.objects.filter(near_sensitive_zone=True).exists())
+
+    def test_populate_is_idempotent(self):
+        from django.core.management import call_command
+        from .models import E4Assessment
+        call_command('populate_acme')
+        call_command('populate_acme')
+        self.assertEqual(
+            E4Assessment.objects.filter(company__name='Acme Corp').count(), 1
+        )
