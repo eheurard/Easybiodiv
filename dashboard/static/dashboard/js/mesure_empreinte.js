@@ -556,17 +556,27 @@ function handleNodeClick(nodeId, data) {
 }
 
 function applyTreeHighlight(nodeId) {
-  // BFS bidirectionnel : remonte et descend le graphe depuis nodeId
   const connectedIds = new Set([nodeId]);
+
+  // Upstream : remonte les liens (tgt → src) pour trouver les ancêtres
   let frontier = [nodeId];
+  while (frontier.length > 0) {
+    const next = [];
+    _treeLinkEls.forEach(({ src, tgt }) => {
+      if (frontier.includes(tgt) && !connectedIds.has(src)) {
+        connectedIds.add(src); next.push(src);
+      }
+    });
+    frontier = next;
+  }
+
+  // Downstream : descend les liens (src → tgt) pour trouver les descendants
+  frontier = [nodeId];
   while (frontier.length > 0) {
     const next = [];
     _treeLinkEls.forEach(({ src, tgt }) => {
       if (frontier.includes(src) && !connectedIds.has(tgt)) {
         connectedIds.add(tgt); next.push(tgt);
-      }
-      if (frontier.includes(tgt) && !connectedIds.has(src)) {
-        connectedIds.add(src); next.push(src);
       }
     });
     frontier = next;
