@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 class Country(models.Model):
     name = models.CharField(max_length=255)
@@ -118,7 +119,21 @@ class Asset(models.Model):
     risk_heatwave = models.FloatField(default=0)
     risk_temperature_variation = models.FloatField(default=0)
     risk_precipitation_variation = models.FloatField(default=0)
-    
+
+    class SensitiveZoneType(models.TextChoices):
+        NATURA_2000 = 'NATURA_2000', 'Natura 2000'
+        NATIONAL_PROTECTED = 'NATIONAL_PROTECTED', 'Aire protégée nationale'
+        UNESCO = 'UNESCO', 'Site UNESCO'
+        IUCN_KBA = 'IUCN_KBA', 'IUCN Key Biodiversity Area'
+        OTHER = 'OTHER', 'Autre'
+
+    near_sensitive_zone = models.BooleanField(default=False)
+    sensitive_zone_type = models.CharField(
+        max_length=20, choices=SensitiveZoneType.choices, blank=True
+    )
+    sensitive_zone_name = models.CharField(max_length=255, blank=True)
+    sensitive_zone_area_ha = models.FloatField(default=0)
+
     def __str__(self):
         return self.name
 
@@ -227,4 +242,90 @@ class Ownership(models.Model):
         return str(self.Asset.name) + " - " + str(self.Company.name)
 
 
+class E4Assessment(models.Model):
+    """Dossier de conformité ESRS E4 d'une entreprise (verrou de matérialité + LEAP)."""
+
+    class StandardVersion(models.TextChoices):
+        AMENDED_2025 = 'AMENDED_2025', 'ESRS E4 amendé (déc. 2025) — 5 DR'
+        ORIGINAL_2023 = 'ORIGINAL_2023', 'ESRS E4 original (2023) — 6 DR'
+
+    class Materiality(models.TextChoices):
+        NOT_ASSESSED = 'NOT_ASSESSED', 'Non évaluée'
+        MATERIAL = 'MATERIAL', 'Matérielle'
+        NOT_MATERIAL = 'NOT_MATERIAL', 'Non matérielle'
+
+    class LeapStatus(models.TextChoices):
+        TODO = 'TODO', 'À faire'
+        IN_PROGRESS = 'IN_PROGRESS', 'En cours'
+        DONE = 'DONE', 'Fait'
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='e4_assessments'
+    )
+    reporting_year = models.IntegerField(default=2024)
+    standard_version = models.CharField(
+        max_length=20, choices=StandardVersion.choices,
+        default=StandardVersion.AMENDED_2025,
+    )
+    materiality_status = models.CharField(
+        max_length=20, choices=Materiality.choices,
+        default=Materiality.NOT_ASSESSED,
+    )
+    materiality_justification = models.TextField(blank=True)
+
+    leap_locate_status = models.CharField(
+        max_length=20, choices=LeapStatus.choices, default=LeapStatus.TODO
+    )
+    leap_evaluate_status = models.CharField(
+        max_length=20, choices=LeapStatus.choices, default=LeapStatus.TODO
+    )
+    leap_assess_status = models.CharField(
+        max_length=20, choices=LeapStatus.choices, default=LeapStatus.TODO
+    )
+    leap_locate_notes = models.TextField(blank=True)
+    leap_evaluate_notes = models.TextField(blank=True)
+    leap_assess_notes = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+
+    def __str__(self):
+        return f"{self.company.name} — E4 {self.reporting_year}"
+
+
+class DisclosureRequirement(models.Model):
+    """État de conformité d'un Disclosure Requirement pour une évaluation E4."""
+
+    class Code(models.TextChoices):
+        E4_1 = 'E4_1', 'E4-1'
+        E4_2 = 'E4_2', 'E4-2'
+        E4_3 = 'E4_3', 'E4-3'
+        E4_4 = 'E4_4', 'E4-4'
+        E4_5 = 'E4_5', 'E4-5'
+        E4_6 = 'E4_6', 'E4-6'
+
+    class Status(models.TextChoices):
+        NOT_STARTED = 'NOT_STARTED', 'Non commencé'
+        NON_COMPLIANT = 'NON_COMPLIANT', 'Non conforme'
+        PARTIAL = 'PARTIAL', 'Partiel'
+        COMPLIANT = 'COMPLIANT', 'Conforme'
+        NOT_APPLICABLE = 'NOT_APPLICABLE', 'Non applicable'
+
+    assessment = models.ForeignKey(
+        E4Assessment, on_delete=models.CASCADE, related_name='disclosure_requirements'
+    )
+    code = models.CharField(max_length=10, choices=Code.choices)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.NOT_STARTED
+    )
+    justification = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = ('assessment', 'code')
+
+    def __str__(self):
+        return f"{self.assessment.company.name} — {self.get_code_display()}"
 

@@ -913,3 +913,43 @@ class DetteEcologiqueViewTests(TestCase):
     def test_dette_ecologique_returns_200(self):
         response = self.client.get(reverse('dashboard:dette_ecologique'))
         self.assertEqual(response.status_code, 200)
+
+
+class E4ModelTests(TestCase):
+
+    def test_assessment_str(self):
+        from .models import E4Assessment
+        company = Company.objects.create(name='Acme')
+        a = E4Assessment.objects.create(company=company, reporting_year=2024)
+        self.assertEqual(str(a), 'Acme — E4 2024')
+
+    def test_assessment_defaults(self):
+        from .models import E4Assessment
+        company = Company.objects.create(name='Acme')
+        a = E4Assessment.objects.create(company=company, reporting_year=2024)
+        self.assertEqual(a.standard_version, 'AMENDED_2025')
+        self.assertEqual(a.materiality_status, 'NOT_ASSESSED')
+        self.assertEqual(a.leap_locate_status, 'TODO')
+
+    def test_disclosure_unique_per_code(self):
+        from django.db import IntegrityError, transaction
+        from .models import E4Assessment, DisclosureRequirement
+        company = Company.objects.create(name='Acme')
+        a = E4Assessment.objects.create(company=company, reporting_year=2024)
+        DisclosureRequirement.objects.create(assessment=a, code='E4_2')
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                DisclosureRequirement.objects.create(assessment=a, code='E4_2')
+
+    def test_asset_sensitive_zone_fields(self):
+        country = Country.objects.create(
+            name='France', water_ownership='Public', land_ownership='Private'
+        )
+        asset = Asset.objects.create(
+            name='Site', latitude=1.0, longitude=1.0, country=country,
+            near_sensitive_zone=True, sensitive_zone_type='NATURA_2000',
+            sensitive_zone_name='Camargue', sensitive_zone_area_ha=120.0,
+        )
+        self.assertTrue(asset.near_sensitive_zone)
+        self.assertEqual(asset.sensitive_zone_area_ha, 120.0)
+        self.assertEqual(asset.get_sensitive_zone_type_display(), 'Natura 2000')
