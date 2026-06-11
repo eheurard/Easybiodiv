@@ -2935,3 +2935,76 @@ a.app-header__avatar {
   border-color: var(--color-primary);
   background: var(--color-surface-container-low);
 }
+
+/* ── Conformité ESRS E4 ──────────────────────────────────────────── */
+
+.comp-page { display: flex; flex-direction: column; gap: 20px; }
+
+.comp-company-picker { display: flex; align-items: center; gap: 8px; }
+.comp-company-select { min-width: 220px; }
+
+.comp-section-title { font-size: 1rem; margin: 0 0 12px; }
+
+/* Verrou de matérialité */
+.comp-gate {
+  border-radius: 12px; padding: 16px 20px;
+  border-left: 5px solid #9ca3af; background: #f3f4f6;
+}
+.comp-gate__main { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.comp-gate__status { font-size: 1.15rem; font-weight: 700; }
+.comp-gate__version { font-size: .8rem; color: #6b7280; margin-left: auto; }
+.comp-gate__justif { margin: 8px 0 0; font-size: .9rem; color: #374151; }
+.comp-gate--material { background: #ecfdf5; border-left-color: #059669; }
+.comp-gate--not_material { background: #fffbeb; border-left-color: #d97706; }
+.comp-gate--not_assessed { background: #f3f4f6; border-left-color: #9ca3af; }
+
+/* Frise LEAP */
+.comp-leap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.comp-leap__item {
+  border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px;
+  border-top: 4px solid #9ca3af;
+}
+.comp-leap__item--done { border-top-color: #059669; }
+.comp-leap__item--in_progress { border-top-color: #2563eb; }
+.comp-leap__item--todo { border-top-color: #9ca3af; }
+.comp-leap__head { display: flex; justify-content: space-between; align-items: center; }
+.comp-leap__phase { font-weight: 700; }
+.comp-leap__status { font-size: .75rem; text-transform: uppercase; color: #6b7280; }
+.comp-leap__summary { margin: 8px 0 0; font-size: .85rem; color: #374151; }
+.comp-leap__notes { margin: 6px 0 0; font-size: .8rem; color: #6b7280; font-style: italic; }
+
+/* Cartes DR */
+.comp-drs { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.comp-dr {
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+  padding: 16px; display: flex; flex-direction: column; gap: 6px;
+}
+.comp-dr__head { display: flex; align-items: center; gap: 8px; }
+.comp-dr__code { font-weight: 700; font-size: .9rem; }
+.comp-dr__cond {
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .03em;
+  background: #ede9fe; color: #6d28d9; padding: 2px 7px; border-radius: 999px;
+}
+.comp-dr__title { font-size: 1rem; margin: 4px 0 0; }
+.comp-dr__desc { font-size: .85rem; color: #4b5563; margin: 0; }
+.comp-dr__ref { font-size: .75rem; color: #9ca3af; margin: 0; }
+.comp-dr__justif { font-size: .85rem; color: #374151; margin: 6px 0 0; }
+.comp-dr__suggestion {
+  font-size: .78rem; color: #92400e; background: #fef3c7;
+  padding: 4px 8px; border-radius: 6px; margin: 4px 0 0;
+}
+
+/* Badges de statut */
+.comp-badge {
+  font-size: .72rem; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+  margin-left: auto; white-space: nowrap;
+}
+.comp-badge--compliant { background: #d1fae5; color: #065f46; }
+.comp-badge--partial { background: #fef3c7; color: #92400e; }
+.comp-badge--non_compliant { background: #fee2e2; color: #991b1b; }
+.comp-badge--not_started { background: #f3f4f6; color: #6b7280; }
+.comp-badge--not_applicable { background: #e5e7eb; color: #4b5563; }
+
+@media (max-width: 720px) {
+  .comp-leap { grid-template-columns: 1fr; }
+}
