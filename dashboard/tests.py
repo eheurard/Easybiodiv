@@ -1107,3 +1107,52 @@ class ComplianceDataTests(TestCase):
         self.assertEqual(synth['compliance_pct'], 25)
         self.assertEqual(synth['counts_by_status']['NOT_APPLICABLE'], 1)
         self.assertEqual(synth['counts_by_status']['COMPLIANT'], 1)
+
+
+class CompliancePageViewTests(TestCase):
+
+    def test_page_returns_200(self):
+        response = self.client.get(reverse('dashboard:compliance'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_page_uses_correct_template(self):
+        response = self.client.get(reverse('dashboard:compliance'))
+        self.assertTemplateUsed(response, 'dashboard/compliance.html')
+
+    def test_companies_in_context(self):
+        Company.objects.create(name='CtxComp')
+        response = self.client.get(reverse('dashboard:compliance'))
+        self.assertIn('companies', response.context)
+
+    def test_initial_data_none_without_companies(self):
+        response = self.client.get(reverse('dashboard:compliance'))
+        self.assertIsNone(response.context['initial_data'])
+
+    def test_initial_data_present_with_companies(self):
+        Company.objects.create(name='HasComp')
+        response = self.client.get(reverse('dashboard:compliance'))
+        self.assertIsNotNone(response.context['initial_data'])
+        self.assertIn('materiality', response.context['initial_data'])
+
+    def test_api_returns_200(self):
+        company = Company.objects.create(name='ApiComp')
+        url = reverse('dashboard:compliance_data', kwargs={'pk': company.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_api_content_type_is_json(self):
+        company = Company.objects.create(name='JsonComp')
+        url = reverse('dashboard:compliance_data', kwargs={'pk': company.pk})
+        response = self.client.get(url)
+        self.assertIn('application/json', response['Content-Type'])
+
+    def test_api_404_on_missing_company(self):
+        url = reverse('dashboard:compliance_data', kwargs={'pk': 99999})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_api_post_not_allowed(self):
+        company = Company.objects.create(name='PostComp')
+        url = reverse('dashboard:compliance_data', kwargs={'pk': company.pk})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 405)

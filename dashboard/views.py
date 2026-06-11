@@ -1130,3 +1130,22 @@ def compare(request):
 def compare_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_comparison_data(company))
+
+
+@require_GET
+def compliance(request):
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    initial_data = None
+    if companies:
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = _get_compliance_data(first)
+    return render(request, 'dashboard/compliance.html', {
+        'companies': companies,
+        'initial_data': initial_data,
+    })
+
+
+@require_GET
+def compliance_data(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    return JsonResponse(_get_compliance_data(company))
