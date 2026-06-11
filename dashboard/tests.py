@@ -953,3 +953,25 @@ class E4ModelTests(TestCase):
         self.assertTrue(asset.near_sensitive_zone)
         self.assertEqual(asset.sensitive_zone_area_ha, 120.0)
         self.assertEqual(asset.get_sensitive_zone_type_display(), 'Natura 2000')
+
+
+class E4CatalogTests(TestCase):
+
+    def test_applicable_drs_amended_has_five(self):
+        from .compliance_catalog import APPLICABLE_DRS
+        self.assertEqual(
+            APPLICABLE_DRS['AMENDED_2025'], ['E4_1', 'E4_2', 'E4_3', 'E4_4', 'E4_5']
+        )
+
+    def test_applicable_drs_original_has_six_with_e4_6(self):
+        from .compliance_catalog import APPLICABLE_DRS
+        self.assertIn('E4_6', APPLICABLE_DRS['ORIGINAL_2023'])
+        self.assertEqual(len(APPLICABLE_DRS['ORIGINAL_2023']), 6)
+
+    def test_catalog_has_every_code(self):
+        from .compliance_catalog import DR_CATALOG
+        for code in ['E4_1', 'E4_2', 'E4_3', 'E4_4', 'E4_5', 'E4_6']:
+            self.assertIn(code, DR_CATALOG)
+            self.assertIn('title', DR_CATALOG[code])
+            self.assertIn('description', DR_CATALOG[code])
+            self.assertIn('reference', DR_CATALOG[code])
