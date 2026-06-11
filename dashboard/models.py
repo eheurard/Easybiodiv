@@ -273,6 +273,8 @@ class E4Assessment(models.Model):
     )
     materiality_justification = models.TextField(blank=True)
 
+    # Approche LEAP limitée à 3 phases (Locate/Evaluate/Assess) pour la
+    # détermination de matérialité — la phase Prepare est hors périmètre E4.
     leap_locate_status = models.CharField(
         max_length=20, choices=LeapStatus.choices, default=LeapStatus.TODO
     )
