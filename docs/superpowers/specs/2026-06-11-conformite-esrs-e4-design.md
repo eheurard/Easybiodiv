@@ -199,11 +199,14 @@ Accessibilité : badges avec texte (pas couleur seule), ARIA sur le sélecteur, 
   `total_area_ha` = somme.
 - `standard_version=ORIGINAL_2023` → DR inclut `E4_1` (non conditionnel) et `E4_6`.
 
-## 10. Démo (optionnel)
+## 10. Démo Acme (dans le périmètre)
 
 Étendre `dashboard/management/commands/populate_acme.py` pour créer une `E4Assessment`
-de démonstration (statut `MATERIAL`, quelques DR, 1–2 sites en zone sensible) afin de
-permettre la vérification visuelle immédiate.
+de démonstration : statut `MATERIAL`, `standard_version=AMENDED_2025`, les 5 DR avec des
+statuts variés (au moins un `COMPLIANT`, un `PARTIAL`, un `NON_COMPLIANT`) et des
+justifications courtes, statuts LEAP non triviaux, et marquer 1–2 sites Acme
+`near_sensitive_zone` (type + nom + surface ha) afin que la métrique E4-5 et la page
+soient renseignées pour la vérification visuelle immédiate. Idempotent (réexécutable).
 
 ## 11. Hors périmètre
 
@@ -211,3 +214,4 @@ permettre la vérification visuelle immédiate.
 - Données géospatiales réelles de zones protégées (Natura 2000…) — flags manuels seulement.
 - Workflow LEAP étape par étape avec livrables.
 - Export de rapport CSRD.
+- Données de démo pour d'autres entreprises que Acme.
