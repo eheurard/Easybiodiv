@@ -893,6 +893,7 @@ def _build_disclosure_requirements(version, dr_state, suggestions):
             'status_label': DR_STATUS_LABELS[status],
             'justification': dr.justification if dr else '',
             'auto_suggestion': suggestions.get(code),
+            'auto_suggestion_label': DR_STATUS_LABELS.get(suggestions.get(code)),
         })
     return out
 

@@ -52,7 +52,9 @@ function compRender(data) {
     data.materiality.status_label;
   document.getElementById('comp-materiality-justif').textContent =
     data.materiality.justification || '';
-  document.getElementById('comp-version').textContent = data.standard_version_label;
+  document.getElementById('comp-version').textContent =
+    data.standard_version_label +
+    (data.reporting_year ? ' · ' + data.reporting_year : '');
 
   // — KPIs —
   document.getElementById('comp-kpi-pct').textContent =
@@ -91,6 +93,8 @@ function compRender(data) {
     notMat.hidden = false;
     drEl.hidden = true;
     drEl.innerHTML = '';
+    document.getElementById('comp-kpi-pct').textContent = '—';
+    document.getElementById('comp-kpi-compliant').textContent = '—';
     return;
   }
   notMat.hidden = true;
@@ -105,7 +109,7 @@ function compRender(data) {
       ? '<span class="comp-dr__cond">Conditionnel</span>' : '';
     const sugg = (dr.auto_suggestion && dr.auto_suggestion !== dr.status)
       ? '<p class="comp-dr__suggestion">Suggestion auto : ' +
-        compEsc(dr.auto_suggestion) + '</p>'
+        compEsc(dr.auto_suggestion_label || dr.auto_suggestion) + '</p>'
       : '';
     const justif = dr.justification
       ? compEsc(dr.justification)
