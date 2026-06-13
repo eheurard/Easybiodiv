@@ -1,7 +1,132 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Données ESG — Easybiodiv{% endblock %}
 
+{% block nav_esg %}active{% endblock %}
+
+{% block header_left %}
+<div class="company-combobox" id="company-combobox" role="combobox"
+     aria-expanded="false" aria-haspopup="listbox" aria-owns="company-listbox">
+  <span class="company-combobox__label label-caps">Entreprise</span>
+  <div class="company-combobox__input-wrap">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M10 10l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+    <input type="text" id="company-search" class="company-combobox__input"
+           placeholder="Rechercher une entreprise…"
+           autocomplete="off" aria-autocomplete="list"
+           aria-controls="company-listbox" aria-label="Sélectionner une entreprise">
+    <svg class="company-combobox__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <ul id="company-listbox" class="company-combobox__listbox" role="listbox" hidden></ul>
+</div>
+{% endblock header_left %}
+
 {% block content %}
-<div class="esg-page"><!-- contenu complété dans une tâche ultérieure --></div>
+<div class="esg-page">
+
+  <div class="esg-theme-tabs" role="tablist" aria-label="Thème ESG">
+    <button class="esg-theme-tab esg-theme-tab--active" data-theme="environmental" role="tab" aria-selected="true">Environmental</button>
+    <button class="esg-theme-tab" data-theme="social" role="tab" aria-selected="false">Social</button>
+    <button class="esg-theme-tab" data-theme="governance" role="tab" aria-selected="false">Governance</button>
+  </div>
+
+  <!-- ── Environmental ─────────────────────────────────────────────── -->
+  <div class="esg-theme-panel esg-theme-panel--active" data-theme-panel="environmental">
+    <div class="esg-grid">
+
+      <div class="esg-grid__main">
+
+        <section class="card esg-chart">
+          <div class="esg-chart__head">
+            <div>
+              <h3 class="esg-chart__title">Tendance des émissions carbone</h3>
+              <p class="esg-chart__sub">Historique et projection (<span data-esg="carbon-unit">tCO2e</span>)</p>
+            </div>
+            <div class="esg-chart__legend">
+              <span class="esg-chart__legend-item"><span class="esg-chart__line esg-chart__line--solid"></span>Historique</span>
+              <span class="esg-chart__legend-item"><span class="esg-chart__line esg-chart__line--dashed"></span>Projection 2030</span>
+            </div>
+          </div>
+          <div class="esg-chart__kpis">
+            <div class="esg-chart__kpi">
+              <span class="esg-chart__kpi-value" data-esg="carbon-latest">—</span>
+              <span class="esg-chart__kpi-label label-caps">Dernier total</span>
+            </div>
+            <div class="esg-chart__kpi">
+              <span class="esg-chart__kpi-value" data-esg="carbon-reduction">—</span>
+              <span class="esg-chart__kpi-label label-caps">Évolution</span>
+            </div>
+          </div>
+          <div class="esg-chart__canvas" id="esg-chart-canvas" aria-label="Graphique des émissions carbone">
+            <p class="esg-empty" id="esg-chart-empty" hidden>Aucune donnée carbone disponible.</p>
+          </div>
+        </section>
+
+        <section class="esg-featured" id="esg-featured" aria-label="Politiques en avant"></section>
+
+        <section class="card esg-framework">
+          <div class="esg-framework__head">
+            <h4 class="esg-framework__title label-caps">Cadre des politiques d'entreprise</h4>
+          </div>
+          <div class="esg-framework__list" id="esg-framework-list"></div>
+        </section>
+
+      </div>
+
+      <aside class="esg-grid__side">
+
+        <section class="card esg-market">
+          <div class="esg-market__head">
+            <h3 class="esg-market__title label-caps">Market Intelligence</h3>
+            <span class="esg-market__demo" id="esg-market-demo" hidden>Démo</span>
+          </div>
+          <div class="esg-market__body" id="esg-market-body"></div>
+        </section>
+
+        <section class="card esg-news">
+          <div class="esg-news__head">
+            <h3 class="esg-news__title label-caps">Latest ESG News</h3>
+          </div>
+          <div class="esg-news__body" id="esg-news-body">
+            <p class="esg-empty">No news yet</p>
+          </div>
+        </section>
+
+        <div class="esg-decoration" aria-hidden="true">
+          <span class="esg-decoration__title">Grounded Intelligence</span>
+          <span class="esg-decoration__sub label-caps">Preserving Biodiversity</span>
+        </div>
+
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- ── Social ────────────────────────────────────────────────────── -->
+  <div class="esg-theme-panel" data-theme-panel="social" hidden>
+    <div class="card esg-coming">
+      <p class="esg-empty">Social — à venir, aucune donnée disponible.</p>
+    </div>
+  </div>
+
+  <!-- ── Governance ────────────────────────────────────────────────── -->
+  <div class="esg-theme-panel" data-theme-panel="governance" hidden>
+    <div class="card esg-coming">
+      <p class="esg-empty">Governance — à venir, aucune donnée disponible.</p>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ companies|json_script:"esg-companies" }}
+{{ initial_data|json_script:"esg-data" }}
+<script>var ESG_API_URL = "{% url 'dashboard:esg_data' pk=0 %}".replace('0/', '');</script>
+<script src="{% static 'dashboard/js/esg.js' %}"></script>
 {% endblock %}
