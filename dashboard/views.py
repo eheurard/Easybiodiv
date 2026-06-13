@@ -8,7 +8,7 @@ from django.views.decorators.http import require_GET
 
 from django.db.models import Q
 from .models import (
-    Asset, Commodity, Company, Company_Policy, Company_Revenue,
+    Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
     Company_Revenue_Sector, DisclosureRequirement, E4Assessment, Ownership,
     Production,
 )
@@ -1015,6 +1015,86 @@ def _get_compliance_data(company):
         'disclosure_requirements': drs,
         'synthesis': _compliance_synthesis(drs),
         'e4_5_metric': e4_5_metric,
+    }
+
+
+ESG_PROJECTION_END_YEAR = 2030
+
+
+def _linear_projection(points, end_year):
+    """Extrapolation linéaire (moindres carrés) des totaux annuels.
+
+    `points` : liste de (year, total) triée par année croissante.
+    Retourne [{'year', 'total'}] du dernier point historique (ancre) jusqu'à
+    `end_year` inclus. Renvoie [] si moins de 2 points ou pente indéfinie.
+    """
+    if len(points) < 2:
+        return []
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+    n = len(xs)
+    mean_x = sum(xs) / n
+    mean_y = sum(ys) / n
+    denom = sum((x - mean_x) ** 2 for x in xs)
+    if denom == 0:
+        return []
+    slope = sum((xs[i] - mean_x) * (ys[i] - mean_y) for i in range(n)) / denom
+    intercept = mean_y - slope * mean_x
+    last_year = xs[-1]
+    out = [{'year': last_year, 'total': round(ys[-1], 2)}]
+    for yr in range(last_year + 1, end_year + 1):
+        val = slope * yr + intercept
+        out.append({'year': yr, 'total': round(max(val, 0.0), 2)})
+    return out
+
+
+def _get_esg_carbon(company):
+    emissions = Carbon_emission.objects.filter(company=company).order_by('year')
+    by_year = defaultdict(lambda: {'total': 0.0, 'scopes': defaultdict(float)})
+    for e in emissions:
+        by_year[e.year]['total'] += e.carbon_emission
+        by_year[e.year]['scopes'][e.scope] += e.carbon_emission
+
+    historical = [
+        {
+            'year': y,
+            'total': round(d['total'], 2),
+            'scopes': {k: round(v, 2) for k, v in d['scopes'].items()},
+        }
+        for y, d in sorted(by_year.items())
+    ]
+
+    projection = _linear_projection(
+        [(h['year'], h['total']) for h in historical], ESG_PROJECTION_END_YEAR
+    )
+
+    if historical:
+        first_total = historical[0]['total']
+        latest = historical[-1]
+        latest_year = latest['year']
+        latest_total = latest['total']
+        reduction_pct = (
+            round((latest_total - first_total) / first_total * 100, 1)
+            if first_total else None
+        )
+    else:
+        latest_year = latest_total = reduction_pct = None
+
+    return {
+        'historical': historical,
+        'projection': projection,
+        'latest_year': latest_year,
+        'latest_total': latest_total,
+        'reduction_pct': reduction_pct,
+        'unit': 'tCO2e',
+    }
+
+
+def _get_esg_data(company):
+    return {
+        'company_id': company.pk,
+        'company_name': company.name,
+        'carbon': _get_esg_carbon(company),
     }
 
 

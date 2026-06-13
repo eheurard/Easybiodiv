@@ -1246,3 +1246,55 @@ class PopulateAcmeE4Tests(TestCase):
         self.assertEqual(
             E4Assessment.objects.filter(company__name='Acme Corp').count(), 1
         )
+
+
+class EsgDataCarbonTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='esguser', password='pass')
+        self.client.force_login(self.user)
+        self.company = Company.objects.create(name='EsgCorp')
+
+    def _carbon(self, year, scope, val):
+        Carbon_emission.objects.create(
+            company=self.company, year=year, scope=scope, carbon_emission=val
+        )
+
+    def test_historical_sums_scopes_per_year(self):
+        from .views import _get_esg_data
+        self._carbon(2022, 'Scope 1', 10.0)
+        self._carbon(2022, 'Scope 2', 5.0)
+        self._carbon(2023, 'Scope 1', 8.0)
+        data = _get_esg_data(self.company)
+        hist = data['carbon']['historical']
+        self.assertEqual([h['year'] for h in hist], [2022, 2023])
+        self.assertAlmostEqual(hist[0]['total'], 15.0, places=2)
+        self.assertAlmostEqual(hist[0]['scopes']['Scope 1'], 10.0, places=2)
+
+    def test_projection_extends_to_2030(self):
+        from .views import _get_esg_data
+        self._carbon(2022, 'Scope 1', 20.0)
+        self._carbon(2023, 'Scope 1', 10.0)
+        data = _get_esg_data(self.company)
+        proj = data['carbon']['projection']
+        self.assertTrue(proj, 'projection should not be empty with 2 points')
+        self.assertEqual(proj[-1]['year'], 2030)
+        self.assertEqual(proj[0]['year'], 2023)
+
+    def test_reduction_pct_negative_when_declining(self):
+        from .views import _get_esg_data
+        self._carbon(2022, 'Scope 1', 20.0)
+        self._carbon(2023, 'Scope 1', 10.0)
+        data = _get_esg_data(self.company)
+        self.assertEqual(data['carbon']['latest_year'], 2023)
+        self.assertAlmostEqual(data['carbon']['latest_total'], 10.0, places=2)
+        self.assertLess(data['carbon']['reduction_pct'], 0)
+
+    def test_no_carbon_data_is_empty(self):
+        from .views import _get_esg_data
+        data = _get_esg_data(self.company)
+        self.assertEqual(data['carbon']['historical'], [])
+        self.assertEqual(data['carbon']['projection'], [])
+        self.assertIsNone(data['carbon']['latest_year'])
