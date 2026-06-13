@@ -1298,3 +1298,42 @@ class EsgDataCarbonTests(TestCase):
         self.assertEqual(data['carbon']['historical'], [])
         self.assertEqual(data['carbon']['projection'], [])
         self.assertIsNone(data['carbon']['latest_year'])
+
+
+class EsgDataPoliciesTests(TestCase):
+
+    def setUp(self):
+        self.company = Company.objects.create(name='PolCorp')
+        self.ptype = Policy_Type.objects.create(name='Risque Réglementaire')
+        self.sub = Policy_Subcategory.objects.create(
+            policy_type=self.ptype, name='EUDR'
+        )
+
+    def _policy(self, level_name, score, comment=''):
+        level = Policy_Level.objects.create(
+            subcategory=self.sub, name=level_name, score=score,
+            description=f'desc {level_name}',
+        )
+        Company_Policy.objects.create(
+            company=self.company, policy_level=level,
+            policy_date='2024-01-01', comment=comment,
+        )
+
+    def test_featured_is_two_highest_scores(self):
+        from .views import _get_esg_data
+        self._policy('Faible', 0.2)
+        self._policy('Fort', 0.9)
+        self._policy('Moyen', 0.5)
+        data = _get_esg_data(self.company)
+        featured = data['policies']['featured']
+        self.assertEqual(len(featured), 2)
+        self.assertEqual(featured[0]['level'], 'Fort')
+        self.assertEqual(featured[1]['level'], 'Moyen')
+        self.assertEqual(featured[0]['tags'], ['Risque Réglementaire', 'Fort'])
+
+    def test_framework_lists_all_policies(self):
+        from .views import _get_esg_data
+        self._policy('Faible', 0.2)
+        self._policy('Fort', 0.9)
+        data = _get_esg_data(self.company)
+        self.assertEqual(len(data['policies']['framework']), 2)

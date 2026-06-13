@@ -1090,11 +1090,60 @@ def _get_esg_carbon(company):
     }
 
 
+def _get_esg_policies(company):
+    policies_qs = (
+        Company_Policy.objects.filter(company=company)
+        .select_related('policy_level__subcategory__policy_type')
+    )
+    items = []
+    for cp in policies_qs:
+        pl = cp.policy_level
+        if pl is None:
+            continue
+        sub = pl.subcategory
+        items.append({
+            'type': sub.policy_type.name,
+            'subcategory': sub.name,
+            'level': pl.name,
+            'description': pl.description,
+            'score': pl.score,
+            'date': cp.policy_date.isoformat() if cp.policy_date else None,
+            'comment': cp.comment,
+        })
+
+    featured = sorted(
+        items, key=lambda x: (x['score'] if x['score'] is not None else 0.0),
+        reverse=True,
+    )[:2]
+    featured_out = [{
+        'type': it['type'],
+        'subcategory': it['subcategory'],
+        'level': it['level'],
+        'description': it['description'],
+        'score': it['score'],
+        'date': it['date'],
+        'comment': it['comment'],
+        'tags': [it['type'], it['level']],
+    } for it in featured]
+
+    framework = sorted(items, key=lambda x: (x['type'], x['subcategory']))
+    framework_out = [{
+        'type': it['type'],
+        'subcategory': it['subcategory'],
+        'level': it['level'],
+        'score': it['score'],
+        'date': it['date'],
+    } for it in framework]
+
+    return {'featured': featured_out, 'framework': framework_out}
+
+
 def _get_esg_data(company):
     return {
         'company_id': company.pk,
         'company_name': company.name,
         'carbon': _get_esg_carbon(company),
+        'policies': _get_esg_policies(company),
     }
 
 
