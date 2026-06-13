@@ -1,8 +1,9 @@
 import json
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
 from .models import (
-    Asset, Commodity, Company, Company_Policy, Company_Revenue,
+    Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
     Company_Revenue_Sector, Country, Ownership, Policy_Level,
     Policy_Subcategory, Policy_Type, Production, Sector, SubnationalRegion,
     SubSector,
@@ -1107,6 +1108,39 @@ class ComplianceDataTests(TestCase):
         self.assertEqual(synth['compliance_pct'], 25)
         self.assertEqual(synth['counts_by_status']['NOT_APPLICABLE'], 1)
         self.assertEqual(synth['counts_by_status']['COMPLIANT'], 1)
+
+
+class CarbonEmissionModelTests(TestCase):
+
+    def setUp(self):
+        self.company = Company.objects.create(name='CarbonCorp')
+
+    def test_multiple_scopes_same_year_allowed(self):
+        Carbon_emission.objects.create(
+            company=self.company, year=2024, scope='Scope 1', carbon_emission=10.0
+        )
+        Carbon_emission.objects.create(
+            company=self.company, year=2024, scope='Scope 2', carbon_emission=5.0
+        )
+        self.assertEqual(
+            Carbon_emission.objects.filter(company=self.company, year=2024).count(), 2
+        )
+
+    def test_duplicate_company_year_scope_rejected(self):
+        Carbon_emission.objects.create(
+            company=self.company, year=2024, scope='Scope 1', carbon_emission=10.0
+        )
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Carbon_emission.objects.create(
+                    company=self.company, year=2024, scope='Scope 1', carbon_emission=99.0
+                )
+
+    def test_str_does_not_raise(self):
+        e = Carbon_emission.objects.create(
+            company=self.company, year=2024, scope='Scope 1', carbon_emission=10.0
+        )
+        self.assertEqual(str(e), 'CarbonCorp - 2024 - Scope 1')
 
 
 class CompliancePageViewTests(TestCase):

@@ -360,7 +360,7 @@ class Carbon_emission(models.Model):
     carbon_emission = models.FloatField(default=0)
 
     def __str__(self):
-        return f"{self.company.name} - {self.year} - {self.scope} - {self.business_activity.name}"
-    
+        return f"{self.company.name} - {self.year} - {self.scope}"
+
     class Meta:
-        unique_together = ('company', 'year')
+        unique_together = ('company', 'year', 'scope')
