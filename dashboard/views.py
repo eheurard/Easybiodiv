@@ -1182,6 +1182,27 @@ def company_data(request, pk):
 
 @login_required
 @require_GET
+def esg(request):
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    initial_data = None
+    if companies:
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = _get_esg_data(first)
+    return render(request, 'dashboard/esg.html', {
+        'companies': companies,
+        'initial_data': initial_data,
+    })
+
+
+@login_required
+@require_GET
+def esg_data(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    return JsonResponse(_get_esg_data(company))
+
+
+@login_required
+@require_GET
 def mesure_empreinte(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
     initial_data = None

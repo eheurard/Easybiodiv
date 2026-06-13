@@ -5,6 +5,8 @@ app_name = 'dashboard'
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('esg-data/', views.esg, name='esg'),
+    path('api/company/<int:pk>/esg-data/', views.esg_data, name='esg_data'),
     path('api/company/<int:pk>/', views.company_data, name='company_data'),
     path('mesure-empreinte/', views.mesure_empreinte, name='mesure_empreinte'),
     path('api/company/<int:pk>/mesure-empreinte/', views.mesure_empreinte_data, name='mesure_empreinte_data'),

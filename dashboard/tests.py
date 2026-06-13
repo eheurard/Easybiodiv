@@ -1351,3 +1351,34 @@ class EsgDataPlaceholdersTests(TestCase):
         self.assertEqual(data['news'], [])
         self.assertFalse(data['social']['available'])
         self.assertFalse(data['governance']['available'])
+
+
+class EsgViewTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='vuser', password='pass')
+        self.company = Company.objects.create(name='ViewCorp')
+
+    def test_page_requires_login(self):
+        response = self.client.get(reverse('dashboard:esg'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+    def test_page_200_when_logged_in(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('dashboard:esg'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_api_returns_json(self):
+        self.client.force_login(self.user)
+        url = reverse('dashboard:esg_data', kwargs={'pk': self.company.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/json', response['Content-Type'])
+
+    def test_api_404_for_unknown_company(self):
+        self.client.force_login(self.user)
+        url = reverse('dashboard:esg_data', kwargs={'pk': 99999})
+        self.assertEqual(self.client.get(url).status_code, 404)
