@@ -64,8 +64,8 @@ class Command(BaseCommand):
 
         bretagne, _ = SubnationalRegion.objects.get_or_create(
             name="Bretagne",
+            country=france,
             defaults={
-                "country": france,
                 "description": "Région nord-ouest, industrie agroalimentaire dense",
                 "restoration_cost_m2": 50.0,
                 "Mean_X": -2.80,
@@ -75,8 +75,8 @@ class Command(BaseCommand):
 
         occitanie, _ = SubnationalRegion.objects.get_or_create(
             name="Occitanie",
+            country=france,
             defaults={
-                "country": france,
                 "description": "Région sud, grandes cultures céréalières",
                 "restoration_cost_m2": 42.0,
                 "Mean_X": 2.35,
@@ -86,8 +86,8 @@ class Command(BaseCommand):
 
         mato_grosso, _ = SubnationalRegion.objects.get_or_create(
             name="Mato Grosso",
+            country=brazil,
             defaults={
-                "country": brazil,
                 "description": "État de la frontière agricole du soja, Cerrado",
                 "restoration_cost_m2": 30.0,
                 "Mean_X": -55.00,
@@ -97,8 +97,8 @@ class Command(BaseCommand):
 
         para, _ = SubnationalRegion.objects.get_or_create(
             name="Pará",
+            country=brazil,
             defaults={
-                "country": brazil,
                 "description": "État amazonien à fort risque de déforestation",
                 "restoration_cost_m2": 35.0,
                 "Mean_X": -51.00,
@@ -108,8 +108,8 @@ class Command(BaseCommand):
 
         sumatra, _ = SubnationalRegion.objects.get_or_create(
             name="Sumatra",
+            country=indonesia,
             defaults={
-                "country": indonesia,
                 "description": "Île principale de la production d'huile de palme",
                 "restoration_cost_m2": 25.0,
                 "Mean_X": 102.00,
