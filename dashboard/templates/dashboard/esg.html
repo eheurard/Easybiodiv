@@ -127,6 +127,6 @@
 {% block extra_js %}
 {{ companies|json_script:"esg-companies" }}
 {{ initial_data|json_script:"esg-data" }}
-<script>var ESG_API_URL = "{% url 'dashboard:esg_data' pk=0 %}".replace('0/', '');</script>
+<script>var ESG_API_URL = "{% url 'dashboard:esg_data' pk=0 %}";</script>
 <script src="{% static 'dashboard/js/esg.js' %}"></script>
 {% endblock %}
