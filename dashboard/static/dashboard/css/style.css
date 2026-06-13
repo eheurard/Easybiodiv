@@ -2251,8 +2251,57 @@ a.app-header__avatar {
   margin-bottom: 20px;
 }
 
-.pr-mid-row .map-card {
+.map-card-wrap {
   flex: 2;
+  position: relative;
+}
+
+.pr-mid-row .map-card {
+  width: 100%;
+}
+
+.map-legend {
+  position: absolute;
+  bottom: 28px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.map-legend__title {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  margin: 0 0 6px;
+}
+
+.map-legend__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.map-legend__list li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--color-on-surface);
+}
+
+.map-legend__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .pr-ranking-card {
