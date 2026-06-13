@@ -227,6 +227,7 @@ class Company_Policy(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     policy_level = models.ForeignKey(Policy_Level, on_delete=models.CASCADE,null=True)
     policy_date = models.DateField(default="2026-01-01")  
+    comment=models.TextField(blank=True)
     def __str__(self):
         return str(self.company.name) + " - " +str(self.policy_level.subcategory.name) + " - " +str(self.policy_level.name)
     class Meta:
@@ -331,3 +332,35 @@ class DisclosureRequirement(models.Model):
     def __str__(self):
         return f"{self.assessment.company.name} — {self.get_code_display()}"
 
+class Currency(models.Model):
+    code = models.CharField(max_length=3)
+    name = models.CharField(max_length=255)
+    symbol = models.CharField(max_length=3)
+    ratio_USD=models.FloatField(default=1)
+    def __str__(self):
+        return self.code
+
+class ESG_data(models.Model):
+    """
+    Table des données financières et opérationnelles.
+    """
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    year = models.IntegerField()
+    employees_number = models.IntegerField(default=0)
+    def __str__(self):
+        return f"{self.company.name} - {self.year}"
+    
+    class Meta:
+        unique_together = ('company', 'year')
+
+class Carbon_emission(models.Model):
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    year = models.IntegerField()
+    scope = models.CharField(max_length=255)
+    carbon_emission = models.FloatField(default=0)
+
+    def __str__(self):
+        return f"{self.company.name} - {self.year} - {self.scope}"
+
+    class Meta:
+        unique_together = ('company', 'year', 'scope')

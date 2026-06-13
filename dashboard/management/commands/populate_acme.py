@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from dashboard.models import (
-    Asset, Commodity, Company, Company_Policy, Company_Revenue,
+    Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
     Company_Revenue_Sector, Country, DisclosureRequirement, E4Assessment,
     Ownership, Policy_Level, Policy_Subcategory, Policy_Type, Production,
     Sector, SubSector, SubnationalRegion,
@@ -744,6 +744,22 @@ class Command(BaseCommand):
                 company=acme,
                 policy_level=policy_level,
                 defaults={"policy_date": date_str},
+            )
+
+        # ── Émissions carbone (démo, tCO2e) ───────────────────────────────────
+        carbon_rows = [
+            (2018, 'Scope 1', 32000), (2018, 'Scope 2', 18000), (2018, 'Scope 3', 95000),
+            (2019, 'Scope 1', 31000), (2019, 'Scope 2', 17500), (2019, 'Scope 3', 92000),
+            (2020, 'Scope 1', 28000), (2020, 'Scope 2', 16000), (2020, 'Scope 3', 85000),
+            (2021, 'Scope 1', 27000), (2021, 'Scope 2', 15500), (2021, 'Scope 3', 82000),
+            (2022, 'Scope 1', 25000), (2022, 'Scope 2', 14000), (2022, 'Scope 3', 78000),
+            (2023, 'Scope 1', 23500), (2023, 'Scope 2', 13000), (2023, 'Scope 3', 74000),
+            (2024, 'Scope 1', 22000), (2024, 'Scope 2', 12000), (2024, 'Scope 3', 70000),
+        ]
+        for yr, scope, val in carbon_rows:
+            Carbon_emission.objects.get_or_create(
+                company=acme, year=yr, scope=scope,
+                defaults={'carbon_emission': float(val)},
             )
 
         # ── Conformité ESRS E4 (démo) ─────────────────────────────────────────

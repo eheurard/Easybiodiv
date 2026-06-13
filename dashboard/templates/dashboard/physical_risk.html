@@ -56,7 +56,18 @@
 
   <!-- Map + ranking -->
   <div class="pr-mid-row">
-    <div class="map-card" id="pr-map" aria-label="Carte des actifs par risque physique"></div>
+    <div class="map-card-wrap">
+      <div class="map-card" id="pr-map" aria-label="Carte des actifs par risque physique"></div>
+      <div class="map-legend" aria-label="Légende des niveaux de risque">
+        <p class="map-legend__title">Risque physique</p>
+        <ul class="map-legend__list">
+          <li><span class="map-legend__dot" style="background:#dac1ba"></span>Faible</li>
+          <li><span class="map-legend__dot" style="background:#feb87c"></span>Modéré</li>
+          <li><span class="map-legend__dot" style="background:#af5d43"></span>Élevé</li>
+          <li><span class="map-legend__dot" style="background:#91452d"></span>Critique</li>
+        </ul>
+      </div>
+    </div>
     <div class="card pr-ranking-card">
       <div class="label-caps pr-ranking-card__title">Classement des risques</div>
       <div id="pr-ranking" class="pr-ranking-list">

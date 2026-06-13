@@ -1,8 +1,9 @@
 import json
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
 from .models import (
-    Asset, Commodity, Company, Company_Policy, Company_Revenue,
+    Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
     Company_Revenue_Sector, Country, Ownership, Policy_Level,
     Policy_Subcategory, Policy_Type, Production, Sector, SubnationalRegion,
     SubSector,
@@ -1109,6 +1110,39 @@ class ComplianceDataTests(TestCase):
         self.assertEqual(synth['counts_by_status']['COMPLIANT'], 1)
 
 
+class CarbonEmissionModelTests(TestCase):
+
+    def setUp(self):
+        self.company = Company.objects.create(name='CarbonCorp')
+
+    def test_multiple_scopes_same_year_allowed(self):
+        Carbon_emission.objects.create(
+            company=self.company, year=2024, scope='Scope 1', carbon_emission=10.0
+        )
+        Carbon_emission.objects.create(
+            company=self.company, year=2024, scope='Scope 2', carbon_emission=5.0
+        )
+        self.assertEqual(
+            Carbon_emission.objects.filter(company=self.company, year=2024).count(), 2
+        )
+
+    def test_duplicate_company_year_scope_rejected(self):
+        Carbon_emission.objects.create(
+            company=self.company, year=2024, scope='Scope 1', carbon_emission=10.0
+        )
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Carbon_emission.objects.create(
+                    company=self.company, year=2024, scope='Scope 1', carbon_emission=99.0
+                )
+
+    def test_str_does_not_raise(self):
+        e = Carbon_emission.objects.create(
+            company=self.company, year=2024, scope='Scope 1', carbon_emission=10.0
+        )
+        self.assertEqual(str(e), 'CarbonCorp - 2024 - Scope 1')
+
+
 class CompliancePageViewTests(TestCase):
 
     def setUp(self):
@@ -1212,3 +1246,139 @@ class PopulateAcmeE4Tests(TestCase):
         self.assertEqual(
             E4Assessment.objects.filter(company__name='Acme Corp').count(), 1
         )
+
+
+class EsgDataCarbonTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='esguser', password='pass')
+        self.client.force_login(self.user)
+        self.company = Company.objects.create(name='EsgCorp')
+
+    def _carbon(self, year, scope, val):
+        Carbon_emission.objects.create(
+            company=self.company, year=year, scope=scope, carbon_emission=val
+        )
+
+    def test_historical_sums_scopes_per_year(self):
+        from .views import _get_esg_data
+        self._carbon(2022, 'Scope 1', 10.0)
+        self._carbon(2022, 'Scope 2', 5.0)
+        self._carbon(2023, 'Scope 1', 8.0)
+        data = _get_esg_data(self.company)
+        hist = data['carbon']['historical']
+        self.assertEqual([h['year'] for h in hist], [2022, 2023])
+        self.assertAlmostEqual(hist[0]['total'], 15.0, places=2)
+        self.assertAlmostEqual(hist[0]['scopes']['Scope 1'], 10.0, places=2)
+
+    def test_projection_extends_to_2030(self):
+        from .views import _get_esg_data
+        self._carbon(2022, 'Scope 1', 20.0)
+        self._carbon(2023, 'Scope 1', 10.0)
+        data = _get_esg_data(self.company)
+        proj = data['carbon']['projection']
+        self.assertTrue(proj, 'projection should not be empty with 2 points')
+        self.assertEqual(proj[-1]['year'], 2030)
+        self.assertEqual(proj[0]['year'], 2023)
+
+    def test_reduction_pct_negative_when_declining(self):
+        from .views import _get_esg_data
+        self._carbon(2022, 'Scope 1', 20.0)
+        self._carbon(2023, 'Scope 1', 10.0)
+        data = _get_esg_data(self.company)
+        self.assertEqual(data['carbon']['latest_year'], 2023)
+        self.assertAlmostEqual(data['carbon']['latest_total'], 10.0, places=2)
+        self.assertLess(data['carbon']['reduction_pct'], 0)
+
+    def test_no_carbon_data_is_empty(self):
+        from .views import _get_esg_data
+        data = _get_esg_data(self.company)
+        self.assertEqual(data['carbon']['historical'], [])
+        self.assertEqual(data['carbon']['projection'], [])
+        self.assertIsNone(data['carbon']['latest_year'])
+
+
+class EsgDataPoliciesTests(TestCase):
+
+    def setUp(self):
+        self.company = Company.objects.create(name='PolCorp')
+        self.ptype = Policy_Type.objects.create(name='Risque Réglementaire')
+        self.sub = Policy_Subcategory.objects.create(
+            policy_type=self.ptype, name='EUDR'
+        )
+
+    def _policy(self, level_name, score, comment=''):
+        level = Policy_Level.objects.create(
+            subcategory=self.sub, name=level_name, score=score,
+            description=f'desc {level_name}',
+        )
+        Company_Policy.objects.create(
+            company=self.company, policy_level=level,
+            policy_date='2024-01-01', comment=comment,
+        )
+
+    def test_featured_is_two_highest_scores(self):
+        from .views import _get_esg_data
+        self._policy('Faible', 0.2)
+        self._policy('Fort', 0.9)
+        self._policy('Moyen', 0.5)
+        data = _get_esg_data(self.company)
+        featured = data['policies']['featured']
+        self.assertEqual(len(featured), 2)
+        self.assertEqual(featured[0]['level'], 'Fort')
+        self.assertEqual(featured[1]['level'], 'Moyen')
+        self.assertEqual(featured[0]['tags'], ['Risque Réglementaire', 'Fort'])
+
+    def test_framework_lists_all_policies(self):
+        from .views import _get_esg_data
+        self._policy('Faible', 0.2)
+        self._policy('Fort', 0.9)
+        data = _get_esg_data(self.company)
+        self.assertEqual(len(data['policies']['framework']), 2)
+
+
+class EsgDataPlaceholdersTests(TestCase):
+
+    def test_market_news_social_governance_present(self):
+        from .views import _get_esg_data
+        company = Company.objects.create(name='PlhCorp', isin='FR0000', ticker='PLH')
+        data = _get_esg_data(company)
+        self.assertTrue(data['market']['is_demo'])
+        self.assertEqual(data['market']['ticker'], 'PLH')
+        self.assertEqual(data['market']['isin'], 'FR0000')
+        self.assertEqual(data['news'], [])
+        self.assertFalse(data['social']['available'])
+        self.assertFalse(data['governance']['available'])
+
+
+class EsgViewTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='vuser', password='pass')
+        self.company = Company.objects.create(name='ViewCorp')
+
+    def test_page_requires_login(self):
+        response = self.client.get(reverse('dashboard:esg'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+    def test_page_200_when_logged_in(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('dashboard:esg'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_api_returns_json(self):
+        self.client.force_login(self.user)
+        url = reverse('dashboard:esg_data', kwargs={'pk': self.company.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/json', response['Content-Type'])
+
+    def test_api_404_for_unknown_company(self):
+        self.client.force_login(self.user)
+        url = reverse('dashboard:esg_data', kwargs={'pk': 99999})
+        self.assertEqual(self.client.get(url).status_code, 404)

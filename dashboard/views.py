@@ -8,7 +8,7 @@ from django.views.decorators.http import require_GET
 
 from django.db.models import Q
 from .models import (
-    Asset, Commodity, Company, Company_Policy, Company_Revenue,
+    Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
     Company_Revenue_Sector, DisclosureRequirement, E4Assessment, Ownership,
     Production,
 )
@@ -1018,6 +1018,150 @@ def _get_compliance_data(company):
     }
 
 
+ESG_PROJECTION_END_YEAR = 2030
+
+
+def _linear_projection(points, end_year):
+    """Extrapolation linéaire (moindres carrés) des totaux annuels.
+
+    `points` : liste de (year, total) triée par année croissante.
+    Retourne [{'year', 'total'}] du dernier point historique (ancre) jusqu'à
+    `end_year` inclus. Renvoie [] si moins de 2 points ou pente indéfinie.
+    """
+    if len(points) < 2:
+        return []
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+    n = len(xs)
+    mean_x = sum(xs) / n
+    mean_y = sum(ys) / n
+    denom = sum((x - mean_x) ** 2 for x in xs)
+    if denom == 0:
+        return []
+    slope = sum((xs[i] - mean_x) * (ys[i] - mean_y) for i in range(n)) / denom
+    intercept = mean_y - slope * mean_x
+    last_year = xs[-1]
+    out = [{'year': last_year, 'total': round(ys[-1], 2)}]
+    for yr in range(last_year + 1, end_year + 1):
+        val = slope * yr + intercept
+        out.append({'year': yr, 'total': round(max(val, 0.0), 2)})
+    return out
+
+
+def _get_esg_carbon(company):
+    emissions = Carbon_emission.objects.filter(company=company).order_by('year')
+    by_year = defaultdict(lambda: {'total': 0.0, 'scopes': defaultdict(float)})
+    for e in emissions:
+        by_year[e.year]['total'] += e.carbon_emission
+        by_year[e.year]['scopes'][e.scope] += e.carbon_emission
+
+    historical = [
+        {
+            'year': y,
+            'total': round(d['total'], 2),
+            'scopes': {k: round(v, 2) for k, v in d['scopes'].items()},
+        }
+        for y, d in sorted(by_year.items())
+    ]
+
+    projection = _linear_projection(
+        [(h['year'], h['total']) for h in historical], ESG_PROJECTION_END_YEAR
+    )
+
+    if historical:
+        first_total = historical[0]['total']
+        latest = historical[-1]
+        latest_year = latest['year']
+        latest_total = latest['total']
+        reduction_pct = (
+            round((latest_total - first_total) / first_total * 100, 1)
+            if first_total else None
+        )
+    else:
+        latest_year = latest_total = reduction_pct = None
+
+    return {
+        'historical': historical,
+        'projection': projection,
+        'latest_year': latest_year,
+        'latest_total': latest_total,
+        'reduction_pct': reduction_pct,
+        'unit': 'tCO2e',
+    }
+
+
+def _get_esg_policies(company):
+    policies_qs = (
+        Company_Policy.objects.filter(company=company)
+        .select_related('policy_level__subcategory__policy_type')
+    )
+    items = []
+    for cp in policies_qs:
+        pl = cp.policy_level
+        if pl is None:
+            continue
+        sub = pl.subcategory
+        items.append({
+            'type': sub.policy_type.name,
+            'subcategory': sub.name,
+            'level': pl.name,
+            'description': pl.description,
+            'score': pl.score,
+            'date': cp.policy_date.isoformat() if cp.policy_date else None,
+            'comment': cp.comment,
+        })
+
+    featured = sorted(
+        items, key=lambda x: (x['score'] if x['score'] is not None else 0.0),
+        reverse=True,
+    )[:2]
+    featured_out = [{
+        'type': it['type'],
+        'subcategory': it['subcategory'],
+        'level': it['level'],
+        'description': it['description'],
+        'score': it['score'],
+        'date': it['date'],
+        'comment': it['comment'],
+        'tags': [it['type'], it['level']],
+    } for it in featured]
+
+    framework = sorted(items, key=lambda x: (x['type'], x['subcategory']))
+    framework_out = [{
+        'type': it['type'],
+        'subcategory': it['subcategory'],
+        'level': it['level'],
+        'score': it['score'],
+        'date': it['date'],
+    } for it in framework]
+
+    return {'featured': featured_out, 'framework': framework_out}
+
+
+def _get_esg_data(company):
+    return {
+        'company_id': company.pk,
+        'company_name': company.name,
+        'carbon': _get_esg_carbon(company),
+        'policies': _get_esg_policies(company),
+        'market': {
+            'is_demo': True,
+            'isin': company.isin,
+            'ticker': company.ticker,
+            'price': 142.85,
+            'currency': 'EUR',
+            'change_pct': 2.4,
+            'market_cap': '4.2B',
+            'esg_rating': 'AA+',
+            'relative_perf': '+12.5% vs MSCI ESG',
+            'sparkline': [35, 32, 38, 30, 25, 28, 20, 22, 15, 18, 5],
+        },
+        'news': [],
+        'social': {'available': False},
+        'governance': {'available': False},
+    }
+
+
 def index(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
     initial_data = None
@@ -1034,6 +1178,27 @@ def index(request):
 def company_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_company_data(company))
+
+
+@login_required
+@require_GET
+def esg(request):
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    initial_data = None
+    if companies:
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = _get_esg_data(first)
+    return render(request, 'dashboard/esg.html', {
+        'companies': companies,
+        'initial_data': initial_data,
+    })
+
+
+@login_required
+@require_GET
+def esg_data(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    return JsonResponse(_get_esg_data(company))
 
 
 @login_required

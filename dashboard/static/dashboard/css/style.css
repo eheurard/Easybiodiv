@@ -2251,8 +2251,57 @@ a.app-header__avatar {
   margin-bottom: 20px;
 }
 
-.pr-mid-row .map-card {
+.map-card-wrap {
   flex: 2;
+  position: relative;
+}
+
+.pr-mid-row .map-card {
+  width: 100%;
+}
+
+.map-legend {
+  position: absolute;
+  bottom: 28px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.map-legend__title {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  margin: 0 0 6px;
+}
+
+.map-legend__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.map-legend__list li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--color-on-surface);
+}
+
+.map-legend__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .pr-ranking-card {
@@ -3008,3 +3057,100 @@ a.app-header__avatar {
 @media (max-width: 720px) {
   .comp-leap { grid-template-columns: 1fr; }
 }
+
+/* ─── ESG page ──────────────────────────────────────────────────────────── */
+.esg-page { display: flex; flex-direction: column; gap: 24px; }
+
+.esg-theme-tabs {
+  display: inline-flex; gap: 4px; padding: 4px;
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 10px; align-self: flex-start;
+}
+.esg-theme-tab {
+  border: none; background: transparent; cursor: pointer;
+  padding: 8px 24px; border-radius: 7px;
+  font-family: var(--font-family); font-size: 14px; font-weight: 600;
+  color: var(--color-on-surface-variant); transition: background .15s, color .15s;
+}
+.esg-theme-tab--active {
+  background: var(--color-surface-container-lowest);
+  color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+
+.esg-grid {
+  display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;
+}
+.esg-grid__main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.esg-grid__side { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+@media (max-width: 1100px) { .esg-grid { grid-template-columns: 1fr; } }
+
+/* Chart */
+.esg-chart__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+.esg-chart__title { font-size: 20px; font-weight: 600; color: var(--color-primary); margin: 0 0 4px; }
+.esg-chart__sub { font-size: 14px; color: var(--color-on-surface-variant); margin: 0; }
+.esg-chart__legend { display: flex; gap: 16px; flex-wrap: wrap; }
+.esg-chart__legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--color-on-surface-variant); }
+.esg-chart__line { width: 16px; height: 0; border-top: 2px solid var(--color-primary); }
+.esg-chart__line--solid { border-top-style: solid; }
+.esg-chart__line--dashed { border-top-style: dashed; }
+.esg-chart__kpis { display: flex; gap: 32px; margin-bottom: 16px; }
+.esg-chart__kpi { display: flex; flex-direction: column; gap: 2px; }
+.esg-chart__kpi-value { font-size: 22px; font-weight: 600; color: var(--color-on-surface); }
+.esg-chart__kpi-value--good { color: #2d6a4f; }
+.esg-chart__kpi-value--bad { color: var(--color-error); }
+.esg-chart__kpi-label { color: var(--color-on-surface-variant); }
+.esg-chart__canvas { width: 100%; height: 320px; position: relative; }
+.esg-chart__svg { width: 100%; height: 100%; display: block; }
+.esg-chart__grid { stroke: var(--color-outline-variant); stroke-width: 1; opacity: .5; }
+.esg-chart__axis-label { fill: var(--color-on-surface-variant); font-size: 11px; font-family: var(--font-family); }
+.esg-chart__path { fill: none; stroke: var(--color-primary); stroke-width: 3; }
+.esg-chart__path--proj { stroke-dasharray: 8 6; opacity: .8; }
+.esg-chart__dot { fill: var(--color-primary); }
+
+/* Featured policy cards */
+.esg-featured { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 700px) { .esg-featured { grid-template-columns: 1fr; } }
+.esg-policy-card { display: flex; flex-direction: column; gap: 10px; }
+.esg-policy-card__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.esg-policy-card__title { font-size: 16px; font-weight: 700; color: var(--color-primary); margin: 0; }
+.esg-policy-card__score { font-size: 13px; font-weight: 700; color: var(--color-on-secondary-container); background: var(--color-secondary-container); border-radius: 8px; padding: 2px 8px; }
+.esg-policy-card__level { font-size: 13px; font-weight: 600; color: var(--color-on-surface); margin: 0; }
+.esg-policy-card__desc { font-size: 14px; color: var(--color-on-surface-variant); margin: 0; line-height: 1.5; }
+.esg-policy-card__tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+.esg-policy-card__tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; color: var(--color-on-primary-fixed-variant, var(--color-primary)); background: var(--color-surface-container-high); border-radius: 8px; padding: 3px 10px; }
+
+/* Framework list */
+.esg-framework__head { padding-bottom: 12px; border-bottom: 1px solid var(--color-outline-variant); margin-bottom: 4px; }
+.esg-framework__title { color: var(--color-primary); margin: 0; }
+.esg-framework__item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--color-outline-variant); }
+.esg-framework__item:last-child { border-bottom: none; }
+.esg-framework__item-name { font-size: 15px; font-weight: 700; color: var(--color-on-surface); margin: 0 0 2px; }
+.esg-framework__item-sub { font-size: 13px; color: var(--color-on-surface-variant); margin: 0; }
+.esg-framework__item-type { font-size: 11px; font-weight: 600; color: var(--color-on-surface-variant); white-space: nowrap; }
+
+/* Market */
+.esg-market__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.esg-market__title { color: var(--color-on-surface-variant); margin: 0; }
+.esg-market__demo { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--color-on-secondary-container); background: var(--color-secondary-container); border-radius: 6px; padding: 2px 6px; }
+.esg-market__price-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px; }
+.esg-market__price-label { color: var(--color-on-surface-variant); margin: 0 0 2px; }
+.esg-market__price { font-size: 28px; font-weight: 700; color: var(--color-primary); margin: 0; }
+.esg-market__change { font-size: 14px; font-weight: 700; }
+.esg-market__change--up { color: #2d6a4f; }
+.esg-market__change--down { color: var(--color-error); }
+.esg-market__spark { width: 100%; height: 40px; color: var(--color-primary); opacity: .5; margin-bottom: 12px; }
+.esg-market__stats { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--color-outline-variant); }
+.esg-market__stat { display: flex; justify-content: space-between; font-size: 14px; }
+.esg-market__stat-label { color: var(--color-on-surface-variant); }
+.esg-market__stat-value { font-weight: 700; color: var(--color-on-surface); }
+
+/* News + decoration + empty */
+.esg-news__head { padding-bottom: 12px; border-bottom: 1px solid var(--color-outline-variant); margin-bottom: 12px; }
+.esg-news__title { color: var(--color-on-surface-variant); margin: 0; }
+.esg-decoration { height: 160px; border-radius: 12px; border: 1px solid var(--color-outline-variant); display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; padding: 20px; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); }
+.esg-decoration__title { color: #fff; font-weight: 700; font-size: 15px; }
+.esg-decoration__sub { color: rgba(255,255,255,.85); }
+.esg-empty { font-size: 14px; color: var(--color-on-surface-variant); text-align: center; padding: 24px 0; margin: 0; }
+.esg-coming { padding: 40px; }
