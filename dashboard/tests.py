@@ -1337,3 +1337,17 @@ class EsgDataPoliciesTests(TestCase):
         self._policy('Fort', 0.9)
         data = _get_esg_data(self.company)
         self.assertEqual(len(data['policies']['framework']), 2)
+
+
+class EsgDataPlaceholdersTests(TestCase):
+
+    def test_market_news_social_governance_present(self):
+        from .views import _get_esg_data
+        company = Company.objects.create(name='PlhCorp', isin='FR0000', ticker='PLH')
+        data = _get_esg_data(company)
+        self.assertTrue(data['market']['is_demo'])
+        self.assertEqual(data['market']['ticker'], 'PLH')
+        self.assertEqual(data['market']['isin'], 'FR0000')
+        self.assertEqual(data['news'], [])
+        self.assertFalse(data['social']['available'])
+        self.assertFalse(data['governance']['available'])
