@@ -12,7 +12,7 @@ from .models import (
     Company_Revenue_Sector, DisclosureRequirement, E4Assessment, Ownership,
     Production,
 )
-from .services.market import get_market_data
+from .services.market import get_market_data, DEFAULT_RANGE
 
 from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
 
@@ -1189,6 +1189,19 @@ def esg(request):
 def esg_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_esg_data(company))
+
+
+@login_required
+@require_GET
+def esg_market(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    market = get_market_data(company, request.GET.get('range', DEFAULT_RANGE))
+    return JsonResponse({
+        'range': market['range'],
+        'sparkline': market['sparkline'],
+        'change_pct': market['change_pct'],
+        'is_demo': market['is_demo'],
+    })
 
 
 @login_required

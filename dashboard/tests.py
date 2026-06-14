@@ -1421,11 +1421,13 @@ class MarketDataTests(TestCase):
         with mock.patch('dashboard.services.market.urlopen', return_value=cm):
             data = market_service.get_market_data(company)
         self.assertFalse(data['is_demo'])
-        self.assertEqual(data['price'], 150.0)
+        self.assertEqual(data['price'], 150.0)  # cours spot (regularMarketPrice)
         self.assertEqual(data['currency'], 'USD')
-        self.assertEqual(data['change_pct'], 25.0)  # (150-120)/120*100
+        # change_pct = performance de la période : (dernier - premier) / premier
+        self.assertEqual(data['change_pct'], 50.0)  # (150-100)/100*100
         self.assertEqual(data['sparkline'], [100.0, 110.0, 150.0])  # null filtré
         self.assertEqual(data['ticker'], 'ACME')
+        self.assertEqual(data['range'], '3mo')  # période par défaut
 
     def test_network_error_returns_demo(self):
         company = Company.objects.create(name='Boom', isin='US0002', ticker='BOOM')
@@ -1434,3 +1436,45 @@ class MarketDataTests(TestCase):
             data = market_service.get_market_data(company)
         self.assertTrue(data['is_demo'])
         self.assertEqual(data['ticker'], 'BOOM')
+
+    def test_range_passed_to_yahoo_url(self):
+        company = Company.objects.create(name='Range', isin='US0003', ticker='RNG')
+        cm = mock.MagicMock()
+        cm.read.return_value = self._yahoo_response()
+        cm.__enter__.return_value = cm
+        cm.getcode.return_value = 200
+        with mock.patch('dashboard.services.market.urlopen', return_value=cm) as m:
+            data = market_service.get_market_data(company, '5y')
+        req = m.call_args.args[0]
+        self.assertIn('range=5y', req.full_url)
+        self.assertIn('interval=1wk', req.full_url)  # 5y → hebdomadaire
+        self.assertEqual(data['range'], '5y')
+
+    def test_invalid_range_falls_back_to_default(self):
+        company = Company.objects.create(name='Bad', isin='US0004', ticker='0')
+        data = market_service.get_market_data(company, 'bogus')
+        self.assertEqual(data['range'], '3mo')
+
+
+class MarketEndpointTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='u', password='p')
+        self.company = Company.objects.create(name='Endpoint', isin='US9', ticker='0')
+
+    def test_endpoint_returns_sparkline_for_range(self):
+        self.client.force_login(self.user)
+        url = reverse('dashboard:esg_market', kwargs={'pk': self.company.pk})
+        resp = self.client.get(url, {'range': '6mo'})
+        self.assertEqual(resp.status_code, 200)
+        payload = resp.json()
+        self.assertEqual(payload['range'], '6mo')  # ticker '0' → repli démo, range respecté
+        self.assertIn('sparkline', payload)
+        self.assertIn('change_pct', payload)
+        self.assertTrue(payload['is_demo'])
+
+    def test_endpoint_requires_login(self):
+        url = reverse('dashboard:esg_market', kwargs={'pk': self.company.pk})
+        resp = self.client.get(url)
+        self.assertIn(resp.status_code, (302, 401, 403))
