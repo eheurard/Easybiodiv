@@ -1,0 +1,118 @@
+<h2>Design — Structure & rendu</h2>
+<p class="subtitle">Voici le design complet du diagramme arborescent. Dites-moi si quelque chose ne vous convient pas.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Aperçu de la page (après le Sankey existant)</div>
+  <div class="mockup-body" style="background:#f5f0ed;padding:16px;border-radius:6px">
+
+    <!-- Existing Sankey (placeholder) -->
+    <div style="background:#fff;border-radius:8px;padding:14px;margin-bottom:14px;border:1px solid #e8ddd9;opacity:0.5">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.08em;color:#87736d;text-transform:uppercase;margin-bottom:8px">Décomposition de l'impact (Sankey — existant)</div>
+      <div style="height:40px;background:#f0ebe8;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa">— diagramme Sankey —</div>
+    </div>
+
+    <!-- NEW: Tree card -->
+    <div style="background:#fff;border-radius:8px;padding:14px;border:1px solid #e8ddd9">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.08em;color:#87736d;text-transform:uppercase;margin-bottom:12px">Répartition hiérarchique</div>
+
+      <svg viewBox="0 0 860 300" width="100%" style="display:block;font-family:Inter,sans-serif">
+        <!-- Column headers -->
+        <text x="20" y="14" font-size="8" fill="#87736d" font-weight="700" letter-spacing=".08em">COMMODITÉS</text>
+        <text x="235" y="14" font-size="8" fill="#87736d" font-weight="700" letter-spacing=".08em">ACTIFS</text>
+        <text x="475" y="14" font-size="8" fill="#87736d" font-weight="700" letter-spacing=".08em">PAYS</text>
+        <text x="710" y="14" font-size="8" fill="#87736d" font-weight="700" letter-spacing=".08em">COMPANY</text>
+
+        <!-- === LINKS (bezier curves, semi-transparent, thickness = link value) === -->
+        <!-- Soja → Usine Lyon (strong) -->
+        <path d="M102,52 C168,52 168,82 235,82" fill="none" stroke="#4a7a5c" stroke-width="4" stroke-opacity="0.25"/>
+        <!-- Soja → Port Brest (weak, dashed feel via opacity) -->
+        <path d="M102,52 C168,52 168,142 235,142" fill="none" stroke="#4a7a5c" stroke-width="1.5" stroke-opacity="0.15"/>
+        <!-- Blé → Usine Lyon -->
+        <path d="M102,92 C168,92 168,82 235,82" fill="none" stroke="#4a7a5c" stroke-width="3" stroke-opacity="0.25"/>
+        <!-- Bois → Port Brest -->
+        <path d="M102,132 C168,132 168,142 235,142" fill="none" stroke="#4a7a5c" stroke-width="2.5" stroke-opacity="0.25"/>
+        <!-- Cuivre → Mine SP -->
+        <path d="M102,172 C168,172 168,202 235,202" fill="none" stroke="#4a7a5c" stroke-width="1.5" stroke-opacity="0.25"/>
+        <!-- Coton → Usine Lyon (weak) -->
+        <path d="M102,212 C168,212 168,82 235,82" fill="none" stroke="#4a7a5c" stroke-width="1" stroke-opacity="0.12"/>
+
+        <!-- Usine Lyon → France -->
+        <path d="M337,82 C406,82 406,112 475,112" fill="none" stroke="#625a4e" stroke-width="5" stroke-opacity="0.25"/>
+        <!-- Port Brest → France -->
+        <path d="M337,142 C406,142 406,112 475,112" fill="none" stroke="#625a4e" stroke-width="2" stroke-opacity="0.25"/>
+        <!-- Mine SP → Brésil -->
+        <path d="M337,202 C406,202 406,202 475,202" fill="none" stroke="#625a4e" stroke-width="1.5" stroke-opacity="0.25"/>
+
+        <!-- France → ACME -->
+        <path d="M577,112 C643,112 643,150 710,150" fill="none" stroke="#865220" stroke-width="6" stroke-opacity="0.3"/>
+        <!-- Brésil → ACME -->
+        <path d="M577,202 C643,202 643,150 710,150" fill="none" stroke="#865220" stroke-width="1.5" stroke-opacity="0.3"/>
+
+        <!-- === NODES === -->
+        <!-- Commodities col (x=20, w=82) -->
+        <rect x="20" y="36" width="82" height="32" rx="4" fill="#4a7a5c"/>
+        <text x="61" y="51" text-anchor="middle" font-size="10" fill="white" font-weight="600">Soja</text>
+        <text x="61" y="63" text-anchor="middle" font-size="9" fill="#c8f0d8">41 %</text>
+
+        <rect x="20" y="76" width="82" height="32" rx="4" fill="#4a7a5c"/>
+        <text x="61" y="91" text-anchor="middle" font-size="10" fill="white" font-weight="600">Blé</text>
+        <text x="61" y="103" text-anchor="middle" font-size="9" fill="#c8f0d8">29 %</text>
+
+        <rect x="20" y="116" width="82" height="32" rx="4" fill="#4a7a5c"/>
+        <text x="61" y="131" text-anchor="middle" font-size="10" fill="white" font-weight="600">Bois</text>
+        <text x="61" y="143" text-anchor="middle" font-size="9" fill="#c8f0d8">18 %</text>
+
+        <rect x="20" y="156" width="82" height="32" rx="4" fill="#4a7a5c"/>
+        <text x="61" y="171" text-anchor="middle" font-size="10" fill="white" font-weight="600">Cuivre</text>
+        <text x="61" y="183" text-anchor="middle" font-size="9" fill="#c8f0d8">8 %</text>
+
+        <rect x="20" y="196" width="82" height="32" rx="4" fill="#4a7a5c"/>
+        <text x="61" y="211" text-anchor="middle" font-size="10" fill="white" font-weight="600">Coton</text>
+        <text x="61" y="223" text-anchor="middle" font-size="9" fill="#c8f0d8">4 %</text>
+
+        <!-- Assets col (x=235, w=102) -->
+        <rect x="235" y="66" width="102" height="32" rx="4" fill="#625a4e"/>
+        <text x="286" y="81" text-anchor="middle" font-size="10" fill="white" font-weight="600">Usine Lyon</text>
+        <text x="286" y="93" text-anchor="middle" font-size="9" fill="#e8ddd9">70 %</text>
+
+        <rect x="235" y="126" width="102" height="32" rx="4" fill="#625a4e"/>
+        <text x="286" y="141" text-anchor="middle" font-size="10" fill="white" font-weight="600">Port Brest</text>
+        <text x="286" y="153" text-anchor="middle" font-size="9" fill="#e8ddd9">18 %</text>
+
+        <rect x="235" y="186" width="102" height="32" rx="4" fill="#625a4e"/>
+        <text x="286" y="201" text-anchor="middle" font-size="10" fill="white" font-weight="600">Mine SP</text>
+        <text x="286" y="213" text-anchor="middle" font-size="9" fill="#e8ddd9">12 %</text>
+
+        <!-- Countries col (x=475, w=102) -->
+        <rect x="475" y="96" width="102" height="32" rx="5" fill="#865220"/>
+        <text x="526" y="111" text-anchor="middle" font-size="10" fill="white" font-weight="600">France</text>
+        <text x="526" y="123" text-anchor="middle" font-size="9" fill="#ffe0c0">88 %</text>
+
+        <rect x="475" y="186" width="102" height="32" rx="5" fill="#865220"/>
+        <text x="526" y="201" text-anchor="middle" font-size="10" fill="white" font-weight="600">Brésil</text>
+        <text x="526" y="213" text-anchor="middle" font-size="9" fill="#ffe0c0">12 %</text>
+
+        <!-- Company col (x=710, w=110) -->
+        <rect x="710" y="134" width="110" height="32" rx="5" fill="#91452d"/>
+        <text x="765" y="149" text-anchor="middle" font-size="10" fill="white" font-weight="600">ACME Corp</text>
+        <text x="765" y="161" text-anchor="middle" font-size="9" fill="#ffd4c5">100 %</text>
+      </svg>
+
+      <p style="font-size:11px;color:#87736d;margin-top:8px;text-align:center">
+        Épaisseur des lignes proportionnelle à la valeur du lien · Couleur par niveau
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Ce qui sera implémenté</h3>
+  <ul>
+    <li><strong>HTML</strong> — nouvelle <code>&lt;div class="card tr-tree-card"&gt;</code> ajoutée à <code>mesure_empreinte.html</code>, juste sous la carte Sankey existante</li>
+    <li><strong>JS</strong> — fonction <code>renderTree(data)</code> dans <code>mesure_empreinte.js</code>, appelée depuis <code>renderTransitionRisk()</code></li>
+    <li><strong>Données</strong> — réutilise les <code>sankey_links</code>, <code>commodities</code>, <code>assets</code>, <code>countries</code> déjà renvoyés par l'API (zéro changement backend)</li>
+    <li><strong>Layout</strong> — 4 colonnes fixes, nœuds espacés régulièrement en vertical, triés par % décroissant</li>
+    <li><strong>Lignes</strong> — courbes de Bézier, épaisseur proportionnelle à <code>link.value</code>, semi-transparentes</li>
+    <li><strong>CSS</strong> — 2-3 règles dans <code>style.css</code> pour la carte et le SVG responsive</li>
+  </ul>
+</div>

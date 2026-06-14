@@ -1,0 +1,43 @@
+<h2>Comment charger les données de comparaison ?</h2>
+<p class="subtitle">Les 5 métriques proviennent de fonctions différentes dans views.py. Comment les exposer au client ?</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Endpoint dédié <code>/api/company/&lt;pk&gt;/compare/</code></h3>
+      <p>Une nouvelle fonction <code>_get_comparison_data(company)</code> agrège les 5 métriques en un seul appel JSON. Le JS fait 1 requête par entreprise sélectionnée.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pour</h4><ul><li>1 seul appel réseau par entreprise</li><li>Logique centralisée côté serveur</li><li>Facile à étendre</li></ul></div>
+        <div class="cons"><h4>Contre</h4><ul><li>Nouvelle route à ajouter</li></ul></div>
+      </div>
+      <p class="label" style="color: #954830; margin-top: 10px">⭐ Recommandé</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Réutiliser les endpoints existants</h3>
+      <p>Pour chaque entreprise, le JS appelle en parallèle <code>/mesure-empreinte/</code>, <code>/dette-ecologique/</code> et <code>/company/</code>, puis en extrait les métriques utiles.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pour</h4><ul><li>Aucun nouvel endpoint</li><li>Réutilise le code existant</li></ul></div>
+        <div class="cons"><h4>Contre</h4><ul><li>3+ appels réseau par entreprise</li><li>Charge des données inutiles</li><li>JS plus complexe</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Tout server-side (rechargement de page)</h3>
+      <p>Un formulaire GET avec les 2 entreprises et les métriques choisies. Chaque changement recharge la page, Django calcule tout et injecte les données dans le template.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pour</h4><ul><li>Très simple, pas de JS complexe</li></ul></div>
+        <div class="cons"><h4>Contre</h4><ul><li>Rechargement à chaque sélection</li><li>UX moins fluide</li><li>Ne suit pas le pattern existant</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>

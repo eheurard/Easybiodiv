@@ -1,0 +1,133 @@
+<h2>Où placer les contrôles de filtres ?</h2>
+<p class="subtitle">Filtre par seuil d'impact + par commodité — où s'intègrent-ils dans la carte ?</p>
+
+<style>
+  .demo-box { background:#faf7f5; border-radius:10px; padding:12px; margin:10px 0; font-family:Inter,sans-serif; }
+  .demo-card { background:white; border-radius:8px; border:1px solid #e8e0db; overflow:hidden; }
+  .demo-header { padding:8px 12px; font-size:9px; font-weight:700; letter-spacing:.08em; color:#87736d; background:#faf7f5; border-bottom:1px solid #e8e0db; text-transform:uppercase; display:flex; align-items:center; justify-content:space-between; }
+  .filter-bar { display:flex; gap:10px; align-items:center; padding:8px 12px; border-bottom:1px solid #e8e0db; background:#fff; flex-wrap:wrap; }
+  .filter-chip { display:flex; align-items:center; gap:5px; font-size:10px; color:#625a4e; }
+  .filter-chip label { font-size:9px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#87736d; }
+  .filter-chip input[type=range] { width:80px; accent-color:#4a7a5c; }
+  .filter-chip select { font-size:10px; padding:2px 4px; border:1px solid #e8e0db; border-radius:4px; color:#2d2520; }
+  .chip-pill { background:#4a7a5c22; color:#4a7a5c; border-radius:12px; padding:2px 8px; font-size:10px; font-weight:600; cursor:pointer; border:1px solid #4a7a5c44; }
+  .chip-pill.active { background:#4a7a5c; color:white; }
+  .demo-panel-wrap { display:flex; }
+  .demo-svg-area { flex:1; padding:8px; }
+  .demo-side-panel { width:145px; min-width:145px; border-left:1px solid #e8e0db; padding:10px; font-size:10px; }
+  .demo-side-panel h4 { margin:0 0 4px; font-size:12px; color:#4a7a5c; }
+  .demo-side-panel .pill { display:inline-block; background:#4a7a5c22; color:#4a7a5c; border-radius:4px; padding:1px 6px; font-size:9px; font-weight:700; margin-bottom:5px; }
+  .demo-side-panel .row { display:flex; justify-content:space-between; margin-bottom:2px; color:#625a4e; font-size:9px; }
+  .demo-side-panel .row b { color:#2d2520; }
+  .demo-inline-filters { padding:8px 10px; display:flex; gap:8px; align-items:center; justify-content:flex-end; }
+  .mini-btn { font-size:9px; padding:3px 8px; border-radius:12px; border:1px solid #e8e0db; background:white; cursor:pointer; color:#625a4e; }
+  .mini-btn.active { background:#4a7a5c; color:white; border-color:#4a7a5c; }
+</style>
+
+<div class="options">
+
+  <!-- Option A: filter bar above the SVG -->
+  <div class="option" data-choice="bar-above" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Barre de filtres au-dessus du graphe</h3>
+      <p>Une ligne de contrôles séparée sous le titre de la carte. Toujours visible, facile d'accès.</p>
+      <div class="demo-box">
+        <div class="demo-card">
+          <div class="demo-header">
+            <span>Répartition hiérarchique</span>
+          </div>
+          <div class="filter-bar">
+            <div class="filter-chip">
+              <label>Seuil</label>
+              <input type="range" min="0" max="50" value="5" style="pointer-events:none">
+              <span>≥ 5 %</span>
+            </div>
+            <div style="width:1px;height:16px;background:#e8e0db"></div>
+            <div class="filter-chip">
+              <label>Commodité</label>
+              <span class="chip-pill active">Cuivre</span>
+              <span class="chip-pill">Soja</span>
+              <span class="chip-pill">Toutes</span>
+            </div>
+          </div>
+          <div class="demo-panel-wrap">
+            <div class="demo-svg-area">
+              <svg viewBox="0 0 230 70" font-family="Inter,sans-serif" style="width:100%;height:60px">
+                <text x="8" y="10" font-size="7" fill="#87736d" font-weight="700">COMMODITÉS</text>
+                <text x="80" y="10" font-size="7" fill="#87736d" font-weight="700">ACTIFS</text>
+                <text x="155" y="10" font-size="7" fill="#87736d" font-weight="700">PAYS</text>
+                <path d="M75,30 C115,30 115,36 155,36" fill="none" stroke="#865220" stroke-width="2" stroke-opacity="0.9"/>
+                <rect x="8" y="22" width="67" height="20" rx="3" fill="#865220"/>
+                <text x="41" y="32" text-anchor="middle" font-size="8" fill="white" font-weight="700">Cuivre 42.7%</text>
+                <rect x="78" y="26" width="73" height="20" rx="3" fill="#625a4e"/>
+                <text x="114" y="36" text-anchor="middle" font-size="8" fill="white">Mine Pilbara</text>
+                <rect x="153" y="26" width="70" height="20" rx="3" fill="#4a7a5c" stroke="white" stroke-width="1.5"/>
+                <text x="188" y="36" text-anchor="middle" font-size="8" fill="white" font-weight="700">Australia ✓</text>
+              </svg>
+            </div>
+            <div class="demo-side-panel">
+              <h4>Australia</h4>
+              <div class="pill">PAYS</div>
+              <div class="row"><span>Impact</span><b>42.7 %</b></div>
+              <div class="row"><span>Actifs</span><b>1</b></div>
+              <div class="row"><span>Commodité</span><b>Cuivre</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B: filters inline in header -->
+  <div class="option" data-choice="header-inline" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Filtres dans l'en-tête de la carte</h3>
+      <p>Le titre et les contrôles sont sur la même ligne. Plus compact, économise de l'espace vertical.</p>
+      <div class="demo-box">
+        <div class="demo-card">
+          <div class="demo-header">
+            <span>Répartition hiérarchique</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div class="filter-chip" style="gap:4px">
+                <label>≥</label>
+                <input type="range" min="0" max="50" value="5" style="width:55px;pointer-events:none;accent-color:#4a7a5c">
+                <span>5 %</span>
+              </div>
+              <div style="width:1px;height:12px;background:#e8e0db"></div>
+              <span class="chip-pill active" style="font-size:9px">Cuivre</span>
+              <span class="chip-pill" style="font-size:9px">Toutes</span>
+            </div>
+          </div>
+          <div class="demo-panel-wrap">
+            <div class="demo-svg-area">
+              <svg viewBox="0 0 230 70" font-family="Inter,sans-serif" style="width:100%;height:60px">
+                <text x="8" y="10" font-size="7" fill="#87736d" font-weight="700">COMMODITÉS</text>
+                <text x="80" y="10" font-size="7" fill="#87736d" font-weight="700">ACTIFS</text>
+                <text x="155" y="10" font-size="7" fill="#87736d" font-weight="700">PAYS</text>
+                <path d="M75,30 C115,30 115,36 155,36" fill="none" stroke="#865220" stroke-width="2" stroke-opacity="0.9"/>
+                <rect x="8" y="22" width="67" height="20" rx="3" fill="#865220"/>
+                <text x="41" y="32" text-anchor="middle" font-size="8" fill="white" font-weight="700">Cuivre 42.7%</text>
+                <rect x="78" y="26" width="73" height="20" rx="3" fill="#625a4e"/>
+                <text x="114" y="36" text-anchor="middle" font-size="8" fill="white">Mine Pilbara</text>
+                <rect x="153" y="26" width="70" height="20" rx="3" fill="#4a7a5c" stroke="white" stroke-width="1.5"/>
+                <text x="188" y="36" text-anchor="middle" font-size="8" fill="white" font-weight="700">Australia ✓</text>
+              </svg>
+            </div>
+            <div class="demo-side-panel">
+              <h4>Australia</h4>
+              <div class="pill">PAYS</div>
+              <div class="row"><span>Impact</span><b>42.7 %</b></div>
+              <div class="row"><span>Actifs</span><b>1</b></div>
+              <div class="row"><span>Commodité</span><b>Cuivre</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:8px">Clique sur ton choix ou réponds dans le terminal.</p>

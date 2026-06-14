@@ -1,0 +1,157 @@
+<h2>Comment déclencher la mise en évidence ?</h2>
+<p class="subtitle">Quand tu cliques sur "Australia", comment veux-tu que le graphe réagisse ?</p>
+
+<style>
+  .tree-demo {
+    background: #faf7f5;
+    border-radius: 10px;
+    padding: 16px;
+    margin: 12px 0;
+    overflow: hidden;
+  }
+  .tree-demo svg { width: 100%; height: auto; }
+  .demo-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #87736d;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+</style>
+
+<div class="options">
+
+  <div class="option" data-choice="hover" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Survol (hover)</h3>
+      <p>Passer la souris sur un nœud met immédiatement en évidence ses connexions. Rapide et fluide, mais impossible sur mobile.</p>
+      <div class="tree-demo">
+        <div class="demo-label">Exemple : souris sur "Australia"</div>
+        <svg viewBox="0 0 820 160" font-family="Inter,sans-serif">
+          <!-- Headers -->
+          <text x="20" y="14" font-size="8" fill="#87736d" font-weight="700">COMMODITÉS</text>
+          <text x="250" y="14" font-size="8" fill="#87736d" font-weight="700">ACTIFS</text>
+          <text x="470" y="14" font-size="8" fill="#87736d" font-weight="700">PAYS</text>
+          <text x="700" y="14" font-size="8" fill="#87736d" font-weight="700">COMPANY</text>
+
+          <!-- Faded links (not connected to Australia) -->
+          <path d="M120,50 C185,50 185,58 250,58" fill="none" stroke="#865220" stroke-width="2" stroke-opacity="0.08"/>
+          <path d="M120,88 C185,88 185,100 250,100" fill="none" stroke="#865220" stroke-width="1.5" stroke-opacity="0.08"/>
+          <path d="M350,58 C410,58 410,130 470,130" fill="none" stroke="#625a4e" stroke-width="2" stroke-opacity="0.08"/>
+
+          <!-- Highlighted links (connected to Australia) -->
+          <path d="M120,50 C185,50 185,72 250,72" fill="none" stroke="#865220" stroke-width="3" stroke-opacity="1"/>
+          <path d="M350,72 C410,72 410,88 470,88" fill="none" stroke="#625a4e" stroke-width="3" stroke-opacity="1"/>
+          <path d="M570,88 C635,88 635,75 700,75" fill="none" stroke="#4a7a5c" stroke-width="3" stroke-opacity="1"/>
+
+          <!-- Faded nodes -->
+          <rect x="20" y="82" width="100" height="32" rx="4" fill="#865220" opacity="0.2"/>
+          <text x="70" y="97" text-anchor="middle" font-size="10" fill="white" opacity="0.3">Soja</text>
+          <text x="70" y="109" text-anchor="middle" font-size="9" fill="white" opacity="0.25">18.3 %</text>
+
+          <rect x="250" y="94" width="100" height="32" rx="4" fill="#625a4e" opacity="0.2"/>
+          <text x="300" y="109" text-anchor="middle" font-size="10" fill="white" opacity="0.3">Site Manaus</text>
+          <text x="300" y="121" text-anchor="middle" font-size="9" fill="white" opacity="0.25">12.1 %</text>
+
+          <rect x="470" y="122" width="100" height="32" rx="4" fill="#4a7a5c" opacity="0.2"/>
+          <text x="520" y="137" text-anchor="middle" font-size="10" fill="white" opacity="0.3">Brésil</text>
+          <text x="520" y="149" text-anchor="middle" font-size="9" fill="white" opacity="0.25">12.1 %</text>
+
+          <!-- Active nodes -->
+          <rect x="20" y="44" width="100" height="32" rx="4" fill="#865220"/>
+          <text x="70" y="59" text-anchor="middle" font-size="10" fill="white" font-weight="700">Cuivre</text>
+          <text x="70" y="71" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.8)">42.7 %</text>
+
+          <rect x="250" y="66" width="100" height="32" rx="4" fill="#625a4e"/>
+          <text x="300" y="81" text-anchor="middle" font-size="10" fill="white" font-weight="700">Mine Pilbara</text>
+          <text x="300" y="93" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.8)">42.7 %</text>
+
+          <!-- SELECTED node -->
+          <rect x="470" y="82" width="100" height="32" rx="4" fill="#4a7a5c" stroke="white" stroke-width="2.5"/>
+          <text x="520" y="97" text-anchor="middle" font-size="10" fill="white" font-weight="700">Australia</text>
+          <text x="520" y="109" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.9)">42.7 %</text>
+
+          <rect x="700" y="59" width="100" height="32" rx="4" fill="#91452d"/>
+          <text x="750" y="74" text-anchor="middle" font-size="10" fill="white" font-weight="700">Acme Corp</text>
+          <text x="750" y="86" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.8)">100 %</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="click" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Clic (sélection persistante)</h3>
+      <p>Cliquer sur un nœud le sélectionne jusqu'à ce qu'on clique ailleurs. Permet d'explorer calmement, de comparer, et fonctionne sur mobile et tactile.</p>
+      <div class="tree-demo">
+        <div class="demo-label">Exemple : clic sur "Australia" → reste sélectionné</div>
+        <svg viewBox="0 0 820 160" font-family="Inter,sans-serif">
+          <!-- Headers -->
+          <text x="20" y="14" font-size="8" fill="#87736d" font-weight="700">COMMODITÉS</text>
+          <text x="250" y="14" font-size="8" fill="#87736d" font-weight="700">ACTIFS</text>
+          <text x="470" y="14" font-size="8" fill="#87736d" font-weight="700">PAYS</text>
+          <text x="700" y="14" font-size="8" fill="#87736d" font-weight="700">COMPANY</text>
+
+          <!-- Faded links -->
+          <path d="M120,50 C185,50 185,58 250,58" fill="none" stroke="#865220" stroke-width="2" stroke-opacity="0.08"/>
+          <path d="M120,88 C185,88 185,100 250,100" fill="none" stroke="#865220" stroke-width="1.5" stroke-opacity="0.08"/>
+          <path d="M350,58 C410,58 410,130 470,130" fill="none" stroke="#625a4e" stroke-width="2" stroke-opacity="0.08"/>
+
+          <!-- Highlighted links -->
+          <path d="M120,50 C185,50 185,72 250,72" fill="none" stroke="#865220" stroke-width="3" stroke-opacity="1"/>
+          <path d="M350,72 C410,72 410,88 470,88" fill="none" stroke="#625a4e" stroke-width="3" stroke-opacity="1"/>
+          <path d="M570,88 C635,88 635,75 700,75" fill="none" stroke="#4a7a5c" stroke-width="3" stroke-opacity="1"/>
+
+          <!-- Faded nodes -->
+          <rect x="20" y="82" width="100" height="32" rx="4" fill="#865220" opacity="0.2"/>
+          <text x="70" y="97" text-anchor="middle" font-size="10" fill="white" opacity="0.3">Soja</text>
+          <text x="70" y="109" text-anchor="middle" font-size="9" fill="white" opacity="0.25">18.3 %</text>
+          <rect x="250" y="94" width="100" height="32" rx="4" fill="#625a4e" opacity="0.2"/>
+          <text x="300" y="109" text-anchor="middle" font-size="10" fill="white" opacity="0.3">Site Manaus</text>
+          <text x="300" y="121" text-anchor="middle" font-size="9" fill="white" opacity="0.25">12.1 %</text>
+          <rect x="470" y="122" width="100" height="32" rx="4" fill="#4a7a5c" opacity="0.2"/>
+          <text x="520" y="137" text-anchor="middle" font-size="10" fill="white" opacity="0.3">Brésil</text>
+          <text x="520" y="149" text-anchor="middle" font-size="9" fill="white" opacity="0.25">12.1 %</text>
+
+          <!-- Active nodes -->
+          <rect x="20" y="44" width="100" height="32" rx="4" fill="#865220"/>
+          <text x="70" y="59" text-anchor="middle" font-size="10" fill="white" font-weight="700">Cuivre</text>
+          <text x="70" y="71" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.8)">42.7 %</text>
+          <rect x="250" y="66" width="100" height="32" rx="4" fill="#625a4e"/>
+          <text x="300" y="81" text-anchor="middle" font-size="10" fill="white" font-weight="700">Mine Pilbara</text>
+          <text x="300" y="93" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.8)">42.7 %</text>
+          <rect x="700" y="59" width="100" height="32" rx="4" fill="#91452d"/>
+          <text x="750" y="74" text-anchor="middle" font-size="10" fill="white" font-weight="700">Acme Corp</text>
+          <text x="750" y="86" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.8)">100 %</text>
+
+          <!-- SELECTED node with ring + cursor indicator -->
+          <rect x="470" y="82" width="100" height="32" rx="4" fill="#4a7a5c" stroke="white" stroke-width="2.5"/>
+          <text x="520" y="97" text-anchor="middle" font-size="10" fill="white" font-weight="700">Australia ✓</text>
+          <text x="520" y="109" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.9)">42.7 %</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="both" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Les deux : survol léger + clic persistant</h3>
+      <p>Survol = aperçu rapide des connexions. Clic = sélection persistante qui ouvre les détails. Offre le meilleur des deux mondes.</p>
+      <div class="tree-demo">
+        <div class="demo-label">Survol → preview · Clic → sélection + panneau infos</div>
+        <svg viewBox="0 0 820 60" font-family="Inter,sans-serif">
+          <text x="410" y="35" text-anchor="middle" font-size="13" fill="#625a4e" font-style="italic">Deux niveaux d'interaction</text>
+          <text x="180" y="52" text-anchor="middle" font-size="11" fill="#87736d">👆 Survol = mise en évidence temporaire</text>
+          <text x="630" y="52" text-anchor="middle" font-size="11" fill="#87736d">🖱️ Clic = sélection + infos détaillées</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:8px">Clique sur une option, puis réponds dans le terminal.</p>

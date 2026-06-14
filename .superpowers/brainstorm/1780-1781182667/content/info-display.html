@@ -1,0 +1,221 @@
+<h2>Comment afficher les détails du nœud sélectionné ?</h2>
+<p class="subtitle">Exemple : tu cliques sur "Australia" — où s'affichent les infos ?</p>
+
+<style>
+  .demo-box {
+    background: #faf7f5;
+    border-radius: 10px;
+    padding: 14px;
+    margin: 10px 0;
+    font-family: Inter, sans-serif;
+  }
+  .demo-card {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e8e0db;
+    overflow: hidden;
+  }
+  .demo-card-header {
+    padding: 8px 12px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #87736d;
+    background: #faf7f5;
+    border-bottom: 1px solid #e8e0db;
+    text-transform: uppercase;
+  }
+  .demo-svg-wrap { padding: 8px; }
+  .demo-panel {
+    display: flex;
+    gap: 0;
+  }
+  .demo-panel-svg { flex: 1; padding: 8px; }
+  .demo-panel-info {
+    width: 150px;
+    min-width: 150px;
+    border-left: 1px solid #e8e0db;
+    padding: 10px;
+    font-size: 11px;
+  }
+  .demo-panel-info h4 { margin: 0 0 6px; font-size: 12px; color: #4a7a5c; }
+  .demo-panel-info .pill {
+    display: inline-block;
+    background: #4a7a5c22;
+    color: #4a7a5c;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .demo-panel-info .row { display: flex; justify-content: space-between; margin-bottom: 3px; color: #625a4e; font-size: 10px; }
+  .demo-panel-info .row b { color: #2d2520; }
+  .demo-strip {
+    border-top: 1px solid #e8e0db;
+    padding: 10px 12px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    font-size: 11px;
+  }
+  .demo-strip strong { font-size: 13px; color: #4a7a5c; }
+  .demo-strip .meta { color: #87736d; font-size: 10px; }
+  .demo-tooltip-wrap { position: relative; }
+  .demo-tooltip {
+    position: absolute;
+    top: 22px; left: 95px;
+    background: #2d2520;
+    color: white;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 10px;
+    width: 130px;
+    pointer-events: none;
+    z-index: 2;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+  .demo-tooltip::before {
+    content: '';
+    position: absolute;
+    top: -5px; left: 20px;
+    border: 5px solid transparent;
+    border-bottom-color: #2d2520;
+    border-top: 0;
+  }
+  .demo-tooltip h5 { margin: 0 0 4px; font-size: 11px; color: #feb87c; }
+  .demo-tooltip .row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+</style>
+
+<div class="options">
+
+  <div class="option" data-choice="tooltip" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Tooltip flottant</h3>
+      <p>Une bulle d'info apparaît près du nœud cliqué. Compact, ne déplace pas le layout. Idéal si les infos à montrer sont courtes.</p>
+      <div class="demo-box">
+        <div class="demo-card">
+          <div class="demo-card-header">Répartition hiérarchique</div>
+          <div class="demo-svg-wrap demo-tooltip-wrap" style="height:90px;position:relative">
+            <svg viewBox="0 0 400 80" font-family="Inter,sans-serif" style="width:100%;height:80px">
+              <text x="20" y="12" font-size="7" fill="#87736d" font-weight="700">COMMODITÉS</text>
+              <text x="130" y="12" font-size="7" fill="#87736d" font-weight="700">ACTIFS</text>
+              <text x="245" y="12" font-size="7" fill="#87736d" font-weight="700">PAYS</text>
+              <text x="355" y="12" font-size="7" fill="#87736d" font-weight="700">COMPANY</text>
+              <path d="M120,36 C182,36 182,43 245,43" fill="none" stroke="#865220" stroke-width="2.5" stroke-opacity="1"/>
+              <path d="M345,43 C380,43 380,37 355,37" fill="none" stroke="#4a7a5c" stroke-width="2.5" stroke-opacity="1"/>
+              <rect x="20" y="28" width="100" height="24" rx="3" fill="#865220"/>
+              <text x="70" y="39" text-anchor="middle" font-size="8" fill="white" font-weight="700">Cuivre</text>
+              <text x="70" y="48" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.8)">42.7 %</text>
+              <rect x="245" y="35" width="100" height="24" rx="3" fill="#4a7a5c" stroke="white" stroke-width="1.5"/>
+              <text x="295" y="46" text-anchor="middle" font-size="8" fill="white" font-weight="700">Australia ✓</text>
+              <text x="295" y="55" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.9)">42.7 %</text>
+              <rect x="130" y="35" width="100" height="24" rx="3" fill="#625a4e"/>
+              <text x="180" y="46" text-anchor="middle" font-size="8" fill="white" font-weight="700">Mine Pilbara</text>
+              <text x="180" y="55" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.8)">42.7 %</text>
+              <rect x="355" y="29" width="35" height="24" rx="3" fill="#91452d"/>
+              <text x="372" y="40" text-anchor="middle" font-size="7" fill="white" font-weight="700">Acme</text>
+              <text x="372" y="49" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.8)">100%</text>
+            </svg>
+            <div class="demo-tooltip">
+              <h5>Australia</h5>
+              <div class="row"><span>Impact</span><b>42.7 %</b></div>
+              <div class="row"><span>Actifs</span><b>1</b></div>
+              <div class="row"><span>Commodité</span><b>Cuivre</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="panel" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Panneau latéral</h3>
+      <p>Un panneau s'ouvre à droite du graphe avec toutes les infos. Plus de place pour les détails : liste d'actifs, commodités associées, lien vers fiche.</p>
+      <div class="demo-box">
+        <div class="demo-card">
+          <div class="demo-card-header">Répartition hiérarchique</div>
+          <div class="demo-panel">
+            <div class="demo-panel-svg">
+              <svg viewBox="0 0 240 80" font-family="Inter,sans-serif" style="width:100%;height:70px">
+                <text x="10" y="11" font-size="7" fill="#87736d" font-weight="700">COMMODITÉS</text>
+                <text x="80" y="11" font-size="7" fill="#87736d" font-weight="700">ACTIFS</text>
+                <text x="155" y="11" font-size="7" fill="#87736d" font-weight="700">PAYS</text>
+                <path d="M75,36 C115,36 115,43 155,43" fill="none" stroke="#865220" stroke-width="2" stroke-opacity="1"/>
+                <rect x="10" y="28" width="65" height="22" rx="3" fill="#865220"/>
+                <text x="42" y="39" text-anchor="middle" font-size="8" fill="white" font-weight="700">Cuivre</text>
+                <text x="42" y="48" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.8)">42.7 %</text>
+                <rect x="80" y="33" width="70" height="22" rx="3" fill="#625a4e"/>
+                <text x="115" y="44" text-anchor="middle" font-size="8" fill="white" font-weight="700">Mine Pilbara</text>
+                <text x="115" y="53" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.8)">42.7 %</text>
+                <rect x="155" y="36" width="70" height="22" rx="3" fill="#4a7a5c" stroke="white" stroke-width="1.5"/>
+                <text x="190" y="47" text-anchor="middle" font-size="8" fill="white" font-weight="700">Australia ✓</text>
+                <text x="190" y="56" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.9)">42.7 %</text>
+              </svg>
+            </div>
+            <div class="demo-panel-info">
+              <h4>Australia</h4>
+              <div class="pill">PAYS</div>
+              <div class="row"><span>Impact</span><b>42.7 %</b></div>
+              <div class="row"><span>Actifs</span><b>1</b></div>
+              <div class="row"><span>Commodités</span><b>Cuivre</b></div>
+              <div style="margin-top:6px;padding-top:6px;border-top:1px solid #e8e0db;font-size:9px;color:#87736d">Mine Pilbara → Cuivre</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="strip" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Bande d'info sous le graphe</h3>
+      <p>Une zone fixe apparaît sous le SVG et se met à jour au clic. Ne touche pas au layout du graphe, lisible d'un coup d'œil.</p>
+      <div class="demo-box">
+        <div class="demo-card">
+          <div class="demo-card-header">Répartition hiérarchique</div>
+          <div style="padding:6px 8px">
+            <svg viewBox="0 0 400 55" font-family="Inter,sans-serif" style="width:100%;height:50px">
+              <text x="20" y="12" font-size="7" fill="#87736d" font-weight="700">COMMODITÉS</text>
+              <text x="130" y="12" font-size="7" fill="#87736d" font-weight="700">ACTIFS</text>
+              <text x="245" y="12" font-size="7" fill="#87736d" font-weight="700">PAYS</text>
+              <text x="355" y="12" font-size="7" fill="#87736d" font-weight="700">COMPANY</text>
+              <path d="M120,32 C182,32 182,37 245,37" fill="none" stroke="#865220" stroke-width="2.5" stroke-opacity="1"/>
+              <path d="M345,37 C375,37 375,33 355,33" fill="none" stroke="#4a7a5c" stroke-width="2.5" stroke-opacity="1"/>
+              <rect x="20" y="24" width="100" height="20" rx="3" fill="#865220"/>
+              <text x="70" y="34" text-anchor="middle" font-size="8" fill="white" font-weight="700">Cuivre · 42.7%</text>
+              <rect x="130" y="29" width="100" height="20" rx="3" fill="#625a4e"/>
+              <text x="180" y="39" text-anchor="middle" font-size="8" fill="white" font-weight="700">Mine Pilbara</text>
+              <rect x="245" y="29" width="100" height="20" rx="3" fill="#4a7a5c" stroke="white" stroke-width="1.5"/>
+              <text x="295" y="39" text-anchor="middle" font-size="8" fill="white" font-weight="700">Australia ✓</text>
+              <rect x="355" y="24" width="35" height="20" rx="3" fill="#91452d"/>
+              <text x="372" y="34" text-anchor="middle" font-size="7" fill="white">Acme</text>
+            </svg>
+          </div>
+          <div class="demo-strip">
+            <div>
+              <div style="font-size:9px;color:#87736d;text-transform:uppercase;letter-spacing:0.07em">Sélection</div>
+              <strong>Australia</strong>
+              <div class="meta">Pays · 42.7 % de l'impact total</div>
+            </div>
+            <div>
+              <div style="font-size:9px;color:#87736d">Actifs concernés</div>
+              <b>Mine Pilbara</b>
+            </div>
+            <div>
+              <div style="font-size:9px;color:#87736d">Commodités</div>
+              <b>Cuivre</b>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:8px">Clique sur ton choix dans le navigateur ou réponds directement.</p>

@@ -1,0 +1,135 @@
+<h2>Connexions entre nœuds</h2>
+<p class="subtitle">Une commodité peut alimenter plusieurs actifs. Comment gérer ça ?</p>
+
+<div class="options">
+
+  <div class="option" data-choice="dominant" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Lien dominant uniquement</h3>
+      <p>Chaque commodité est reliée à l'actif auquel elle contribue le plus. Arbre strict, aucun croisement de lignes. (Le Sankey en haut montre déjà toutes les connexions.)</p>
+      <div style="margin-top:14px">
+        <svg viewBox="0 0 380 160" width="360" height="150" style="display:block;font-family:Inter,sans-serif">
+          <rect x="5" y="15" width="72" height="28" rx="3" fill="#4a7a5c"/>
+          <text x="41" y="28" text-anchor="middle" font-size="9" fill="white" font-weight="600">Soja 41%</text>
+          <text x="41" y="39" text-anchor="middle" font-size="8" fill="#c8f0d8">→ Usine Lyon</text>
+
+          <rect x="5" y="52" width="72" height="28" rx="3" fill="#4a7a5c"/>
+          <text x="41" y="65" text-anchor="middle" font-size="9" fill="white" font-weight="600">Blé 29%</text>
+          <text x="41" y="76" text-anchor="middle" font-size="8" fill="#c8f0d8">→ Usine Lyon</text>
+
+          <rect x="5" y="89" width="72" height="28" rx="3" fill="#4a7a5c"/>
+          <text x="41" y="102" text-anchor="middle" font-size="9" fill="white" font-weight="600">Bois 18%</text>
+          <text x="41" y="113" text-anchor="middle" font-size="8" fill="#c8f0d8">→ Port Brest</text>
+
+          <rect x="5" y="126" width="72" height="28" rx="3" fill="#4a7a5c"/>
+          <text x="41" y="139" text-anchor="middle" font-size="9" fill="white" font-weight="600">Cuivre 12%</text>
+          <text x="41" y="150" text-anchor="middle" font-size="8" fill="#c8f0d8">→ Mine SP</text>
+
+          <!-- Clean lines, no crossing -->
+          <line x1="77" y1="29" x2="115" y2="55" stroke="#aaa" stroke-width="1.3"/>
+          <line x1="77" y1="66" x2="115" y2="55" stroke="#aaa" stroke-width="1.3"/>
+          <line x1="77" y1="103" x2="115" y2="103" stroke="#aaa" stroke-width="1.3"/>
+          <line x1="77" y1="140" x2="115" y2="140" stroke="#aaa" stroke-width="1.3"/>
+
+          <rect x="115" y="40" width="78" height="28" rx="4" fill="#625a4e"/>
+          <text x="154" y="53" text-anchor="middle" font-size="9" fill="white" font-weight="600">Usine Lyon</text>
+          <text x="154" y="63" text-anchor="middle" font-size="8" fill="#e8ddd9">70%</text>
+
+          <rect x="115" y="89" width="78" height="28" rx="4" fill="#625a4e"/>
+          <text x="154" y="102" text-anchor="middle" font-size="9" fill="white" font-weight="600">Port Brest</text>
+          <text x="154" y="112" text-anchor="middle" font-size="8" fill="#e8ddd9">18%</text>
+
+          <rect x="115" y="126" width="78" height="28" rx="4" fill="#625a4e"/>
+          <text x="154" y="139" text-anchor="middle" font-size="9" fill="white" font-weight="600">Mine SP</text>
+          <text x="154" y="149" text-anchor="middle" font-size="8" fill="#e8ddd9">12%</text>
+
+          <line x1="193" y1="54" x2="230" y2="80" stroke="#aaa" stroke-width="1.3"/>
+          <line x1="193" y1="103" x2="230" y2="80" stroke="#aaa" stroke-width="1.3"/>
+          <line x1="193" y1="140" x2="230" y2="130" stroke="#aaa" stroke-width="1.3"/>
+
+          <rect x="230" y="65" width="72" height="28" rx="5" fill="#865220"/>
+          <text x="266" y="78" text-anchor="middle" font-size="9" fill="white" font-weight="600">France 88%</text>
+          <text x="266" y="89" text-anchor="middle" font-size="8" fill="#ffe0c0">88 %</text>
+
+          <rect x="230" y="115" width="72" height="28" rx="5" fill="#865220"/>
+          <text x="266" y="129" text-anchor="middle" font-size="9" fill="white" font-weight="600">Brésil 12%</text>
+          <text x="266" y="140" text-anchor="middle" font-size="8" fill="#ffe0c0">12 %</text>
+
+          <line x1="302" y1="79" x2="335" y2="95" stroke="#aaa" stroke-width="1.5"/>
+          <line x1="302" y1="129" x2="335" y2="95" stroke="#aaa" stroke-width="1.3"/>
+
+          <rect x="335" y="80" width="40" height="30" rx="4" fill="#91452d"/>
+          <text x="355" y="94" text-anchor="middle" font-size="9" fill="white" font-weight="600">ACME</text>
+          <text x="355" y="105" text-anchor="middle" font-size="8" fill="#ffd4c5">100%</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="all-links" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Tous les liens</h3>
+      <p>Chaque commodité est reliée à tous ses actifs (graph, pas arbre). Plus complet, mais lignes croisées possibles.</p>
+      <div style="margin-top:14px">
+        <svg viewBox="0 0 380 160" width="360" height="150" style="display:block;font-family:Inter,sans-serif">
+          <rect x="5" y="15" width="72" height="28" rx="3" fill="#4a7a5c"/>
+          <text x="41" y="28" text-anchor="middle" font-size="9" fill="white" font-weight="600">Soja 41%</text>
+
+          <rect x="5" y="52" width="72" height="28" rx="3" fill="#4a7a5c"/>
+          <text x="41" y="65" text-anchor="middle" font-size="9" fill="white" font-weight="600">Blé 29%</text>
+
+          <rect x="5" y="89" width="72" height="28" rx="3" fill="#4a7a5c"/>
+          <text x="41" y="102" text-anchor="middle" font-size="9" fill="white" font-weight="600">Bois 18%</text>
+
+          <rect x="5" y="126" width="72" height="28" rx="3" fill="#4a7a5c"/>
+          <text x="41" y="139" text-anchor="middle" font-size="9" fill="white" font-weight="600">Cuivre 12%</text>
+
+          <!-- Soja goes to both assets (crossing lines) -->
+          <line x1="77" y1="29" x2="115" y2="54" stroke="#4a7a5c" stroke-width="1.3" opacity="0.7"/>
+          <line x1="77" y1="29" x2="115" y2="103" stroke="#4a7a5c" stroke-width="0.8" stroke-dasharray="3,2" opacity="0.5"/>
+
+          <line x1="77" y1="66" x2="115" y2="54" stroke="#4a7a5c" stroke-width="1.3" opacity="0.7"/>
+          <line x1="77" y1="66" x2="115" y2="103" stroke="#4a7a5c" stroke-width="0.8" stroke-dasharray="3,2" opacity="0.5"/>
+
+          <line x1="77" y1="103" x2="115" y2="103" stroke="#4a7a5c" stroke-width="1.3" opacity="0.7"/>
+          <line x1="77" y1="140" x2="115" y2="140" stroke="#4a7a5c" stroke-width="1.3" opacity="0.7"/>
+          <line x1="77" y1="140" x2="115" y2="103" stroke="#4a7a5c" stroke-width="0.7" stroke-dasharray="3,2" opacity="0.4"/>
+
+          <rect x="115" y="40" width="78" height="28" rx="4" fill="#625a4e"/>
+          <text x="154" y="53" text-anchor="middle" font-size="9" fill="white" font-weight="600">Usine Lyon</text>
+          <text x="154" y="63" text-anchor="middle" font-size="8" fill="#e8ddd9">70%</text>
+
+          <rect x="115" y="89" width="78" height="28" rx="4" fill="#625a4e"/>
+          <text x="154" y="102" text-anchor="middle" font-size="9" fill="white" font-weight="600">Port Brest</text>
+          <text x="154" y="112" text-anchor="middle" font-size="8" fill="#e8ddd9">18%</text>
+
+          <rect x="115" y="126" width="78" height="28" rx="4" fill="#625a4e"/>
+          <text x="154" y="139" text-anchor="middle" font-size="9" fill="white" font-weight="600">Mine SP</text>
+          <text x="154" y="149" text-anchor="middle" font-size="8" fill="#e8ddd9">12%</text>
+
+          <line x1="193" y1="54" x2="230" y2="79" stroke="#aaa" stroke-width="1.3"/>
+          <line x1="193" y1="103" x2="230" y2="79" stroke="#aaa" stroke-width="1.3"/>
+          <line x1="193" y1="140" x2="230" y2="130" stroke="#aaa" stroke-width="1.3"/>
+
+          <rect x="230" y="65" width="72" height="28" rx="5" fill="#865220"/>
+          <text x="266" y="78" text-anchor="middle" font-size="9" fill="white" font-weight="600">France</text>
+          <text x="266" y="89" text-anchor="middle" font-size="8" fill="#ffe0c0">88 %</text>
+
+          <rect x="230" y="115" width="72" height="28" rx="5" fill="#865220"/>
+          <text x="266" y="129" text-anchor="middle" font-size="9" fill="white" font-weight="600">Brésil</text>
+          <text x="266" y="140" text-anchor="middle" font-size="8" fill="#ffe0c0">12 %</text>
+
+          <line x1="302" y1="79" x2="335" y2="95" stroke="#aaa" stroke-width="1.5"/>
+          <line x1="302" y1="129" x2="335" y2="95" stroke="#aaa" stroke-width="1.3"/>
+
+          <rect x="335" y="80" width="40" height="30" rx="4" fill="#91452d"/>
+          <text x="355" y="94" text-anchor="middle" font-size="9" fill="white" font-weight="600">ACME</text>
+          <text x="355" y="105" text-anchor="middle" font-size="8" fill="#ffd4c5">100%</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+</div>

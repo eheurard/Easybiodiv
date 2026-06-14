@@ -1,0 +1,173 @@
+<h2>Design final — Répartition hiérarchique interactive</h2>
+<p class="subtitle">Vue d'ensemble de tous les composants. Regarde et confirme dans le terminal.</p>
+
+<style>
+  body { font-family: Inter, sans-serif; }
+  .design-card {
+    background: white;
+    border: 1px solid #e8e0db;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .design-card-header {
+    padding: 9px 14px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: #87736d;
+    background: #faf7f5;
+    border-bottom: 1px solid #e8e0db;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .filter-bar {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    padding: 8px 14px;
+    border-bottom: 1px solid #e8e0db;
+    background: white;
+    flex-wrap: wrap;
+  }
+  .filter-label { font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #87736d; margin-right: 4px; }
+  .filter-chip { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #625a4e; }
+  .chip-pill { background: #e8e0db; color: #625a4e; border-radius: 12px; padding: 2px 9px; font-size: 10px; font-weight: 600; cursor: pointer; }
+  .chip-pill.active { background: #865220; color: white; }
+  .chip-pill.all.active { background: #4a7a5c; }
+  input[type=range] { width: 90px; accent-color: #4a7a5c; }
+  .body-wrap { display: flex; }
+  .svg-area { flex: 1; padding: 10px; }
+  .side-panel {
+    width: 160px;
+    min-width: 160px;
+    border-left: 1px solid #e8e0db;
+    padding: 12px;
+    font-size: 11px;
+  }
+  .side-panel .close { float: right; font-size: 14px; color: #b09e98; cursor: pointer; line-height: 1; }
+  .side-panel h4 { margin: 0 0 4px; font-size: 13px; color: #2d2520; }
+  .type-pill { display: inline-block; border-radius: 4px; padding: 1px 7px; font-size: 9px; font-weight: 700; margin-bottom: 8px; }
+  .type-pays { background: #4a7a5c22; color: #4a7a5c; }
+  .side-panel .kv { display: flex; justify-content: space-between; margin-bottom: 3px; color: #625a4e; font-size: 10px; }
+  .side-panel .kv b { color: #2d2520; }
+  .side-panel .section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #87736d; margin: 8px 0 4px; padding-top: 8px; border-top: 1px solid #f0e8e4; }
+  .asset-row { display: flex; justify-content: space-between; font-size: 10px; color: #2d2520; margin-bottom: 2px; }
+  .asset-row .pct { color: #87736d; }
+</style>
+
+<div class="design-card">
+  <div class="design-card-header">
+    <span>Répartition hiérarchique</span>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <span class="filter-label">Seuil</span>
+    <div class="filter-chip">
+      <input type="range" min="0" max="30" value="5" style="pointer-events:none">
+      <span>≥ 5 %</span>
+    </div>
+    <div style="width:1px;height:16px;background:#e8e0db"></div>
+    <span class="filter-label">Commodité</span>
+    <div class="filter-chip" style="gap:5px">
+      <span class="chip-pill all active">Toutes</span>
+      <span class="chip-pill active">Cuivre</span>
+      <span class="chip-pill">Soja</span>
+      <span class="chip-pill">Bois</span>
+    </div>
+  </div>
+
+  <!-- Body: SVG + side panel -->
+  <div class="body-wrap">
+    <div class="svg-area">
+      <svg viewBox="0 0 480 170" font-family="Inter,sans-serif" style="width:100%;height:auto">
+        <!-- Column headers -->
+        <text x="20" y="14" font-size="8" fill="#87736d" font-weight="700" letter-spacing=".07em">COMMODITÉS</text>
+        <text x="155" y="14" font-size="8" fill="#87736d" font-weight="700" letter-spacing=".07em">ACTIFS</text>
+        <text x="295" y="14" font-size="8" fill="#87736d" font-weight="700" letter-spacing=".07em">PAYS</text>
+        <text x="415" y="14" font-size="8" fill="#87736d" font-weight="700" letter-spacing=".07em">COMPANY</text>
+
+        <!-- Faded paths (non-connected to Australia) -->
+        <path d="M120,48 C137,48 137,55 155,55" fill="none" stroke="#865220" stroke-width="2" stroke-opacity="0.08"/>
+        <path d="M255,55 C275,55 275,138 295,138" fill="none" stroke="#625a4e" stroke-width="1.5" stroke-opacity="0.08"/>
+        <path d="M120,95 C137,95 137,105 155,105" fill="none" stroke="#865220" stroke-width="1.5" stroke-opacity="0.08"/>
+
+        <!-- Highlighted paths (connected to Australia) -->
+        <path d="M120,48 C137,48 137,72 155,72" fill="none" stroke="#865220" stroke-width="3" stroke-opacity="0.9"/>
+        <path d="M255,72 C275,72 275,90 295,90" fill="none" stroke="#625a4e" stroke-width="3" stroke-opacity="0.9"/>
+        <path d="M395,90 C405,90 405,80 415,80" fill="none" stroke="#4a7a5c" stroke-width="4" stroke-opacity="0.9"/>
+
+        <!-- Faded nodes -->
+        <rect x="20" y="88" width="100" height="32" rx="4" fill="#865220" opacity="0.18"/>
+        <text x="70" y="103" text-anchor="middle" font-size="9" fill="#865220" opacity="0.4">Soja</text>
+        <text x="70" y="115" text-anchor="middle" font-size="8" fill="#865220" opacity="0.35">18.3 %</text>
+
+        <rect x="155" y="98" width="100" height="32" rx="4" fill="#625a4e" opacity="0.18"/>
+        <text x="205" y="113" text-anchor="middle" font-size="9" fill="#625a4e" opacity="0.4">Site Manaus</text>
+        <text x="205" y="125" text-anchor="middle" font-size="8" fill="#625a4e" opacity="0.35">12.1 %</text>
+
+        <rect x="295" y="128" width="100" height="32" rx="4" fill="#4a7a5c" opacity="0.18"/>
+        <text x="345" y="143" text-anchor="middle" font-size="9" fill="#4a7a5c" opacity="0.4">Brésil</text>
+        <text x="345" y="155" text-anchor="middle" font-size="8" fill="#4a7a5c" opacity="0.35">12.1 %</text>
+
+        <!-- Active non-selected nodes (on the path to Australia) -->
+        <rect x="20" y="40" width="100" height="32" rx="4" fill="#865220"/>
+        <text x="70" y="55" text-anchor="middle" font-size="9" fill="white" font-weight="700">Cuivre</text>
+        <text x="70" y="67" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.8)">42.7 %</text>
+
+        <rect x="155" y="64" width="100" height="32" rx="4" fill="#625a4e"/>
+        <text x="205" y="79" text-anchor="middle" font-size="9" fill="white" font-weight="700">Mine Pilbara</text>
+        <text x="205" y="91" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.8)">42.7 %</text>
+
+        <rect x="415" y="64" width="50" height="32" rx="4" fill="#91452d"/>
+        <text x="440" y="79" text-anchor="middle" font-size="8" fill="white" font-weight="700">Acme</text>
+        <text x="440" y="91" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.8)">100 %</text>
+
+        <!-- SELECTED node: Australia -->
+        <rect x="295" y="82" width="100" height="32" rx="4" fill="#4a7a5c" stroke="white" stroke-width="2.5"/>
+        <text x="345" y="97" text-anchor="middle" font-size="9" fill="white" font-weight="700">Australia</text>
+        <text x="345" y="109" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.9)">42.7 %</text>
+
+        <!-- Selection ring indicator -->
+        <rect x="293" y="80" width="104" height="36" rx="5" fill="none" stroke="#4a7a5c" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.5"/>
+      </svg>
+    </div>
+
+    <!-- Side panel -->
+    <div class="side-panel">
+      <span class="close">×</span>
+      <h4>Australia</h4>
+      <span class="type-pill type-pays">PAYS</span>
+
+      <div class="kv"><span>Impact total</span><b>42.7 %</b></div>
+      <div class="kv"><span>Nœuds reliés</span><b>2</b></div>
+
+      <div class="section-title">Actifs concernés</div>
+      <div class="asset-row"><span>Mine Pilbara</span><span class="pct">42.7 %</span></div>
+
+      <div class="section-title">Commodités</div>
+      <div class="asset-row"><span>Cuivre</span><span class="pct">42.7 %</span></div>
+
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid #f0e8e4;font-size:9px;color:#87736d;line-height:1.5">
+        Clic sur un autre nœud pour changer · Clic sur × pour fermer
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Comportements clés</h3>
+  <ul>
+    <li><b>Clic nœud</b> → met en évidence toutes les connexions de ce nœud (paths + nœuds reliés), ouvre le panneau latéral</li>
+    <li><b>Clic même nœud</b> → désélectionne, remet tout à l'opacité normale, ferme le panneau</li>
+    <li><b>Clic ×</b> → ferme le panneau et désélectionne</li>
+    <li><b>Slider seuil</b> → re-rendu complet, noeuds sous le seuil masqués + leurs connexions supprimées</li>
+    <li><b>Filtre commodité</b> → re-rendu complet, seuls les nœuds connectés à cette commodité restent visibles</li>
+    <li><b>Curseur pointer</b> sur tous les nœuds (CSS)</li>
+  </ul>
+</div>
+
+<p class="subtitle">Est-ce que ce design te convient ? Réponds dans le terminal.</p>
