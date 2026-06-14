@@ -3177,6 +3177,10 @@ a.app-header__avatar {
 .esg-market__change { font-size: 14px; font-weight: 700; }
 .esg-market__change--up { color: #2d6a4f; }
 .esg-market__change--down { color: var(--color-error); }
+.esg-market__ranges { display: flex; gap: 4px; margin-bottom: 12px; }
+.esg-market__range { flex: 1; padding: 5px 0; font-size: 12px; font-weight: 700; color: var(--color-on-surface-variant); background: var(--color-surface-variant); border: 1px solid var(--color-outline-variant); border-radius: 6px; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+.esg-market__range:hover { background: var(--color-secondary-container); }
+.esg-market__range--active { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
 .esg-market__spark { width: 100%; height: 40px; color: var(--color-primary); opacity: .5; margin-bottom: 12px; }
 .esg-market__stats { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--color-outline-variant); }
 .esg-market__stat { display: flex; justify-content: space-between; font-size: 14px; }

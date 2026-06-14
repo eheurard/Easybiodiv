@@ -273,29 +273,94 @@ function esgScoreColor(score) {
 }
 
 
+const ESG_RANGES = [['3mo', '3M'], ['6mo', '6M'], ['ytd', 'YTD'], ['5y', '5Y']];
+
+
+function esgRangeButtons(active) {
+  return '<div class="esg-market__ranges" role="group" aria-label="Période">' +
+    ESG_RANGES.map(([key, label]) =>
+      '<button type="button" class="esg-market__range' +
+      (key === active ? ' esg-market__range--active' : '') +
+      '" data-range="' + key + '"' +
+      (key === active ? ' aria-current="true"' : '') + '>' + label + '</button>'
+    ).join('') +
+    '</div>';
+}
+
+
 function esgRenderMarket(market) {
   const body = document.getElementById('esg-market-body');
   const demo = document.getElementById('esg-market-demo');
   if (!body) return;
   if (demo) demo.hidden = !market.is_demo;
 
-  const spark = esgSparkline(market.sparkline || []);
-  const changeClass = (market.change_pct >= 0) ? 'esg-market__change--up' : 'esg-market__change--down';
-  const changeSign = (market.change_pct >= 0) ? '+' : '';
+  const active = market.range || '3mo';
 
   body.innerHTML =
     '<div class="esg-market__price-row">' +
     '<div><p class="esg-market__price-label label-caps">Cours (' + escHtml(market.ticker || '—') + ')</p>' +
     '<p class="esg-market__price">' + esgFmtMoney(market.price, market.currency) + '</p></div>' +
-    '<div class="esg-market__change ' + changeClass + '">' + changeSign + market.change_pct + '%</div>' +
+    '<div class="esg-market__change" id="esg-market-change"></div>' +
     '</div>' +
-    spark +
+    esgRangeButtons(active) +
+    '<div id="esg-market-spark">' + esgSparkline(market.sparkline || []) + '</div>' +
     '<div class="esg-market__stats">' +
     esgStatRow('Capitalisation', market.market_cap) +
     esgStatRow('Notation ESG', market.esg_rating) +
     esgStatRow('Perf. relative', market.relative_perf) +
     esgStatRow('ISIN', market.isin) +
     '</div>';
+
+  esgUpdateChange(market.change_pct);
+  esgBindRangeButtons();
+}
+
+
+function esgUpdateChange(changePct) {
+  const el = document.getElementById('esg-market-change');
+  if (!el) return;
+  const up = changePct >= 0;
+  el.className = 'esg-market__change ' + (up ? 'esg-market__change--up' : 'esg-market__change--down');
+  el.textContent = (up ? '+' : '') + changePct + '%';
+}
+
+
+function esgSetActiveRange(range) {
+  document.querySelectorAll('.esg-market__range').forEach(btn => {
+    const active = btn.dataset.range === range;
+    btn.classList.toggle('esg-market__range--active', active);
+    if (active) { btn.setAttribute('aria-current', 'true'); } else { btn.removeAttribute('aria-current'); }
+  });
+}
+
+
+function esgBindRangeButtons() {
+  const wrap = document.querySelector('.esg-market__ranges');
+  if (!wrap) return;
+  wrap.addEventListener('click', (e) => {
+    const btn = e.target.closest('.esg-market__range');
+    if (btn) esgLoadRange(btn.dataset.range);
+  });
+}
+
+
+function esgLoadRange(range) {
+  const data = ESG_STATE.data;
+  if (!data || !data.market || !data.company_id) return;
+  esgSetActiveRange(range);
+  fetch(ESG_MARKET_URL.replace('/0/', '/' + data.company_id + '/') + '?range=' + encodeURIComponent(range))
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(d => {
+      const sparkEl = document.getElementById('esg-market-spark');
+      if (sparkEl) sparkEl.innerHTML = esgSparkline(d.sparkline || []);
+      esgUpdateChange(d.change_pct);
+      const demo = document.getElementById('esg-market-demo');
+      if (demo) demo.hidden = !d.is_demo;
+      data.market.range = d.range;
+      data.market.sparkline = d.sparkline;
+      data.market.change_pct = d.change_pct;
+    })
+    .catch(err => console.error('esg market range fetch failed:', err));
 }
 
 
