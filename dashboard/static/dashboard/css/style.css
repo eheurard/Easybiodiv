@@ -3140,6 +3140,7 @@ a.app-header__avatar {
 .esg-chart__scope-btn:hover { background: var(--color-surface-variant); }
 .esg-chart__scope-btn[aria-pressed="true"] { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
 .esg-chart__bar { cursor: default; }
+.esg-chart__tooltip[hidden] { display: none; }
 .esg-chart__tooltip { position: absolute; pointer-events: none; z-index: 10; background: var(--color-surface-container, #f4f4f4); border: 1px solid var(--color-outline-variant, #ccc); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--color-on-surface); box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 180px; white-space: nowrap; }
 .esg-chart__tooltip-year { font-weight: 600; margin-bottom: 6px; font-size: 14px; }
 .esg-chart__tooltip-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }

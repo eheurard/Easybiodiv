@@ -252,7 +252,7 @@ function esgInitChartTooltip(canvas, svg, hist, proj, unit, allScopes, scopeColo
 
     const scopes = nearest.scopes || {};
     const total = nearest.total;
-    let html = '<div class="esg-chart__tooltip-year">' + nearest.year + '</div>';
+    let html = '<div class="esg-chart__tooltip-year">' + escHtml(String(nearest.year)) + '</div>';
 
     if (esgScopeView && !nearest.isProj && allScopes.length) {
       allScopes.forEach(scope => {
