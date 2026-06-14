@@ -1,4 +1,5 @@
 import json
+from unittest import mock
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
@@ -9,6 +10,7 @@ from .models import (
     SubSector,
 )
 from .views import _get_dette_ecologique_data
+from .services import market as market_service
 
 
 def _make_world():
@@ -1382,3 +1384,53 @@ class EsgViewTests(TestCase):
         self.client.force_login(self.user)
         url = reverse('dashboard:esg_data', kwargs={'pk': 99999})
         self.assertEqual(self.client.get(url).status_code, 404)
+
+
+class MarketDataTests(TestCase):
+    def test_no_ticker_returns_demo_without_network(self):
+        company = Company.objects.create(name='NoTicker', isin='0', ticker='0')
+        with mock.patch('dashboard.services.market.urlopen') as m:
+            data = market_service.get_market_data(company)
+        m.assert_not_called()
+        self.assertTrue(data['is_demo'])
+        self.assertEqual(data['ticker'], '0')
+        self.assertIsNone(data['market_cap'])
+        self.assertIsNone(data['esg_rating'])
+        self.assertIsNone(data['relative_perf'])
+        self.assertIn('price', data)
+        self.assertIsInstance(data['sparkline'], list)
+
+    def _yahoo_response(self):
+        return json.dumps({
+            'chart': {'result': [{
+                'meta': {
+                    'regularMarketPrice': 150.0,
+                    'chartPreviousClose': 120.0,
+                    'currency': 'USD',
+                },
+                'indicators': {'quote': [{'close': [100.0, None, 110.0, 150.0]}]},
+            }], 'error': None}
+        }).encode('utf-8')
+
+    def test_parses_yahoo_response(self):
+        company = Company.objects.create(name='Acme', isin='US0001', ticker='ACME')
+        cm = mock.MagicMock()
+        cm.read.return_value = self._yahoo_response()
+        cm.__enter__.return_value = cm
+        cm.getcode.return_value = 200
+        with mock.patch('dashboard.services.market.urlopen', return_value=cm):
+            data = market_service.get_market_data(company)
+        self.assertFalse(data['is_demo'])
+        self.assertEqual(data['price'], 150.0)
+        self.assertEqual(data['currency'], 'USD')
+        self.assertEqual(data['change_pct'], 25.0)  # (150-120)/120*100
+        self.assertEqual(data['sparkline'], [100.0, 110.0, 150.0])  # null filtré
+        self.assertEqual(data['ticker'], 'ACME')
+
+    def test_network_error_returns_demo(self):
+        company = Company.objects.create(name='Boom', isin='US0002', ticker='BOOM')
+        with mock.patch('dashboard.services.market.urlopen',
+                        side_effect=OSError('timeout')):
+            data = market_service.get_market_data(company)
+        self.assertTrue(data['is_demo'])
+        self.assertEqual(data['ticker'], 'BOOM')
