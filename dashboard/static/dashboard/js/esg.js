@@ -104,6 +104,8 @@ function esgRenderChart(carbon) {
   if (!canvas) return;
 
   canvas.querySelectorAll('svg').forEach(s => s.remove());
+  const existingTip = document.getElementById('esg-chart-tooltip');
+  if (existingTip) existingTip.setAttribute('hidden', '');
 
   const hist = carbon.historical || [];
   if (!hist.length) {
@@ -115,9 +117,8 @@ function esgRenderChart(carbon) {
   const proj = carbon.projection || [];
   const allYears = hist.map(h => h.year).concat(proj.map(p => p.year));
   const allTotals = hist.map(h => h.total).concat(proj.map(p => p.total));
-  const minYear = Math.min(...allYears);
-  const maxYear = Math.max(...allYears);
-  const maxVal = Math.max(...allTotals, 1);
+  const scopeSums = hist.map(h => Object.values(h.scopes || {}).reduce((a, b) => a + b, 0));
+  const maxVal = Math.max(...allTotals, ...scopeSums, 1);
 
   const W = 1000, H = 320;
   const padL = 56, padR = 16, padT = 16, padB = 32;
