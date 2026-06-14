@@ -300,9 +300,10 @@ function esgRenderMarket(market) {
 
 
 function esgStatRow(label, value) {
+  if (value == null) return '';
   return '<div class="esg-market__stat">' +
     '<span class="esg-market__stat-label">' + escHtml(label) + '</span>' +
-    '<span class="esg-market__stat-value">' + escHtml(String(value != null ? value : '—')) + '</span>' +
+    '<span class="esg-market__stat-value">' + escHtml(String(value)) + '</span>' +
     '</div>';
 }
 

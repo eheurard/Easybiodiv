@@ -12,6 +12,7 @@ from .models import (
     Company_Revenue_Sector, DisclosureRequirement, E4Assessment, Ownership,
     Production,
 )
+from .services.market import get_market_data
 
 from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
 
@@ -1144,18 +1145,7 @@ def _get_esg_data(company):
         'company_name': company.name,
         'carbon': _get_esg_carbon(company),
         'policies': _get_esg_policies(company),
-        'market': {
-            'is_demo': True,
-            'isin': company.isin,
-            'ticker': company.ticker,
-            'price': 142.85,
-            'currency': 'EUR',
-            'change_pct': 2.4,
-            'market_cap': '4.2B',
-            'esg_rating': 'AA+',
-            'relative_perf': '+12.5% vs MSCI ESG',
-            'sparkline': [35, 32, 38, 30, 25, 28, 20, 22, 15, 18, 5],
-        },
+        'market': get_market_data(company),
         'news': [],
         'social': {'available': False},
         'governance': {'available': False},
