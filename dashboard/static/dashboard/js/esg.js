@@ -117,6 +117,8 @@ function esgRenderChart(carbon) {
   const proj = carbon.projection || [];
   const allYears = hist.map(h => h.year).concat(proj.map(p => p.year));
   const allTotals = hist.map(h => h.total).concat(proj.map(p => p.total));
+  const minYear = Math.min(...allYears);
+  const maxYear = Math.max(...allYears);
   const scopeSums = hist.map(h => Object.values(h.scopes || {}).reduce((a, b) => a + b, 0));
   const maxVal = Math.max(...allTotals, ...scopeSums, 1);
 
