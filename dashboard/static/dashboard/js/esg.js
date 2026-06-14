@@ -205,25 +205,71 @@ function esgRenderFeatured(featured) {
 }
 
 
+const ESG_ENV_POLICY_TYPES = ['Circular', 'Climate', 'Water policy'];
+
 function esgRenderFramework(framework) {
   const list = document.getElementById('esg-framework-list');
   if (!list) return;
-  if (!framework || !framework.length) {
+  const filtered = (framework || []).filter(p => ESG_ENV_POLICY_TYPES.includes(p.type));
+  if (!filtered.length) {
     list.innerHTML = '<p class="esg-empty">Aucune politique enregistrée.</p>';
     return;
   }
-  list.innerHTML = framework.map(p => {
-    const sub = [p.level, p.date].filter(Boolean).join(' • ');
+  list.innerHTML = filtered.map((p, i) => {
+    const year = p.date ? (p.date.match(/\d{4}/) || [''])[0] : '';
+    const sub = [p.level, year].filter(Boolean).join(' • ');
+    const scoreVal = p.score != null ? Math.round(p.score * 100) : null;
+    const scoreHtml = scoreVal != null
+      ? '<span class="esg-framework__item-score" style="background:' + esgScoreColor(scoreVal) + '">' + scoreVal + '</span>'
+      : '';
+    const desc = p.description || '';
+    const hasDesc = desc.trim().length > 0;
+    const itemId = 'esg-fw-desc-' + i;
     return (
-      '<div class="esg-framework__item">' +
+      '<div class="esg-framework__item' + (hasDesc ? ' esg-framework__item--collapsible' : '') + '">' +
+      '<div class="esg-framework__item-header"' +
+        (hasDesc ? ' role="button" tabindex="0" aria-expanded="false" aria-controls="' + itemId + '"' : '') + '>' +
       '<div class="esg-framework__item-text">' +
       '<p class="esg-framework__item-name">' + escHtml(p.subcategory) + '</p>' +
       '<p class="esg-framework__item-sub">' + escHtml(sub) + '</p>' +
       '</div>' +
+      '<div class="esg-framework__item-right">' +
+      scoreHtml +
       '<span class="esg-framework__item-type">' + escHtml(p.type) + '</span>' +
+      (hasDesc
+        ? '<svg class="esg-framework__chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">' +
+          '<path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+          '</svg>'
+        : '') +
+      '</div>' +
+      '</div>' +
+      (hasDesc
+        ? '<div class="esg-framework__item-desc" id="' + itemId + '" hidden>' +
+          '<p>' + escHtml(desc) + '</p>' +
+          '</div>'
+        : '') +
       '</div>'
     );
   }).join('');
+
+  list.querySelectorAll('.esg-framework__item-header[role="button"]').forEach(header => {
+    function toggle() {
+      const expanded = header.getAttribute('aria-expanded') === 'true';
+      header.setAttribute('aria-expanded', String(!expanded));
+      const desc = document.getElementById(header.getAttribute('aria-controls'));
+      if (desc) { if (expanded) desc.setAttribute('hidden', ''); else desc.removeAttribute('hidden'); }
+      const chevron = header.querySelector('.esg-framework__chevron');
+      if (chevron) chevron.style.transform = expanded ? '' : 'rotate(180deg)';
+    }
+    header.addEventListener('click', toggle);
+    header.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+  });
+}
+
+
+function esgScoreColor(score) {
+  const hue = Math.max(0, Math.min(100, score)) * 1.2;
+  return 'hsl(' + hue + ',72%,42%)';
 }
 
 

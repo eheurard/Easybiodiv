@@ -422,18 +422,34 @@ function updateDashboard(data, map) {
         })
         .join('');
       return `
-        <div class="policy-type-card">
-          <div class="policy-type-card__header">
+        <div class="policy-accordion-item">
+          <button class="policy-accordion-header" aria-expanded="false">
             <span class="policy-type-card__name">${escHtml(pt.type)}</span>
-            <span class="policy-type-card__avg"${avgColor ? ` style="background:${avgColor}"` : ''}>∅ ${escHtml(avgDisplay)}</span>
+            <div class="policy-accordion-header__right">
+              <span class="policy-type-card__avg"${avgColor ? ` style="background:${avgColor}"` : ''}>∅ ${escHtml(avgDisplay)}</span>
+              <svg class="policy-accordion-chevron" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </button>
+          <div class="policy-accordion-body" hidden>
+            <table class="policy-table">
+              <thead><tr><th>Sous-catégorie</th><th>Niveau</th><th>Score</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
           </div>
-          <table class="policy-table">
-            <thead><tr><th>Sous-catégorie</th><th>Niveau</th><th>Score</th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
         </div>`;
     })
     .join('');
+
+  policyRow.querySelectorAll('.policy-accordion-header').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.policy-accordion-item');
+      const body = item.querySelector('.policy-accordion-body');
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!expanded));
+      body.hidden = expanded;
+      item.classList.toggle('policy-accordion-item--open', !expanded);
+    });
+  });
 }
 
 function fetchCompany(id, map) {
