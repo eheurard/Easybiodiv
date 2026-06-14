@@ -133,6 +133,7 @@ function esgRenderChart(carbon) {
   const xOf = yr => padL + (maxYear === minYear ? 0 : (yr - minYear) / (maxYear - minYear) * plotW);
   const yOf = v => padT + plotH - (v / maxVal) * plotH;
 
+  // Grid lines + Y axis labels
   for (let i = 0; i <= 4; i++) {
     const val = maxVal * i / 4;
     const y = yOf(val);
@@ -141,7 +142,6 @@ function esgRenderChart(carbon) {
     line.setAttribute('y1', y); line.setAttribute('y2', y);
     line.setAttribute('class', 'esg-chart__grid');
     svg.appendChild(line);
-
     const label = document.createElementNS(NS, 'text');
     label.setAttribute('x', padL - 8); label.setAttribute('y', y + 4);
     label.setAttribute('text-anchor', 'end');
@@ -150,6 +150,7 @@ function esgRenderChart(carbon) {
     svg.appendChild(label);
   }
 
+  // X axis labels
   const xYears = hist.map(h => h.year);
   if (proj.length) xYears.push(proj[proj.length - 1].year);
   xYears.forEach(yr => {
@@ -161,12 +162,45 @@ function esgRenderChart(carbon) {
     svg.appendChild(label);
   });
 
+  // Stacked bars (scope view) — drawn before the line so line appears on top
+  let allScopes = [];
+  let scopeColorMap = {};
+  if (esgScopeView) {
+    allScopes = [...new Set(hist.flatMap(h => Object.keys(h.scopes || {})))].sort();
+    allScopes.forEach((s, i) => { scopeColorMap[s] = SCOPE_COLORS[i % SCOPE_COLORS.length]; });
+    const barWidth = Math.min(plotW / Math.max(hist.length, 1) * 0.6, 60);
+    const barBottom = yOf(0);
+    hist.forEach(h => {
+      let cumY = barBottom;
+      allScopes.forEach(scope => {
+        const val = (h.scopes && h.scopes[scope]) || 0;
+        if (val <= 0) return;
+        const barH = (val / maxVal) * plotH;
+        const rect = document.createElementNS(NS, 'rect');
+        rect.setAttribute('x', xOf(h.year) - barWidth / 2);
+        rect.setAttribute('y', cumY - barH);
+        rect.setAttribute('width', barWidth);
+        rect.setAttribute('height', barH);
+        rect.setAttribute('fill', scopeColorMap[scope]);
+        rect.setAttribute('opacity', '0.75');
+        rect.setAttribute('class', 'esg-chart__bar');
+        svg.appendChild(rect);
+        cumY -= barH;
+      });
+    });
+    esgUpdateLegend(allScopes, scopeColorMap);
+  } else {
+    esgResetLegend();
+  }
+
+  // Historical line (on top of bars)
   const histPath = hist.map((h, i) => (i ? 'L' : 'M') + xOf(h.year) + ',' + yOf(h.total)).join(' ');
   const histLine = document.createElementNS(NS, 'path');
   histLine.setAttribute('d', histPath);
   histLine.setAttribute('class', 'esg-chart__path esg-chart__path--hist');
   svg.appendChild(histLine);
 
+  // Projection line
   if (proj.length) {
     const projPath = proj.map((p, i) => (i ? 'L' : 'M') + xOf(p.year) + ',' + yOf(p.total)).join(' ');
     const projLine = document.createElementNS(NS, 'path');
@@ -175,18 +209,92 @@ function esgRenderChart(carbon) {
     svg.appendChild(projLine);
   }
 
+  // Dots — title attribute removed; custom tooltip handles hover
   hist.forEach(h => {
     const dot = document.createElementNS(NS, 'circle');
     dot.setAttribute('cx', xOf(h.year)); dot.setAttribute('cy', yOf(h.total));
     dot.setAttribute('r', 4);
     dot.setAttribute('class', 'esg-chart__dot');
-    const title = document.createElementNS(NS, 'title');
-    title.textContent = h.year + ' : ' + esgFmtNum(h.total) + ' ' + (carbon.unit || '');
-    dot.appendChild(title);
     svg.appendChild(dot);
   });
 
   canvas.appendChild(svg);
+
+  esgInitChartTooltip(canvas, svg, hist, proj, carbon.unit, allScopes, scopeColorMap, xOf);
+}
+
+
+function esgInitChartTooltip(canvas, svg, hist, proj, unit, allScopes, scopeColorMap, xOf) {
+  let tip = document.getElementById('esg-chart-tooltip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'esg-chart-tooltip';
+    tip.className = 'esg-chart__tooltip';
+    tip.setAttribute('hidden', '');
+    canvas.appendChild(tip);
+  }
+
+  const projPoints = proj.map(p => ({ year: p.year, total: p.total, scopes: {}, isProj: true }));
+  const allPoints = hist.map(h => Object.assign({}, h, { isProj: false })).concat(projPoints);
+  const unitStr = unit || 'tCO2e';
+
+  svg.addEventListener('mousemove', e => {
+    const svgRect = svg.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    const mouseX = (e.clientX - svgRect.left) * (1000 / svgRect.width);
+
+    let nearest = allPoints[0];
+    let minDist = Infinity;
+    allPoints.forEach(p => {
+      const d = Math.abs(xOf(p.year) - mouseX);
+      if (d < minDist) { minDist = d; nearest = p; }
+    });
+
+    const scopes = nearest.scopes || {};
+    const total = nearest.total;
+    let html = '<div class="esg-chart__tooltip-year">' + nearest.year + '</div>';
+
+    if (esgScopeView && !nearest.isProj && allScopes.length) {
+      allScopes.forEach(scope => {
+        const val = scopes[scope] || 0;
+        if (val <= 0) return;
+        const pct = total > 0 ? (val / total * 100).toFixed(1) : '0.0';
+        html +=
+          '<div class="esg-chart__tooltip-row">' +
+          '<span class="esg-chart__tooltip-dot" style="background:' + scopeColorMap[scope] + '"></span>' +
+          '<span class="esg-chart__tooltip-name">' + escHtml(scope) + '</span>' +
+          '<span class="esg-chart__tooltip-val">' + esgFmtNum(val) + '</span>' +
+          '<span class="esg-chart__tooltip-pct">' + pct + '%</span>' +
+          '</div>';
+      });
+      html += '<hr class="esg-chart__tooltip-sep">';
+      html += '<div class="esg-chart__tooltip-total"><span>Total</span><span>' +
+        esgFmtNum(total) + ' ' + escHtml(unitStr) + '</span></div>';
+    } else {
+      html += '<div class="esg-chart__tooltip-row"><span>' +
+        esgFmtNum(total) + ' ' + escHtml(unitStr) + '</span></div>';
+      if (nearest.isProj) {
+        html += '<div style="font-size:11px;color:var(--color-on-surface-variant);margin-top:4px">Projection</div>';
+      }
+    }
+
+    tip.innerHTML = html;
+    tip.removeAttribute('hidden');
+
+    const tipW = tip.offsetWidth;
+    const tipH = tip.offsetHeight;
+    const canvasW = canvasRect.width;
+    const canvasH = canvasRect.height;
+    let left = e.clientX - canvasRect.left + 12;
+    let top = e.clientY - canvasRect.top - 8;
+    if (left + tipW > canvasW - 4) left = e.clientX - canvasRect.left - tipW - 12;
+    if (top + tipH > canvasH - 4) top = canvasH - tipH - 4;
+    if (top < 0) top = 4;
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  });
+
+  svg.addEventListener('mouseleave', () => tip.setAttribute('hidden', ''));
 }
 
 
