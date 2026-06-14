@@ -3136,6 +3136,20 @@ a.app-header__avatar {
 .esg-chart__path { fill: none; stroke: var(--color-primary); stroke-width: 3; }
 .esg-chart__path--proj { stroke-dasharray: 8 6; opacity: .8; }
 .esg-chart__dot { fill: var(--color-primary); }
+.esg-chart__scope-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--color-outline); border-radius: 6px; background: transparent; color: var(--color-on-surface-variant); font-size: 12px; font-family: var(--font-family); cursor: pointer; transition: background .15s, color .15s, border-color .15s; white-space: nowrap; }
+.esg-chart__scope-btn:hover { background: var(--color-surface-variant); }
+.esg-chart__scope-btn[aria-pressed="true"] { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+.esg-chart__bar { cursor: default; }
+.esg-chart__tooltip { position: absolute; pointer-events: none; z-index: 10; background: var(--color-surface-container, #f4f4f4); border: 1px solid var(--color-outline-variant, #ccc); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--color-on-surface); box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 180px; white-space: nowrap; }
+.esg-chart__tooltip-year { font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+.esg-chart__tooltip-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+.esg-chart__tooltip-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.esg-chart__tooltip-name { flex: 1; }
+.esg-chart__tooltip-val { font-variant-numeric: tabular-nums; }
+.esg-chart__tooltip-pct { color: var(--color-on-surface-variant); min-width: 42px; text-align: right; }
+.esg-chart__tooltip-sep { border: none; border-top: 1px solid var(--color-outline-variant, #ccc); margin: 6px 0; }
+.esg-chart__tooltip-total { display: flex; gap: 8px; font-weight: 600; }
+.esg-chart__legend-dot { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
 
 /* Featured policy cards */
 .esg-featured { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
