@@ -4,6 +4,9 @@ const ESG_COMPANY_KEY = 'selected-company-id';
 
 const ESG_STATE = { data: null };
 
+let esgScopeView = false;
+const SCOPE_COLORS = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc948'];
+
 document.addEventListener('DOMContentLoaded', () => {
   const companiesEl = document.getElementById('esg-companies');
   if (!companiesEl) return;
@@ -13,6 +16,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const initialData = initialDataEl ? JSON.parse(initialDataEl.textContent) : null;
 
   esgInitThemeTabs();
+
+  const scopeToggle = document.getElementById('esg-scope-toggle');
+  if (scopeToggle) {
+    scopeToggle.addEventListener('click', () => {
+      esgScopeView = !esgScopeView;
+      scopeToggle.setAttribute('aria-pressed', String(esgScopeView));
+      if (ESG_STATE.data) esgRenderChart(ESG_STATE.data.carbon);
+    });
+  }
 
   const savedId = parseInt(localStorage.getItem(ESG_COMPANY_KEY), 10);
   const savedExists = savedId && companies.some(c => c.id === savedId);
@@ -453,6 +465,34 @@ function esgFmtNum(val) {
 function esgFmtMoney(val, currency) {
   const sym = currency === 'EUR' ? '€' : (currency === 'USD' ? '$' : '');
   return sym + Number(val).toFixed(2);
+}
+
+
+function esgUpdateLegend(allScopes, scopeColorMap) {
+  const legendEl = document.querySelector('.esg-chart__legend');
+  if (!legendEl) return;
+  legendEl.innerHTML =
+    allScopes.map(scope =>
+      '<span class="esg-chart__legend-item">' +
+      '<span class="esg-chart__legend-dot" style="background:' + scopeColorMap[scope] + '"></span>' +
+      escHtml(scope) +
+      '</span>'
+    ).join('') +
+    '<span class="esg-chart__legend-item" style="opacity:.5">' +
+    '<span class="esg-chart__line esg-chart__line--solid"></span>Historique' +
+    '</span>' +
+    '<span class="esg-chart__legend-item" style="opacity:.5">' +
+    '<span class="esg-chart__line esg-chart__line--dashed"></span>Projection 2030' +
+    '</span>';
+}
+
+
+function esgResetLegend() {
+  const legendEl = document.querySelector('.esg-chart__legend');
+  if (!legendEl) return;
+  legendEl.innerHTML =
+    '<span class="esg-chart__legend-item"><span class="esg-chart__line esg-chart__line--solid"></span>Historique</span>' +
+    '<span class="esg-chart__legend-item"><span class="esg-chart__line esg-chart__line--dashed"></span>Projection 2030</span>';
 }
 
 
