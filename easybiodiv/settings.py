@@ -20,12 +20,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-SECRET_KEY = os.environ.get(
-    'SECRET_KEY',
-    'django-insecure-!zfg(1s(!6p74w97yzyk9hy9382j192o%(z_+5!f3p23j@8yvj'
-)
+# DEBUG défaut SÛR : False. Activé uniquement si DEBUG=True dans l'environnement.
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+# SECRET_KEY obligatoire en production. Fallback non-secret toléré seulement en dev.
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'django-insecure-dev-only-do-not-use-in-production'
+    else:
+        raise RuntimeError(
+            "La variable d'environnement SECRET_KEY doit être définie en production."
+        )
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else []
 
@@ -137,3 +143,21 @@ MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 LOGIN_URL = '/auth/login/'
+
+# --- Durcissement sécurité (actif uniquement hors DEBUG, c.-à-d. en production) ---
+if not DEBUG:
+    # Derrière le proxy/Passenger d'o2switch : indiquer à Django que la requête
+    # d'origine est en HTTPS via l'en-tête transmis par le proxy.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 an
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    # Origines de confiance pour la validation CSRF (formulaires POST en HTTPS).
+    CSRF_TRUSTED_ORIGINS = [
+        f'https://{host.strip()}' for host in ALLOWED_HOSTS if host.strip()
+    ]
