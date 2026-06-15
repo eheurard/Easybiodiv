@@ -312,7 +312,7 @@ function esgRenderFeatured(featured) {
     const tags = (p.tags || []).map(t =>
       '<span class="esg-policy-card__tag">' + escHtml(t) + '</span>').join('');
     const score = p.score != null
-      ? '<span class="esg-policy-card__score">' + Math.round(p.score * 100) + '</span>' : '';
+      ? '<span class="esg-policy-card__score">' + Math.round(p.score) + '</span>' : '';
     return (
       '<article class="card esg-policy-card">' +
       '<div class="esg-policy-card__head">' +
@@ -341,7 +341,7 @@ function esgRenderFramework(framework) {
   list.innerHTML = filtered.map((p, i) => {
     const year = p.date ? (p.date.match(/\d{4}/) || [''])[0] : '';
     const sub = [p.level, year].filter(Boolean).join(' • ');
-    const scoreVal = p.score != null ? Math.round(p.score * 100) : null;
+    const scoreVal = p.score != null ? Math.round(p.score) : null;
     const scoreHtml = scoreVal != null
       ? '<span class="esg-framework__item-score" style="background:' + esgScoreColor(scoreVal) + '">' + scoreVal + '</span>'
       : '';

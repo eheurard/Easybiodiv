@@ -682,7 +682,8 @@ def _get_physical_risk_data(company):
     # --- Vulnerability: mean of vulnerability_<key> across the company's policies ---
     levels = [
         cp.policy_level
-        for cp in Company_Policy.objects.filter(company=company).select_related('policy_level')
+        for cp in Company_Policy.objects.filter(company=company)
+        .select_related('policy_level__subcategory__policy_type')
         if cp.policy_level_id
     ]
 
@@ -691,6 +692,15 @@ def _get_physical_risk_data(company):
         return sum(vals) / len(vals) if vals else 1.0
 
     vulnerabilities = {r['key']: _vuln(r['key']) for r in PHYSICAL_RISKS}
+
+    def _vuln_detail(key):
+        return [
+            {
+                'policy': f"{level.subcategory.name} — {level.name}",
+                'value': round(getattr(level, f'vulnerability_{key}'), 4),
+            }
+            for level in levels
+        ]
 
     # --- Exposition: sum of estimated_revenue for each asset's latest production year ---
     asset_ids = [a.pk for a in assets]
@@ -744,6 +754,7 @@ def _get_physical_risk_data(company):
             'name': r['name'],
             'group': r['group'],
             'vulnerability': round(vulnerabilities[key], 4),
+            'vulnerability_detail': _vuln_detail(key),
             'avg_risk': round(total / n_assets, 2) if n_assets else 0.0,
         })
     hazards.sort(key=lambda h: -h['avg_risk'])

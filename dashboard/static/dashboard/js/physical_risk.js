@@ -228,14 +228,32 @@ function prRenderTable() {
     return { name: a.name, hz: hz, expo: a.exposition, risk: risk };
   }).sort((x, y) => y.risk - x.risk);
 
-  body.innerHTML = rows.map(r => `
+  const detail = hazard.vulnerability_detail || [];
+  const detailRows = detail.length
+    ? detail.map(d =>
+        `<span class="pr-vuln-tooltip__row">
+          <span class="pr-vuln-tooltip__policy">${escHtml(d.policy)}</span>
+          <span class="pr-vuln-tooltip__val">${(d.value * 100).toFixed(1)}%</span>
+        </span>`
+      ).join('')
+    : '<span class="pr-vuln-tooltip__note">Aucune politique renseignée</span>';
+
+  body.innerHTML = rows.map(r => {
+    const tooltip = `
+      <span class="pr-vuln-tooltip" role="tooltip">
+        <span class="pr-vuln-tooltip__title">Détail de la vulnérabilité</span>
+        ${detailRows}
+        <span class="pr-vuln-tooltip__result">Moyenne : ${(vuln * 100).toFixed(1)}%</span>
+      </span>`;
+    return `
     <tr>
       <td>${escHtml(r.name)}</td>
       <td class="data-tabular">${(r.hz * 100).toFixed(1)}%</td>
       <td class="data-tabular">${prFmtEuro(r.expo)}</td>
-      <td class="data-tabular">${(vuln * 100).toFixed(1)}%</td>
+      <td class="data-tabular pr-table__vuln">${(vuln * 100).toFixed(1)}%${tooltip}</td>
       <td class="data-tabular pr-table__risk">${prFmtEuro(r.risk)}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 

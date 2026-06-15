@@ -3,8 +3,8 @@ import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
 
 from dashboard.models import (
-    Asset, Commodity, Company, Country, Policy_Level, Policy_Subcategory,
-    Policy_Type, SubnationalRegion,
+    Asset, Commodity, Company, Country, Currency, Policy_Level, Policy_Subcategory,
+    Policy_Type, Sector, SubnationalRegion, SubSector,
 )
 from .constants import SHEET_COLUMNS
 
@@ -45,6 +45,9 @@ def _build_reference_sheet(wb):
         ('Policy_Types', Policy_Type.objects.values_list('name', flat=True)),
         ('Policy_Subcategories', Policy_Subcategory.objects.values_list('name', flat=True)),
         ('Policy_Levels', Policy_Level.objects.values_list('name', flat=True)),
+        ('Currencies', Currency.objects.values_list('code', flat=True)),
+        ('Sectors', Sector.objects.values_list('name', flat=True)),
+        ('SubSectors', SubSector.objects.values_list('name', flat=True)),
         ('Companies', Company.objects.values_list('name', flat=True)),
         ('Assets', Asset.objects.values_list('name', flat=True)),
     ]

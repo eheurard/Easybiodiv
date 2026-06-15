@@ -2,9 +2,10 @@ from datetime import date
 
 from django.db import transaction
 from dashboard.models import (
-    Asset, Commodity, Company, Company_Policy, Company_Revenue,
-    Country, Ownership, Policy_Level, Policy_Subcategory, Policy_Type,
-    Production, SubnationalRegion,
+    Asset, Asset_consumption, Carbon_emission, Commodity, Company, Company_Policy,
+    Company_Revenue, Company_Revenue_Sector, Country, Currency, ESG_data, Ownership,
+    Policy_Level, Policy_Subcategory, Policy_Type, Production, Sector, SubnationalRegion,
+    SubSector,
 )
 from .constants import IMPORT_ORDER
 
@@ -335,6 +336,145 @@ def _import_company_policy(rows, lookup):
     return created
 
 
+def _import_currency(rows, lookup):
+    created = 0
+    for r in rows:
+        d = r['data']
+        obj, was_created = Currency.objects.get_or_create(
+            code=d['code'],
+            defaults={
+                'name': d.get('name', ''),
+                'symbol': d.get('symbol', ''),
+                'ratio_USD': _f(d.get('ratio_USD'), 1.0),
+            },
+        )
+        lookup['currency'][d['code'].lower()] = obj
+        if was_created:
+            created += 1
+    return created
+
+
+def _import_sector(rows, lookup):
+    created = 0
+    for r in rows:
+        d = r['data']
+        obj = Sector.objects.create(
+            name=d['name'],
+            NACE_code=_s(d.get('NACE_code')),
+            description=_s(d.get('description')),
+        )
+        lookup['sector'][d['name'].lower()] = obj
+        created += 1
+    return created
+
+
+def _import_subsector(rows, lookup):
+    created = 0
+    for r in rows:
+        d = r['data']
+        sector = lookup['sector'].get(d['sector_name'].lower())
+        if not sector:
+            continue
+        obj = SubSector.objects.create(
+            name=d['name'],
+            sector=sector,
+            NACE_code=_s(d.get('NACE_code')),
+            description=_s(d.get('description')),
+            Water_dependency=d.get('Water_dependency') or 'VL',
+            Pollination_dependency=d.get('Pollination_dependency') or 'VL',
+            Soil_quality_dependency=d.get('Soil_quality_dependency') or 'VL',
+            Carbon_Sequestration=d.get('Carbon_Sequestration') or 'VL',
+            Water_purification_dependency=d.get('Water_purification_dependency') or 'VL',
+            Pest_control_dependency=d.get('Pest_control_dependency') or 'VL',
+        )
+        lookup['subsector'][f"{d['sector_name'].lower()}|{d['name'].lower()}"] = obj
+        created += 1
+    return created
+
+
+def _import_company_revenue_sector(rows, lookup):
+    created = 0
+    for r in rows:
+        d = r['data']
+        company = lookup['company'].get(d['company_name'].lower())
+        subsector_key = f"{d['sector_name'].lower()}|{d['subsector_name'].lower()}"
+        subsector = lookup['subsector'].get(subsector_key)
+        if not company or not subsector:
+            continue
+        try:
+            year = int(d['year'])
+            revenue = float(d['revenue'])
+        except (ValueError, TypeError):
+            continue
+        Company_Revenue_Sector.objects.create(
+            company=company, subsector=subsector, year=year, revenue=revenue,
+        )
+        created += 1
+    return created
+
+
+def _import_asset_consumption(rows, lookup):
+    created = 0
+    for r in rows:
+        d = r['data']
+        asset = lookup['asset'].get(d['asset_name'].lower())
+        if not asset:
+            continue
+        Asset_consumption.objects.create(
+            asset=asset,
+            surface_area=_f(d.get('surface_area')),
+            water_consumption=_f(d.get('water_consumption')),
+            energy_consumption=_f(d.get('energy_consumption')),
+            CO2_emissions=_f(d.get('CO2_emissions')),
+            waste_generated=_f(d.get('waste_generated')),
+        )
+        created += 1
+    return created
+
+
+def _import_esg_data(rows, lookup):
+    created = 0
+    for r in rows:
+        d = r['data']
+        company = lookup['company'].get(d['company_name'].lower())
+        if not company:
+            continue
+        try:
+            year = int(d['year'])
+            employees = int(d.get('employees_number') or 0)
+        except (ValueError, TypeError):
+            continue
+        _, was_created = ESG_data.objects.get_or_create(
+            company=company, year=year,
+            defaults={'employees_number': employees},
+        )
+        if was_created:
+            created += 1
+    return created
+
+
+def _import_carbon_emission(rows, lookup):
+    created = 0
+    for r in rows:
+        d = r['data']
+        company = lookup['company'].get(d['company_name'].lower())
+        if not company:
+            continue
+        try:
+            year = int(d['year'])
+            emission = float(d['carbon_emission'])
+        except (ValueError, TypeError):
+            continue
+        scope = _s(d.get('scope'))
+        _, was_created = Carbon_emission.objects.get_or_create(
+            company=company, year=year, scope=scope,
+            defaults={'carbon_emission': emission},
+        )
+        if was_created:
+            created += 1
+    return created
+
+
 _IMPORTERS = {
     'Country': _import_country,
     'SubnationalRegion': _import_subnational_region,
@@ -342,12 +482,19 @@ _IMPORTERS = {
     'Policy_Type': _import_policy_type,
     'Policy_Subcategory': _import_policy_subcategory,
     'Policy_Level': _import_policy_level,
+    'Currency': _import_currency,
+    'Sector': _import_sector,
+    'SubSector': _import_subsector,
     'Company': _import_company,
     'Asset': _import_asset,
     'Production': _import_production,
     'Company_Revenue': _import_company_revenue,
     'Ownership': _import_ownership,
     'Company_Policy': _import_company_policy,
+    'Company_Revenue_Sector': _import_company_revenue_sector,
+    'Asset_consumption': _import_asset_consumption,
+    'ESG_data': _import_esg_data,
+    'Carbon_emission': _import_carbon_emission,
 }
 
 
@@ -364,6 +511,12 @@ def _build_lookup():
         'policy_level': {
             f"{o.subcategory.policy_type.name.lower()}|{o.subcategory.name.lower()}|{o.name.lower()}": o
             for o in Policy_Level.objects.select_related('subcategory__policy_type').all()
+        },
+        'currency': {o.code.lower(): o for o in Currency.objects.all()},
+        'sector': {o.name.lower(): o for o in Sector.objects.all()},
+        'subsector': {
+            f"{o.sector.name.lower()}|{o.name.lower()}": o
+            for o in SubSector.objects.select_related('sector').all()
         },
         'company': {o.name.lower(): o for o in Company.objects.all()},
         'asset': {o.name.lower(): o for o in Asset.objects.all()},

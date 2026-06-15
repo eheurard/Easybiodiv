@@ -4,7 +4,7 @@ from .models import (
     Asset, Asset_consumption, Company, Production, Ownership,
     Company_Revenue, Company_Revenue_Sector,
     Policy_Type, Policy_Subcategory, Policy_Level, Company_Policy,
-    DisclosureRequirement, E4Assessment,
+    DisclosureRequirement, E4Assessment, ESG_data,Carbon_emission
 )
 
 
@@ -166,3 +166,10 @@ class E4AssessmentAdmin(admin.ModelAdmin):
             )
         }),
     )
+
+@admin.register(Carbon_emission)
+class CarbonEmissionAdmin(admin.ModelAdmin):
+    search_fields = ('company__name',)
+    list_display = ('company', 'year','scope', 'carbon_emission')
+    list_filter = ('year',)
+    autocomplete_fields = ('company',)

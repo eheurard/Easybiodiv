@@ -44,6 +44,13 @@ SHEET_COLUMNS = {
         'vulnerability_coastal_inundation', 'vulnerability_heatwave',
         'vulnerability_temperature_variation', 'vulnerability_precipitation_variation',
     ],
+    'Currency': ['code', 'name', 'symbol', 'ratio_USD'],
+    'Sector': ['name', 'NACE_code', 'description'],
+    'SubSector': [
+        'name', 'sector_name', 'NACE_code', 'description',
+        'Water_dependency', 'Pollination_dependency', 'Soil_quality_dependency',
+        'Carbon_Sequestration', 'Water_purification_dependency', 'Pest_control_dependency',
+    ],
     'Company': ['name', 'description', 'isin', 'ticker'],
     'Asset': [
         'name', 'description', 'latitude', 'longitude', 'country_name', 'subnational_region_name',
@@ -61,12 +68,20 @@ SHEET_COLUMNS = {
     'Company_Policy': [
         'company_name', 'policy_type_name', 'policy_subcategory_name', 'policy_level_name', 'policy_date',
     ],
+    'Company_Revenue_Sector': ['company_name', 'subsector_name', 'sector_name', 'year', 'revenue'],
+    'Asset_consumption': [
+        'asset_name', 'surface_area', 'water_consumption', 'energy_consumption',
+        'CO2_emissions', 'waste_generated',
+    ],
+    'ESG_data': ['company_name', 'year', 'employees_number'],
+    'Carbon_emission': ['company_name', 'year', 'scope', 'carbon_emission'],
 }
 
 FK_FIELDS = {
     'SubnationalRegion': {'country_name': 'country'},
     'Policy_Subcategory': {'policy_type_name': 'policy_type'},
     'Policy_Level': {'subcategory_name': 'policy_subcategory', 'policy_type_name': 'policy_type'},
+    'SubSector': {'sector_name': 'sector'},
     'Asset': {'country_name': 'country', 'subnational_region_name': 'subnational_region'},
     'Production': {
         'asset_name': 'asset', 'commodity_name': 'commodity', 'company_name': 'company',
@@ -80,6 +95,10 @@ FK_FIELDS = {
         'policy_subcategory_name': 'policy_subcategory',
         'policy_level_name': 'policy_level',
     },
+    'Company_Revenue_Sector': {'company_name': 'company', 'subsector_name': 'subsector', 'sector_name': 'sector'},
+    'Asset_consumption': {'asset_name': 'asset'},
+    'ESG_data': {'company_name': 'company'},
+    'Carbon_emission': {'company_name': 'company'},
 }
 
 REQUIRED_FIELDS = {
@@ -89,6 +108,9 @@ REQUIRED_FIELDS = {
     'Policy_Type': ['name'],
     'Policy_Subcategory': ['name', 'policy_type_name'],
     'Policy_Level': ['name', 'subcategory_name', 'policy_type_name'],
+    'Currency': ['code', 'name', 'symbol'],
+    'Sector': ['name'],
+    'SubSector': ['name', 'sector_name'],
     'Company': ['name'],
     'Asset': ['name', 'latitude', 'longitude', 'country_name'],
     'Production': ['asset_name', 'commodity_name', 'year', 'production'],
@@ -98,6 +120,10 @@ REQUIRED_FIELDS = {
         'company_name', 'policy_type_name', 'policy_subcategory_name',
         'policy_level_name', 'policy_date',
     ],
+    'Company_Revenue_Sector': ['company_name', 'subsector_name', 'sector_name', 'year', 'revenue'],
+    'Asset_consumption': ['asset_name'],
+    'ESG_data': ['company_name', 'year'],
+    'Carbon_emission': ['company_name', 'year', 'scope', 'carbon_emission'],
 }
 
 DUPLICATE_CRITERIA = {
@@ -107,6 +133,9 @@ DUPLICATE_CRITERIA = {
     'Policy_Type': ['name'],
     'Policy_Subcategory': ['name', 'policy_type_name'],
     'Policy_Level': ['name', 'subcategory_name', 'policy_type_name'],
+    'Currency': ['code'],
+    'Sector': ['name'],
+    'SubSector': ['name', 'sector_name'],
     'Company': ['name'],
     'Asset': ['name', 'country_name'],
     'Production': ['asset_name', 'commodity_name', 'year'],
@@ -115,12 +144,18 @@ DUPLICATE_CRITERIA = {
     'Company_Policy': [
         'company_name', 'policy_type_name', 'policy_subcategory_name', 'policy_level_name',
     ],
+    'Company_Revenue_Sector': ['company_name', 'subsector_name', 'year'],
+    'Asset_consumption': ['asset_name'],
+    'ESG_data': ['company_name', 'year'],
+    'Carbon_emission': ['company_name', 'year', 'scope'],
 }
 
 IMPORT_ORDER = [
     'Country', 'SubnationalRegion', 'Commodity',
     'Policy_Type', 'Policy_Subcategory', 'Policy_Level',
+    'Currency', 'Sector', 'SubSector',
     'Company', 'Asset', 'Production', 'Company_Revenue', 'Ownership', 'Company_Policy',
+    'Company_Revenue_Sector', 'Asset_consumption', 'ESG_data', 'Carbon_emission',
 ]
 
 MODEL_KEY_TO_SHEET = {
@@ -130,6 +165,9 @@ MODEL_KEY_TO_SHEET = {
     'policy_type': 'Policy_Type',
     'policy_subcategory': 'Policy_Subcategory',
     'policy_level': 'Policy_Level',
+    'currency': 'Currency',
+    'sector': 'Sector',
+    'subsector': 'SubSector',
     'company': 'Company',
     'asset': 'Asset',
 }
