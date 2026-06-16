@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const savedExists = savedId && companies.some(c => c.id === savedId);
 
   if (savedExists && initialData && savedId !== initialData.company_id) {
-    llFetch(savedId).then(() => llInitCombobox(companies, { company_id: savedId, company_name: (companies.find(c => c.id === savedId) || {}).name }));
+    llFetch(savedId).then(data => llInitCombobox(companies, data || initialData));
   } else {
     if (initialData) llRender(initialData);
     llInitCombobox(companies, initialData);
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function llFetch(id) {
   return fetch(LEAP_LOCATE_API_URL.replace('/0/', '/' + id + '/'))
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-    .then(data => llRender(data))
+    .then(data => { llRender(data); return data; })
     .catch(err => console.error('leap_locate fetch failed:', err));
 }
 
@@ -166,8 +166,9 @@ function llAddSourceAndLayer(map) {
   map.on('click', 'll-assets-layer', (e) => {
     const p = e.features[0].properties;
     const meta = [p.country, p.region].filter(Boolean).map(escHtml).join(' · ');
-    const zone = p.sensitive_zone_type
-      ? `<div class="ll-popup__zone">${escHtml(p.sensitive_zone_type)}${p.sensitive_zone_name ? ' — ' + escHtml(p.sensitive_zone_name) : ''} (${fmtNum(p.sensitive_zone_area_ha)} ha)</div>`
+    const zoneType = p.sensitive_zone_type || '';
+    const zone = zoneType
+      ? `<div class="ll-popup__zone">${escHtml(zoneType)}${p.sensitive_zone_name ? ' — ' + escHtml(p.sensitive_zone_name) : ''} (${fmtNum(p.sensitive_zone_area_ha)} ha)</div>`
       : '';
     new maplibregl.Popup({ maxWidth: '280px' })
       .setLngLat(e.lngLat)
