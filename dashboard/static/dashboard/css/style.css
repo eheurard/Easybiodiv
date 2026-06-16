@@ -3396,6 +3396,7 @@ a.app-header__avatar {
   white-space: nowrap;
 }
 .ll-item__zone { font-size: 12px; color: var(--color-on-surface-variant); min-height: 14px; }
+.ll-item__area { font-weight: 600; white-space: nowrap; }
 .ll-item__bars { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
 .ll-bar { display: flex; align-items: center; gap: 8px; }
 .ll-bar__label { font-size: 11px; width: 42px; color: var(--color-on-surface-variant); }
