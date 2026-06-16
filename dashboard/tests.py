@@ -1478,3 +1478,67 @@ class MarketEndpointTests(TestCase):
         url = reverse('dashboard:esg_market', kwargs={'pk': self.company.pk})
         resp = self.client.get(url)
         self.assertIn(resp.status_code, (302, 401, 403))
+
+
+class LeapLocateDataTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='leapuser', password='pass')
+        self.client.force_login(self.user)
+
+        self.company, self.country, self.region, self.commodity, self.asset = _make_world()
+        self.asset.near_sensitive_zone = True
+        self.asset.sensitive_zone_type = Asset.SensitiveZoneType.NATURA_2000
+        self.asset.sensitive_zone_name = 'Forêt de Fontainebleau'
+        self.asset.sensitive_zone_area_ha = 250.0
+        self.asset.risk_water = 0.6
+        self.asset.risk_water_stress = 0.3
+        self.asset.save()
+        self.url = reverse('dashboard:leap_locate_data', kwargs={'pk': self.company.pk})
+
+    def test_endpoint_returns_200_json(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+
+    def test_geojson_feature_properties(self):
+        from .views import _get_leap_locate_data
+        data = _get_leap_locate_data(self.company)
+        feats = data['geojson']['features']
+        self.assertEqual(len(feats), 1)
+        props = feats[0]['properties']
+        self.assertEqual(props['name'], 'Site Paris')
+        self.assertTrue(props['near_sensitive_zone'])
+        self.assertEqual(props['sensitive_zone_type'], 'Natura 2000')
+        self.assertEqual(props['sensitive_zone_area_ha'], 250.0)
+        self.assertEqual(props['risk_water'], 0.6)
+        self.assertEqual(feats[0]['geometry']['coordinates'], [2.3522, 48.8566])
+
+    def test_company_without_assets_returns_empty(self):
+        empty_company = Company.objects.create(name='EmptyCorp')
+        from .views import _get_leap_locate_data
+        data = _get_leap_locate_data(empty_company)
+        self.assertEqual(data['geojson']['features'], [])
+
+
+class LeapPagesTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='leappageuser', password='pass')
+        self.client.force_login(self.user)
+        self.company, *_ = _make_world()
+
+    def test_locate_page_200(self):
+        response = self.client.get(reverse('dashboard:leap_locate'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'dashboard/leap_locate.html')
+
+    def test_evaluate_page_200(self):
+        response = self.client.get(reverse('dashboard:leap_evaluate'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_prepare_page_200(self):
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertEqual(response.status_code, 200)

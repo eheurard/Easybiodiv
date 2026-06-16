@@ -530,6 +530,38 @@ def _get_mesure_empreinte_data(company):
     }
 
 
+def _get_leap_locate_data(company):
+    assets = list(
+        Asset.objects.filter(ownership__Company=company)
+        .select_related('country', 'subnational_region')
+        .distinct()
+    )
+    features = []
+    for a in assets:
+        features.append({
+            'type': 'Feature',
+            'geometry': {'type': 'Point', 'coordinates': [a.longitude, a.latitude]},
+            'properties': {
+                'name': a.name,
+                'country': a.country.name,
+                'region': a.subnational_region.name if a.subnational_region else '',
+                'near_sensitive_zone': a.near_sensitive_zone,
+                'sensitive_zone_type': (
+                    a.get_sensitive_zone_type_display() if a.sensitive_zone_type else ''
+                ),
+                'sensitive_zone_name': a.sensitive_zone_name,
+                'sensitive_zone_area_ha': round(a.sensitive_zone_area_ha, 2),
+                'risk_water': round(a.risk_water, 4),
+                'risk_water_stress': round(a.risk_water_stress, 4),
+            },
+        })
+    return {
+        'company_id': company.pk,
+        'company_name': company.name,
+        'geojson': {'type': 'FeatureCollection', 'features': features},
+    }
+
+
 _BIODIV_LOSS_FIELDS = {
     'Agriculture':  'biodiversity_loss_agriculture',
     'Urbanisation': 'biodiversity_loss_urbanization',
@@ -1234,6 +1266,41 @@ def mesure_empreinte(request):
 def mesure_empreinte_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_mesure_empreinte_data(company))
+
+
+@login_required
+@require_GET
+def leap_locate(request):
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    initial_data = None
+    if companies:
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = _get_leap_locate_data(first)
+    return render(request, 'dashboard/leap_locate.html', {
+        'companies': companies,
+        'initial_data': initial_data,
+    })
+
+
+@login_required
+@require_GET
+def leap_locate_data(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    return JsonResponse(_get_leap_locate_data(company))
+
+
+@login_required
+@require_GET
+def leap_evaluate(request):
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    return render(request, 'dashboard/leap_evaluate.html', {'companies': companies})
+
+
+@login_required
+@require_GET
+def leap_prepare(request):
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    return render(request, 'dashboard/leap_prepare.html', {'companies': companies})
 
 
 @login_required
