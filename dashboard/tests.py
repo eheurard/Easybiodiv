@@ -1482,7 +1482,6 @@ class MarketEndpointTests(TestCase):
 
 class LeapLocateDataTests(TestCase):
     def setUp(self):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         self.user = User.objects.create_user(username='leapuser', password='pass')
         self.client.force_login(self.user)
@@ -1500,7 +1499,7 @@ class LeapLocateDataTests(TestCase):
     def test_endpoint_returns_200_json(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertIn('application/json', response['Content-Type'])
 
     def test_geojson_feature_properties(self):
         from .views import _get_leap_locate_data
@@ -1513,6 +1512,7 @@ class LeapLocateDataTests(TestCase):
         self.assertEqual(props['sensitive_zone_type'], 'Natura 2000')
         self.assertEqual(props['sensitive_zone_area_ha'], 250.0)
         self.assertEqual(props['risk_water'], 0.6)
+        self.assertEqual(props['risk_water_stress'], 0.3)
         self.assertEqual(feats[0]['geometry']['coordinates'], [2.3522, 48.8566])
 
     def test_company_without_assets_returns_empty(self):
@@ -1521,10 +1521,14 @@ class LeapLocateDataTests(TestCase):
         data = _get_leap_locate_data(empty_company)
         self.assertEqual(data['geojson']['features'], [])
 
+    def test_not_found_returns_404(self):
+        url = reverse('dashboard:leap_locate_data', kwargs={'pk': 999999})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
 
 class LeapPagesTests(TestCase):
     def setUp(self):
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         self.user = User.objects.create_user(username='leappageuser', password='pass')
         self.client.force_login(self.user)
@@ -1542,3 +1546,9 @@ class LeapPagesTests(TestCase):
     def test_prepare_page_200(self):
         response = self.client.get(reverse('dashboard:leap_prepare'))
         self.assertEqual(response.status_code, 200)
+
+    def test_redirects_anonymous(self):
+        from django.test import Client
+        c = Client()
+        response = c.get(reverse('dashboard:leap_locate'))
+        self.assertEqual(response.status_code, 302)
