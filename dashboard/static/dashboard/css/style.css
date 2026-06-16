@@ -3288,3 +3288,137 @@ a.app-header__avatar {
 .esg-decoration__sub { color: rgba(255,255,255,.85); }
 .esg-empty { font-size: 14px; color: var(--color-on-surface-variant); text-align: center; padding: 24px 0; margin: 0; }
 .esg-coming { padding: 40px; }
+
+/* ── LEAP tabs ────────────────────────────────────────────────────────── */
+.leap-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.leap-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 92px;
+  padding: 10px 16px;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 12px;
+  background: var(--color-surface-container-lowest);
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.leap-tab:hover {
+  background: var(--color-surface-container);
+  border-color: var(--color-outline);
+}
+.leap-tab__letter {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.leap-tab__name {
+  color: inherit;
+}
+.leap-tab--active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.leap-tab--active:hover {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* ── LEAP Locate page ─────────────────────────────────────────────────── */
+.ll-mid-row {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  align-items: stretch;
+}
+@media (max-width: 900px) {
+  .ll-mid-row { grid-template-columns: 1fr; }
+}
+.ll-filters {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+.leap-filter {
+  padding: 5px 12px;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 999px;
+  background: var(--color-surface-container-lowest);
+  color: var(--color-on-surface-variant);
+  font-size: 13px;
+  cursor: pointer;
+}
+.leap-filter--active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.map-legend__dot--ring {
+  background: transparent;
+  border: 3px solid #3d6b4f;
+  box-sizing: border-box;
+}
+.ll-list-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ll-list-card__title { margin-bottom: 12px; }
+.ll-list { overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.ll-empty { color: var(--color-on-surface-variant); font-size: 14px; }
+.ll-item {
+  padding: 10px 12px;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 10px;
+  background: var(--color-surface-container-lowest);
+}
+.ll-item--clickable { cursor: pointer; }
+.ll-item--clickable:hover { border-color: var(--color-outline); }
+.ll-item__top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ll-item__name { font-weight: 600; }
+.ll-item__badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-secondary-container);
+  color: var(--color-on-secondary-container);
+  white-space: nowrap;
+}
+.ll-item__zone { font-size: 12px; color: var(--color-on-surface-variant); min-height: 14px; }
+.ll-item__area { font-weight: 600; white-space: nowrap; }
+.ll-item__bars { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+.ll-bar { display: flex; align-items: center; gap: 8px; }
+.ll-bar__label { font-size: 11px; width: 42px; color: var(--color-on-surface-variant); }
+.ll-bar__track { flex: 1; height: 6px; border-radius: 999px; background: var(--color-surface-dim); overflow: hidden; }
+.ll-bar__fill { display: block; height: 100%; border-radius: 999px; }
+.ll-popup__meta { font-size: 12px; color: #54433e; margin: 2px 0; }
+.ll-popup__zone { font-size: 12px; margin: 4px 0; }
+.ll-popup__risk { font-size: 12px; margin-top: 4px; }
+
+/* ── LEAP stub ────────────────────────────────────────────────────────── */
+.leap-stub {
+  text-align: center;
+  padding: 56px 24px;
+}
+.leap-stub__letter {
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--color-outline-variant);
+  line-height: 1;
+}
+.leap-stub__title {
+  margin: 12px 0 4px;
+  color: var(--color-on-surface);
+}
+.leap-stub__text { color: var(--color-on-surface-variant); }
