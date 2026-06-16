@@ -1,0 +1,27 @@
+{% comment %}Barre d'onglets LEAP. Usage : {% include "dashboard/_leap_tabs.html" with active="locate" %}{% endcomment %}
+<nav class="leap-tabs" aria-label="Phases LEAP">
+  <a class="leap-tab {% if active == 'locate' %}leap-tab--active{% endif %}"
+     href="{% url 'dashboard:leap_locate' %}"
+     {% if active == 'locate' %}aria-current="page"{% endif %}>
+    <span class="leap-tab__letter">L</span>
+    <span class="leap-tab__name label-caps">Locate</span>
+  </a>
+  <a class="leap-tab {% if active == 'evaluate' %}leap-tab--active{% endif %}"
+     href="{% url 'dashboard:leap_evaluate' %}"
+     {% if active == 'evaluate' %}aria-current="page"{% endif %}>
+    <span class="leap-tab__letter">E</span>
+    <span class="leap-tab__name label-caps">Evaluate</span>
+  </a>
+  <a class="leap-tab {% if active == 'assess' %}leap-tab--active{% endif %}"
+     href="{% url 'dashboard:mesure_empreinte' %}"
+     {% if active == 'assess' %}aria-current="page"{% endif %}>
+    <span class="leap-tab__letter">A</span>
+    <span class="leap-tab__name label-caps">Assess</span>
+  </a>
+  <a class="leap-tab {% if active == 'prepare' %}leap-tab--active{% endif %}"
+     href="{% url 'dashboard:leap_prepare' %}"
+     {% if active == 'prepare' %}aria-current="page"{% endif %}>
+    <span class="leap-tab__letter">P</span>
+    <span class="leap-tab__name label-caps">Prepare</span>
+  </a>
+</nav>
