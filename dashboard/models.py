@@ -159,6 +159,17 @@ class Production(models.Model):
         asset_name = self.asset.name if self.asset else "no asset"
         return f"{asset_name} - {self.commodity.name} - {self.year}"
 
+class Supply_chain(models.Model):
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='asset_productions')
+    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE)
+    quantity = models.FloatField()
+    year = models.IntegerField()
+    supplier = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='supplied_productions')
+    supplier_data_confidence = models.CharField(max_length=16, choices=[('country level','country'),('sub_region level', 'sub_region'),('asset level','asset')],default = 'country level')
+    def __str__(self):
+        asset_name = self.asset.name if self.asset else "no asset"
+        return f"{asset_name} - {self.commodity.name} - {self.year}"
+
 class Asset_consumption(models.Model):
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True)
     surface_area = models.FloatField(default=0)
