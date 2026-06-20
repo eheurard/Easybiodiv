@@ -997,6 +997,19 @@ class LeapPrepareDataTests(TestCase):
         url = reverse('dashboard:leap_prepare_data', kwargs={'pk': self.company.pk})
         self.assertEqual(self.client.post(url).status_code, 405)
 
+    def test_page_contains_simulator_elements(self):
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertContains(response, 'id="lp-dumbbell"')
+        self.assertContains(response, 'id="lp-prod-levers"')
+        self.assertContains(response, 'id="lp-impact-levers"')
+        self.assertContains(response, 'id="lp-group-by"')
+        self.assertContains(response, 'id="lp-reset"')
+
+    def test_page_loads_prepare_js_and_api_url(self):
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertContains(response, 'js/leap_prepare.js')
+        self.assertContains(response, 'LEAP_PREPARE_API_URL')
+
 
 class DetteEcologiqueDataTests(TestCase):
 
