@@ -1744,12 +1744,16 @@ class LeapLocateDataTests(TestCase):
         self.assertEqual(data['geojson']['features'], [])
 
     def test_supplier_features_and_links(self):
-        # Un asset fournisseur approvisionne l'asset détenu via Production.supplier.
+        # Un asset fournisseur approvisionne l'asset détenu via Supply_chain.
         supplier_asset = Asset.objects.create(
             name='Ferme Brésil', latitude=-15.0, longitude=-47.0,
             country=self.country, subnational_region=self.region,
         )
-        Production.objects.filter(asset=self.asset).update(supplier=supplier_asset)
+        from .models import Supply_chain
+        Supply_chain.objects.create(
+            asset=self.asset, supplier=supplier_asset,
+            commodity=self.commodity, quantity=100.0, year=2024,
+        )
         from .views import _get_leap_locate_data
         data = _get_leap_locate_data(self.company)
 
@@ -1778,7 +1782,11 @@ class LeapLocateDataTests(TestCase):
             country=self.country, subnational_region=self.region,
         )
         Ownership.objects.create(Asset=supplier_asset, Company=self.company, ownership='100%')
-        Production.objects.filter(asset=self.asset).update(supplier=supplier_asset)
+        from .models import Supply_chain
+        Supply_chain.objects.create(
+            asset=self.asset, supplier=supplier_asset,
+            commodity=self.commodity, quantity=100.0, year=2024,
+        )
         from .views import _get_leap_locate_data
         data = _get_leap_locate_data(self.company)
 
