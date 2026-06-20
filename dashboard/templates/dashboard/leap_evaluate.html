@@ -6,6 +6,10 @@
 {% block nav_risks_open %}open{% endblock %}
 {% block nav_mesure_empreinte %}active{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
+{% endblock %}
+
 {% block header_left %}
 <div class="company-combobox" id="company-combobox" role="combobox"
      aria-expanded="false" aria-haspopup="listbox" aria-owns="company-listbox">
@@ -30,10 +34,43 @@
 {% block content %}
 <div class="leap-page">
   {% include "dashboard/_leap_tabs.html" with active="evaluate" %}
-  <div class="card leap-stub">
-    <div class="leap-stub__letter">E</div>
-    <h2 class="leap-stub__title">Phase Evaluate</h2>
-    <p class="leap-stub__text">Bientôt disponible.</p>
+
+  <div class="pr-mid-row">
+    <div class="map-card-wrap">
+      <div class="map-card map-card--tall" id="leap-evaluate-map"
+           aria-label="Carte des sites par impact (Evaluate)"></div>
+
+      <div class="map-layer-toggle" role="group" aria-label="Style de carte">
+        <button class="map-layer-btn map-layer-btn--active" data-layer="classic">Classique</button>
+        <button class="map-layer-btn" data-layer="grayscale">Gris</button>
+        <button class="map-layer-btn" data-layer="satellite">Satellite</button>
+      </div>
+
+      <div class="map-legend" aria-label="Légende de l'impact">
+        <p class="map-legend__title">Impact sélectionné</p>
+        <ul class="map-legend__list">
+          <li><span class="map-legend__dot" style="background:#dac1ba"></span>Faible</li>
+          <li><span class="map-legend__dot" style="background:#feb87c"></span>Modéré</li>
+          <li><span class="map-legend__dot" style="background:#af5d43"></span>Élevé</li>
+          <li><span class="map-legend__dot" style="background:#91452d"></span>Très élevé</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card pr-ranking-card">
+      <div class="label-caps pr-ranking-card__title">Classement des impacts</div>
+      <div id="le-ranking" class="pr-ranking-list">
+        <p class="pr-empty">Sélectionnez une entreprise.</p>
+      </div>
+    </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+{{ companies|json_script:"companies-data" }}
+{{ initial_data|json_script:"initial-data" }}
+<script>var LEAP_EVALUATE_API_URL = "{% url 'dashboard:leap_evaluate_data' pk=0 %}";</script>
+<script src="{% static 'dashboard/js/leap_evaluate.js' %}" defer></script>
 {% endblock %}
