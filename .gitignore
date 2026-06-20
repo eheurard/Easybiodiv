@@ -17,10 +17,14 @@ env/
 
 # Django
 *.sqlite3
+*.sqlite3_init
 *.log
 local_settings.py
 media/
 staticfiles/
+
+# Passenger (fichier de redémarrage recréé à chaque déploiement)
+tmp/
 
 # Environment variables
 .env
