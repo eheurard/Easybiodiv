@@ -1,16 +1,16 @@
 from collections import defaultdict
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Max
+from django.db.models import Max, Prefetch
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET
 
 from django.db.models import Q
 from .models import (
-    Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
-    Company_Revenue_Sector, DisclosureRequirement, E4Assessment, Ownership,
-    Production,
+    Asset, Asset_consumption, Carbon_emission, Commodity, Company, Company_Policy,
+    Company_Revenue, Company_Revenue_Sector, DisclosureRequirement, E4Assessment,
+    Ownership, Production, Supply_chain,
 )
 from .services.market import get_market_data, DEFAULT_RANGE
 
@@ -534,10 +534,48 @@ def _get_leap_locate_data(company):
     assets = list(
         Asset.objects.filter(ownership__Company=company)
         .select_related('country', 'subnational_region')
+        .prefetch_related(
+            Prefetch('production_set', queryset=Production.objects.select_related('commodity')),
+            Prefetch('asset_productions', queryset=Supply_chain.objects.select_related(
+                'commodity', 'supplier', 'supplier__country'
+            )),
+        )
         .distinct()
     )
+    asset_ids = [a.pk for a in assets]
+
+    # Part de détention de la société sélectionnée pour chaque asset.
+    ownership_map = {
+        o['Asset_id']: o['ownership']
+        for o in Ownership.objects.filter(
+            Asset_id__in=asset_ids, Company=company
+        ).values('Asset_id', 'ownership')
+    }
+
     features = []
+    suppliers = {}          # asset_id du fournisseur -> Feature point
+    supplier_links = []     # une LineString fournisseur -> asset par lien
+    asset_id_set = set(asset_ids)
     for a in assets:
+        # Données de production directe (opérations propres de la société).
+        prods_all = list(a.production_set.all())
+        latest_year = max((p.year for p in prods_all), default=None)
+        recent_prods = [p for p in prods_all if p.year == latest_year] if latest_year else []
+
+        productions = [
+            {
+                'commodity': p.commodity.name,
+                'quantity': round(p.production, 2),
+                'unit': p.commodity.unit,
+                'revenue': round(p.estimated_revenue, 2),
+            }
+            for p in sorted(recent_prods, key=lambda x: -x.production)
+        ]
+        revenue_total = round(sum(p.estimated_revenue for p in recent_prods), 2)
+        asset_types = sorted({
+            p.commodity.get_biodiversity_loss_class_display() for p in recent_prods
+        })
+
         features.append({
             'type': 'Feature',
             'geometry': {'type': 'Point', 'coordinates': [a.longitude, a.latitude]},
@@ -545,20 +583,203 @@ def _get_leap_locate_data(company):
                 'name': a.name,
                 'country': a.country.name,
                 'region': a.subnational_region.name if a.subnational_region else '',
-                'near_sensitive_zone': a.near_sensitive_zone,
-                'sensitive_zone_type': (
-                    a.get_sensitive_zone_type_display() if a.sensitive_zone_type else ''
-                ),
-                'sensitive_zone_name': a.sensitive_zone_name,
-                'sensitive_zone_area_ha': round(a.sensitive_zone_area_ha, 2),
-                'risk_water': round(a.risk_water, 4),
-                'risk_water_stress': round(a.risk_water_stress, 4),
+                'asset_type': ', '.join(asset_types),
+                'ownership': ownership_map.get(a.pk, ''),
+                'productions': productions,
+                'revenue_total': revenue_total,
             },
         })
+
+        # Fournisseurs : Supply_chain relie un fournisseur (Asset) à cet asset.
+        sc_all = list(a.asset_productions.all())
+        sc_latest_year = max((sc.year for sc in sc_all), default=None)
+        recent_sc = [sc for sc in sc_all if sc.year == sc_latest_year] if sc_latest_year else []
+
+        for sc in recent_sc:
+            sup = sc.supplier
+            if not sup or sup.pk == a.pk:
+                continue
+            # Si le fournisseur est lui-même un asset déjà affiché (détenu par la
+            # société sélectionnée), on conserve le lien/la flèche mais on n'ajoute
+            # pas de marqueur fournisseur en doublon du marqueur asset.
+            if sup.pk not in asset_id_set:
+                feat = suppliers.get(sup.pk)
+                if feat is None:
+                    feat = {
+                        'type': 'Feature',
+                        'geometry': {
+                            'type': 'Point',
+                            'coordinates': [sup.longitude, sup.latitude],
+                        },
+                        'properties': {
+                            'id': sup.pk,
+                            'name': sup.name,
+                            'country': sup.country.name,
+                            'commodities': [],
+                        },
+                    }
+                    suppliers[sup.pk] = feat
+                commodities = feat['properties']['commodities']
+                if sc.commodity.name not in commodities:
+                    commodities.append(sc.commodity.name)
+            supplier_links.append({
+                'type': 'Feature',
+                'geometry': {
+                    'type': 'LineString',
+                    'coordinates': [
+                        [sup.longitude, sup.latitude],
+                        [a.longitude, a.latitude],
+                    ],
+                },
+                'properties': {
+                    'supplier': sup.name,
+                    'asset': a.name,
+                    'commodity': sc.commodity.name,
+                },
+            })
+
     return {
         'company_id': company.pk,
         'company_name': company.name,
         'geojson': {'type': 'FeatureCollection', 'features': features},
+        'suppliers': {'type': 'FeatureCollection', 'features': list(suppliers.values())},
+        'supplier_links': {'type': 'FeatureCollection', 'features': supplier_links},
+    }
+
+
+# Impacts midpoint ReCiPe 2016 portés par les commodités : étiquettes FR pour la
+# phase LEAP Evaluate (classement + sélecteur de dimensionnement des points).
+_EVALUATE_IMPACT_FIELDS = [
+    ('impact_midpoint_ReCiPe2016_water_consumption',          'Consommation eau'),
+    ('impact_midpoint_ReCiPe2016_climate_change',             'Changement climatique'),
+    ('impact_midpoint_ReCiPe2016_freshwater_ecotoxicity',     'Écotoxicité eau douce'),
+    ('impact_midpoint_ReCiPe2016_freshwater_eutrophication',  'Eutrophisation eau douce'),
+    ('impact_midpoint_ReCiPe2016_marine_eutrophication',      'Eutrophisation marine'),
+    ('impact_midpoint_ReCiPe2016_terrestrial_acidification',  'Acidification terrestre'),
+    ('impact_midpoint_ReCiPe2016_soil_acidification',         'Acidification des sols'),
+    ('impact_midpoint_ReCiPe2016_ozonedepletion',             "Appauvrissement de l'ozone"),
+    ('impact_midpoint_ReCiPe2016_resource_depletion_fossil',  'Épuisement ressources fossiles'),
+    ('impact_midpoint_ReCiPe2016_resource_depletion_minerals','Épuisement ressources minérales'),
+    ('impact_midpoint_ReCiPe2016_land_use',                   'Utilisation des terres'),
+]
+
+
+def _get_leap_evaluate_data(company):
+    assets = list(
+        Asset.objects.filter(ownership__Company=company)
+        .select_related('country', 'subnational_region')
+        .distinct()
+    )
+    asset_ids = [a.pk for a in assets]
+
+    # Consommation/émissions par asset (somme des lignes Asset_consumption).
+    consumption = defaultdict(lambda: {'water': 0.0, 'co2': 0.0, 'waste': 0.0})
+    for c in Asset_consumption.objects.filter(asset_id__in=asset_ids):
+        agg = consumption[c.asset_id]
+        agg['water'] += c.water_consumption
+        agg['co2'] += c.CO2_emissions
+        agg['waste'] += c.waste_generated
+
+    # Productions de l'année la plus récente de chaque asset.
+    latest_years = dict(
+        Production.objects.filter(asset_id__in=asset_ids)
+        .values('asset_id')
+        .annotate(max_year=Max('year'))
+        .values_list('asset_id', 'max_year')
+    )
+    productions = [
+        p for p in Production.objects.filter(asset_id__in=asset_ids).select_related('commodity')
+        if latest_years.get(p.asset_id) == p.year
+    ]
+
+    # Somme des impacts midpoint par asset : production × facteur de la commodité.
+    asset_impacts = defaultdict(lambda: {f: 0.0 for f, _ in _EVALUATE_IMPACT_FIELDS})
+    for p in productions:
+        ai = asset_impacts[p.asset_id]
+        for f, _ in _EVALUATE_IMPACT_FIELDS:
+            ai[f] += p.production * getattr(p.commodity, f, 0.0)
+
+    assets_out = []
+    for a in assets:
+        cons = consumption.get(a.pk, {'water': 0.0, 'co2': 0.0, 'waste': 0.0})
+        ai = asset_impacts.get(a.pk, {f: 0.0 for f, _ in _EVALUATE_IMPACT_FIELDS})
+        assets_out.append({
+            'id': a.pk,
+            'name': a.name,
+            'latitude': a.latitude,
+            'longitude': a.longitude,
+            'country': a.country.name,
+            'water_consumption': round(cons['water'], 2),
+            'co2_emissions': round(cons['co2'], 2),
+            'waste_generated': round(cons['waste'], 2),
+            'near_sensitive_zone': a.near_sensitive_zone,
+            'sensitive_zone_type': (
+                a.get_sensitive_zone_type_display() if a.sensitive_zone_type else ''
+            ),
+            'impacts': {f: round(ai[f], 4) for f, _ in _EVALUATE_IMPACT_FIELDS},
+        })
+
+    impacts = []
+    for f, label in _EVALUATE_IMPACT_FIELDS:
+        total = sum(asset_impacts[a.pk][f] for a in assets)
+        impacts.append({'key': f, 'name': label, 'total': round(total, 4)})
+    impacts.sort(key=lambda x: -x['total'])
+
+    return {
+        'company_id': company.pk,
+        'company_name': company.name,
+        'impacts': impacts,
+        'assets': assets_out,
+    }
+
+
+def _get_leap_prepare_data(company):
+    assets = list(
+        Asset.objects.filter(ownership__Company=company)
+        .prefetch_related(
+            Prefetch('production_set',
+                     queryset=Production.objects.select_related('commodity'))
+        )
+        .distinct()
+    )
+
+    commodities = {}
+    assets_out = []
+    years = []
+    for a in assets:
+        prods = list(a.production_set.all())
+        latest = max((p.year for p in prods), default=None)
+        if latest is None:
+            continue
+        years.append(latest)
+
+        line_qty = defaultdict(float)
+        line_unit = {}
+        for p in prods:
+            if p.year != latest:
+                continue
+            c = p.commodity
+            commodities.setdefault(c.pk, {
+                'id': c.pk,
+                'name': c.name,
+                'impact_factor': c.impact_endpoint_ReCiPe2016_ecosystem_diversity,
+            })
+            line_qty[c.pk] += p.production
+            line_unit[c.pk] = c.unit
+
+        lines = [
+            {'commodity_id': cid, 'qty': round(q, 4), 'unit': line_unit[cid]}
+            for cid, q in line_qty.items()
+        ]
+        if lines:
+            assets_out.append({'id': a.pk, 'name': a.name, 'lines': lines})
+
+    return {
+        'company_id': company.pk,
+        'company_name': company.name,
+        'year': max(years) if years else None,
+        'commodities': sorted(commodities.values(), key=lambda c: c['name']),
+        'assets': sorted(assets_out, key=lambda a: a['name']),
     }
 
 
@@ -1293,7 +1514,21 @@ def leap_locate_data(request, pk):
 @require_GET
 def leap_evaluate(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
-    return render(request, 'dashboard/leap_evaluate.html', {'companies': companies})
+    initial_data = None
+    if companies:
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = _get_leap_evaluate_data(first)
+    return render(request, 'dashboard/leap_evaluate.html', {
+        'companies': companies,
+        'initial_data': initial_data,
+    })
+
+
+@login_required
+@require_GET
+def leap_evaluate_data(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    return JsonResponse(_get_leap_evaluate_data(company))
 
 
 @login_required
