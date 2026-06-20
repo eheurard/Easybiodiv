@@ -1,0 +1,17 @@
+---
+# Tâches exécutées par cPanel (Git Version Control) après chaque
+# « Update from Remote ». Les commandes tournent depuis la racine du dépôt,
+# donc manage.py est dans le répertoire courant.
+#
+# >>> À PERSONNALISER <<<
+# Remplace le chemin ci-dessous par celui affiché dans cPanel :
+#   Setup Python App -> ton appli -> « Command for entering to virtual
+#   environment » (garder la partie qui finit par /bin).
+# Exemple : /home/monuser/virtualenv/repositories/easybiodiv/3.12/bin
+deployment:
+  tasks:
+    - export VENV=/home/heel8455/virtualenv/repositories/Easybiodiv/3.12/bin
+    - /bin/mkdir -p tmp
+    - $VENV/python manage.py migrate --noinput
+    - $VENV/python manage.py collectstatic --noinput
+    - /bin/touch tmp/restart.txt
