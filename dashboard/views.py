@@ -1535,7 +1535,21 @@ def leap_evaluate_data(request, pk):
 @require_GET
 def leap_prepare(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
-    return render(request, 'dashboard/leap_prepare.html', {'companies': companies})
+    initial_data = None
+    if companies:
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = _get_leap_prepare_data(first)
+    return render(request, 'dashboard/leap_prepare.html', {
+        'companies': companies,
+        'initial_data': initial_data,
+    })
+
+
+@login_required
+@require_GET
+def leap_prepare_data(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    return JsonResponse(_get_leap_prepare_data(company))
 
 
 @login_required

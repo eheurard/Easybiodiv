@@ -16,6 +16,7 @@ urlpatterns = [
     path('leap/evaluate/', views.leap_evaluate, name='leap_evaluate'),
     path('api/company/<int:pk>/leap-evaluate/', views.leap_evaluate_data, name='leap_evaluate_data'),
     path('leap/prepare/', views.leap_prepare, name='leap_prepare'),
+    path('api/company/<int:pk>/leap-prepare/', views.leap_prepare_data, name='leap_prepare_data'),
     path('dependencies/', views.dependencies, name='dependencies'),
     path('api/company/<int:pk>/dependencies/', views.dependencies_data, name='dependencies_data'),
     path('physical-risk/', views.physical_risk, name='physical_risk'),

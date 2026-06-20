@@ -965,6 +965,38 @@ class LeapPrepareDataTests(TestCase):
         self.assertEqual(data['assets'], [])
         self.assertEqual(data['commodities'], [])
 
+    def test_page_returns_200(self):
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_page_uses_correct_template(self):
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertTemplateUsed(response, 'dashboard/leap_prepare.html')
+
+    def test_page_redirects_anonymous(self):
+        self.client.logout()
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_page_initial_data_present(self):
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertIsNotNone(response.context['initial_data'])
+        self.assertIn('assets', response.context['initial_data'])
+
+    def test_api_returns_200_json(self):
+        url = reverse('dashboard:leap_prepare_data', kwargs={'pk': self.company.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/json', response['Content-Type'])
+
+    def test_api_404_on_missing_company(self):
+        url = reverse('dashboard:leap_prepare_data', kwargs={'pk': 99999})
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_api_post_not_allowed(self):
+        url = reverse('dashboard:leap_prepare_data', kwargs={'pk': self.company.pk})
+        self.assertEqual(self.client.post(url).status_code, 405)
+
 
 class DetteEcologiqueDataTests(TestCase):
 
