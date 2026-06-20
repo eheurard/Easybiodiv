@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Prepare — Easybiodiv{% endblock %}
+
+{% block nav_risks_open %}open{% endblock %}
+{% block nav_mesure_empreinte %}active{% endblock %}
+
+{% block header_left %}
+<div class="company-combobox" id="company-combobox" role="combobox"
+     aria-expanded="false" aria-haspopup="listbox" aria-owns="company-listbox">
+  <span class="company-combobox__label label-caps">Entreprise</span>
+  <div class="company-combobox__input-wrap">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M10 10l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+    <input type="text" id="company-search" class="company-combobox__input"
+           placeholder="Rechercher une entreprise…"
+           autocomplete="off" aria-autocomplete="list"
+           aria-controls="company-listbox" aria-label="Sélectionner une entreprise">
+    <svg class="company-combobox__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <ul id="company-listbox" class="company-combobox__listbox" role="listbox" hidden></ul>
+</div>
+{% endblock header_left %}
+
+{% block content %}
+<div class="leap-page">
+  {% include "dashboard/_leap_tabs.html" with active="prepare" %}
+
+  <!-- Bandeau comparaison -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="lp-impact-current">—</div>
+      <div class="kpi-card__label label-caps">Impact actuel</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="lp-impact-future">—</div>
+      <div class="kpi-card__label label-caps">Impact T+1 (simulé)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="lp-variation">—</div>
+      <div class="kpi-card__label label-caps">Variation
+        <span class="lp-pill" id="lp-variation-pill" hidden></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leviers + dumbbell -->
+  <div class="lp-mid-row">
+    <aside class="card lp-levers">
+      <div class="lp-levers__head">
+        <span class="label-caps">Leviers</span>
+        <button type="button" class="lp-reset" id="lp-reset">Réinitialiser</button>
+      </div>
+
+      <div class="lp-levers__group">
+        <p class="lp-levers__title label-caps">Production par asset</p>
+        <div id="lp-prod-levers" class="lp-levers__list">
+          <p class="pr-empty">Sélectionnez une entreprise.</p>
+        </div>
+      </div>
+
+      <div class="lp-levers__group">
+        <p class="lp-levers__title label-caps">Facteur d'impact par commodité</p>
+        <div id="lp-impact-levers" class="lp-levers__list">
+          <p class="pr-empty">Sélectionnez une entreprise.</p>
+        </div>
+      </div>
+    </aside>
+
+    <div class="card lp-chart-card">
+      <div class="lp-chart-card__head">
+        <span class="label-caps">Comparaison actuel → T+1</span>
+        <label class="lp-group-by">
+          <span class="label-caps">Détail</span>
+          <select id="lp-group-by" class="lp-select">
+            <option value="asset">Par asset</option>
+            <option value="commodity">Par commodité</option>
+          </select>
+        </label>
+      </div>
+      <svg id="lp-dumbbell" class="lp-dumbbell" role="img"
+           aria-label="Comparaison de l'impact actuel et T+1"></svg>
+      <div class="lp-total">
+        <span class="lp-total__label label-caps">Total entreprise</span>
+        <span class="lp-total__values data-tabular">
+          <span id="lp-total-current">—</span>
+          <span class="lp-total__arrow">→</span>
+          <span id="lp-total-future">—</span>
+          <span id="lp-total-delta" class="lp-total__delta"></span>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ companies|json_script:"companies-data" }}
+{{ initial_data|json_script:"initial-data" }}
+<script>var LEAP_PREPARE_API_URL = "{% url 'dashboard:leap_prepare_data' pk=0 %}";</script>
+<script src="{% static 'dashboard/js/leap_prepare.js' %}" defer></script>
+{% endblock %}

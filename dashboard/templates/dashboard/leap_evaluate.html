@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Evaluate — Easybiodiv{% endblock %}
+
+{% block nav_risks_open %}open{% endblock %}
+{% block nav_mesure_empreinte %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
+{% endblock %}
+
+{% block header_left %}
+<div class="company-combobox" id="company-combobox" role="combobox"
+     aria-expanded="false" aria-haspopup="listbox" aria-owns="company-listbox">
+  <span class="company-combobox__label label-caps">Entreprise</span>
+  <div class="company-combobox__input-wrap">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M10 10l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+    <input type="text" id="company-search" class="company-combobox__input"
+           placeholder="Rechercher une entreprise…"
+           autocomplete="off" aria-autocomplete="list"
+           aria-controls="company-listbox" aria-label="Sélectionner une entreprise">
+    <svg class="company-combobox__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <ul id="company-listbox" class="company-combobox__listbox" role="listbox" hidden></ul>
+</div>
+{% endblock header_left %}
+
+{% block content %}
+<div class="leap-page">
+  {% include "dashboard/_leap_tabs.html" with active="evaluate" %}
+
+  <div class="pr-mid-row">
+    <div class="map-card-wrap">
+      <div class="map-card map-card--tall" id="leap-evaluate-map"
+           aria-label="Carte des sites par impact (Evaluate)"></div>
+
+      <div class="map-layer-toggle" role="group" aria-label="Style de carte">
+        <button class="map-layer-btn map-layer-btn--active" data-layer="classic">Classique</button>
+        <button class="map-layer-btn" data-layer="grayscale">Gris</button>
+        <button class="map-layer-btn" data-layer="satellite">Satellite</button>
+      </div>
+
+      <div class="map-legend" aria-label="Légende de l'impact">
+        <p class="map-legend__title">Impact sélectionné</p>
+        <ul class="map-legend__list">
+          <li><span class="map-legend__dot" style="background:#dac1ba"></span>Faible</li>
+          <li><span class="map-legend__dot" style="background:#feb87c"></span>Modéré</li>
+          <li><span class="map-legend__dot" style="background:#af5d43"></span>Élevé</li>
+          <li><span class="map-legend__dot" style="background:#91452d"></span>Très élevé</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card pr-ranking-card">
+      <div class="label-caps pr-ranking-card__title">Classement des impacts</div>
+      <div id="le-ranking" class="pr-ranking-list">
+        <p class="pr-empty">Sélectionnez une entreprise.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+{{ companies|json_script:"companies-data" }}
+{{ initial_data|json_script:"initial-data" }}
+<script>var LEAP_EVALUATE_API_URL = "{% url 'dashboard:leap_evaluate_data' pk=0 %}";</script>
+<script src="{% static 'dashboard/js/leap_evaluate.js' %}" defer></script>
+{% endblock %}

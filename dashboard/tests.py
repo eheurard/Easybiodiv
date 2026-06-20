@@ -788,6 +788,229 @@ class PhysicalRiskPageViewTests(TestCase):
         self.assertEqual(response.status_code, 405)
 
 
+class LeapEvaluateDataTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from .models import Asset_consumption
+        User = get_user_model()
+        self.user = User.objects.create_user(username='evaluser', password='testpass')
+        self.client.force_login(self.user)
+
+        self.company = Company.objects.create(name='EvalCorp')
+        self.country = Country.objects.create(
+            name='France', water_ownership='Public', land_ownership='Private'
+        )
+        # Commodity with land_use=4 (midpoint impact), water_consumption=2
+        self.commodity = Commodity.objects.create(
+            name='Soja',
+            impact_midpoint_ReCiPe2016_land_use=4.0,
+            impact_midpoint_ReCiPe2016_water_consumption=2.0,
+        )
+        self.asset = Asset.objects.create(
+            name='Site A', latitude=48.0, longitude=2.0, country=self.country,
+            near_sensitive_zone=True, sensitive_zone_type='NATURA_2000',
+        )
+        Ownership.objects.create(Asset=self.asset, Company=self.company, ownership='100%')
+        Production.objects.create(
+            asset=self.asset, commodity=self.commodity, year=2024, production=10.0,
+        )
+        Asset_consumption.objects.create(
+            asset=self.asset, water_consumption=100.0,
+            CO2_emissions=50.0, waste_generated=25.0,
+        )
+
+    def test_impact_sum_is_production_times_factor(self):
+        from .views import _get_leap_evaluate_data
+        data = _get_leap_evaluate_data(self.company)
+        # land_use: 10 * 4 = 40 ; it is the largest -> ranked first
+        self.assertEqual(data['impacts'][0]['key'], 'impact_midpoint_ReCiPe2016_land_use')
+        self.assertAlmostEqual(data['impacts'][0]['total'], 40.0, places=2)
+        a = data['assets'][0]
+        self.assertAlmostEqual(a['impacts']['impact_midpoint_ReCiPe2016_land_use'], 40.0, places=2)
+        self.assertAlmostEqual(
+            a['impacts']['impact_midpoint_ReCiPe2016_water_consumption'], 20.0, places=2
+        )
+
+    def test_asset_consumption_and_sensitive_zone(self):
+        from .views import _get_leap_evaluate_data
+        a = _get_leap_evaluate_data(self.company)['assets'][0]
+        self.assertAlmostEqual(a['water_consumption'], 100.0, places=2)
+        self.assertAlmostEqual(a['co2_emissions'], 50.0, places=2)
+        self.assertAlmostEqual(a['waste_generated'], 25.0, places=2)
+        self.assertTrue(a['near_sensitive_zone'])
+        self.assertEqual(a['sensitive_zone_type'], 'Natura 2000')
+
+    def test_only_midpoint_impacts_listed(self):
+        from .views import _get_leap_evaluate_data
+        data = _get_leap_evaluate_data(self.company)
+        self.assertEqual(len(data['impacts']), 11)
+        self.assertTrue(all('midpoint' in i['key'] for i in data['impacts']))
+
+    def test_uses_latest_year_only(self):
+        from .views import _get_leap_evaluate_data
+        Production.objects.create(
+            asset=self.asset, commodity=self.commodity, year=2020, production=999.0,
+        )
+        data = _get_leap_evaluate_data(self.company)
+        # still 10 * 4 = 40, the 2020 row is ignored
+        land = next(i for i in data['impacts'] if i['key'].endswith('land_use'))
+        self.assertAlmostEqual(land['total'], 40.0, places=2)
+
+    def test_empty_company_defaults(self):
+        from .views import _get_leap_evaluate_data
+        empty = Company.objects.create(name='EmptyEval')
+        data = _get_leap_evaluate_data(empty)
+        self.assertEqual(data['assets'], [])
+        self.assertTrue(all(i['total'] == 0 for i in data['impacts']))
+
+    def test_page_returns_200(self):
+        response = self.client.get(reverse('dashboard:leap_evaluate'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_page_uses_correct_template(self):
+        response = self.client.get(reverse('dashboard:leap_evaluate'))
+        self.assertTemplateUsed(response, 'dashboard/leap_evaluate.html')
+
+    def test_page_redirects_anonymous(self):
+        self.client.logout()
+        response = self.client.get(reverse('dashboard:leap_evaluate'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_api_returns_200(self):
+        url = reverse('dashboard:leap_evaluate_data', kwargs={'pk': self.company.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/json', response['Content-Type'])
+
+    def test_api_404_on_missing_company(self):
+        url = reverse('dashboard:leap_evaluate_data', kwargs={'pk': 99999})
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_api_post_not_allowed(self):
+        url = reverse('dashboard:leap_evaluate_data', kwargs={'pk': self.company.pk})
+        self.assertEqual(self.client.post(url).status_code, 405)
+
+
+class LeapPrepareDataTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='prepuser', password='testpass')
+        self.client.force_login(self.user)
+
+        self.company = Company.objects.create(name='PrepCorp')
+        self.country = Country.objects.create(
+            name='France', water_ownership='Public', land_ownership='Private'
+        )
+        # impact_endpoint_ReCiPe2016_ecosystem_diversity = 0.5
+        self.commodity = Commodity.objects.create(
+            name='Soja', unit='tonnes',
+            impact_endpoint_ReCiPe2016_ecosystem_diversity=0.5,
+        )
+        self.asset = Asset.objects.create(
+            name='Site A', latitude=48.0, longitude=2.0, country=self.country,
+        )
+        Ownership.objects.create(Asset=self.asset, Company=self.company, ownership='100%')
+        Production.objects.create(
+            asset=self.asset, commodity=self.commodity, year=2024, production=100.0,
+        )
+
+    def test_payload_shape(self):
+        from .views import _get_leap_prepare_data
+        data = _get_leap_prepare_data(self.company)
+        self.assertEqual(data['company_id'], self.company.pk)
+        self.assertEqual(data['year'], 2024)
+        self.assertEqual(len(data['assets']), 1)
+        asset = data['assets'][0]
+        self.assertEqual(asset['name'], 'Site A')
+        self.assertEqual(asset['lines'], [
+            {'commodity_id': self.commodity.pk, 'qty': 100.0, 'unit': 'tonnes'}
+        ])
+
+    def test_commodity_impact_factor(self):
+        from .views import _get_leap_prepare_data
+        data = _get_leap_prepare_data(self.company)
+        self.assertEqual(len(data['commodities']), 1)
+        self.assertEqual(data['commodities'][0]['id'], self.commodity.pk)
+        self.assertAlmostEqual(data['commodities'][0]['impact_factor'], 0.5, places=4)
+
+    def test_uses_latest_year_only(self):
+        from .views import _get_leap_prepare_data
+        Production.objects.create(
+            asset=self.asset, commodity=self.commodity, year=2020, production=999.0,
+        )
+        data = _get_leap_prepare_data(self.company)
+        self.assertEqual(data['year'], 2024)
+        # une seule ligne, qty de 2024 (100) et non 2020 (999)
+        self.assertEqual(len(data['assets'][0]['lines']), 1)
+        self.assertAlmostEqual(data['assets'][0]['lines'][0]['qty'], 100.0, places=2)
+
+    def test_aggregates_same_commodity_lines_in_asset(self):
+        from .views import _get_leap_prepare_data
+        # deux productions même asset/commodité/année -> agrégées en une ligne
+        Production.objects.create(
+            asset=self.asset, commodity=self.commodity, year=2024, production=50.0,
+        )
+        data = _get_leap_prepare_data(self.company)
+        self.assertEqual(len(data['assets'][0]['lines']), 1)
+        self.assertAlmostEqual(data['assets'][0]['lines'][0]['qty'], 150.0, places=2)
+
+    def test_empty_company(self):
+        from .views import _get_leap_prepare_data
+        empty = Company.objects.create(name='EmptyPrep')
+        data = _get_leap_prepare_data(empty)
+        self.assertIsNone(data['year'])
+        self.assertEqual(data['assets'], [])
+        self.assertEqual(data['commodities'], [])
+
+    def test_page_returns_200(self):
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_page_uses_correct_template(self):
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertTemplateUsed(response, 'dashboard/leap_prepare.html')
+
+    def test_page_redirects_anonymous(self):
+        self.client.logout()
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_page_initial_data_present(self):
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertIsNotNone(response.context['initial_data'])
+        self.assertIn('assets', response.context['initial_data'])
+
+    def test_api_returns_200_json(self):
+        url = reverse('dashboard:leap_prepare_data', kwargs={'pk': self.company.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/json', response['Content-Type'])
+
+    def test_api_404_on_missing_company(self):
+        url = reverse('dashboard:leap_prepare_data', kwargs={'pk': 99999})
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_api_post_not_allowed(self):
+        url = reverse('dashboard:leap_prepare_data', kwargs={'pk': self.company.pk})
+        self.assertEqual(self.client.post(url).status_code, 405)
+
+    def test_page_contains_simulator_elements(self):
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertContains(response, 'id="lp-dumbbell"')
+        self.assertContains(response, 'id="lp-prod-levers"')
+        self.assertContains(response, 'id="lp-impact-levers"')
+        self.assertContains(response, 'id="lp-group-by"')
+        self.assertContains(response, 'id="lp-reset"')
+
+    def test_page_loads_prepare_js_and_api_url(self):
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertContains(response, 'js/leap_prepare.js')
+        self.assertContains(response, 'LEAP_PREPARE_API_URL')
+
+
 class DetteEcologiqueDataTests(TestCase):
 
     def setUp(self):
@@ -1478,3 +1701,130 @@ class MarketEndpointTests(TestCase):
         url = reverse('dashboard:esg_market', kwargs={'pk': self.company.pk})
         resp = self.client.get(url)
         self.assertIn(resp.status_code, (302, 401, 403))
+
+
+class LeapLocateDataTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='leapuser', password='pass')
+        self.client.force_login(self.user)
+
+        self.company, self.country, self.region, self.commodity, self.asset = _make_world()
+        self.url = reverse('dashboard:leap_locate_data', kwargs={'pk': self.company.pk})
+
+    def test_endpoint_returns_200_json(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/json', response['Content-Type'])
+
+    def test_geojson_feature_properties(self):
+        # _make_world() crée une production Soja (100 t, 2024) sur l'asset, détenu
+        # à 100 % ; la commodité a la classe biodiversité 'Agriculture' par défaut.
+        Production.objects.filter(asset=self.asset).update(estimated_revenue=50000.0)
+        from .views import _get_leap_locate_data
+        data = _get_leap_locate_data(self.company)
+        feats = data['geojson']['features']
+        self.assertEqual(len(feats), 1)
+        props = feats[0]['properties']
+        self.assertEqual(props['name'], 'Site Paris')
+        self.assertEqual(props['asset_type'], 'Agriculture')
+        self.assertEqual(props['ownership'], '100%')
+        self.assertEqual(props['revenue_total'], 50000.0)
+        self.assertEqual(len(props['productions']), 1)
+        self.assertEqual(props['productions'][0]['commodity'], 'Soja')
+        self.assertEqual(props['productions'][0]['quantity'], 100.0)
+        self.assertEqual(props['productions'][0]['unit'], 'tonnes')
+        self.assertEqual(props['productions'][0]['revenue'], 50000.0)
+        self.assertEqual(feats[0]['geometry']['coordinates'], [2.3522, 48.8566])
+
+    def test_company_without_assets_returns_empty(self):
+        empty_company = Company.objects.create(name='EmptyCorp')
+        from .views import _get_leap_locate_data
+        data = _get_leap_locate_data(empty_company)
+        self.assertEqual(data['geojson']['features'], [])
+
+    def test_supplier_features_and_links(self):
+        # Un asset fournisseur approvisionne l'asset détenu via Production.supplier.
+        supplier_asset = Asset.objects.create(
+            name='Ferme Brésil', latitude=-15.0, longitude=-47.0,
+            country=self.country, subnational_region=self.region,
+        )
+        Production.objects.filter(asset=self.asset).update(supplier=supplier_asset)
+        from .views import _get_leap_locate_data
+        data = _get_leap_locate_data(self.company)
+
+        sup_feats = data['suppliers']['features']
+        self.assertEqual(len(sup_feats), 1)
+        sp = sup_feats[0]['properties']
+        self.assertEqual(sp['name'], 'Ferme Brésil')
+        self.assertEqual(sp['commodities'], ['Soja'])
+        self.assertEqual(sup_feats[0]['geometry']['coordinates'], [-47.0, -15.0])
+
+        links = data['supplier_links']['features']
+        self.assertEqual(len(links), 1)
+        self.assertEqual(
+            links[0]['geometry']['coordinates'],
+            [[-47.0, -15.0], [2.3522, 48.8566]],
+        )
+        self.assertEqual(links[0]['properties']['supplier'], 'Ferme Brésil')
+        self.assertEqual(links[0]['properties']['asset'], 'Site Paris')
+
+    def test_supplier_that_is_owned_asset_has_no_point_but_keeps_link(self):
+        # Le fournisseur est lui-même un asset détenu par la société : il est déjà
+        # affiché comme asset, donc pas de marqueur fournisseur en doublon — mais
+        # le lien fournisseur → asset doit rester (flèche).
+        supplier_asset = Asset.objects.create(
+            name='Site Lyon', latitude=45.75, longitude=4.85,
+            country=self.country, subnational_region=self.region,
+        )
+        Ownership.objects.create(Asset=supplier_asset, Company=self.company, ownership='100%')
+        Production.objects.filter(asset=self.asset).update(supplier=supplier_asset)
+        from .views import _get_leap_locate_data
+        data = _get_leap_locate_data(self.company)
+
+        # Les deux assets détenus sont affichés ; aucun point fournisseur.
+        self.assertEqual(len(data['geojson']['features']), 2)
+        self.assertEqual(data['suppliers']['features'], [])
+        # Le lien (et donc la flèche) subsiste.
+        links = data['supplier_links']['features']
+        self.assertEqual(len(links), 1)
+        self.assertEqual(links[0]['properties']['supplier'], 'Site Lyon')
+        self.assertEqual(links[0]['properties']['commodity'], 'Soja')
+
+    def test_no_suppliers_returns_empty_collections(self):
+        from .views import _get_leap_locate_data
+        data = _get_leap_locate_data(self.company)
+        self.assertEqual(data['suppliers']['features'], [])
+        self.assertEqual(data['supplier_links']['features'], [])
+
+    def test_not_found_returns_404(self):
+        url = reverse('dashboard:leap_locate_data', kwargs={'pk': 999999})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+
+class LeapPagesTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='leappageuser', password='pass')
+        self.client.force_login(self.user)
+        self.company, *_ = _make_world()
+
+    def test_locate_page_200(self):
+        response = self.client.get(reverse('dashboard:leap_locate'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'dashboard/leap_locate.html')
+
+    def test_evaluate_page_200(self):
+        response = self.client.get(reverse('dashboard:leap_evaluate'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_prepare_page_200(self):
+        response = self.client.get(reverse('dashboard:leap_prepare'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_redirects_anonymous(self):
+        from django.test import Client
+        c = Client()
+        response = c.get(reverse('dashboard:leap_locate'))
+        self.assertEqual(response.status_code, 302)
