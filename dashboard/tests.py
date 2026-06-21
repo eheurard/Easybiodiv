@@ -2014,6 +2014,29 @@ class PortfolioSaveViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 302)
 
+    def test_other_user_cannot_overwrite_portfolio(self):
+        from django.contrib.auth import get_user_model
+        from .models import Portfolio
+        User = get_user_model()
+        # Create portfolio owned by self.user
+        response = self.client.post(
+            self.url, data=json.dumps(self._payload()),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        owner_portfolio_id = json.loads(response.content)['id']
+        # Switch to a second user and attempt to overwrite
+        other = User.objects.create_user(username='other_saver', password='pass')
+        self.client.force_login(other)
+        response2 = self.client.post(
+            self.url,
+            data=json.dumps(self._payload(id=owner_portfolio_id, name='Hacké')),
+            content_type='application/json',
+        )
+        self.assertEqual(response2.status_code, 404)
+        # Original portfolio is unchanged
+        self.assertEqual(Portfolio.objects.get(pk=owner_portfolio_id).name, 'Fonds')
+
 
 class PortfolioDetailViewTests(TestCase):
 
@@ -2025,7 +2048,9 @@ class PortfolioDetailViewTests(TestCase):
         self.client.force_login(self.user)
         eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
         self.company = Company.objects.create(name='DetailCorp')
-        self.pf = Portfolio.objects.create(name='Fonds D', size=2000, currency=eur)
+        self.pf = Portfolio.objects.create(
+            name='Fonds D', size=2000, currency=eur, created_by=self.user,
+        )
         PortfolioHolding.objects.create(
             portfolio=self.pf, company=self.company, amount=1000, weight=50,
             instrument_type='BOND', coupon_rate=2.0,
@@ -2048,6 +2073,14 @@ class PortfolioDetailViewTests(TestCase):
     def test_detail_post_not_allowed(self):
         url = reverse('dashboard:portfolio_detail', kwargs={'pk': self.pf.pk})
         self.assertEqual(self.client.post(url).status_code, 405)
+
+    def test_other_user_cannot_read_portfolio(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        other = User.objects.create_user(username='other_detail', password='pass')
+        self.client.force_login(other)
+        url = reverse('dashboard:portfolio_detail', kwargs={'pk': self.pf.pk})
+        self.assertEqual(self.client.get(url).status_code, 404)
 
 
 class PortfolioAnalysisPageTests(TestCase):

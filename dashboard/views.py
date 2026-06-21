@@ -12,7 +12,7 @@ from django.db.models import Q
 from .models import (
     Asset, Asset_consumption, Carbon_emission, Commodity, Company, Company_Policy,
     Company_Revenue, Company_Revenue_Sector, Currency, DisclosureRequirement, E4Assessment,
-    Ownership, Portfolio, PortfolioHolding, Production, Supply_chain,
+    Ownership, Portfolio, Production, Supply_chain,
 )
 from .forms import PortfolioForm, PortfolioHoldingForm
 from .services.market import get_market_data, DEFAULT_RANGE
@@ -1662,7 +1662,7 @@ def portfolio_save(request):
 
     instance = None
     if payload.get('id'):
-        instance = get_object_or_404(Portfolio, pk=payload['id'])
+        instance = get_object_or_404(Portfolio, pk=payload['id'], created_by=request.user)
 
     form = PortfolioForm({
         'name': payload.get('name', ''),
@@ -1717,7 +1717,7 @@ def portfolio_save(request):
 @login_required
 @require_GET
 def portfolio_detail(request, pk):
-    portfolio = get_object_or_404(Portfolio, pk=pk)
+    portfolio = get_object_or_404(Portfolio, pk=pk, created_by=request.user)
     holdings = [{
         'company_id': h.company_id,
         'company_name': h.company.name,
