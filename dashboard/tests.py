@@ -2110,3 +2110,16 @@ class PortfolioTemplateContentTests(TestCase):
         self.assertContains(response, 'js/portfolio.js')
         self.assertContains(response, 'PF_SAVE_URL')
         self.assertContains(response, 'PF_DETAIL_URL')
+
+
+class PortfolioNavTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='navportf', password='pass')
+        self.client.force_login(self.user)
+
+    def test_sidebar_links_to_portfolio(self):
+        response = self.client.get(reverse('dashboard:index'))
+        self.assertContains(response, reverse('dashboard:portfolio_analysis'))
