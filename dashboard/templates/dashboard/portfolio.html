@@ -1,4 +1,170 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}Portfolio analysis — Easybiodiv{% endblock %}
-{% block content %}<div class="portfolio-page"></div>{% endblock %}
+
+{% block nav_portfolio %}active{% endblock %}
+
+{% block header_left %}
+<div class="pf-portfolio-picker">
+  <span class="label-caps">Portefeuille</span>
+  <select id="pf-portfolio-select" class="form-input" aria-label="Charger un portefeuille">
+    <option value="">— Nouveau —</option>
+    {% for p in portfolios %}
+      <option value="{{ p.id }}">{{ p.name }}</option>
+    {% endfor %}
+  </select>
+  <button type="button" id="pf-new-btn" class="btn btn--ghost">Nouveau portefeuille</button>
+</div>
+{% endblock header_left %}
+
+{% block content %}
+<div class="portfolio-page">
+
+  <div class="pf-tabs" id="pf-tabs" role="tablist" aria-label="Analyse de portefeuille">
+    <button class="pf-tab pf-tab--active" data-tab="creation" role="tab" aria-selected="true">Création</button>
+    <button class="pf-tab" data-tab="impact" role="tab" aria-selected="false">Impact</button>
+    <button class="pf-tab" data-tab="risque-physique" role="tab" aria-selected="false">Risque physique</button>
+    <button class="pf-tab" data-tab="risque-transition" role="tab" aria-selected="false">Risque de transition</button>
+    <button class="pf-tab" data-tab="risque-composite" role="tab" aria-selected="false">Risque composite</button>
+    <button class="pf-tab" data-tab="scenario" role="tab" aria-selected="false">Scénario</button>
+  </div>
+
+  <!-- ── Création ─────────────────────────────────────────────────── -->
+  <div class="pf-panel pf-panel--active" data-tab-panel="creation">
+
+    <section class="card pf-settings">
+      <h3 class="pf-section-title label-caps">Paramètres du fonds</h3>
+      <div class="pf-settings__grid">
+        <label class="pf-field">
+          <span class="label-caps">Nom du fonds</span>
+          <input type="text" id="pf-name" class="form-input" placeholder="Mon fonds">
+        </label>
+        <label class="pf-field">
+          <span class="label-caps">Taille du fonds</span>
+          <input type="number" id="pf-size" class="form-input" min="0" step="any" value="0">
+        </label>
+        <label class="pf-field">
+          <span class="label-caps">Devise</span>
+          <select id="pf-currency" class="form-input"></select>
+        </label>
+        <label class="pf-field">
+          <span class="label-caps">Benchmark</span>
+          <select id="pf-benchmark" class="form-input">
+            <option value="">Aucun</option>
+          </select>
+        </label>
+        <label class="pf-field pf-field--check">
+          <input type="checkbox" id="pf-is-benchmark">
+          <span>Utiliser ce fonds comme benchmark</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="card pf-composition">
+      <h3 class="pf-section-title label-caps">Composition</h3>
+
+      <div class="pf-add">
+        <input type="text" id="pf-company-search" class="form-input"
+               placeholder="Rechercher une entreprise à ajouter…"
+               autocomplete="off" aria-controls="pf-company-listbox">
+        <ul id="pf-company-listbox" class="pf-company-listbox" role="listbox" hidden></ul>
+      </div>
+
+      <table class="pf-holdings">
+        <thead>
+          <tr>
+            <th>Entreprise</th>
+            <th>Montant</th>
+            <th>Poids (%)</th>
+            <th>Détails</th>
+            <th><span class="visually-hidden">Supprimer</span></th>
+          </tr>
+        </thead>
+        <tbody id="pf-holdings-body"></tbody>
+        <tfoot>
+          <tr>
+            <td class="label-caps">Total</td>
+            <td id="pf-amount-total">0</td>
+            <td id="pf-weight-total">0 %</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <p class="pf-empty" id="pf-empty">Aucune entreprise ajoutée.</p>
+
+      <div class="pf-actions">
+        <span id="pf-status" class="pf-status" role="status" aria-live="polite"></span>
+        <button type="button" id="pf-save-btn" class="btn btn--primary">Enregistrer le portefeuille</button>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ── Onglets à venir ──────────────────────────────────────────── -->
+  <div class="pf-panel" data-tab-panel="impact" hidden>
+    <div class="card esg-coming"><p class="esg-empty">Impact — à venir, aucune donnée disponible.</p></div>
+  </div>
+  <div class="pf-panel" data-tab-panel="risque-physique" hidden>
+    <div class="card esg-coming"><p class="esg-empty">Risque physique — à venir, aucune donnée disponible.</p></div>
+  </div>
+  <div class="pf-panel" data-tab-panel="risque-transition" hidden>
+    <div class="card esg-coming"><p class="esg-empty">Risque de transition — à venir, aucune donnée disponible.</p></div>
+  </div>
+  <div class="pf-panel" data-tab-panel="risque-composite" hidden>
+    <div class="card esg-coming"><p class="esg-empty">Risque composite — à venir, aucune donnée disponible.</p></div>
+  </div>
+  <div class="pf-panel" data-tab-panel="scenario" hidden>
+    <div class="card esg-coming"><p class="esg-empty">Scénario — à venir, aucune donnée disponible.</p></div>
+  </div>
+
+</div>
+
+<!-- ── Pop-up financière ──────────────────────────────────────────── -->
+<dialog id="pf-dialog" class="pf-dialog">
+  <form method="dialog" class="pf-dialog__form">
+    <h3 class="pf-dialog__title" id="pf-dialog-company">Détails financiers</h3>
+
+    <label class="pf-field">
+      <span class="label-caps">Type d'instrument</span>
+      <select id="pf-dlg-instrument" class="form-input">
+        <option value="EQUITY">Action (Equity)</option>
+        <option value="BOND">Obligation (Bond)</option>
+      </select>
+    </label>
+
+    <div id="pf-dlg-bond-fields" class="pf-dialog__bond" hidden>
+      <label class="pf-field">
+        <span class="label-caps">Maturité</span>
+        <input type="date" id="pf-dlg-maturity" class="form-input">
+      </label>
+      <label class="pf-field">
+        <span class="label-caps">Taux de coupon (%)</span>
+        <input type="number" id="pf-dlg-coupon" class="form-input" step="any" min="0">
+      </label>
+      <label class="pf-field">
+        <span class="label-caps">Valeur nominale</span>
+        <input type="number" id="pf-dlg-facevalue" class="form-input" step="any" min="0">
+      </label>
+    </div>
+
+    <div class="pf-dialog__actions">
+      <button type="button" id="pf-dlg-cancel" class="btn btn--ghost">Annuler</button>
+      <button type="button" id="pf-dlg-validate" class="btn btn--primary">Valider</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}
+
+{% block extra_js %}
+{{ companies|json_script:"pf-companies" }}
+{{ currencies|json_script:"pf-currencies" }}
+{{ benchmarks|json_script:"pf-benchmarks" }}
+{{ portfolios|json_script:"pf-portfolios" }}
+<script>
+  var PF_SAVE_URL = "{% url 'dashboard:portfolio_save' %}";
+  var PF_DETAIL_URL = "{% url 'dashboard:portfolio_detail' pk=0 %}";
+</script>
+<script src="{% static 'dashboard/js/portfolio.js' %}" defer></script>
+{% endblock %}

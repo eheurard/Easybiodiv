@@ -2084,3 +2084,29 @@ class PortfolioAnalysisPageTests(TestCase):
         response = self.client.get(reverse('dashboard:portfolio_analysis'))
         self.assertEqual(response.status_code, 302)
         self.assertIn('/login', response['Location'])
+
+
+class PortfolioTemplateContentTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='tplportf', password='pass')
+        self.client.force_login(self.user)
+
+    def test_page_has_tabs_and_form_elements(self):
+        response = self.client.get(reverse('dashboard:portfolio_analysis'))
+        for needle in [
+            'id="pf-tabs"', 'data-tab="creation"', 'data-tab="impact"',
+            'data-tab="risque-physique"', 'data-tab="risque-transition"',
+            'data-tab="risque-composite"', 'data-tab="scenario"',
+            'id="pf-name"', 'id="pf-currency"', 'id="pf-benchmark"',
+            'id="pf-holdings-body"', 'id="pf-save-btn"', 'id="pf-dialog"',
+        ]:
+            self.assertContains(response, needle)
+
+    def test_page_loads_portfolio_js_and_urls(self):
+        response = self.client.get(reverse('dashboard:portfolio_analysis'))
+        self.assertContains(response, 'js/portfolio.js')
+        self.assertContains(response, 'PF_SAVE_URL')
+        self.assertContains(response, 'PF_DETAIL_URL')
