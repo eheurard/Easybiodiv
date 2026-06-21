@@ -27,4 +27,5 @@ urlpatterns = [
     path('api/company/<int:pk>/compare/', views.compare_data, name='compare_data'),
     path('compliance/', views.compliance, name='compliance'),
     path('api/company/<int:pk>/compliance/', views.compliance_data, name='compliance_data'),
+    path('api/portfolio/save/', views.portfolio_save, name='portfolio_save'),
 ]

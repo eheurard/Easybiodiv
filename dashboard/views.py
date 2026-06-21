@@ -1,17 +1,20 @@
+import json
 from collections import defaultdict
 
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Max, Prefetch
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 
 from django.db.models import Q
 from .models import (
     Asset, Asset_consumption, Carbon_emission, Commodity, Company, Company_Policy,
     Company_Revenue, Company_Revenue_Sector, DisclosureRequirement, E4Assessment,
-    Ownership, Production, Supply_chain,
+    Ownership, Portfolio, PortfolioHolding, Production, Supply_chain,
 )
+from .forms import PortfolioForm, PortfolioHoldingForm
 from .services.market import get_market_data, DEFAULT_RANGE
 
 from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
@@ -1647,3 +1650,65 @@ def compliance(request):
 def compliance_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_compliance_data(company))
+
+
+@login_required
+@require_POST
+def portfolio_save(request):
+    try:
+        payload = json.loads(request.body)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return JsonResponse({'errors': {'__all__': ['JSON invalide']}}, status=400)
+
+    instance = None
+    if payload.get('id'):
+        instance = get_object_or_404(Portfolio, pk=payload['id'])
+
+    form = PortfolioForm({
+        'name': payload.get('name', ''),
+        'size': payload.get('size'),
+        'currency': payload.get('currency_id'),
+        'benchmark': payload.get('benchmark_id'),
+    }, instance=instance)
+
+    rows = payload.get('holdings', [])
+    holding_forms = []
+    holding_errors = []
+    seen_companies = set()
+    duplicate = False
+    for row in rows:
+        company_id = row.get('company_id')
+        if company_id in seen_companies:
+            duplicate = True
+        seen_companies.add(company_id)
+        hf = PortfolioHoldingForm({
+            'company': company_id,
+            'amount': row.get('amount') or 0,
+            'weight': row.get('weight') or 0,
+            'instrument_type': row.get('instrument_type') or 'EQUITY',
+            'maturity_date': row.get('maturity_date') or None,
+            'coupon_rate': row.get('coupon_rate'),
+            'face_value': row.get('face_value'),
+        })
+        holding_forms.append(hf)
+        holding_errors.append({} if hf.is_valid() else hf.errors)
+
+    if not form.is_valid() or any(holding_errors) or duplicate:
+        errors = dict(form.errors)
+        if duplicate:
+            errors['__all__'] = ['Une entreprise ne peut apparaître qu\'une fois.']
+        return JsonResponse({'errors': errors, 'holdings': holding_errors}, status=400)
+
+    with transaction.atomic():
+        portfolio = form.save(commit=False)
+        portfolio.is_benchmark = bool(payload.get('is_benchmark'))
+        if portfolio.created_by_id is None:
+            portfolio.created_by = request.user
+        portfolio.save()
+        portfolio.holdings.all().delete()
+        for hf in holding_forms:
+            holding = hf.save(commit=False)
+            holding.portfolio = portfolio
+            holding.save()
+
+    return JsonResponse({'id': portfolio.pk, 'name': portfolio.name})

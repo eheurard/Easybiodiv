@@ -1913,3 +1913,103 @@ class PortfolioFormTests(TestCase):
         })
         self.assertFalse(form.is_valid())
         self.assertIn('weight', form.errors)
+
+
+class PortfolioSaveViewTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from .models import Currency
+        User = get_user_model()
+        self.user = User.objects.create_user(username='saver', password='pass')
+        self.client.force_login(self.user)
+        self.eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
+        self.company = Company.objects.create(name='SaveCorp')
+        self.url = reverse('dashboard:portfolio_save')
+
+    def _payload(self, **over):
+        data = {
+            'name': 'Fonds', 'size': 1000, 'currency_id': self.eur.pk,
+            'benchmark_id': None, 'is_benchmark': False,
+            'holdings': [{
+                'company_id': self.company.pk, 'amount': 500, 'weight': 50,
+                'instrument_type': 'EQUITY', 'maturity_date': None,
+                'coupon_rate': None, 'face_value': None,
+            }],
+        }
+        data.update(over)
+        return data
+
+    def test_save_creates_portfolio_and_holdings(self):
+        from .models import Portfolio
+        response = self.client.post(
+            self.url, data=json.dumps(self._payload()),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        pf = Portfolio.objects.get(name='Fonds')
+        self.assertEqual(pf.created_by, self.user)
+        self.assertEqual(pf.holdings.count(), 1)
+
+    def test_save_with_bond_fields(self):
+        from .models import Portfolio
+        payload = self._payload(holdings=[{
+            'company_id': self.company.pk, 'amount': 500, 'weight': 50,
+            'instrument_type': 'BOND', 'maturity_date': '2030-01-01',
+            'coupon_rate': 3.5, 'face_value': 1000,
+        }])
+        response = self.client.post(
+            self.url, data=json.dumps(payload), content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        holding = Portfolio.objects.get(name='Fonds').holdings.first()
+        self.assertEqual(holding.instrument_type, 'BOND')
+        self.assertAlmostEqual(holding.coupon_rate, 3.5, places=2)
+
+    def test_save_updates_existing_portfolio(self):
+        from .models import Portfolio
+        first = self.client.post(
+            self.url, data=json.dumps(self._payload()),
+            content_type='application/json',
+        )
+        pid = json.loads(first.content)['id']
+        self.client.post(
+            self.url,
+            data=json.dumps(self._payload(id=pid, name='Renommé', holdings=[])),
+            content_type='application/json',
+        )
+        pf = Portfolio.objects.get(pk=pid)
+        self.assertEqual(pf.name, 'Renommé')
+        self.assertEqual(pf.holdings.count(), 0)
+
+    def test_save_invalid_missing_currency_returns_400(self):
+        from .models import Portfolio
+        response = self.client.post(
+            self.url, data=json.dumps(self._payload(currency_id=None)),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('currency', json.loads(response.content)['errors'])
+        self.assertEqual(Portfolio.objects.count(), 0)
+
+    def test_save_duplicate_company_returns_400(self):
+        from .models import Portfolio
+        row = {
+            'company_id': self.company.pk, 'amount': 0, 'weight': 0,
+            'instrument_type': 'EQUITY', 'maturity_date': None,
+            'coupon_rate': None, 'face_value': None,
+        }
+        response = self.client.post(
+            self.url, data=json.dumps(self._payload(holdings=[row, row])),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Portfolio.objects.count(), 0)
+
+    def test_save_requires_login(self):
+        self.client.logout()
+        response = self.client.post(
+            self.url, data=json.dumps(self._payload()),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 302)
