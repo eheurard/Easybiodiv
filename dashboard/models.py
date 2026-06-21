@@ -375,3 +375,47 @@ class Carbon_emission(models.Model):
 
     class Meta:
         unique_together = ('company', 'year', 'scope')
+
+
+class Portfolio(models.Model):
+    name = models.CharField(max_length=255)
+    size = models.FloatField(default=0)
+    currency = models.ForeignKey(Currency, on_delete=models.PROTECT)
+    benchmark = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='benchmarked_by',
+    )
+    is_benchmark = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+    )
+
+    def __str__(self):
+        return self.name
+
+
+class PortfolioHolding(models.Model):
+    class Instrument(models.TextChoices):
+        EQUITY = 'EQUITY', 'Action (Equity)'
+        BOND = 'BOND', 'Obligation (Bond)'
+
+    portfolio = models.ForeignKey(
+        Portfolio, on_delete=models.CASCADE, related_name='holdings',
+    )
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    amount = models.FloatField(default=0)
+    weight = models.FloatField(default=0)
+    instrument_type = models.CharField(
+        max_length=10, choices=Instrument.choices, default=Instrument.EQUITY,
+    )
+    maturity_date = models.DateField(null=True, blank=True)
+    coupon_rate = models.FloatField(null=True, blank=True)
+    face_value = models.FloatField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('portfolio', 'company')
+
+    def __str__(self):
+        return f"{self.portfolio.name} — {self.company.name}"

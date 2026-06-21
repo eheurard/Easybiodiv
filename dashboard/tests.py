@@ -1836,3 +1836,42 @@ class LeapPagesTests(TestCase):
         c = Client()
         response = c.get(reverse('dashboard:leap_locate'))
         self.assertEqual(response.status_code, 302)
+
+
+class PortfolioModelTests(TestCase):
+
+    def setUp(self):
+        from .models import Currency
+        self.eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
+        self.company = Company.objects.create(name='PortCorp')
+
+    def test_create_portfolio_with_holding(self):
+        from .models import Portfolio, PortfolioHolding
+        pf = Portfolio.objects.create(name='Fonds A', size=1000.0, currency=self.eur)
+        PortfolioHolding.objects.create(
+            portfolio=pf, company=self.company, amount=500.0, weight=50.0,
+        )
+        self.assertEqual(pf.holdings.count(), 1)
+        holding = pf.holdings.first()
+        self.assertEqual(holding.instrument_type, 'EQUITY')
+        self.assertIsNone(holding.maturity_date)
+
+    def test_holding_unique_per_company(self):
+        from django.db import IntegrityError, transaction
+        from .models import Portfolio, PortfolioHolding
+        pf = Portfolio.objects.create(name='Fonds B', size=0, currency=self.eur)
+        PortfolioHolding.objects.create(portfolio=pf, company=self.company)
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                PortfolioHolding.objects.create(portfolio=pf, company=self.company)
+
+    def test_benchmark_self_reference(self):
+        from .models import Portfolio
+        bench = Portfolio.objects.create(
+            name='Indice', size=0, currency=self.eur, is_benchmark=True,
+        )
+        pf = Portfolio.objects.create(
+            name='Fonds C', size=0, currency=self.eur, benchmark=bench,
+        )
+        self.assertEqual(pf.benchmark, bench)
+        self.assertIn(pf, bench.benchmarked_by.all())
