@@ -1875,3 +1875,41 @@ class PortfolioModelTests(TestCase):
         )
         self.assertEqual(pf.benchmark, bench)
         self.assertIn(pf, bench.benchmarked_by.all())
+
+
+class PortfolioFormTests(TestCase):
+
+    def setUp(self):
+        from .models import Currency
+        self.eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
+        self.company = Company.objects.create(name='FormCorp')
+
+    def test_portfolio_form_valid(self):
+        from .forms import PortfolioForm
+        form = PortfolioForm({
+            'name': 'Fonds', 'size': 1000, 'currency': self.eur.pk, 'benchmark': '',
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_portfolio_form_requires_currency(self):
+        from .forms import PortfolioForm
+        form = PortfolioForm({'name': 'Fonds', 'size': 1000})
+        self.assertFalse(form.is_valid())
+        self.assertIn('currency', form.errors)
+
+    def test_holding_form_valid(self):
+        from .forms import PortfolioHoldingForm
+        form = PortfolioHoldingForm({
+            'company': self.company.pk, 'amount': 500, 'weight': 50,
+            'instrument_type': 'EQUITY',
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_holding_form_rejects_weight_over_100(self):
+        from .forms import PortfolioHoldingForm
+        form = PortfolioHoldingForm({
+            'company': self.company.pk, 'amount': 0, 'weight': 150,
+            'instrument_type': 'EQUITY',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('weight', form.errors)
