@@ -96,6 +96,18 @@
       </div>
     </div>
   </div>
+
+  <!-- Graphique évolution T → T+1 -->
+  <div class="card lp-area-card">
+    <div class="lp-area-card__head">
+      <span class="label-caps">Évolution de l'impact total</span>
+      <button type="button" class="lp-reset" id="lp-area-toggle"
+              aria-pressed="false">Par commodité</button>
+    </div>
+    <div class="lp-area-card__wrap">
+      <canvas id="lp-area-chart" aria-label="Graphique évolution impact T vers T+1"></canvas>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -103,5 +115,6 @@
 {{ companies|json_script:"companies-data" }}
 {{ initial_data|json_script:"initial-data" }}
 <script>var LEAP_PREPARE_API_URL = "{% url 'dashboard:leap_prepare_data' pk=0 %}";</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="{% static 'dashboard/js/leap_prepare.js' %}" defer></script>
 {% endblock %}

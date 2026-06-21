@@ -3208,6 +3208,41 @@ a.app-header__avatar {
   color: var(--color-primary);
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
 }
+.esg-sub-tabs {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.esg-sub-tab {
+  --sub-accent: #888;
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1.5px solid var(--color-outline-variant);
+  background: transparent; cursor: pointer;
+  padding: 7px 16px 7px 13px; border-radius: 100px;
+  font-family: var(--font-family); font-size: 13px; font-weight: 500;
+  color: var(--color-on-surface-variant);
+  transition: background .18s, color .18s, border-color .18s, box-shadow .18s;
+}
+.esg-sub-tab[data-sub="land-use"]         { --sub-accent: #6B7B3A; }
+.esg-sub-tab[data-sub="resource-use"]     { --sub-accent: #2B7A9E; }
+.esg-sub-tab[data-sub="climate-change"]   { --sub-accent: #C45A28; }
+.esg-sub-tab[data-sub="pollution"]        { --sub-accent: #7A5E9A; }
+.esg-sub-tab[data-sub="invasive-species"] { --sub-accent: #3D8B5C; }
+.esg-sub-tab:hover {
+  border-color: var(--sub-accent);
+  color: var(--sub-accent);
+  background: color-mix(in srgb, var(--sub-accent) 7%, transparent);
+}
+.esg-sub-tab--active {
+  background: var(--sub-accent);
+  border-color: var(--sub-accent);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--sub-accent) 35%, transparent);
+}
+.esg-sub-tab__icon { flex-shrink: 0; opacity: .7; }
+.esg-sub-tab--active .esg-sub-tab__icon { opacity: 1; }
+.esg-sub-panel { display: none; }
+.esg-sub-panel--active { display: block; }
 
 .esg-grid {
   display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;
@@ -3608,4 +3643,25 @@ a.app-header__avatar {
 @media (max-width: 900px) {
   .lp-mid-row { flex-direction: column; }
   .lp-levers { max-width: none; width: 100%; }
+}
+
+.lp-area-card {
+  margin-top: 20px;
+}
+.lp-area-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.lp-area-card__head .label-caps {
+  color: var(--color-on-surface-variant);
+}
+.lp-area-card__wrap {
+  position: relative;
+  height: 200px;
+}
+.lp-area-card__wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
 }

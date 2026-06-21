@@ -37,82 +37,166 @@
 
   <!-- ── Environmental ─────────────────────────────────────────────── -->
   <div class="esg-theme-panel esg-theme-panel--active" data-theme-panel="environmental">
-    <div class="esg-grid">
 
-      <div class="esg-grid__main">
+    <div class="esg-sub-tabs" role="tablist" aria-label="Thème environnemental">
 
-        <section class="card esg-chart">
-          <div class="esg-chart__head">
-            <div>
-              <h3 class="esg-chart__title">Tendance des émissions carbone</h3>
-              <p class="esg-chart__sub">Historique et projection (<span data-esg="carbon-unit">tCO2e</span>)</p>
-            </div>
-            <div class="esg-chart__legend">
-              <span class="esg-chart__legend-item"><span class="esg-chart__line esg-chart__line--solid"></span>Historique</span>
-              <span class="esg-chart__legend-item"><span class="esg-chart__line esg-chart__line--dashed"></span>Projection 2030</span>
-            </div>
-            <button id="esg-scope-toggle" class="esg-chart__scope-btn" aria-pressed="false" title="Afficher les émissions par scope">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <rect x="1" y="9" width="3" height="4" rx="0.5" fill="currentColor"/>
-                <rect x="5.5" y="5" width="3" height="8" rx="0.5" fill="currentColor"/>
-                <rect x="10" y="2" width="3" height="11" rx="0.5" fill="currentColor"/>
-              </svg>
-              Par scope
-            </button>
-          </div>
-          <div class="esg-chart__kpis">
-            <div class="esg-chart__kpi">
-              <span class="esg-chart__kpi-value" data-esg="carbon-latest">—</span>
-              <span class="esg-chart__kpi-label label-caps">Dernier total</span>
-            </div>
-            <div class="esg-chart__kpi">
-              <span class="esg-chart__kpi-value" data-esg="carbon-reduction">—</span>
-              <span class="esg-chart__kpi-label label-caps">Évolution</span>
-            </div>
-          </div>
-          <div class="esg-chart__canvas" id="esg-chart-canvas" aria-label="Graphique des émissions carbone">
-            <p class="esg-empty" id="esg-chart-empty" hidden>Aucune donnée carbone disponible.</p>
-          </div>
-        </section>
+      <button class="esg-sub-tab" data-sub="land-use" role="tab" aria-selected="false">
+        <svg class="esg-sub-tab__icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M2 4.5 Q4.5 3.5 7 4.5 Q9.5 5.5 12 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <path d="M2 7.5 Q4.5 6.5 7 7.5 Q9.5 8.5 12 7.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <path d="M2 10.5 Q4.5 9.5 7 10.5 Q9.5 11.5 12 10.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Land use
+      </button>
 
-        <section class="esg-featured" id="esg-featured" aria-label="Politiques en avant"></section>
+      <button class="esg-sub-tab" data-sub="resource-use" role="tab" aria-selected="false">
+        <svg class="esg-sub-tab__icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M7 1.5L4 6.5a3.5 3.5 0 107 0L7 1.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+          <path d="M5.5 8.5a1.5 1.5 0 001.5 1" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity=".6"/>
+        </svg>
+        Resource use
+      </button>
 
-        <section class="card esg-framework">
-          <div class="esg-framework__head">
-            <h4 class="esg-framework__title label-caps">Cadre des politiques d'entreprise</h4>
-          </div>
-          <div class="esg-framework__list" id="esg-framework-list"></div>
-        </section>
+      <button class="esg-sub-tab esg-sub-tab--active" data-sub="climate-change" role="tab" aria-selected="true">
+        <svg class="esg-sub-tab__icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <rect x="5.8" y="1.5" width="2.4" height="7.5" rx="1.2" stroke="currentColor" stroke-width="1.2"/>
+          <circle cx="7" cy="10.5" r="2" stroke="currentColor" stroke-width="1.2"/>
+          <line x1="7" y1="5" x2="7" y2="9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        Climate change
+      </button>
 
-      </div>
+      <button class="esg-sub-tab" data-sub="pollution" role="tab" aria-selected="false">
+        <svg class="esg-sub-tab__icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M3 8.5a2.5 2.5 0 014.2-1.9A2 2 0 0111 8.5a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.2"/>
+          <line x1="4.5" y1="11.5" x2="4.5" y2="12.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <line x1="7" y1="12" x2="7" y2="13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <line x1="9.5" y1="11.5" x2="9.5" y2="12.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Pollution
+      </button>
 
-      <aside class="esg-grid__side">
-
-        <section class="card esg-market">
-          <div class="esg-market__head">
-            <h3 class="esg-market__title label-caps">Market Intelligence</h3>
-            <span class="esg-market__demo" id="esg-market-demo" hidden>Démo</span>
-          </div>
-          <div class="esg-market__body" id="esg-market-body"></div>
-        </section>
-
-        <section class="card esg-news">
-          <div class="esg-news__head">
-            <h3 class="esg-news__title label-caps">Latest ESG News</h3>
-          </div>
-          <div class="esg-news__body" id="esg-news-body">
-            <p class="esg-empty">No news yet</p>
-          </div>
-        </section>
-
-        <div class="esg-decoration" aria-hidden="true">
-          <span class="esg-decoration__title">Grounded Intelligence</span>
-          <span class="esg-decoration__sub label-caps">Preserving Biodiversity</span>
-        </div>
-
-      </aside>
+      <button class="esg-sub-tab" data-sub="invasive-species" role="tab" aria-selected="false">
+        <svg class="esg-sub-tab__icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <circle cx="7" cy="7" r="1.5" stroke="currentColor" stroke-width="1.2"/>
+          <path d="M7 5.5C7 5.5 6 3 4 2c0 2 1.5 3 3 3.5z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" fill="none"/>
+          <path d="M7 5.5C7 5.5 8 3 10 2c0 2-1.5 3-3 3.5z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" fill="none"/>
+          <path d="M7 8.5C7 8.5 6 11 4 12c0-2 1.5-3 3-3.5z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" fill="none"/>
+          <path d="M7 8.5C7 8.5 8 11 10 12c0-2-1.5-3-3-3.5z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" fill="none"/>
+        </svg>
+        Invasive species
+      </button>
 
     </div>
+
+    <!-- Land use -->
+    <div class="esg-sub-panel" data-sub-panel="land-use" hidden>
+      <div class="card esg-coming">
+        <p class="esg-empty">Land use — à venir, aucune donnée disponible.</p>
+      </div>
+    </div>
+
+    <!-- Resource use -->
+    <div class="esg-sub-panel" data-sub-panel="resource-use" hidden>
+      <div class="card esg-coming">
+        <p class="esg-empty">Resource use — à venir, aucune donnée disponible.</p>
+      </div>
+    </div>
+
+    <!-- Climate change -->
+    <div class="esg-sub-panel esg-sub-panel--active" data-sub-panel="climate-change">
+      <div class="esg-grid">
+
+        <div class="esg-grid__main">
+
+          <section class="card esg-chart">
+            <div class="esg-chart__head">
+              <div>
+                <h3 class="esg-chart__title">Tendance des émissions carbone</h3>
+                <p class="esg-chart__sub">Historique et projection (<span data-esg="carbon-unit">tCO2e</span>)</p>
+              </div>
+              <div class="esg-chart__legend">
+                <span class="esg-chart__legend-item"><span class="esg-chart__line esg-chart__line--solid"></span>Historique</span>
+                <span class="esg-chart__legend-item"><span class="esg-chart__line esg-chart__line--dashed"></span>Projection 2030</span>
+              </div>
+              <button id="esg-scope-toggle" class="esg-chart__scope-btn" aria-pressed="false" title="Afficher les émissions par scope">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <rect x="1" y="9" width="3" height="4" rx="0.5" fill="currentColor"/>
+                  <rect x="5.5" y="5" width="3" height="8" rx="0.5" fill="currentColor"/>
+                  <rect x="10" y="2" width="3" height="11" rx="0.5" fill="currentColor"/>
+                </svg>
+                Par scope
+              </button>
+            </div>
+            <div class="esg-chart__kpis">
+              <div class="esg-chart__kpi">
+                <span class="esg-chart__kpi-value" data-esg="carbon-latest">—</span>
+                <span class="esg-chart__kpi-label label-caps">Dernier total</span>
+              </div>
+              <div class="esg-chart__kpi">
+                <span class="esg-chart__kpi-value" data-esg="carbon-reduction">—</span>
+                <span class="esg-chart__kpi-label label-caps">Évolution</span>
+              </div>
+            </div>
+            <div class="esg-chart__canvas" id="esg-chart-canvas" aria-label="Graphique des émissions carbone">
+              <p class="esg-empty" id="esg-chart-empty" hidden>Aucune donnée carbone disponible.</p>
+            </div>
+          </section>
+
+          <section class="esg-featured" id="esg-featured" aria-label="Politiques en avant"></section>
+
+          <section class="card esg-framework">
+            <div class="esg-framework__head">
+              <h4 class="esg-framework__title label-caps">Cadre des politiques d'entreprise</h4>
+            </div>
+            <div class="esg-framework__list" id="esg-framework-list"></div>
+          </section>
+
+        </div>
+
+        <aside class="esg-grid__side">
+
+          <section class="card esg-market">
+            <div class="esg-market__head">
+              <h3 class="esg-market__title label-caps">Market Intelligence</h3>
+              <span class="esg-market__demo" id="esg-market-demo" hidden>Démo</span>
+            </div>
+            <div class="esg-market__body" id="esg-market-body"></div>
+          </section>
+
+          <section class="card esg-news">
+            <div class="esg-news__head">
+              <h3 class="esg-news__title label-caps">Latest ESG News</h3>
+            </div>
+            <div class="esg-news__body" id="esg-news-body">
+              <p class="esg-empty">No news yet</p>
+            </div>
+          </section>
+
+          <div class="esg-decoration" aria-hidden="true">
+            <span class="esg-decoration__title">Grounded Intelligence</span>
+            <span class="esg-decoration__sub label-caps">Preserving Biodiversity</span>
+          </div>
+
+        </aside>
+
+      </div>
+    </div>
+
+    <!-- Pollution -->
+    <div class="esg-sub-panel" data-sub-panel="pollution" hidden>
+      <div class="card esg-coming">
+        <p class="esg-empty">Pollution — à venir, aucune donnée disponible.</p>
+      </div>
+    </div>
+
+    <!-- Invasive species -->
+    <div class="esg-sub-panel" data-sub-panel="invasive-species" hidden>
+      <div class="card esg-coming">
+        <p class="esg-empty">Invasive species — à venir, aucune donnée disponible.</p>
+      </div>
+    </div>
+
   </div>
 
   <!-- ── Social ────────────────────────────────────────────────────── -->

@@ -1,10 +1,13 @@
 const LP_COMPANY_KEY = 'selected-company-id'; // partagé entre pages
 
+let LP_AREA_CHART = null;
+
 const LP_STATE = {
   data: null,
   groupBy: 'asset',            // 'asset' | 'commodity'
   prodDelta: {},               // asset_id -> delta (ex. 0.10 = +10%)
   impactDelta: {},             // commodity_id -> delta
+  areaView: 'total',           // 'total' | 'commodity'
 };
 
 const LP_GOOD = '#2d6a4f';
@@ -32,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   lpInitGroupBy();
   lpInitReset();
+  lpInitAreaToggle();
 
   const savedId = parseInt(localStorage.getItem(LP_COMPANY_KEY), 10);
   const savedExists = savedId && companies.some(c => c.id === savedId);
@@ -288,6 +292,8 @@ function lpRenderKpis(totalCur, totalFut) {
     }
   }
 
+  lpRenderAreaChart(totalCur, totalFut);
+
   // Ligne total sous le dumbbell.
   const tCur = document.getElementById('lp-total-current');
   const tFut = document.getElementById('lp-total-future');
@@ -305,6 +311,150 @@ function lpRenderKpis(totalCur, totalFut) {
       tDelta.className = 'lp-total__delta ' + (good ? 'lp-total__delta--good' : 'lp-total__delta--bad');
     }
   }
+}
+
+// ── Graphique aire T → T+1 ────────────────────────────────────────────────────
+const LP_PALETTE = [
+  '#91452d', '#865220', '#2d6a4f', '#625a4e', '#1a5276',
+  '#6c3483', '#117a65', '#b7770d', '#922b21', '#1f618d',
+];
+
+function lpHexAlpha(hex, a) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function lpCommByImpact() {
+  const data = LP_STATE.data;
+  if (!data) return [];
+  const commMap = lpCommodityMap();
+  const byCommodity = {};
+  (data.assets || []).forEach(a => {
+    const pd = LP_STATE.prodDelta[a.id] || 0;
+    a.lines.forEach(l => {
+      const comm = commMap[l.commodity_id];
+      if (!comm) return;
+      const id = LP_STATE.impactDelta[l.commodity_id] || 0;
+      const cur = l.qty * comm.impact_factor;
+      const fut = l.qty * (1 + pd) * comm.impact_factor * (1 + id);
+      if (!byCommodity[comm.id]) byCommodity[comm.id] = { name: comm.name, current: 0, future: 0 };
+      byCommodity[comm.id].current += cur;
+      byCommodity[comm.id].future += fut;
+    });
+  });
+  return Object.values(byCommodity).sort((a, b) => b.current - a.current);
+}
+
+function lpAreaDatasets(totalCur, totalFut) {
+  if (LP_STATE.areaView === 'total') {
+    return [{
+      label: 'Total',
+      data: [totalCur, totalFut],
+      borderColor: LP_PALETTE[0],
+      backgroundColor: lpHexAlpha(LP_PALETTE[0], 0.15),
+      borderWidth: 2.5,
+      pointBackgroundColor: LP_PALETTE[0],
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      fill: true,
+      tension: 0,
+    }];
+  }
+
+  // Aire empilée : chaque commodité remplit vers la précédente (stacked)
+  return lpCommByImpact().map((c, i) => {
+    const color = LP_PALETTE[i % LP_PALETTE.length];
+    return {
+      label: c.name,
+      data: [c.current, c.future],
+      borderColor: color,
+      backgroundColor: lpHexAlpha(color, 0.15),
+      borderWidth: 1.5,
+      pointBackgroundColor: color,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      fill: true,
+      tension: 0,
+    };
+  });
+}
+
+function lpRenderAreaChart(totalCur, totalFut) {
+  const canvas = document.getElementById('lp-area-chart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const stacked = LP_STATE.areaView === 'commodity';
+  const datasets = lpAreaDatasets(totalCur, totalFut);
+
+  if (LP_AREA_CHART) {
+    LP_AREA_CHART.data.datasets = datasets;
+    LP_AREA_CHART.options.plugins.legend.display = stacked;
+    LP_AREA_CHART.options.scales.y.stacked = stacked;
+    LP_AREA_CHART.update('active');
+    return;
+  }
+
+  const ctx = canvas.getContext('2d');
+  LP_AREA_CHART = new Chart(ctx, {
+    type: 'line',
+    data: { labels: ['T', 'T+1'], datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: stacked,
+          position: 'bottom',
+          labels: {
+            font: { family: 'Inter, sans-serif', size: 11 },
+            color: '#54433e',
+            boxWidth: 12,
+            padding: 10,
+          },
+        },
+        tooltip: {
+          mode: 'index',
+          callbacks: {
+            label: (item) => ' ' + item.dataset.label + ' : ' + lpFmt(item.parsed.y),
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            font: { family: 'Inter, sans-serif', size: 13, weight: '600' },
+            color: '#1b1c19',
+          },
+          border: { color: '#dac1ba' },
+        },
+        y: {
+          stacked: false,
+          beginAtZero: true,
+          grid: { color: '#f0eee9' },
+          ticks: {
+            font: { family: 'Inter, sans-serif', size: 11 },
+            color: '#87736d',
+            callback: (v) => lpFmt(v),
+          },
+          border: { display: false },
+        },
+      },
+    },
+  });
+}
+
+function lpInitAreaToggle() {
+  const btn = document.getElementById('lp-area-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    LP_STATE.areaView = LP_STATE.areaView === 'total' ? 'commodity' : 'total';
+    btn.textContent = LP_STATE.areaView === 'total' ? 'Par commodité' : 'Total';
+    btn.setAttribute('aria-pressed', LP_STATE.areaView === 'commodity');
+    if (LP_STATE.data) lpRecompute();
+  });
 }
 
 // ── Dumbbell SVG ──────────────────────────────────────────────────────────────

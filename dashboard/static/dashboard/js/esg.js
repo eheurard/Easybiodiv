@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const initialData = initialDataEl ? JSON.parse(initialDataEl.textContent) : null;
 
   esgInitThemeTabs();
+  esgInitSubTabs();
 
   const scopeToggle = document.getElementById('esg-scope-toggle');
   if (scopeToggle) {
@@ -55,6 +56,27 @@ function esgInitThemeTabs() {
       panels.forEach(p => {
         const active = p.dataset.themePanel === theme;
         p.classList.toggle('esg-theme-panel--active', active);
+        if (active) { p.removeAttribute('hidden'); } else { p.setAttribute('hidden', ''); }
+      });
+    });
+  });
+}
+
+
+function esgInitSubTabs() {
+  const subTabs = document.querySelectorAll('.esg-sub-tab');
+  const subPanels = document.querySelectorAll('.esg-sub-panel');
+  subTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const sub = tab.dataset.sub;
+      subTabs.forEach(t => {
+        const active = t === tab;
+        t.classList.toggle('esg-sub-tab--active', active);
+        t.setAttribute('aria-selected', String(active));
+      });
+      subPanels.forEach(p => {
+        const active = p.dataset.subPanel === sub;
+        p.classList.toggle('esg-sub-panel--active', active);
         if (active) { p.removeAttribute('hidden'); } else { p.setAttribute('hidden', ''); }
       });
     });
