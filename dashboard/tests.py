@@ -2048,3 +2048,39 @@ class PortfolioDetailViewTests(TestCase):
     def test_detail_post_not_allowed(self):
         url = reverse('dashboard:portfolio_detail', kwargs={'pk': self.pf.pk})
         self.assertEqual(self.client.post(url).status_code, 405)
+
+
+class PortfolioAnalysisPageTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from .models import Currency, Portfolio
+        User = get_user_model()
+        self.user = User.objects.create_user(username='pageportf', password='pass')
+        self.client.force_login(self.user)
+        self.eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
+        Company.objects.create(name='PageCorp')
+        Portfolio.objects.create(
+            name='Bench', size=0, currency=self.eur, is_benchmark=True,
+        )
+
+    def test_page_returns_200(self):
+        response = self.client.get(reverse('dashboard:portfolio_analysis'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_page_uses_correct_template(self):
+        response = self.client.get(reverse('dashboard:portfolio_analysis'))
+        self.assertTemplateUsed(response, 'dashboard/portfolio.html')
+
+    def test_context_has_companies_currencies_benchmarks(self):
+        response = self.client.get(reverse('dashboard:portfolio_analysis'))
+        self.assertEqual(len(response.context['companies']), 1)
+        self.assertEqual(len(response.context['currencies']), 1)
+        self.assertEqual(len(response.context['benchmarks']), 1)
+        self.assertEqual(response.context['benchmarks'][0]['name'], 'Bench')
+
+    def test_page_redirects_anonymous(self):
+        self.client.logout()
+        response = self.client.get(reverse('dashboard:portfolio_analysis'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])

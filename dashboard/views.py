@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET, require_POST
 from django.db.models import Q
 from .models import (
     Asset, Asset_consumption, Carbon_emission, Commodity, Company, Company_Policy,
-    Company_Revenue, Company_Revenue_Sector, DisclosureRequirement, E4Assessment,
+    Company_Revenue, Company_Revenue_Sector, Currency, DisclosureRequirement, E4Assessment,
     Ownership, Portfolio, PortfolioHolding, Production, Supply_chain,
 )
 from .forms import PortfolioForm, PortfolioHoldingForm
@@ -1736,4 +1736,26 @@ def portfolio_detail(request, pk):
         'benchmark_id': portfolio.benchmark_id,
         'is_benchmark': portfolio.is_benchmark,
         'holdings': holdings,
+    })
+
+
+@login_required
+@require_GET
+def portfolio_analysis(request):
+    companies = list(Company.objects.order_by('name').values(
+        'id', 'name', 'isin', 'ticker',
+    ))
+    currencies = list(Currency.objects.order_by('code').values('id', 'code', 'symbol'))
+    benchmarks = list(
+        Portfolio.objects.filter(is_benchmark=True).order_by('name').values('id', 'name')
+    )
+    portfolios = list(
+        Portfolio.objects.filter(created_by=request.user).order_by('name')
+        .values('id', 'name')
+    )
+    return render(request, 'dashboard/portfolio.html', {
+        'companies': companies,
+        'currencies': currencies,
+        'benchmarks': benchmarks,
+        'portfolios': portfolios,
     })
