@@ -2013,3 +2013,38 @@ class PortfolioSaveViewTests(TestCase):
             content_type='application/json',
         )
         self.assertEqual(response.status_code, 302)
+
+
+class PortfolioDetailViewTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from .models import Currency, Portfolio, PortfolioHolding
+        User = get_user_model()
+        self.user = User.objects.create_user(username='detailer', password='pass')
+        self.client.force_login(self.user)
+        eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
+        self.company = Company.objects.create(name='DetailCorp')
+        self.pf = Portfolio.objects.create(name='Fonds D', size=2000, currency=eur)
+        PortfolioHolding.objects.create(
+            portfolio=self.pf, company=self.company, amount=1000, weight=50,
+            instrument_type='BOND', coupon_rate=2.0,
+        )
+
+    def test_detail_returns_portfolio_json(self):
+        url = reverse('dashboard:portfolio_detail', kwargs={'pk': self.pf.pk})
+        data = json.loads(self.client.get(url).content)
+        self.assertEqual(data['name'], 'Fonds D')
+        self.assertEqual(len(data['holdings']), 1)
+        h = data['holdings'][0]
+        self.assertEqual(h['company_id'], self.company.pk)
+        self.assertEqual(h['company_name'], 'DetailCorp')
+        self.assertEqual(h['instrument_type'], 'BOND')
+
+    def test_detail_404_when_missing(self):
+        url = reverse('dashboard:portfolio_detail', kwargs={'pk': 99999})
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_detail_post_not_allowed(self):
+        url = reverse('dashboard:portfolio_detail', kwargs={'pk': self.pf.pk})
+        self.assertEqual(self.client.post(url).status_code, 405)

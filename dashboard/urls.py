@@ -28,4 +28,5 @@ urlpatterns = [
     path('compliance/', views.compliance, name='compliance'),
     path('api/company/<int:pk>/compliance/', views.compliance_data, name='compliance_data'),
     path('api/portfolio/save/', views.portfolio_save, name='portfolio_save'),
+    path('api/portfolio/<int:pk>/', views.portfolio_detail, name='portfolio_detail'),
 ]

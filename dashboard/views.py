@@ -1712,3 +1712,28 @@ def portfolio_save(request):
             holding.save()
 
     return JsonResponse({'id': portfolio.pk, 'name': portfolio.name})
+
+
+@login_required
+@require_GET
+def portfolio_detail(request, pk):
+    portfolio = get_object_or_404(Portfolio, pk=pk)
+    holdings = [{
+        'company_id': h.company_id,
+        'company_name': h.company.name,
+        'amount': h.amount,
+        'weight': h.weight,
+        'instrument_type': h.instrument_type,
+        'maturity_date': h.maturity_date.isoformat() if h.maturity_date else None,
+        'coupon_rate': h.coupon_rate,
+        'face_value': h.face_value,
+    } for h in portfolio.holdings.select_related('company').all()]
+    return JsonResponse({
+        'id': portfolio.pk,
+        'name': portfolio.name,
+        'size': portfolio.size,
+        'currency_id': portfolio.currency_id,
+        'benchmark_id': portfolio.benchmark_id,
+        'is_benchmark': portfolio.is_benchmark,
+        'holdings': holdings,
+    })
