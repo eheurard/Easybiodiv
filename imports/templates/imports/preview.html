@@ -5,8 +5,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aperçu de l'import — Easybiodiv</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}">
   <style>
+    #page-loader{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#fbf9f4;transition:opacity .4s ease,visibility .4s ease}
+    #page-loader.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+    #page-loader .pl-ring{width:46px;height:46px;border-radius:50%;border:4px solid #e4e2dd;border-top-color:#91452d;animation:pl-spin .8s linear infinite}
+    #page-loader .pl-text{font:500 13px/1 'Inter',system-ui,sans-serif;color:#54433e;letter-spacing:.03em}
+    @keyframes pl-spin{to{transform:rotate(360deg)}}
+    @media (prefers-reduced-motion:reduce){#page-loader .pl-ring{animation-duration:1.8s}}
     body {
       font-family: var(--font-sans, system-ui, sans-serif);
       background: var(--color-bg, #f4f6f4);
@@ -175,6 +184,16 @@
   </style>
 </head>
 <body>
+
+  <div id="page-loader" role="status" aria-live="polite" aria-label="Chargement en cours">
+    <div class="pl-ring" aria-hidden="true"></div>
+    <span class="pl-text">Chargement…</span>
+  </div>
+  <script>
+    (function(){function h(){var l=document.getElementById('page-loader');if(l)l.classList.add('is-hidden');}
+    if(document.readyState==='complete'){h();}else{window.addEventListener('load',h);setTimeout(h,4000);}
+    window.addEventListener('pageshow',function(e){if(e.persisted)h();});})();
+  </script>
 
   <div class="page-header">
     <h1>Aperçu de l'import</h1>

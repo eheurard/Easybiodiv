@@ -1,3 +1,21 @@
+// ── Écran de chargement ─────────────────────────────────────────────────────
+// Masque le loader une fois la page entièrement chargée. Fallback à 4 s pour
+// ne jamais bloquer l'affichage si une ressource externe (carte, police) traîne.
+(function () {
+  function hideLoader() {
+    const loader = document.getElementById('page-loader');
+    if (loader) loader.classList.add('is-hidden');
+  }
+  if (document.readyState === 'complete') {
+    hideLoader();
+  } else {
+    window.addEventListener('load', hideLoader);
+    setTimeout(hideLoader, 4000);
+  }
+  // Retour via le cache bfcache (bouton précédent) : le loader doit rester masqué.
+  window.addEventListener('pageshow', (e) => { if (e.persisted) hideLoader(); });
+})();
+
 const SELECTED_COMPANY_KEY = 'selected-company-id';
 
 const MAP_STYLES = {

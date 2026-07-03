@@ -115,6 +115,6 @@
 {{ companies|json_script:"companies-data" }}
 {{ initial_data|json_script:"initial-data" }}
 <script>var LEAP_PREPARE_API_URL = "{% url 'dashboard:leap_prepare_data' pk=0 %}";</script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
 <script src="{% static 'dashboard/js/leap_prepare.js' %}" defer></script>
 {% endblock %}

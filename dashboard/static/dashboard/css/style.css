@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* La police Inter est chargée via <link> dans le <head> des templates
+   (préconnexion + chargement parallèle), et non par @import — un @import ici
+   sérialise le téléchargement (CSS → @import → police) et retarde le rendu. */
 
 /* ─── Design tokens ─────────────────────────────────────────────────────── */
 :root {
