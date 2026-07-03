@@ -79,6 +79,6 @@
 {{ initial_data|json_script:"de-data" }}
 {{ companies|json_script:"de-companies" }}
 <script>var DE_API_URL = "{% url 'dashboard:dette_ecologique_data' pk=0 %}";</script>
-<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js" defer></script>
 <script src="{% static 'dashboard/js/dette_ecologique.js' %}" defer></script>
 {% endblock %}
