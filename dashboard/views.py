@@ -1144,18 +1144,28 @@ def _get_comparison_data(company):
     )
     productions = [p for p in productions if latest_years.get(p.asset_id) == p.year]
 
+    _impact_keys = [f for f, _ in _IMPACT_FIELDS]
+    cf_index = build_cf_index(
+        commodity_ids=[p.commodity_id for p in productions],
+        category_keys=_impact_keys,
+    )
+
     asset_map     = {a.pk: a for a in assets}
     impact_totals = {f: 0.0 for f, _ in _IMPACT_FIELDS}
     dep_scores    = {f: []  for f, _ in _DEPENDENCY_FIELDS}
     total_lbiodiv = 0.0
 
     for p in productions:
-        for f, _ in _IMPACT_FIELDS:
-            impact_totals[f] += p.production * getattr(p.commodity, f, 0.0)
+        asset = asset_map.get(p.asset_id)
+        for f in _impact_keys:
+            impact_totals[f] += p.production * cf_value(
+                cf_index, p.commodity_id, f,
+                asset.subnational_region_id if asset else None,
+                asset.country_id if asset else None,
+            )
         for f, _ in _DEPENDENCY_FIELDS:
             dep_scores[f].append(SCORE_MAP.get(getattr(p.commodity, f, 'VL'), 0.0))
 
-        asset = asset_map.get(p.asset_id)
         if asset and asset.subnational_region:
             biodiv_field = _BIODIV_LOSS_FIELDS.get(
                 p.commodity.biodiversity_loss_class, 'biodiversity_loss_agriculture'
@@ -1164,7 +1174,10 @@ def _get_comparison_data(company):
                 getattr(asset.country, biodiv_field, 0.0)
                 * asset.subnational_region.restoration_cost_m2
                 * p.production
-                * p.commodity.impact_endpoint_ReCiPe2016_ecosystem_diversity
+                * cf_value(
+                    cf_index, p.commodity_id, CAT_ECOSYSTEM_DIVERSITY,
+                    asset.subnational_region_id, asset.country_id,
+                )
             )
 
     result['total_lbiodiv'] = round(total_lbiodiv, 4)

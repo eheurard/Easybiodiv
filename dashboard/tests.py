@@ -1865,6 +1865,30 @@ class LeapPagesTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
+class ComparisonDataCfTests(TestCase):
+
+    def test_totals_use_cf(self):
+        from .models import (
+            Company, Country, SubnationalRegion, Commodity, Asset, Ownership, Production,
+        )
+        from .views import _get_comparison_data
+        company = Company.objects.create(name='CmpCorp')
+        country = Country.objects.create(name='France', water_ownership='X', land_ownership='Y')
+        region = SubnationalRegion.objects.create(
+            name='IDF', country=country, restoration_cost_m2=10.0
+        )
+        com = Commodity.objects.create(name='Soja', biodiversity_loss_class='Agriculture')
+        _make_cf(com, 'impact_midpoint_ReCiPe2016_land_use', 4.0)
+        _make_cf(com, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 0.5)
+        asset = Asset.objects.create(
+            name='S', latitude=48.0, longitude=2.0, country=country, subnational_region=region,
+        )
+        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Production.objects.create(asset=asset, commodity=com, year=2024, production=10.0)
+        data = _get_comparison_data(company)
+        self.assertAlmostEqual(data['total_impact_midpoint_ReCiPe2016_land_use'], 40.0, places=2)
+
+
 import os
 from pathlib import Path
 from django.core.management import call_command
