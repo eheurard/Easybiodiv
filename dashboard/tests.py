@@ -114,6 +114,37 @@ class CompanyDataViewTests(TestCase):
         self.assertEqual(data['policies'], [])
 
 
+class CompanyDataRegionalCfTests(TestCase):
+
+    def test_regional_cf_overrides_global_for_footprint(self):
+        from .models import (
+            Company, Country, SubnationalRegion, Commodity, Asset, Ownership,
+            Production, ImpactCategory, CharacterizationFactor,
+        )
+        from .views import _get_company_data
+        company = Company.objects.create(name='RegCorp')
+        country = Country.objects.create(name='Brésil', water_ownership='X', land_ownership='Y')
+        region = SubnationalRegion.objects.create(name='Pará', country=country)
+        com = Commodity.objects.create(name='Soja')
+        cat = ImpactCategory.objects.get(
+            key='impact_endpoint_ReCiPe2016_ecosystem_diversity'
+        )
+        CharacterizationFactor.objects.create(category=cat, commodity=com, value=1.0)  # global
+        CharacterizationFactor.objects.create(
+            category=cat, commodity=com, region=region, value=5.0
+        )  # régional
+        asset = Asset.objects.create(
+            name='Ferme', latitude=-3.0, longitude=-47.0,
+            country=country, subnational_region=region,
+        )
+        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Production.objects.create(asset=asset, commodity=com, year=2024, production=10.0)
+        data = _get_company_data(company)
+        feature = data['geojson']['features'][0]
+        # footprint = 10 * 5.0 (CF régional), pas 10 * 1.0 (global)
+        self.assertAlmostEqual(feature['properties']['footprint'], 50.0, places=4)
+
+
 class DashboardIndexViewTests(TestCase):
 
     def test_index_returns_200(self):

@@ -13,6 +13,7 @@ from .models import (
     Ownership, Production, Supply_chain,
 )
 from .services.market import get_market_data, DEFAULT_RANGE
+from .services.impacts import build_cf_index, cf_value, CAT_ECOSYSTEM_DIVERSITY
 
 from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
 
@@ -282,6 +283,11 @@ def _get_company_data(company):
         .distinct()
     )
 
+    cf_index = build_cf_index(
+        commodity_ids=[p.commodity_id for a in assets for p in a.production_set.all()],
+        category_keys=[CAT_ECOSYSTEM_DIVERSITY],
+    )
+
     country_names = set()
     commodity_names = set()
     region_names = set()
@@ -319,7 +325,10 @@ def _get_company_data(company):
         recent_prods = [p for p in prods_all if p.year == latest_year] if latest_year else []
 
         footprint = sum(
-            p.production * p.commodity.impact_endpoint_ReCiPe2016_ecosystem_diversity
+            p.production * cf_value(
+                cf_index, p.commodity_id, CAT_ECOSYSTEM_DIVERSITY,
+                asset.subnational_region_id, asset.country_id,
+            )
             for p in recent_prods
         )
 
@@ -338,7 +347,10 @@ def _get_company_data(company):
                 biodiv_loss
                 * restoration_cost
                 * p.production
-                * p.commodity.impact_endpoint_ReCiPe2016_ecosystem_diversity
+                * cf_value(
+                    cf_index, p.commodity_id, CAT_ECOSYSTEM_DIVERSITY,
+                    asset.subnational_region_id, asset.country_id,
+                )
             )
 
         productions_data = [
