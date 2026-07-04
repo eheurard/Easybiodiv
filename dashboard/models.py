@@ -406,3 +406,35 @@ class ImpactCategory(models.Model):
 
     def __str__(self):
         return f'{self.method.name} — {self.key}'
+
+
+class CharacterizationFactor(models.Model):
+    """Facteur de caractérisation régionalisé : impact par unité de commodity.
+
+    Résolution du lieu : region renseigné → région ; sinon country → pays ;
+    sinon (les deux null) → global.
+    """
+    category = models.ForeignKey(
+        ImpactCategory, on_delete=models.CASCADE, related_name='factors'
+    )
+    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE, related_name='cfs')
+    region = models.ForeignKey(
+        SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True
+    )
+    country = models.ForeignKey(
+        Country, on_delete=models.CASCADE, null=True, blank=True
+    )
+    value = models.FloatField(default=0.0)
+    source = models.CharField(max_length=255, blank=True)
+    reference = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        # NB SQLite : les NULL sont distincts dans une contrainte unique ; l'unicité
+        # du CF global (region=country=null) est garantie applicativement par
+        # get_or_create côté backfill et populate_acme.
+        unique_together = ('category', 'commodity', 'region', 'country')
+
+    def __str__(self):
+        return f'{self.commodity.name} — {self.category.key}'

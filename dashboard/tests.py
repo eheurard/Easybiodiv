@@ -1922,3 +1922,39 @@ class ImpactCatalogModelTests(TestCase):
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
                 ImpactCategory.objects.create(method=m, key='dup', name='B')
+
+
+class CharacterizationFactorModelTests(TestCase):
+
+    def _cat(self):
+        from .models import ImpactMethod, ImpactCategory
+        m = ImpactMethod.objects.create(name='ReCiPe2016')
+        return ImpactCategory.objects.create(
+            method=m, key='impact_endpoint_ReCiPe2016_ecosystem_diversity',
+            name='Diversité des écosystèmes', level=ImpactCategory.Level.ENDPOINT,
+        )
+
+    def test_global_cf_has_null_location(self):
+        from .models import CharacterizationFactor, Commodity
+        cat = self._cat()
+        com = Commodity.objects.create(name='Soja')
+        cf = CharacterizationFactor.objects.create(category=cat, commodity=com, value=0.5)
+        self.assertIsNone(cf.region_id)
+        self.assertIsNone(cf.country_id)
+        self.assertIn('Soja', str(cf))
+
+    def test_region_and_country_cf(self):
+        from .models import CharacterizationFactor, Commodity, Country, SubnationalRegion
+        cat = self._cat()
+        com = Commodity.objects.create(name='Soja')
+        country = Country.objects.create(
+            name='Brésil', water_ownership='X', land_ownership='Y'
+        )
+        region = SubnationalRegion.objects.create(name='Pará', country=country)
+        CharacterizationFactor.objects.create(
+            category=cat, commodity=com, country=country, value=0.7
+        )
+        CharacterizationFactor.objects.create(
+            category=cat, commodity=com, region=region, value=0.9
+        )
+        self.assertEqual(CharacterizationFactor.objects.filter(commodity=com).count(), 2)
