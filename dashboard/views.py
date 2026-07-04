@@ -763,6 +763,13 @@ def _get_leap_prepare_data(company):
         .distinct()
     )
 
+    all_commodity_ids = [
+        p.commodity_id for a in assets for p in a.production_set.all()
+    ]
+    cf_index = build_cf_index(
+        commodity_ids=all_commodity_ids, category_keys=[CAT_ECOSYSTEM_DIVERSITY],
+    )
+
     commodities = {}
     assets_out = []
     years = []
@@ -782,7 +789,9 @@ def _get_leap_prepare_data(company):
             commodities.setdefault(c.pk, {
                 'id': c.pk,
                 'name': c.name,
-                'impact_factor': c.impact_endpoint_ReCiPe2016_ecosystem_diversity,
+                'impact_factor': cf_value(
+                    cf_index, c.pk, CAT_ECOSYSTEM_DIVERSITY,
+                ),
             })
             line_qty[c.pk] += p.production
             line_unit[c.pk] = c.unit

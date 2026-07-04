@@ -939,11 +939,8 @@ class LeapPrepareDataTests(TestCase):
         self.country = Country.objects.create(
             name='France', water_ownership='Public', land_ownership='Private'
         )
-        # impact_endpoint_ReCiPe2016_ecosystem_diversity = 0.5
-        self.commodity = Commodity.objects.create(
-            name='Soja', unit='tonnes',
-            impact_endpoint_ReCiPe2016_ecosystem_diversity=0.5,
-        )
+        self.commodity = Commodity.objects.create(name='Soja', unit='tonnes')
+        _make_cf(self.commodity, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 0.5)
         self.asset = Asset.objects.create(
             name='Site A', latitude=48.0, longitude=2.0, country=self.country,
         )
