@@ -500,7 +500,10 @@ class CfServiceTests(TestCase):
             ImpactMethod, ImpactCategory, CharacterizationFactor,
             Commodity, Country, SubnationalRegion,
         )
-        self.method = ImpactMethod.objects.create(name='ReCiPe2016')
+        # NB : nom de méthode non-seedé (ReCiPe2016/GBS sont créés par la
+        # migration 0026) et clé de catégorie non-seedée, pour éviter toute
+        # collision d'unicité avec le catalogue seedé.
+        self.method = ImpactMethod.objects.create(name='TestMethod')
         self.cat = ImpactCategory.objects.create(
             method=self.method, key='k_eco', name='Eco',
             level=ImpactCategory.Level.ENDPOINT,
