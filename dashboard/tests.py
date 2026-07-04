@@ -30,6 +30,14 @@ def _make_world():
     return company, country, region, commodity, asset
 
 
+def _make_cf(commodity, category_key, value, region=None, country=None):
+    from .models import ImpactCategory, CharacterizationFactor
+    cat = ImpactCategory.objects.get(key=category_key)
+    return CharacterizationFactor.objects.create(
+        commodity=commodity, category=cat, value=value, region=region, country=country,
+    )
+
+
 class CompanyDataViewTests(TestCase):
 
     def setUp(self):
@@ -189,10 +197,8 @@ class MesureEmpreinteDataViewTests(TestCase):
             name='Brésil', water_ownership='Public', land_ownership='Private'
         )
         region = SubnationalRegion.objects.create(name='Amazonie', country=country)
-        commodity = Commodity.objects.create(
-            name='SojaRisk',
-            impact_endpoint_ReCiPe2016_ecosystem_diversity=impact_factor,
-        )
+        commodity = Commodity.objects.create(name='SojaRisk')
+        _make_cf(commodity, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', impact_factor)
         asset = Asset.objects.create(
             name='Ferme A', latitude=-5.0, longitude=-55.0,
             country=country, subnational_region=region,
@@ -296,12 +302,10 @@ class MesureEmpreinteDataViewTests(TestCase):
             country=country, subnational_region=region,
         )
         Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
-        c1 = Commodity.objects.create(
-            name='Maïs', impact_endpoint_ReCiPe2016_ecosystem_diversity=1.0
-        )
-        c2 = Commodity.objects.create(
-            name='Blé', impact_endpoint_ReCiPe2016_ecosystem_diversity=3.0
-        )
+        c1 = Commodity.objects.create(name='Maïs')
+        _make_cf(c1, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 1.0)
+        c2 = Commodity.objects.create(name='Blé')
+        _make_cf(c2, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 3.0)
         Production.objects.create(asset=asset, commodity=c1, year=2024, production=100.0)
         Production.objects.create(asset=asset, commodity=c2, year=2024, production=100.0)
 

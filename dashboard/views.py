@@ -465,13 +465,21 @@ def _get_mesure_empreinte_data(company):
     )
     productions = [p for p in productions if latest_years.get(p.asset_id) == p.year]
 
+    cf_index = build_cf_index(
+        commodity_ids=[p.commodity_id for p in productions],
+        category_keys=[CAT_ECOSYSTEM_DIVERSITY],
+    )
+
     commodity_impact = defaultdict(float)
     asset_impact = defaultdict(float)
     asset_meta = {}
     link_commodity_asset = defaultdict(float)
 
     for p in productions:
-        impact = p.production * p.commodity.impact_endpoint_ReCiPe2016_ecosystem_diversity
+        impact = p.production * cf_value(
+            cf_index, p.commodity_id, CAT_ECOSYSTEM_DIVERSITY,
+            p.asset.subnational_region_id, p.asset.country_id,
+        )
         commodity_impact[p.commodity.name] += impact
         asset_impact[p.asset_id] += impact
         asset_meta.setdefault(p.asset_id, {'name': p.asset.name, 'country': p.asset.country.name})
