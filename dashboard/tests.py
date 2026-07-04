@@ -2085,3 +2085,17 @@ class BackfillGlobalCfsTests(TestCase):
         )
         self.assertEqual(land.value, 6.5)
         self.assertEqual(CharacterizationFactor.objects.filter(commodity=com).count(), 16)
+
+
+class PopulateAcmeCfTests(TestCase):
+
+    def test_acme_commodities_have_global_cfs(self):
+        from .models import Commodity, CharacterizationFactor
+        call_command('populate_acme')
+        soja = Commodity.objects.get(name='Soja')
+        cf = CharacterizationFactor.objects.get(
+            commodity=soja,
+            category__key='impact_endpoint_ReCiPe2016_ecosystem_diversity',
+            region__isnull=True, country__isnull=True,
+        )
+        self.assertAlmostEqual(cf.value, 0.0048, places=6)

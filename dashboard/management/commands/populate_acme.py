@@ -5,8 +5,9 @@ from dashboard.models import (
     Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
     Company_Revenue_Sector, Country, DisclosureRequirement, E4Assessment,
     Ownership, Policy_Level, Policy_Subcategory, Policy_Type, Production,
-    Sector, SubSector, SubnationalRegion,
+    Sector, SubSector, SubnationalRegion, CharacterizationFactor, ImpactCategory,
 )
+from dashboard.services.impacts import legacy_cf_rows
 
 
 class Command(BaseCommand):
@@ -263,6 +264,16 @@ class Command(BaseCommand):
                 "biodiversity_loss_class": "Agriculture",
             },
         )
+
+        # ── Facteurs de caractérisation globaux (miroir des valeurs ci-dessus) ──
+        _categories = {c.key: c for c in ImpactCategory.objects.all()}
+        for commodity in (ble, mais, soja, palme):
+            values = {col: getattr(commodity, col, 0.0) for col, _ in legacy_cf_rows({})}
+            for col, val in legacy_cf_rows(values):
+                CharacterizationFactor.objects.get_or_create(
+                    commodity=commodity, category=_categories[col],
+                    region=None, country=None, defaults={'value': val},
+                )
 
         # ── Entreprise ────────────────────────────────────────────────────────
 
