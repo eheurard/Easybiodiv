@@ -1567,6 +1567,8 @@ Faire de même pour `mais`, `soja`, `palme` (retirer les 7 kwargs `impact_*`). P
 
 Dans `dashboard/models.py`, supprimer de la classe `Commodity` les 16 lignes `impact_midpoint_*` / `impact_endpoint_*` (lignes ~40-56). Conserver `name`, `description`, `unit`, les 6 `dependency_*`, `biodiversity_loss_class`.
 
+**Retirer aussi le test devenu obsolète** : dans `dashboard/tests.py`, supprimer la classe `BackfillGlobalCfsTests` **et** la fonction module `_get_category` qu'elle utilise (Task 6) — elles créent une `Commodity(impact_...=...)` qui n'existe plus. La migration de backfill reste couverte par les golden tests (équivalence colonnes→CF déjà figée). Ne pas toucher aux autres classes (déjà adaptées aux CF en Tasks 9-12).
+
 - [ ] **Step 4 : Générer la migration de suppression**
 
 Run : `.venv\Scripts\python.exe manage.py makemigrations dashboard --name drop_commodity_impact_columns`
