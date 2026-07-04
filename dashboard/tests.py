@@ -837,11 +837,9 @@ class LeapEvaluateDataTests(TestCase):
             name='France', water_ownership='Public', land_ownership='Private'
         )
         # Commodity with land_use=4 (midpoint impact), water_consumption=2
-        self.commodity = Commodity.objects.create(
-            name='Soja',
-            impact_midpoint_ReCiPe2016_land_use=4.0,
-            impact_midpoint_ReCiPe2016_water_consumption=2.0,
-        )
+        self.commodity = Commodity.objects.create(name='Soja')
+        _make_cf(self.commodity, 'impact_midpoint_ReCiPe2016_land_use', 4.0)
+        _make_cf(self.commodity, 'impact_midpoint_ReCiPe2016_water_consumption', 2.0)
         self.asset = Asset.objects.create(
             name='Site A', latitude=48.0, longitude=2.0, country=self.country,
             near_sensitive_zone=True, sensitive_zone_type='NATURA_2000',

@@ -712,12 +712,22 @@ def _get_leap_evaluate_data(company):
         if latest_years.get(p.asset_id) == p.year
     ]
 
+    _evaluate_keys = [f for f, _ in _EVALUATE_IMPACT_FIELDS]
+    asset_loc = {a.pk: (a.subnational_region_id, a.country_id) for a in assets}
+    cf_index = build_cf_index(
+        commodity_ids=[p.commodity_id for p in productions],
+        category_keys=_evaluate_keys,
+    )
+
     # Somme des impacts midpoint par asset : production × facteur de la commodité.
     asset_impacts = defaultdict(lambda: {f: 0.0 for f, _ in _EVALUATE_IMPACT_FIELDS})
     for p in productions:
         ai = asset_impacts[p.asset_id]
-        for f, _ in _EVALUATE_IMPACT_FIELDS:
-            ai[f] += p.production * getattr(p.commodity, f, 0.0)
+        region_id, country_id = asset_loc.get(p.asset_id, (None, None))
+        for f in _evaluate_keys:
+            ai[f] += p.production * cf_value(
+                cf_index, p.commodity_id, f, region_id, country_id,
+            )
 
     assets_out = []
     for a in assets:
