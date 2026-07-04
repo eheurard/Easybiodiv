@@ -1901,15 +1901,21 @@ class ImpactCatalogModelTests(TestCase):
 
     def test_method_str(self):
         from .models import ImpactMethod
-        m = ImpactMethod.objects.create(name='ReCiPe2016', version='1.1')
+        m, _ = ImpactMethod.objects.get_or_create(
+            name='ReCiPe2016', defaults={'version': '1.1'}
+        )
         self.assertEqual(str(m), 'ReCiPe2016')
 
     def test_category_str_and_level(self):
         from .models import ImpactMethod, ImpactCategory
-        m = ImpactMethod.objects.create(name='ReCiPe2016')
-        c = ImpactCategory.objects.create(
-            method=m, key='impact_midpoint_ReCiPe2016_land_use',
-            name='Utilisation des terres', level=ImpactCategory.Level.MIDPOINT,
+        m, _ = ImpactMethod.objects.get_or_create(name='ReCiPe2016')
+        c, _ = ImpactCategory.objects.get_or_create(
+            key='impact_midpoint_ReCiPe2016_land_use',
+            defaults={
+                'method': m,
+                'name': 'Utilisation des terres',
+                'level': ImpactCategory.Level.MIDPOINT,
+            },
         )
         self.assertEqual(c.level, 'MIDPOINT')
         self.assertIn('land_use', str(c))
@@ -1917,7 +1923,7 @@ class ImpactCatalogModelTests(TestCase):
     def test_category_key_is_unique(self):
         from django.db import IntegrityError, transaction
         from .models import ImpactMethod, ImpactCategory
-        m = ImpactMethod.objects.create(name='ReCiPe2016')
+        m = ImpactMethod.objects.create(name='TestMethodUnique')
         ImpactCategory.objects.create(method=m, key='dup', name='A')
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
@@ -1928,11 +1934,16 @@ class CharacterizationFactorModelTests(TestCase):
 
     def _cat(self):
         from .models import ImpactMethod, ImpactCategory
-        m = ImpactMethod.objects.create(name='ReCiPe2016')
-        return ImpactCategory.objects.create(
-            method=m, key='impact_endpoint_ReCiPe2016_ecosystem_diversity',
-            name='Diversité des écosystèmes', level=ImpactCategory.Level.ENDPOINT,
+        m, _ = ImpactMethod.objects.get_or_create(name='ReCiPe2016')
+        cat, _ = ImpactCategory.objects.get_or_create(
+            key='impact_endpoint_ReCiPe2016_ecosystem_diversity',
+            defaults={
+                'method': m,
+                'name': 'Diversité des écosystèmes',
+                'level': ImpactCategory.Level.ENDPOINT,
+            },
         )
+        return cat
 
     def test_global_cf_has_null_location(self):
         from .models import CharacterizationFactor, Commodity
@@ -1958,3 +1969,28 @@ class CharacterizationFactorModelTests(TestCase):
             category=cat, commodity=com, region=region, value=0.9
         )
         self.assertEqual(CharacterizationFactor.objects.filter(commodity=com).count(), 2)
+
+
+class SeedImpactCatalogTests(TestCase):
+
+    def test_two_methods_seeded(self):
+        from .models import ImpactMethod
+        names = set(ImpactMethod.objects.values_list('name', flat=True))
+        self.assertTrue({'ReCiPe2016', 'GBS'}.issubset(names))
+
+    def test_sixteen_categories_seeded(self):
+        from .models import ImpactCategory
+        self.assertEqual(ImpactCategory.objects.count(), 16)
+
+    def test_ecosystem_diversity_is_endpoint(self):
+        from .models import ImpactCategory
+        cat = ImpactCategory.objects.get(
+            key='impact_endpoint_ReCiPe2016_ecosystem_diversity'
+        )
+        self.assertEqual(cat.level, 'ENDPOINT')
+        self.assertEqual(cat.method.name, 'ReCiPe2016')
+
+    def test_gbs_categories_use_gbs_method(self):
+        from .models import ImpactCategory
+        cat = ImpactCategory.objects.get(key='impact_endpoint_GBS_terrestrial_static')
+        self.assertEqual(cat.method.name, 'GBS')
