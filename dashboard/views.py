@@ -301,14 +301,14 @@ def _get_company_data(company):
 
     countries = []
     for country_name, cd in sorted(
-        country_data.items(), key=lambda x: -x[1]['asset_count']
+        country_data.items(), key=lambda x: (-x[1]['asset_count'], x[0])
     ):
         countries.append({
             'name': country_name,
             'asset_count': cd['asset_count'],
             'commodities': [
                 {'name': n, 'count': v}
-                for n, v in sorted(cd['commodity_assets'].items(), key=lambda x: -x[1])
+                for n, v in sorted(cd['commodity_assets'].items(), key=lambda x: (-x[1], x[0]))
             ],
         })
 

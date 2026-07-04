@@ -8,29 +8,29 @@
       "asset_count": 2,
       "commodities": [
         {
+          "count": 2,
+          "name": "Soja"
+        }
+      ],
+      "name": "Brésil"
+    },
+    {
+      "asset_count": 2,
+      "commodities": [
+        {
+          "count": 1,
+          "name": "Blé"
+        },
+        {
           "count": 1,
           "name": "Huile de palme"
         },
         {
           "count": 1,
           "name": "Maïs"
-        },
-        {
-          "count": 1,
-          "name": "Blé"
         }
       ],
       "name": "France"
-    },
-    {
-      "asset_count": 2,
-      "commodities": [
-        {
-          "count": 2,
-          "name": "Soja"
-        }
-      ],
-      "name": "Brésil"
     },
     {
       "asset_count": 1,
