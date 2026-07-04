@@ -375,3 +375,34 @@ class Carbon_emission(models.Model):
 
     class Meta:
         unique_together = ('company', 'year', 'scope')
+
+
+class ImpactMethod(models.Model):
+    """Méthode de caractérisation LCA (ReCiPe2016, GBS, …)."""
+    name = models.CharField(max_length=100, unique=True)
+    version = models.CharField(max_length=50, blank=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+class ImpactCategory(models.Model):
+    """Axe d'impact ACV. `key` == nom de colonne legacy (contrat de sortie)."""
+
+    class Level(models.TextChoices):
+        MIDPOINT = 'MIDPOINT', 'Midpoint'
+        ENDPOINT = 'ENDPOINT', 'Endpoint'
+
+    method = models.ForeignKey(
+        ImpactMethod, on_delete=models.CASCADE, related_name='categories'
+    )
+    key = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=255)
+    unit = models.CharField(max_length=50, blank=True)
+    level = models.CharField(max_length=10, choices=Level.choices,
+                             default=Level.MIDPOINT)
+    theme = models.CharField(max_length=30, blank=True)
+
+    def __str__(self):
+        return f'{self.method.name} — {self.key}'

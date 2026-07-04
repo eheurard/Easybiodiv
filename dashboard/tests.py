@@ -1895,3 +1895,30 @@ class GoldenViewOutputTests(TestCase):
             self.assertTrue(path.exists(), f'Golden manquant : {path} (lancer GOLDEN_RECORD=1)')
             expected = json.loads(path.read_text(encoding='utf-8'))
             self.assertEqual(payload, expected, f'Sortie modifiée pour {fname}')
+
+
+class ImpactCatalogModelTests(TestCase):
+
+    def test_method_str(self):
+        from .models import ImpactMethod
+        m = ImpactMethod.objects.create(name='ReCiPe2016', version='1.1')
+        self.assertEqual(str(m), 'ReCiPe2016')
+
+    def test_category_str_and_level(self):
+        from .models import ImpactMethod, ImpactCategory
+        m = ImpactMethod.objects.create(name='ReCiPe2016')
+        c = ImpactCategory.objects.create(
+            method=m, key='impact_midpoint_ReCiPe2016_land_use',
+            name='Utilisation des terres', level=ImpactCategory.Level.MIDPOINT,
+        )
+        self.assertEqual(c.level, 'MIDPOINT')
+        self.assertIn('land_use', str(c))
+
+    def test_category_key_is_unique(self):
+        from django.db import IntegrityError, transaction
+        from .models import ImpactMethod, ImpactCategory
+        m = ImpactMethod.objects.create(name='ReCiPe2016')
+        ImpactCategory.objects.create(method=m, key='dup', name='A')
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                ImpactCategory.objects.create(method=m, key='dup', name='B')
