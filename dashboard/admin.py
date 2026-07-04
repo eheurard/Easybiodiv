@@ -4,7 +4,8 @@ from .models import (
     Asset, Asset_consumption, Company, Production, Ownership,
     Company_Revenue, Company_Revenue_Sector,
     Policy_Type, Policy_Subcategory, Policy_Level, Company_Policy,
-    DisclosureRequirement, E4Assessment, ESG_data,Carbon_emission,Supply_chain
+    DisclosureRequirement, E4Assessment, ESG_data,Carbon_emission,Supply_chain,
+    ImpactMethod, ImpactCategory, CharacterizationFactor
 )
 
 
@@ -181,3 +182,25 @@ class SupplyChainAdmin(admin.ModelAdmin):
     list_display = ('asset', 'commodity', 'quantity', 'year', 'supplier', 'supplier_data_confidence')
     list_filter = ('year', 'supplier_data_confidence')
     autocomplete_fields = ('asset', 'commodity', 'supplier')
+
+
+@admin.register(ImpactMethod)
+class ImpactMethodAdmin(admin.ModelAdmin):
+    search_fields = ('name',)
+    list_display = ('name', 'version')
+
+
+@admin.register(ImpactCategory)
+class ImpactCategoryAdmin(admin.ModelAdmin):
+    search_fields = ('key', 'name')
+    list_display = ('key', 'method', 'level', 'theme')
+    list_filter = ('method', 'level')
+    autocomplete_fields = ('method',)
+
+
+@admin.register(CharacterizationFactor)
+class CharacterizationFactorAdmin(admin.ModelAdmin):
+    search_fields = ('commodity__name', 'category__key')
+    list_display = ('commodity', 'category', 'region', 'country', 'value')
+    list_filter = ('category__method', 'category__level')
+    autocomplete_fields = ('category', 'commodity', 'region', 'country')

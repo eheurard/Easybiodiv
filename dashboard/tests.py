@@ -2108,34 +2108,19 @@ class CfServiceTests(TestCase):
         self.assertEqual(as_dict['impact_endpoint_GBS_terrestrial_static'], 0.0)
 
 
-def _get_category(key):
-    from .models import ImpactCategory
-    return ImpactCategory.objects.get(key=key)
+class CommodityColumnsDroppedTests(TestCase):
 
+    def test_impact_columns_removed(self):
+        from .models import Commodity
+        com = Commodity.objects.create(name='X')
+        self.assertFalse(hasattr(com, 'impact_endpoint_ReCiPe2016_ecosystem_diversity'))
+        self.assertFalse(hasattr(com, 'impact_midpoint_ReCiPe2016_land_use'))
 
-class BackfillGlobalCfsTests(TestCase):
-
-    def test_backfill_creates_global_cf_per_column(self):
-        from .models import Commodity, CharacterizationFactor
-        from dashboard.migrations import _cf_backfill  # module d'aide (Step 3)
-        com = Commodity.objects.create(
-            name='Soja',
-            impact_endpoint_ReCiPe2016_ecosystem_diversity=0.5,
-            impact_midpoint_ReCiPe2016_land_use=6.5,
-        )
-        _cf_backfill.backfill(Commodity, CharacterizationFactor, _get_category)
-        eco = CharacterizationFactor.objects.get(
-            commodity=com,
-            category__key='impact_endpoint_ReCiPe2016_ecosystem_diversity',
-            region__isnull=True, country__isnull=True,
-        )
-        self.assertEqual(eco.value, 0.5)
-        land = CharacterizationFactor.objects.get(
-            commodity=com, category__key='impact_midpoint_ReCiPe2016_land_use',
-            region__isnull=True, country__isnull=True,
-        )
-        self.assertEqual(land.value, 6.5)
-        self.assertEqual(CharacterizationFactor.objects.filter(commodity=com).count(), 16)
+    def test_dependency_fields_still_present(self):
+        from .models import Commodity
+        com = Commodity.objects.create(name='X', dependency_water='H')
+        self.assertEqual(com.dependency_water, 'H')
+        self.assertEqual(com.biodiversity_loss_class, 'Agriculture')
 
 
 class PopulateAcmeCfTests(TestCase):
