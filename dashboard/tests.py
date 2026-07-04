@@ -1064,10 +1064,9 @@ class DetteEcologiqueDataTests(TestCase):
             Mean_X=2.3, Mean_Y=48.8,
         )
         self.commodity_agri = Commodity.objects.create(
-            name='Soja',
-            impact_endpoint_ReCiPe2016_ecosystem_diversity=0.5,
-            biodiversity_loss_class='Agriculture',
+            name='Soja', biodiversity_loss_class='Agriculture',
         )
+        _make_cf(self.commodity_agri, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 0.5)
         self.asset = Asset.objects.create(
             name='Site A', latitude=48.8, longitude=2.3,
             country=self.country, subnational_region=self.region,
@@ -1105,10 +1104,9 @@ class DetteEcologiqueDataTests(TestCase):
     def test_lbiodiv_formula_urbanisation(self):
         # biodiversity_loss_urbanization=3.0 → 3.0 * 10.0 * 100.0 * 0.5 = 1500.0
         commodity_urb = Commodity.objects.create(
-            name='Béton',
-            impact_endpoint_ReCiPe2016_ecosystem_diversity=0.5,
-            biodiversity_loss_class='Urbanisation',
+            name='Béton', biodiversity_loss_class='Urbanisation',
         )
+        _make_cf(commodity_urb, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 0.5)
         Production.objects.create(
             asset=self.asset, commodity=commodity_urb, year=2024, production=100.0,
         )
@@ -1118,10 +1116,9 @@ class DetteEcologiqueDataTests(TestCase):
     def test_lbiodiv_formula_mining(self):
         # biodiversity_loss_mining=1.5 → 1.5 * 10.0 * 100.0 * 0.5 = 750.0
         commodity_min = Commodity.objects.create(
-            name='Lithium',
-            impact_endpoint_ReCiPe2016_ecosystem_diversity=0.5,
-            biodiversity_loss_class='Mining',
+            name='Lithium', biodiversity_loss_class='Mining',
         )
+        _make_cf(commodity_min, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 0.5)
         Production.objects.create(
             asset=self.asset, commodity=commodity_min, year=2024, production=100.0,
         )

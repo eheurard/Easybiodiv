@@ -850,6 +850,11 @@ def _get_dette_ecologique_data(company):
     )
     productions = [p for p in productions if latest_years.get(p.asset_id) == p.year]
 
+    cf_index = build_cf_index(
+        commodity_ids=[p.commodity_id for p in productions],
+        category_keys=[CAT_ECOSYSTEM_DIVERSITY],
+    )
+
     asset_map = {a.pk: a for a in assets}
     asset_comm = defaultdict(lambda: defaultdict(float))
     global_comm = defaultdict(float)
@@ -867,7 +872,10 @@ def _get_dette_ecologique_data(company):
             biodiv_loss
             * restoration
             * p.production
-            * p.commodity.impact_endpoint_ReCiPe2016_ecosystem_diversity
+            * cf_value(
+                cf_index, p.commodity_id, CAT_ECOSYSTEM_DIVERSITY,
+                asset.subnational_region_id, asset.country_id,
+            )
         )
         asset_comm[p.asset_id][p.commodity.name] += lbiodiv
         global_comm[p.commodity.name] += lbiodiv
