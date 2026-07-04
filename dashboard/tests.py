@@ -1994,3 +1994,64 @@ class SeedImpactCatalogTests(TestCase):
         from .models import ImpactCategory
         cat = ImpactCategory.objects.get(key='impact_endpoint_GBS_terrestrial_static')
         self.assertEqual(cat.method.name, 'GBS')
+
+
+class CfServiceTests(TestCase):
+
+    def setUp(self):
+        from .models import (
+            ImpactMethod, ImpactCategory, CharacterizationFactor,
+            Commodity, Country, SubnationalRegion,
+        )
+        # NB : nom de méthode non-seedé (ReCiPe2016/GBS sont créés par la
+        # migration 0026) et clé de catégorie non-seedée, pour éviter toute
+        # collision d'unicité avec le catalogue seedé.
+        self.method = ImpactMethod.objects.create(name='TestMethod')
+        self.cat = ImpactCategory.objects.create(
+            method=self.method, key='k_eco', name='Eco',
+            level=ImpactCategory.Level.ENDPOINT,
+        )
+        self.com = Commodity.objects.create(name='Soja')
+        self.country = Country.objects.create(
+            name='Brésil', water_ownership='X', land_ownership='Y'
+        )
+        self.region = SubnationalRegion.objects.create(name='Pará', country=self.country)
+        CharacterizationFactor.objects.create(category=self.cat, commodity=self.com, value=1.0)
+        CharacterizationFactor.objects.create(
+            category=self.cat, commodity=self.com, country=self.country, value=2.0
+        )
+        CharacterizationFactor.objects.create(
+            category=self.cat, commodity=self.com, region=self.region, value=3.0
+        )
+
+    def test_region_wins(self):
+        from .services.impacts import build_cf_index, cf_value
+        idx = build_cf_index([self.com.pk], ['k_eco'])
+        self.assertEqual(
+            cf_value(idx, self.com.pk, 'k_eco', self.region.pk, self.country.pk), 3.0
+        )
+
+    def test_country_when_no_region_cf(self):
+        from .services.impacts import build_cf_index, cf_value
+        idx = build_cf_index([self.com.pk], ['k_eco'])
+        # region_id inconnu en base -> retombe sur pays
+        self.assertEqual(cf_value(idx, self.com.pk, 'k_eco', 99999, self.country.pk), 2.0)
+
+    def test_global_fallback(self):
+        from .services.impacts import build_cf_index, cf_value
+        idx = build_cf_index([self.com.pk], ['k_eco'])
+        self.assertEqual(cf_value(idx, self.com.pk, 'k_eco', None, None), 1.0)
+
+    def test_missing_returns_zero(self):
+        from .services.impacts import build_cf_index, cf_value
+        idx = build_cf_index([self.com.pk], ['k_eco'])
+        self.assertEqual(cf_value(idx, self.com.pk, 'inconnue', None, None), 0.0)
+
+    def test_legacy_cf_rows_maps_16_columns(self):
+        from .services.impacts import legacy_cf_rows, LEGACY_IMPACT_COLUMNS
+        rows = legacy_cf_rows({'impact_midpoint_ReCiPe2016_land_use': 6.5})
+        self.assertEqual(len(rows), 16)
+        self.assertEqual(len(LEGACY_IMPACT_COLUMNS), 16)
+        as_dict = dict(rows)
+        self.assertEqual(as_dict['impact_midpoint_ReCiPe2016_land_use'], 6.5)
+        self.assertEqual(as_dict['impact_endpoint_GBS_terrestrial_static'], 0.0)
