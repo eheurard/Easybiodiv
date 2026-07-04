@@ -1836,3 +1836,62 @@ class LeapPagesTests(TestCase):
         c = Client()
         response = c.get(reverse('dashboard:leap_locate'))
         self.assertEqual(response.status_code, 302)
+
+
+import os
+from pathlib import Path
+from django.core.management import call_command
+
+GOLDEN_DIR = Path(__file__).resolve().parent / 'golden'
+
+# Vues du chemin ACV dont la forme de sortie doit rester invariante.
+GOLDEN_VIEWS = [
+    ('company_data',        'dashboard:company_data'),
+    ('mesure_empreinte',    'dashboard:mesure_empreinte_data'),
+    ('leap_evaluate',       'dashboard:leap_evaluate_data'),
+    ('leap_prepare',        'dashboard:leap_prepare_data'),
+    ('dette_ecologique',    'dashboard:dette_ecologique_data'),
+    ('compare',             'dashboard:compare_data'),
+]
+
+
+class GoldenViewOutputTests(TestCase):
+    """Snapshot des sorties JSON sur le jeu déterministe `populate_acme`.
+
+    Enregistrer la référence :  GOLDEN_RECORD=1 python manage.py test
+        dashboard.tests.GoldenViewOutputTests
+    Vérifier (défaut) :         python manage.py test
+        dashboard.tests.GoldenViewOutputTests
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        call_command('populate_acme')
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        cls.user = User.objects.create_user(username='golden', password='x')
+        cls.acme = Company.objects.get(name='Acme Corp')
+
+    def _fetch(self, url_name):
+        self.client.force_login(self.user)
+        url = reverse(url_name, kwargs={'pk': self.acme.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200, url_name)
+        return json.loads(response.content)
+
+    def test_golden_outputs_match(self):
+        record = os.environ.get('GOLDEN_RECORD') == '1'
+        if record:
+            GOLDEN_DIR.mkdir(exist_ok=True)
+        for fname, url_name in GOLDEN_VIEWS:
+            payload = self._fetch(url_name)
+            path = GOLDEN_DIR / f'{fname}.json'
+            if record:
+                path.write_text(
+                    json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True),
+                    encoding='utf-8',
+                )
+                continue
+            self.assertTrue(path.exists(), f'Golden manquant : {path} (lancer GOLDEN_RECORD=1)')
+            expected = json.loads(path.read_text(encoding='utf-8'))
+            self.assertEqual(payload, expected, f'Sortie modifiée pour {fname}')

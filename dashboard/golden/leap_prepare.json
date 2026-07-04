@@ -1,0 +1,89 @@
+{
+  "assets": [
+    {
+      "id": 5,
+      "lines": [
+        {
+          "commodity_id": 4,
+          "qty": 235000.0,
+          "unit": "tonnes"
+        }
+      ],
+      "name": "Palmeraie Sumatra"
+    },
+    {
+      "id": 3,
+      "lines": [
+        {
+          "commodity_id": 3,
+          "qty": 195000.0,
+          "unit": "tonnes"
+        }
+      ],
+      "name": "Plantation soja Mato Grosso"
+    },
+    {
+      "id": 4,
+      "lines": [
+        {
+          "commodity_id": 3,
+          "qty": 102000.0,
+          "unit": "tonnes"
+        }
+      ],
+      "name": "Plantation soja Pará"
+    },
+    {
+      "id": 2,
+      "lines": [
+        {
+          "commodity_id": 1,
+          "qty": 45000.0,
+          "unit": "tonnes"
+        },
+        {
+          "commodity_id": 2,
+          "qty": 30000.0,
+          "unit": "tonnes"
+        }
+      ],
+      "name": "Silo céréalier Occitanie"
+    },
+    {
+      "id": 1,
+      "lines": [
+        {
+          "commodity_id": 4,
+          "qty": 88000.0,
+          "unit": "tonnes"
+        }
+      ],
+      "name": "Usine de transformation Bretagne"
+    }
+  ],
+  "commodities": [
+    {
+      "id": 1,
+      "impact_factor": 0.0014,
+      "name": "Blé"
+    },
+    {
+      "id": 4,
+      "impact_factor": 0.0095,
+      "name": "Huile de palme"
+    },
+    {
+      "id": 2,
+      "impact_factor": 0.0017,
+      "name": "Maïs"
+    },
+    {
+      "id": 3,
+      "impact_factor": 0.0048,
+      "name": "Soja"
+    }
+  ],
+  "company_id": 1,
+  "company_name": "Acme Corp",
+  "year": 2024
+}

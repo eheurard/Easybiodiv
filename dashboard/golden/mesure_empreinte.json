@@ -1,0 +1,154 @@
+{
+  "assets": [
+    {
+      "country": "Indonésie",
+      "id": 5,
+      "impact": 2232.5,
+      "name": "Palmeraie Sumatra",
+      "pct": 0.4845
+    },
+    {
+      "country": "Brésil",
+      "id": 3,
+      "impact": 936.0,
+      "name": "Plantation soja Mato Grosso",
+      "pct": 0.2031
+    },
+    {
+      "country": "France",
+      "id": 1,
+      "impact": 836.0,
+      "name": "Usine de transformation Bretagne",
+      "pct": 0.1814
+    },
+    {
+      "country": "Brésil",
+      "id": 4,
+      "impact": 489.6,
+      "name": "Plantation soja Pará",
+      "pct": 0.1062
+    },
+    {
+      "country": "France",
+      "id": 2,
+      "impact": 114.0,
+      "name": "Silo céréalier Occitanie",
+      "pct": 0.0247
+    }
+  ],
+  "commodities": [
+    {
+      "impact": 3068.5,
+      "name": "Huile de palme",
+      "pct": 0.6659
+    },
+    {
+      "impact": 1425.6,
+      "name": "Soja",
+      "pct": 0.3094
+    },
+    {
+      "impact": 63.0,
+      "name": "Blé",
+      "pct": 0.0137
+    },
+    {
+      "impact": 51.0,
+      "name": "Maïs",
+      "pct": 0.0111
+    }
+  ],
+  "company_id": 1,
+  "company_name": "Acme Corp",
+  "countries": [
+    {
+      "impact": 2232.5,
+      "name": "Indonésie",
+      "pct": 0.4845
+    },
+    {
+      "impact": 1425.6,
+      "name": "Brésil",
+      "pct": 0.3094
+    },
+    {
+      "impact": 950.0,
+      "name": "France",
+      "pct": 0.2062
+    }
+  ],
+  "sankey_links": [
+    {
+      "source": "commodity:Huile de palme",
+      "target": "asset:1",
+      "value": 0.1814
+    },
+    {
+      "source": "commodity:Blé",
+      "target": "asset:2",
+      "value": 0.0137
+    },
+    {
+      "source": "commodity:Maïs",
+      "target": "asset:2",
+      "value": 0.0111
+    },
+    {
+      "source": "commodity:Soja",
+      "target": "asset:3",
+      "value": 0.2031
+    },
+    {
+      "source": "commodity:Soja",
+      "target": "asset:4",
+      "value": 0.1062
+    },
+    {
+      "source": "commodity:Huile de palme",
+      "target": "asset:5",
+      "value": 0.4845
+    },
+    {
+      "source": "asset:1",
+      "target": "country:France",
+      "value": 0.1814
+    },
+    {
+      "source": "asset:2",
+      "target": "country:France",
+      "value": 0.0247
+    },
+    {
+      "source": "asset:3",
+      "target": "country:Brésil",
+      "value": 0.2031
+    },
+    {
+      "source": "asset:4",
+      "target": "country:Brésil",
+      "value": 0.1062
+    },
+    {
+      "source": "asset:5",
+      "target": "country:Indonésie",
+      "value": 0.4845
+    },
+    {
+      "source": "country:France",
+      "target": "company:1",
+      "value": 0.2062
+    },
+    {
+      "source": "country:Brésil",
+      "target": "company:1",
+      "value": 0.3094
+    },
+    {
+      "source": "country:Indonésie",
+      "target": "company:1",
+      "value": 0.4845
+    }
+  ],
+  "total_impact": 4608.1,
+  "year": 2024
+}
