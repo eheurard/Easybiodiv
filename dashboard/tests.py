@@ -2137,3 +2137,22 @@ class PopulateAcmeCfTests(TestCase):
             region__isnull=True, country__isnull=True,
         )
         self.assertAlmostEqual(cf.value, 0.0048, places=6)
+
+
+class TierVocabTests(TestCase):
+
+    def test_labels_match_legacy_scope_labels(self):
+        from .services.supply import TIER_LABELS, TIER_TO_SCOPE, SCOPE_TO_TIER
+        self.assertEqual(TIER_LABELS[0], 'Opérations directes')
+        self.assertEqual(TIER_LABELS[1], "Tier 1 : Chaîne d'approvisionnement")
+        self.assertEqual(TIER_LABELS[2], 'Tier 2 : Approvisionnement amont')
+        self.assertEqual(TIER_LABELS[3], 'Matières premières')
+
+    def test_scope_tier_roundtrip(self):
+        from .services.supply import SCOPE_TO_TIER, TIER_TO_SCOPE
+        self.assertEqual(SCOPE_TO_TIER['direct'], 0)
+        self.assertEqual(SCOPE_TO_TIER['tier 1'], 1)
+        self.assertEqual(SCOPE_TO_TIER['tier 2'], 2)
+        self.assertEqual(SCOPE_TO_TIER['raw material'], 3)
+        for scope, tier in SCOPE_TO_TIER.items():
+            self.assertEqual(TIER_TO_SCOPE[tier], scope)
