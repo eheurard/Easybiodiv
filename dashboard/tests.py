@@ -2193,3 +2193,23 @@ class SupplyNodeModelTests(TestCase):
         from .models import SupplyNode
         with self.assertRaises(ValidationError):
             SupplyNode(name='vide').clean()
+
+
+class ExchangeModelTests(TestCase):
+
+    def test_directed_edge(self):
+        from .models import Exchange, SupplyNode, Asset, Country, Commodity
+        c = Country.objects.create(name='Brésil', water_ownership='X', land_ownership='Y')
+        a1 = Asset.objects.create(name='Usine', latitude=0.0, longitude=0.0, country=c)
+        a2 = Asset.objects.create(name='Ferme', latitude=-3.0, longitude=-47.0, country=c)
+        consumer = SupplyNode.objects.create(asset=a1)
+        supplier = SupplyNode.objects.create(asset=a2)
+        com = Commodity.objects.create(name='Soja')
+        ex = Exchange.objects.create(
+            supplier=supplier, consumer=consumer, commodity=com,
+            quantity=100.0, year=2024, tier=1,
+        )
+        self.assertEqual(consumer.incoming.count(), 1)
+        self.assertEqual(supplier.outgoing.count(), 1)
+        self.assertEqual(ex.tier, 1)
+        self.assertEqual(ex.data_confidence, 'country')

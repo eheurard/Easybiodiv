@@ -468,3 +468,30 @@ class SupplyNode(models.Model):
         if self.asset_id:
             return self.asset.name
         return self.name or f'{self.resolution} node #{self.pk}'
+
+
+class Exchange(models.Model):
+    """Arête dirigée fournisseur → consommateur du graphe d'approvisionnement."""
+    supplier = models.ForeignKey(
+        SupplyNode, on_delete=models.CASCADE, related_name='outgoing'
+    )
+    consumer = models.ForeignKey(
+        SupplyNode, on_delete=models.CASCADE, related_name='incoming'
+    )
+    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE)
+    quantity = models.FloatField()
+    year = models.IntegerField()
+    tier = models.PositiveSmallIntegerField(default=0)
+    data_confidence = models.CharField(
+        max_length=16,
+        choices=[('asset', 'asset'), ('region', 'region'), ('country', 'country')],
+        default='country',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+
+    def __str__(self):
+        return f'{self.supplier} → {self.consumer} ({self.commodity.name}, {self.year})'
