@@ -2156,3 +2156,40 @@ class TierVocabTests(TestCase):
         self.assertEqual(SCOPE_TO_TIER['raw material'], 3)
         for scope, tier in SCOPE_TO_TIER.items():
             self.assertEqual(TIER_TO_SCOPE[tier], scope)
+
+
+class SupplyNodeModelTests(TestCase):
+
+    def _country_region(self):
+        from .models import Country, SubnationalRegion
+        c = Country.objects.create(
+            name='Brésil', water_ownership='X', land_ownership='Y'
+        )
+        r = SubnationalRegion.objects.create(name='Pará', country=c)
+        return c, r
+
+    def test_asset_node_resolution_and_effective_location(self):
+        from .models import SupplyNode, Asset
+        c, r = self._country_region()
+        a = Asset.objects.create(
+            name='Ferme', latitude=-3.0, longitude=-47.0, country=c,
+            subnational_region=r
+        )
+        node = SupplyNode.objects.create(asset=a)
+        self.assertEqual(node.resolution, 'asset')
+        self.assertEqual(node.effective_region_id, r.pk)
+        self.assertEqual(node.effective_country_id, c.pk)
+
+    def test_country_node_resolution(self):
+        from .models import SupplyNode
+        c, r = self._country_region()
+        node = SupplyNode.objects.create(country=c, name='Fournisseur BR')
+        self.assertEqual(node.resolution, 'country')
+        self.assertIsNone(node.effective_region_id)
+        self.assertEqual(node.effective_country_id, c.pk)
+
+    def test_clean_requires_a_location(self):
+        from django.core.exceptions import ValidationError
+        from .models import SupplyNode
+        with self.assertRaises(ValidationError):
+            SupplyNode(name='vide').clean()

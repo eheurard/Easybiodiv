@@ -421,3 +421,50 @@ class CharacterizationFactor(models.Model):
 
     def __str__(self):
         return f'{self.commodity.name} — {self.category.key}'
+
+
+class SupplyNode(models.Model):
+    """Sommet du graphe fournisseurs, à résolution variable
+    (asset/région/pays)."""
+
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True,
+                              blank=True)
+    region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE,
+                               null=True, blank=True)
+    country = models.ForeignKey(Country, on_delete=models.CASCADE, null=True,
+                                blank=True)
+    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE,
+                                  null=True, blank=True)
+    name = models.CharField(max_length=255, blank=True)
+    is_external = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if not (self.asset_id or self.region_id or self.country_id):
+            raise ValidationError(
+                'Un SupplyNode requiert au moins asset, region ou country.'
+            )
+
+    @property
+    def resolution(self):
+        if self.asset_id:
+            return 'asset'
+        if self.region_id:
+            return 'region'
+        return 'country'
+
+    @property
+    def effective_region_id(self):
+        return (self.asset.subnational_region_id if self.asset_id
+                else self.region_id)
+
+    @property
+    def effective_country_id(self):
+        return self.asset.country_id if self.asset_id else self.country_id
+
+    def __str__(self):
+        if self.asset_id:
+            return self.asset.name
+        return self.name or f'{self.resolution} node #{self.pk}'
