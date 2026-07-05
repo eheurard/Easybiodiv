@@ -1908,6 +1908,35 @@ GOLDEN_VIEWS = [
 ]
 
 
+class SupplyChainToGraphTests(TestCase):
+
+    def test_converts_supply_chain_to_exchange(self):
+        from .models import (
+            Supply_chain, Exchange, SupplyNode, Asset, Country, Commodity,
+        )
+        from dashboard.migrations import _supply_chain_to_graph
+        c = Country.objects.create(
+            name='Brésil', water_ownership='X', land_ownership='Y'
+        )
+        a = Asset.objects.create(
+            name='Usine', latitude=0.0, longitude=0.0, country=c
+        )
+        sup = Asset.objects.create(
+            name='Ferme', latitude=-3.0, longitude=-47.0, country=c
+        )
+        com = Commodity.objects.create(name='Soja')
+        Supply_chain.objects.create(
+            asset=a, supplier=sup, commodity=com, quantity=50.0, year=2024,
+        )
+        _supply_chain_to_graph.migrate(Supply_chain, SupplyNode, Exchange)
+        self.assertEqual(Exchange.objects.count(), 1)
+        ex = Exchange.objects.get()
+        self.assertEqual(ex.consumer.asset_id, a.pk)
+        self.assertEqual(ex.supplier.asset_id, sup.pk)
+        self.assertEqual(ex.quantity, 50.0)
+        self.assertEqual(ex.tier, 1)
+
+
 class GoldenViewOutputTests(TestCase):
     """Snapshot des sorties JSON sur le jeu déterministe `populate_acme`.
 
