@@ -378,7 +378,7 @@ class DependenciesDataTests(TestCase):
             commodity=self.commodity,
             year=2024,
             production=100.0,
-            scope='direct',
+            tier=0,
         )
 
     def test_score_map_conversion(self):
@@ -530,7 +530,7 @@ class DependenciesDataTests(TestCase):
         # Older year — should be ignored
         Production.objects.create(
             company=self.company, commodity=commodity2, year=2020,
-            production=999.0, scope='direct',
+            production=999.0, tier=0,
         )
         data = _get_dependencies_data(self.company)
         self.assertEqual(data['year'], 2024)
@@ -556,7 +556,7 @@ class DependenciesDataTests(TestCase):
         )
         Production.objects.create(
             asset=asset, commodity=commodity_vh, year=2024,
-            production=50.0, scope='tier 1',
+            production=50.0, tier=1,
         )
         data = _get_dependencies_data(self.company)
         # 'tier 1' scope should appear because asset-linked production was included

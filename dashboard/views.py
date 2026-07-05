@@ -14,6 +14,7 @@ from .models import (
 )
 from .services.market import get_market_data, DEFAULT_RANGE
 from .services.impacts import build_cf_index, cf_value, CAT_ECOSYSTEM_DIVERSITY
+from .services.supply import TIER_LABELS, TIER_TO_SCOPE
 
 from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
 
@@ -50,15 +51,6 @@ _SUBSECTOR_DEP_FIELDS = {
     'pest_control':         'Pest_control_dependency',
     'pollination':          'Pollination_dependency',
 }
-
-_SCOPE_LABELS = {
-    'direct':       'Opérations directes',
-    'tier 1':       "Tier 1 : Chaîne d'approvisionnement",
-    'tier 2':       "Tier 2 : Approvisionnement amont",
-    'raw material': 'Matières premières',
-}
-
-_SCOPE_ORDER = ['direct', 'tier 1', 'tier 2', 'raw material']
 
 PHYSICAL_RISKS = [
     {'key': 'water', 'name': 'Eau', 'group': 'Services écosystémiques'},
@@ -133,7 +125,7 @@ def _get_dependencies_data(company):
         for key, val in scores.items():
             service_totals[key].append(val)
         if any(v >= 0.7 for v in scores.values()):
-            critical_nodes.add((p.commodity_id, p.scope))
+            critical_nodes.add((p.commodity_id, p.tier))
 
     global_score = sum(all_scores) / len(all_scores) if all_scores else 0
 
@@ -148,13 +140,12 @@ def _get_dependencies_data(company):
     # --- Supply Chain ---
     scope_groups = defaultdict(list)
     for p in productions:
-        scope_groups[p.scope].append(_commodity_dep_scores(p.commodity))
+        scope_groups[p.tier].append(_commodity_dep_scores(p.commodity))
 
     supply_chain = []
-    for scope in _SCOPE_ORDER:
-        if scope not in scope_groups:
-            continue
-        group = scope_groups[scope]
+    for tier in sorted(scope_groups):
+        group = scope_groups[tier]
+        scope = TIER_TO_SCOPE[tier]
         svc_avgs = {
             svc['key']: sum(s[svc['key']] for s in group) / len(group)
             for svc in SERVICES
@@ -175,7 +166,7 @@ def _get_dependencies_data(company):
         if services_out:
             supply_chain.append({
                 'scope': scope,
-                'label': _SCOPE_LABELS[scope],
+                'label': TIER_LABELS[tier],
                 'services': services_out,
             })
 

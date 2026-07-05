@@ -8,6 +8,7 @@ from dashboard.models import (
     Sector, SubSector, SubnationalRegion, CharacterizationFactor, ImpactCategory,
 )
 from dashboard.services.impacts import legacy_cf_rows
+from dashboard.services.supply import SCOPE_TO_TIER
 
 
 class Command(BaseCommand):
@@ -425,6 +426,7 @@ class Command(BaseCommand):
                     "estimated_revenue": revenue,
                     "country": asset.country,
                     "subnational_region": asset.subnational_region,
+                    "tier": SCOPE_TO_TIER[scope],
                 },
             )
 
