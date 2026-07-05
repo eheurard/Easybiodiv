@@ -1912,35 +1912,6 @@ GOLDEN_VIEWS = [
 ]
 
 
-class SupplyChainToGraphTests(TestCase):
-
-    def test_converts_supply_chain_to_exchange(self):
-        from .models import (
-            Supply_chain, Exchange, SupplyNode, Asset, Country, Commodity,
-        )
-        from dashboard.migrations import _supply_chain_to_graph
-        c = Country.objects.create(
-            name='Brésil', water_ownership='X', land_ownership='Y'
-        )
-        a = Asset.objects.create(
-            name='Usine', latitude=0.0, longitude=0.0, country=c
-        )
-        sup = Asset.objects.create(
-            name='Ferme', latitude=-3.0, longitude=-47.0, country=c
-        )
-        com = Commodity.objects.create(name='Soja')
-        Supply_chain.objects.create(
-            asset=a, supplier=sup, commodity=com, quantity=50.0, year=2024,
-        )
-        _supply_chain_to_graph.migrate(Supply_chain, SupplyNode, Exchange)
-        self.assertEqual(Exchange.objects.count(), 1)
-        ex = Exchange.objects.get()
-        self.assertEqual(ex.consumer.asset_id, a.pk)
-        self.assertEqual(ex.supplier.asset_id, sup.pk)
-        self.assertEqual(ex.quantity, 50.0)
-        self.assertEqual(ex.tier, 1)
-
-
 class GoldenViewOutputTests(TestCase):
     """Snapshot des sorties JSON sur le jeu déterministe `populate_acme`.
 
@@ -2248,28 +2219,6 @@ class ExchangeModelTests(TestCase):
         self.assertEqual(ex.data_confidence, 'country')
 
 
-class ProductionTierBackfillTests(TestCase):
-
-    def test_backfill_maps_scope_to_tier(self):
-        from .models import Production, Commodity, Company
-        from dashboard.migrations import _scope_tier
-        com = Commodity.objects.create(name='Soja')
-        company = Company.objects.create(name='C')
-        p_direct = Production.objects.create(
-            commodity=com, company=company, year=2024, production=1.0,
-            scope='direct'
-        )
-        p_t1 = Production.objects.create(
-            commodity=com, company=company, year=2024, production=1.0,
-            scope='tier 1'
-        )
-        _scope_tier.backfill(Production)
-        p_direct.refresh_from_db()
-        p_t1.refresh_from_db()
-        self.assertEqual(p_direct.tier, 0)
-        self.assertEqual(p_t1.tier, 1)
-
-
 class UpstreamChainTests(TestCase):
 
     def test_multitier_traversal_with_cycle_guard(self):
@@ -2291,3 +2240,16 @@ class UpstreamChainTests(TestCase):
         # 3 arêtes atteignables sans boucler indéfiniment
         self.assertGreaterEqual(len(chain), 2)
         self.assertLessEqual(len(chain), 3)
+
+
+class SupplyChainDroppedTests(TestCase):
+
+    def test_production_has_no_scope_and_supply_chain_gone(self):
+        from .models import Production, Commodity, Company
+        com = Commodity.objects.create(name='X')
+        company = Company.objects.create(name='C')
+        p = Production.objects.create(commodity=com, company=company, year=2024,
+                                      production=1.0, tier=1)
+        self.assertFalse(hasattr(p, 'scope'))
+        import dashboard.models as m
+        self.assertFalse(hasattr(m, 'Supply_chain'))

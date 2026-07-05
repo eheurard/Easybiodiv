@@ -4,8 +4,9 @@ from .models import (
     Asset, Asset_consumption, Company, Production, Ownership,
     Company_Revenue, Company_Revenue_Sector,
     Policy_Type, Policy_Subcategory, Policy_Level, Company_Policy,
-    DisclosureRequirement, E4Assessment, ESG_data,Carbon_emission,Supply_chain,
-    ImpactMethod, ImpactCategory, CharacterizationFactor
+    DisclosureRequirement, E4Assessment, ESG_data,Carbon_emission,
+    ImpactMethod, ImpactCategory, CharacterizationFactor,
+    SupplyNode, Exchange,
 )
 
 
@@ -79,8 +80,8 @@ class ProductionAdmin(admin.ModelAdmin):
         'commodity__name', 'asset__name', 'company__name',
         'subnational_region__name', 'country__name',
     )
-    list_display = ('__str__', 'commodity', 'company', 'scope', 'year', 'production')
-    list_filter = ('scope', 'year', 'country')
+    list_display = ('__str__', 'commodity', 'company', 'tier', 'year', 'production')
+    list_filter = ('tier', 'year', 'country')
     autocomplete_fields = ('commodity', 'asset', 'company', 'subnational_region', 'country')
 
 
@@ -176,12 +177,20 @@ class CarbonEmissionAdmin(admin.ModelAdmin):
     autocomplete_fields = ('company',)
 
 
-@admin.register(Supply_chain)
-class SupplyChainAdmin(admin.ModelAdmin):
-    search_fields = ('asset__name', 'commodity__name')
-    list_display = ('asset', 'commodity', 'quantity', 'year', 'supplier', 'supplier_data_confidence')
-    list_filter = ('year', 'supplier_data_confidence')
-    autocomplete_fields = ('asset', 'commodity', 'supplier')
+@admin.register(SupplyNode)
+class SupplyNodeAdmin(admin.ModelAdmin):
+    search_fields = ('name', 'asset__name', 'region__name', 'country__name')
+    list_display = ('__str__', 'resolution', 'is_external')
+    list_filter = ('is_external',)
+    autocomplete_fields = ('asset', 'region', 'country', 'commodity')
+
+
+@admin.register(Exchange)
+class ExchangeAdmin(admin.ModelAdmin):
+    search_fields = ('supplier__name', 'consumer__name', 'commodity__name')
+    list_display = ('__str__', 'tier', 'year', 'data_confidence')
+    list_filter = ('tier', 'year', 'data_confidence')
+    autocomplete_fields = ('supplier', 'consumer', 'commodity', 'created_by')
 
 
 @admin.register(ImpactMethod)

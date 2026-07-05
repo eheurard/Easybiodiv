@@ -418,7 +418,7 @@ class Command(BaseCommand):
             Production.objects.get_or_create(
                 asset=asset,
                 commodity=commodity,
-                scope=scope,
+                tier=SCOPE_TO_TIER[scope],
                 year=year,
                 defaults={
                     "company": acme,
@@ -426,7 +426,6 @@ class Command(BaseCommand):
                     "estimated_revenue": revenue,
                     "country": asset.country,
                     "subnational_region": asset.subnational_region,
-                    "tier": SCOPE_TO_TIER[scope],
                 },
             )
 

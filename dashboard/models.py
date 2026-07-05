@@ -134,22 +134,10 @@ class Production(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
     subnational_region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True)
     country = models.ForeignKey(Country, on_delete=models.CASCADE, null=True, blank=True)
-    scope = models.CharField(max_length=15, choices=[('direct', 'direct'), ('tier 1', 'tier 1'), ('tier 2', 'tier 2'), ('raw material', 'raw material')], default='direct')
     tier = models.PositiveSmallIntegerField(default=0)
     year = models.IntegerField()
     production = models.FloatField()
     estimated_revenue = models.FloatField(default = 0.0)
-    def __str__(self):
-        asset_name = self.asset.name if self.asset else "no asset"
-        return f"{asset_name} - {self.commodity.name} - {self.year}"
-
-class Supply_chain(models.Model):
-    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='asset_productions')
-    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE)
-    quantity = models.FloatField()
-    year = models.IntegerField()
-    supplier = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='supplied_productions')
-    supplier_data_confidence = models.CharField(max_length=16, choices=[('country level','country'),('sub_region level', 'sub_region'),('asset level','asset')],default = 'country level')
     def __str__(self):
         asset_name = self.asset.name if self.asset else "no asset"
         return f"{asset_name} - {self.commodity.name} - {self.year}"
