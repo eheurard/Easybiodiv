@@ -8,7 +8,7 @@ from django.views.decorators.http import require_GET
 
 from django.db.models import Q
 from .models import (
-    Asset, Asset_consumption, Carbon_emission, Commodity, Company, Company_Policy,
+    Asset, Asset_consumption, Carbon_emission, Company, Company_Policy,
     Company_Revenue, Company_Revenue_Sector, DisclosureRequirement, E4Assessment,
     Ownership, Production, Supply_chain,
 )
