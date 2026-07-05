@@ -85,6 +85,23 @@ class ImporterCountryTest(TestCase):
         )
         self.assertEqual(cf.value, 0.5)
 
+    def test_import_production_maps_scope_to_tier(self):
+        """Regression: _import_production must map the sheet's `scope` column
+        (direct/tier 1/tier 2/raw material) to the model's `tier` integer field,
+        since dependencies now groups productions by `tier`."""
+        country = Country.objects.create(
+            name='France', water_ownership='pub', land_ownership='priv')
+        Asset.objects.create(
+            name='Usine A', latitude=48.85, longitude=2.35, country=country)
+        Commodity.objects.create(name='Soy')
+        counts = save_import({'Production': [
+            _ok({'asset_name': 'Usine A', 'commodity_name': 'Soy', 'scope': 'tier 1',
+                 'year': '2024', 'production': '100'}),
+        ]})
+        self.assertEqual(counts['Production'], 1)
+        production = Production.objects.get(asset__name='Usine A', commodity__name='Soy')
+        self.assertEqual(production.tier, 1)
+
     def test_returns_empty_for_empty_input(self):
         counts = save_import({})
         self.assertEqual(counts, {})

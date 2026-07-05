@@ -8,6 +8,7 @@ from dashboard.models import (
     Sector, SubnationalRegion, SubSector,
 )
 from dashboard.services.impacts import LEGACY_IMPACT_COLUMNS
+from dashboard.services.supply import SCOPE_TO_TIER
 from .constants import IMPORT_ORDER
 
 
@@ -256,7 +257,7 @@ def _import_production(rows, lookup):
             year=year,
             production=production,
             estimated_revenue=_f(d.get('estimated_revenue')),
-            scope=d.get('scope') or 'direct',
+            tier=SCOPE_TO_TIER.get(d.get('scope') or 'direct', 0),
         )
         created += 1
     return created
