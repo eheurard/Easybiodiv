@@ -1,0 +1,153 @@
+{
+  "company_id": 1,
+  "company_name": "Acme Corp",
+  "geojson": {
+    "features": [
+      {
+        "geometry": {
+          "coordinates": [
+            -2.76,
+            48.51
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "asset_type": "Agriculture",
+          "country": "France",
+          "name": "Usine de transformation Bretagne",
+          "ownership": "100%",
+          "productions": [
+            {
+              "commodity": "Huile de palme",
+              "quantity": 88000.0,
+              "revenue": 72000000.0,
+              "unit": "tonnes"
+            }
+          ],
+          "region": "Bretagne",
+          "revenue_total": 72000000.0
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            1.35,
+            44.02
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "asset_type": "Agriculture",
+          "country": "France",
+          "name": "Silo céréalier Occitanie",
+          "ownership": "100%",
+          "productions": [
+            {
+              "commodity": "Blé",
+              "quantity": 45000.0,
+              "revenue": 9000000.0,
+              "unit": "tonnes"
+            },
+            {
+              "commodity": "Maïs",
+              "quantity": 30000.0,
+              "revenue": 5400000.0,
+              "unit": "tonnes"
+            }
+          ],
+          "region": "Occitanie",
+          "revenue_total": 14400000.0
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            -56.08,
+            -13.83
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "asset_type": "Agriculture",
+          "country": "Brésil",
+          "name": "Plantation soja Mato Grosso",
+          "ownership": "75%",
+          "productions": [
+            {
+              "commodity": "Soja",
+              "quantity": 195000.0,
+              "revenue": 117000000.0,
+              "unit": "tonnes"
+            }
+          ],
+          "region": "Mato Grosso",
+          "revenue_total": 117000000.0
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            -47.35,
+            -2.98
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "asset_type": "Agriculture",
+          "country": "Brésil",
+          "name": "Plantation soja Pará",
+          "ownership": "100%",
+          "productions": [
+            {
+              "commodity": "Soja",
+              "quantity": 102000.0,
+              "revenue": 61200000.0,
+              "unit": "tonnes"
+            }
+          ],
+          "region": "Pará",
+          "revenue_total": 61200000.0
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            102.1,
+            0.75
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "asset_type": "Agriculture",
+          "country": "Indonésie",
+          "name": "Palmeraie Sumatra",
+          "ownership": "60%",
+          "productions": [
+            {
+              "commodity": "Huile de palme",
+              "quantity": 235000.0,
+              "revenue": 188000000.0,
+              "unit": "tonnes"
+            }
+          ],
+          "region": "Sumatra",
+          "revenue_total": 188000000.0
+        },
+        "type": "Feature"
+      }
+    ],
+    "type": "FeatureCollection"
+  },
+  "supplier_links": {
+    "features": [],
+    "type": "FeatureCollection"
+  },
+  "suppliers": {
+    "features": [],
+    "type": "FeatureCollection"
+  }
+}

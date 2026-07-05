@@ -1903,6 +1903,8 @@ GOLDEN_VIEWS = [
     ('leap_prepare',        'dashboard:leap_prepare_data'),
     ('dette_ecologique',    'dashboard:dette_ecologique_data'),
     ('compare',             'dashboard:compare_data'),
+    ('dependencies',        'dashboard:dependencies_data'),
+    ('leap_locate',         'dashboard:leap_locate_data'),
 ]
 
 
