@@ -135,6 +135,7 @@ class Production(models.Model):
     subnational_region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True)
     country = models.ForeignKey(Country, on_delete=models.CASCADE, null=True, blank=True)
     scope = models.CharField(max_length=15, choices=[('direct', 'direct'), ('tier 1', 'tier 1'), ('tier 2', 'tier 2'), ('raw material', 'raw material')], default='direct')
+    tier = models.PositiveSmallIntegerField(default=0)
     year = models.IntegerField()
     production = models.FloatField()
     estimated_revenue = models.FloatField(default = 0.0)

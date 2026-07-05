@@ -2213,3 +2213,25 @@ class ExchangeModelTests(TestCase):
         self.assertEqual(supplier.outgoing.count(), 1)
         self.assertEqual(ex.tier, 1)
         self.assertEqual(ex.data_confidence, 'country')
+
+
+class ProductionTierBackfillTests(TestCase):
+
+    def test_backfill_maps_scope_to_tier(self):
+        from .models import Production, Commodity, Company
+        from dashboard.migrations import _scope_tier
+        com = Commodity.objects.create(name='Soja')
+        company = Company.objects.create(name='C')
+        p_direct = Production.objects.create(
+            commodity=com, company=company, year=2024, production=1.0,
+            scope='direct'
+        )
+        p_t1 = Production.objects.create(
+            commodity=com, company=company, year=2024, production=1.0,
+            scope='tier 1'
+        )
+        _scope_tier.backfill(Production)
+        p_direct.refresh_from_db()
+        p_t1.refresh_from_db()
+        self.assertEqual(p_direct.tier, 0)
+        self.assertEqual(p_t1.tier, 1)
