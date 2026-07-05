@@ -2264,3 +2264,26 @@ class ProductionTierBackfillTests(TestCase):
         p_t1.refresh_from_db()
         self.assertEqual(p_direct.tier, 0)
         self.assertEqual(p_t1.tier, 1)
+
+
+class UpstreamChainTests(TestCase):
+
+    def test_multitier_traversal_with_cycle_guard(self):
+        from .models import Exchange, SupplyNode, Asset, Country, Commodity
+        from .services.supply import upstream_chain
+        c = Country.objects.create(name='BR', water_ownership='X', land_ownership='Y')
+        a = Asset.objects.create(name='A', latitude=0.0, longitude=0.0, country=c)
+        b = Asset.objects.create(name='B', latitude=1.0, longitude=1.0, country=c)
+        d = Asset.objects.create(name='D', latitude=2.0, longitude=2.0, country=c)
+        na = SupplyNode.objects.create(asset=a)
+        nb = SupplyNode.objects.create(asset=b)
+        nd = SupplyNode.objects.create(asset=d)
+        com = Commodity.objects.create(name='Soja')
+        # a <- b <- d  (deux tiers) + un cycle d -> b (doit être borné)
+        Exchange.objects.create(supplier=nb, consumer=na, commodity=com, quantity=1, year=2024)
+        Exchange.objects.create(supplier=nd, consumer=nb, commodity=com, quantity=1, year=2024)
+        Exchange.objects.create(supplier=nb, consumer=nd, commodity=com, quantity=1, year=2024)
+        chain = upstream_chain(na, 2024)
+        # 3 arêtes atteignables sans boucler indéfiniment
+        self.assertGreaterEqual(len(chain), 2)
+        self.assertLessEqual(len(chain), 3)
