@@ -10,7 +10,7 @@ from django.db.models import Q
 from .models import (
     Asset, Asset_consumption, Carbon_emission, Company, Company_Policy,
     Company_Revenue, Company_Revenue_Sector, DisclosureRequirement, E4Assessment,
-    Ownership, Production, Supply_chain,
+    Exchange, Ownership, Production, SupplyNode,
 )
 from .services.market import get_market_data, DEFAULT_RANGE
 from .services.impacts import build_cf_index, cf_value, CAT_ECOSYSTEM_DIVERSITY
@@ -547,13 +547,11 @@ def _get_leap_locate_data(company):
         .select_related('country', 'subnational_region')
         .prefetch_related(
             Prefetch('production_set', queryset=Production.objects.select_related('commodity')),
-            Prefetch('asset_productions', queryset=Supply_chain.objects.select_related(
-                'commodity', 'supplier', 'supplier__country'
-            )),
         )
         .distinct()
     )
     asset_ids = [a.pk for a in assets]
+    asset_id_set = set(asset_ids)
 
     # Part de détention de la société sélectionnée pour chaque asset.
     ownership_map = {
@@ -564,9 +562,6 @@ def _get_leap_locate_data(company):
     }
 
     features = []
-    suppliers = {}          # asset_id du fournisseur -> Feature point
-    supplier_links = []     # une LineString fournisseur -> asset par lien
-    asset_id_set = set(asset_ids)
     for a in assets:
         # Données de production directe (opérations propres de la société).
         prods_all = list(a.production_set.all())
@@ -601,53 +596,75 @@ def _get_leap_locate_data(company):
             },
         })
 
-        # Fournisseurs : Supply_chain relie un fournisseur (Asset) à cet asset.
-        sc_all = list(a.asset_productions.all())
-        sc_latest_year = max((sc.year for sc in sc_all), default=None)
-        recent_sc = [sc for sc in sc_all if sc.year == sc_latest_year] if sc_latest_year else []
+    # Fournisseurs : Exchange relie un SupplyNode fournisseur à un SupplyNode
+    # consommateur (asset détenu par la société). Requête unique sur tous les
+    # assets détenus, dernière année conservée par asset consommateur (comme
+    # l'ancien code le faisait par asset sur Supply_chain).
+    suppliers = {}          # pk du SupplyNode fournisseur -> Feature point
+    supplier_links = []     # une LineString fournisseur -> asset par lien
+    exchanges = list(
+        Exchange.objects.filter(consumer__asset_id__in=asset_ids)
+        .select_related(
+            'supplier', 'supplier__asset', 'supplier__asset__country',
+            'supplier__region', 'supplier__region__country', 'supplier__country',
+            'consumer', 'consumer__asset', 'commodity',
+        )
+    )
+    latest_sc_year = {}
+    for ex in exchanges:
+        aid = ex.consumer.asset_id
+        latest_sc_year[aid] = max(latest_sc_year.get(aid, ex.year), ex.year)
 
-        for sc in recent_sc:
-            sup = sc.supplier
-            if not sup or sup.pk == a.pk:
-                continue
-            # Si le fournisseur est lui-même un asset déjà affiché (détenu par la
-            # société sélectionnée), on conserve le lien/la flèche mais on n'ajoute
-            # pas de marqueur fournisseur en doublon du marqueur asset.
-            if sup.pk not in asset_id_set:
-                feat = suppliers.get(sup.pk)
-                if feat is None:
-                    feat = {
-                        'type': 'Feature',
-                        'geometry': {
-                            'type': 'Point',
-                            'coordinates': [sup.longitude, sup.latitude],
-                        },
-                        'properties': {
-                            'id': sup.pk,
-                            'name': sup.name,
-                            'country': sup.country.name,
-                            'commodities': [],
-                        },
-                    }
-                    suppliers[sup.pk] = feat
-                commodities = feat['properties']['commodities']
-                if sc.commodity.name not in commodities:
-                    commodities.append(sc.commodity.name)
-            supplier_links.append({
-                'type': 'Feature',
-                'geometry': {
-                    'type': 'LineString',
-                    'coordinates': [
-                        [sup.longitude, sup.latitude],
-                        [a.longitude, a.latitude],
-                    ],
-                },
-                'properties': {
-                    'supplier': sup.name,
-                    'asset': a.name,
-                    'commodity': sc.commodity.name,
-                },
-            })
+    for ex in exchanges:
+        if ex.year != latest_sc_year[ex.consumer.asset_id]:
+            continue
+        sup = ex.supplier
+        cons_asset = ex.consumer.asset
+        if sup.asset_id:
+            coords = [sup.asset.longitude, sup.asset.latitude]
+            sup_name, sup_country = sup.asset.name, sup.asset.country.name
+            sup_is_owned = sup.asset_id in asset_id_set
+        elif sup.region_id:
+            coords = [sup.region.Mean_X, sup.region.Mean_Y]
+            sup_name = sup.name or sup.region.name
+            sup_country = sup.region.country.name
+            sup_is_owned = False
+        else:
+            continue  # pays seul : pas de coordonnées → lien ignoré
+
+        # Si le fournisseur est lui-même un asset déjà affiché (détenu par la
+        # société sélectionnée), on conserve le lien/la flèche mais on n'ajoute
+        # pas de marqueur fournisseur en doublon du marqueur asset.
+        if not sup_is_owned:
+            feat = suppliers.get(sup.pk)
+            if feat is None:
+                feat = {
+                    'type': 'Feature',
+                    'geometry': {'type': 'Point', 'coordinates': coords},
+                    'properties': {
+                        'id': sup.pk,
+                        'name': sup_name,
+                        'country': sup_country,
+                        'commodities': [],
+                    },
+                }
+                suppliers[sup.pk] = feat
+            commodities = feat['properties']['commodities']
+            if ex.commodity.name not in commodities:
+                commodities.append(ex.commodity.name)
+
+        supplier_links.append({
+            'type': 'Feature',
+            'geometry': {
+                'type': 'LineString',
+                'coordinates': [coords, [cons_asset.longitude, cons_asset.latitude]],
+            },
+            'properties': {
+                'supplier': sup_name,
+                'asset': cons_asset.name,
+                'commodity': ex.commodity.name,
+            },
+        })
 
     return {
         'company_id': company.pk,
