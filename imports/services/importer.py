@@ -2,11 +2,12 @@ from datetime import date
 
 from django.db import transaction
 from dashboard.models import (
-    Asset, Asset_consumption, Carbon_emission, Commodity, Company, Company_Policy,
-    Company_Revenue, Company_Revenue_Sector, Country, Currency, ESG_data, Ownership,
-    Policy_Level, Policy_Subcategory, Policy_Type, Production, Sector, SubnationalRegion,
-    SubSector,
+    Asset, Asset_consumption, Carbon_emission, CharacterizationFactor, Commodity, Company,
+    Company_Policy, Company_Revenue, Company_Revenue_Sector, Country, Currency, ESG_data,
+    ImpactCategory, Ownership, Policy_Level, Policy_Subcategory, Policy_Type, Production,
+    Sector, SubnationalRegion, SubSector,
 )
+from dashboard.services.impacts import LEGACY_IMPACT_COLUMNS
 from .constants import IMPORT_ORDER
 
 
@@ -86,6 +87,7 @@ def _import_subnational_region(rows, lookup):
 
 def _import_commodity(rows, lookup):
     created = 0
+    categories = {c.key: c for c in ImpactCategory.objects.all()}
     for r in rows:
         d = r['data']
         obj = Commodity.objects.create(
@@ -93,22 +95,6 @@ def _import_commodity(rows, lookup):
             description=_s(d.get('description')),
             unit=d.get('unit') or 'tonnes',
             biodiversity_loss_class=d.get('biodiversity_loss_class') or 'Agriculture',
-            impact_midpoint_ReCiPe2016_water_consumption=_f(d.get('impact_midpoint_ReCiPe2016_water_consumption')),
-            impact_midpoint_ReCiPe2016_climate_change=_f(d.get('impact_midpoint_ReCiPe2016_climate_change')),
-            impact_midpoint_ReCiPe2016_freshwater_ecotoxicity=_f(d.get('impact_midpoint_ReCiPe2016_freshwater_ecotoxicity')),
-            impact_midpoint_ReCiPe2016_freshwater_eutrophication=_f(d.get('impact_midpoint_ReCiPe2016_freshwater_eutrophication')),
-            impact_midpoint_ReCiPe2016_marine_eutrophication=_f(d.get('impact_midpoint_ReCiPe2016_marine_eutrophication')),
-            impact_midpoint_ReCiPe2016_terrestrial_acidification=_f(d.get('impact_midpoint_ReCiPe2016_terrestrial_acidification')),
-            impact_midpoint_ReCiPe2016_soil_acidification=_f(d.get('impact_midpoint_ReCiPe2016_soil_acidification')),
-            impact_midpoint_ReCiPe2016_ozonedepletion=_f(d.get('impact_midpoint_ReCiPe2016_ozonedepletion')),
-            impact_midpoint_ReCiPe2016_resource_depletion_fossil=_f(d.get('impact_midpoint_ReCiPe2016_resource_depletion_fossil')),
-            impact_midpoint_ReCiPe2016_resource_depletion_minerals=_f(d.get('impact_midpoint_ReCiPe2016_resource_depletion_minerals')),
-            impact_midpoint_ReCiPe2016_land_use=_f(d.get('impact_midpoint_ReCiPe2016_land_use')),
-            impact_endpoint_ReCiPe2016_human_health=_f(d.get('impact_endpoint_ReCiPe2016_human_health')),
-            impact_endpoint_ReCiPe2016_ecosystem_diversity=_f(d.get('impact_endpoint_ReCiPe2016_ecosystem_diversity')),
-            impact_endpoint_ReCiPe2016_resource_availability=_f(d.get('impact_endpoint_ReCiPe2016_resource_availability')),
-            impact_endpoint_GBS_terrestrial_dynamic=_f(d.get('impact_endpoint_GBS_terrestrial_dynamic')),
-            impact_endpoint_GBS_terrestrial_static=_f(d.get('impact_endpoint_GBS_terrestrial_static')),
             dependency_water=d.get('dependency_water') or 'VL',
             dependency_pollination=d.get('dependency_pollination') or 'VL',
             dependency_soil_quality=d.get('dependency_soil_quality') or 'VL',
@@ -116,6 +102,11 @@ def _import_commodity(rows, lookup):
             dependency_water_purification=d.get('dependency_water_purification') or 'VL',
             dependency_pest_control=d.get('dependency_pest_control') or 'VL',
         )
+        for col in LEGACY_IMPACT_COLUMNS:
+            CharacterizationFactor.objects.get_or_create(
+                commodity=obj, category=categories[col], region=None, country=None,
+                defaults={'value': _f(d.get(col))},
+            )
         lookup['commodity'][d['name'].lower()] = obj
         created += 1
     return created
