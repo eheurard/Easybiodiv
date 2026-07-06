@@ -2335,35 +2335,11 @@ class SeedFlowsTests(TestCase):
         self.assertEqual(Flow.objects.get(key='surface_area').theme, 'land')
 
 
-class AssetConsumptionToInventoryTests(TestCase):
+class AssetConsumptionDroppedTests(TestCase):
 
-    def test_converts_nonzero_measures(self):
-        from .models import (
-            Asset_consumption, AssetInventory, Flow, Asset, Country,
-            Commodity, Production,
-        )
-        from dashboard.migrations import _asset_consumption_to_inventory as conv
-        # Flows seedés par 0037 ; on récupère
-        c = Country.objects.create(name='FR', water_ownership='X',
-                                   land_ownership='Y')
-        a = Asset.objects.create(name='Site', latitude=1.0, longitude=1.0,
-                                 country=c)
-        com = Commodity.objects.create(name='Soja')
-        Production.objects.create(asset=a, commodity=com, year=2023,
-                                  production=1.0)
-        Asset_consumption.objects.create(
-            asset=a, water_consumption=100.0, CO2_emissions=50.0,
-            waste_generated=0.0, energy_consumption=0.0, surface_area=0.0,
-        )
-        conv.migrate(Asset_consumption, AssetInventory, Flow, Production)
-        # 2 mesures non nulles → 2 lignes, année = 2023 (dernière prod)
-        self.assertEqual(AssetInventory.objects.filter(asset=a).count(), 2)
-        water = AssetInventory.objects.get(asset=a, flow__key='water')
-        self.assertEqual(water.value, 100.0)
-        self.assertEqual(water.year, 2023)
-        self.assertEqual(
-            AssetInventory.objects.get(asset=a, flow__key='co2').value, 50.0
-        )
+    def test_model_gone(self):
+        import dashboard.models as m
+        self.assertFalse(hasattr(m, 'Asset_consumption'))
 
 
 class MeasuredVsModeledTests(TestCase):

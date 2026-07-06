@@ -143,18 +143,6 @@ class Production(models.Model):
         asset_name = self.asset.name if self.asset else "no asset"
         return f"{asset_name} - {self.commodity.name} - {self.year}"
 
-class Asset_consumption(models.Model):
-    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True)
-    surface_area = models.FloatField(default=0)
-    water_consumption = models.FloatField(default=0)
-    energy_consumption = models.FloatField(default=0)
-    CO2_emissions = models.FloatField(default=0)
-    waste_generated = models.FloatField(default=0)
-    def __str__(self):
-        asset_name = self.asset.name if self.asset else "no asset"
-        return f"{asset_name}"
-
-
 class Company_Revenue(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     year = models.IntegerField()
@@ -499,7 +487,7 @@ class Flow(models.Model):
 
 
 class AssetInventory(models.Model):
-    """Inventaire mesuré à l'échelle asset (généralise Asset_consumption)."""
+    """Inventaire mesuré à l'échelle asset (flux water/energy/co2/waste/surface_area)."""
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE,
                               related_name='inventory')
     flow = models.ForeignKey(Flow, on_delete=models.CASCADE)

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Country, SubnationalRegion, Commodity, Sector, SubSector,
-    Asset, Asset_consumption, Company, Production, Ownership,
+    Asset, Company, Production, Ownership,
     Company_Revenue, Company_Revenue_Sector,
     Policy_Type, Policy_Subcategory, Policy_Level, Company_Policy,
     DisclosureRequirement, E4Assessment, ESG_data,Carbon_emission,
@@ -59,13 +59,6 @@ class AssetAdmin(admin.ModelAdmin):
     )
     list_filter = ('country', 'near_sensitive_zone', 'sensitive_zone_type')
     autocomplete_fields = ('country', 'subnational_region')
-
-
-@admin.register(Asset_consumption)
-class AssetConsumptionAdmin(admin.ModelAdmin):
-    search_fields = ('asset__name',)
-    list_display = ('asset', 'surface_area', 'water_consumption', 'energy_consumption')
-    autocomplete_fields = ('asset',)
 
 
 @admin.register(Company)
