@@ -2272,15 +2272,29 @@ class FlowModelTests(TestCase):
 
     def test_create_and_str(self):
         from .models import Flow
-        f = Flow.objects.create(key='water', name='Consommation eau', unit='m³',
-                                theme='water')
-        self.assertEqual(str(f), 'water')
+        f = Flow.objects.create(key='custom_flow', name='Consommation eau',
+                                unit='m³', theme='water')
+        self.assertEqual(str(f), 'custom_flow')
         self.assertEqual(f.theme, 'water')
 
     def test_key_unique(self):
         from django.db import IntegrityError, transaction
         from .models import Flow
-        Flow.objects.create(key='co2', name='CO2', unit='t')
+        Flow.objects.create(key='unique_test', name='CO2', unit='t')
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
-                Flow.objects.create(key='co2', name='CO2 bis', unit='t')
+                Flow.objects.create(key='unique_test', name='CO2 bis', unit='t')
+
+
+class SeedFlowsTests(TestCase):
+
+    def test_five_flows_seeded(self):
+        from .models import Flow
+        keys = set(Flow.objects.values_list('key', flat=True))
+        self.assertEqual(keys, {'water', 'energy', 'co2', 'waste', 'surface_area'})
+
+    def test_themes(self):
+        from .models import Flow
+        self.assertEqual(Flow.objects.get(key='water').theme, 'water')
+        self.assertEqual(Flow.objects.get(key='co2').theme, 'carbon')
+        self.assertEqual(Flow.objects.get(key='surface_area').theme, 'land')
