@@ -6,7 +6,7 @@ from .models import (
     Policy_Type, Policy_Subcategory, Policy_Level, Company_Policy,
     DisclosureRequirement, E4Assessment, ESG_data,Carbon_emission,
     ImpactMethod, ImpactCategory, CharacterizationFactor,
-    SupplyNode, Exchange,
+    SupplyNode, Exchange, Flow, AssetInventory,
 )
 
 
@@ -213,3 +213,18 @@ class CharacterizationFactorAdmin(admin.ModelAdmin):
     list_display = ('commodity', 'category', 'region', 'country', 'value')
     list_filter = ('category__method', 'category__level')
     autocomplete_fields = ('category', 'commodity', 'region', 'country')
+
+
+@admin.register(Flow)
+class FlowAdmin(admin.ModelAdmin):
+    search_fields = ('key', 'name')
+    list_display = ('key', 'name', 'unit', 'theme')
+    list_filter = ('theme',)
+
+
+@admin.register(AssetInventory)
+class AssetInventoryAdmin(admin.ModelAdmin):
+    search_fields = ('asset__name', 'flow__key')
+    list_display = ('asset', 'flow', 'year', 'value')
+    list_filter = ('flow', 'year')
+    autocomplete_fields = ('asset', 'flow')
