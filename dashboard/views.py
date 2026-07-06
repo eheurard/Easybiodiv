@@ -10,7 +10,7 @@ from django.db.models import Q
 from .models import (
     Asset, Asset_consumption, Carbon_emission, Company, Company_Policy,
     Company_Revenue, Company_Revenue_Sector, DisclosureRequirement, E4Assessment,
-    Exchange, Ownership, Production, SupplyNode,
+    Exchange, Ownership, Production,
 )
 from .services.market import get_market_data, DEFAULT_RANGE
 from .services.impacts import build_cf_index, cf_value, CAT_ECOSYSTEM_DIVERSITY
@@ -144,6 +144,8 @@ def _get_dependencies_data(company):
 
     supply_chain = []
     for tier in sorted(scope_groups):
+        if tier not in TIER_TO_SCOPE:
+            continue
         group = scope_groups[tier]
         scope = TIER_TO_SCOPE[tier]
         svc_avgs = {
@@ -652,6 +654,11 @@ def _get_leap_locate_data(company):
             commodities = feat['properties']['commodities']
             if ex.commodity.name not in commodities:
                 commodities.append(ex.commodity.name)
+
+        # Lien dégénéré (fournisseur == consommateur, même asset détenu) :
+        # aucune flèche à tracer sur soi-même.
+        if sup_is_owned and sup.asset_id == cons_asset.pk:
+            continue
 
         supplier_links.append({
             'type': 'Feature',

@@ -587,6 +587,19 @@ class DependenciesDataTests(TestCase):
         )
         self.assertIsNone(water_svc['revenue_exposure'])
 
+    def test_invalid_tier_does_not_raise(self):
+        from .views import _get_dependencies_data
+        # tier=5 simule une donnée corrompue (hors plage 0-3, ex. saisie admin
+        # directe) : .create() ne déclenche pas les validators du champ.
+        Production.objects.create(
+            company=self.company, commodity=self.commodity, year=2024,
+            production=10.0, tier=5,
+        )
+        data = _get_dependencies_data(self.company)  # ne doit pas lever KeyError
+        scopes = [t['scope'] for t in data['supply_chain']]
+        self.assertIn('direct', scopes)
+        self.assertNotIn(5, scopes)
+
 
 class DependenciesPageViewTests(TestCase):
 

@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.core.validators import MaxValueValidator
 
 class Country(models.Model):
     name = models.CharField(max_length=255)
@@ -134,7 +135,7 @@ class Production(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
     subnational_region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True)
     country = models.ForeignKey(Country, on_delete=models.CASCADE, null=True, blank=True)
-    tier = models.PositiveSmallIntegerField(default=0)
+    tier = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(3)])
     year = models.IntegerField()
     production = models.FloatField()
     estimated_revenue = models.FloatField(default = 0.0)
@@ -470,7 +471,7 @@ class Exchange(models.Model):
     commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE)
     quantity = models.FloatField()
     year = models.IntegerField()
-    tier = models.PositiveSmallIntegerField(default=0)
+    tier = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(3)])
     data_confidence = models.CharField(
         max_length=16,
         choices=[('asset', 'asset'), ('region', 'region'), ('country', 'country')],
