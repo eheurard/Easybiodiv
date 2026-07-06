@@ -892,6 +892,17 @@ class LeapEvaluateDataTests(TestCase):
         self.assertTrue(a['near_sensitive_zone'])
         self.assertEqual(a['sensitive_zone_type'], 'Natura 2000')
 
+    def test_consumption_uses_latest_inventory_year_only(self):
+        from .models import AssetInventory, Flow
+        from .views import _get_leap_evaluate_data
+        # Année antérieure sur le même flow/asset : ne doit pas s'additionner
+        # à l'année la plus récente (2024, value=100 créée dans setUp).
+        AssetInventory.objects.create(
+            asset=self.asset, flow=Flow.objects.get(key='water'), year=2023, value=10.0,
+        )
+        a = _get_leap_evaluate_data(self.company)['assets'][0]
+        self.assertAlmostEqual(a['water_consumption'], 100.0, places=2)
+
     def test_only_midpoint_impacts_listed(self):
         from .views import _get_leap_evaluate_data
         data = _get_leap_evaluate_data(self.company)
@@ -2367,3 +2378,40 @@ class MeasuredVsModeledTests(TestCase):
         out = measured_vs_modeled(asset, 'water', 2024)
         self.assertAlmostEqual(out['measured'], 100.0, places=4)
         self.assertAlmostEqual(out['modeled'], 20.0, places=4)
+
+
+class AssetConsumptionMigrateHelperTests(TestCase):
+
+    def test_migrate_maps_measures_and_year(self):
+        from .models import AssetInventory, Flow, Production, Asset, Country, Commodity
+        from dashboard.migrations import _asset_consumption_to_inventory as conv
+        country = Country.objects.create(name='FR', water_ownership='X', land_ownership='Y')
+        asset = Asset.objects.create(name='S', latitude=1.0, longitude=1.0, country=country)
+        com = Commodity.objects.create(name='Soja')
+        Production.objects.create(asset=asset, commodity=com, year=2023, production=1.0)
+
+        class _AC:
+            def __init__(self, asset_id, **measures):
+                self.asset_id = asset_id
+                for k, v in measures.items():
+                    setattr(self, k, v)
+
+        rows = [_AC(asset.pk, water_consumption=100.0, CO2_emissions=50.0,
+                    surface_area=0.0, energy_consumption=0.0, waste_generated=0.0)]
+
+        class _Objects:
+            def all(self):
+                return rows
+
+        class _FakeAC:
+            objects = _Objects()
+
+        conv.migrate(_FakeAC, AssetInventory, Flow, Production)
+        # 2 mesures non nulles → 2 lignes ; année = dernière prod (2023)
+        self.assertEqual(AssetInventory.objects.filter(asset=asset).count(), 2)
+        water = AssetInventory.objects.get(asset=asset, flow__key='water')
+        self.assertEqual(water.value, 100.0)
+        self.assertEqual(water.year, 2023)
+        self.assertEqual(
+            AssetInventory.objects.get(asset=asset, flow__key='co2').value, 50.0
+        )

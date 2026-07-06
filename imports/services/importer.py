@@ -425,11 +425,12 @@ def _import_asset_consumption(rows, lookup):
         for col, flow_key in col_to_flow.items():
             value = _f(d.get(col))
             if value and flow_key in flows:
-                AssetInventory.objects.get_or_create(
+                _, was_created = AssetInventory.objects.get_or_create(
                     asset=asset, flow=flows[flow_key], year=year,
                     defaults={'value': value},
                 )
-                created += 1
+                if was_created:
+                    created += 1
     return created
 
 

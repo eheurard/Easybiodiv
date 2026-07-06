@@ -707,12 +707,17 @@ def _get_leap_evaluate_data(company):
     )
     asset_ids = [a.pk for a in assets]
 
-    # Consommation/émissions par asset (somme des lignes AssetInventory).
+    # Consommation mesurée : année d'inventaire la plus récente de chaque asset.
+    latest_inv_years = dict(
+        AssetInventory.objects.filter(asset_id__in=asset_ids)
+        .values('asset_id').annotate(m=Max('year')).values_list('asset_id', 'm')
+    )
     consumption = defaultdict(lambda: {'water': 0.0, 'co2': 0.0, 'waste': 0.0})
     for inv in AssetInventory.objects.filter(
         asset_id__in=asset_ids, flow__key__in=('water', 'co2', 'waste')
     ).select_related('flow'):
-        consumption[inv.asset_id][inv.flow.key] += inv.value
+        if latest_inv_years.get(inv.asset_id) == inv.year:
+            consumption[inv.asset_id][inv.flow.key] += inv.value
 
     # Productions de l'année la plus récente de chaque asset.
     latest_years = dict(
