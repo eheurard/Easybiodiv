@@ -74,3 +74,29 @@ def cf_value(cf_index, commodity_id, category_key, region_id=None,
 def legacy_cf_rows(values):
     """(col_name, valeur) pour les 16 colonnes legacy ; défaut 0.0 si absente."""
     return [(col, values.get(col, 0.0)) for col in LEGACY_IMPACT_COLUMNS]
+
+
+def measured_vs_modeled(asset, theme, year):
+    """Apparie, pour un asset/thème/année : la mesure terrain (AssetInventory
+    dont le flow porte ce theme) et l'impact ACV modélisé (production × CF des
+    catégories portant ce theme). Renvoie {'measured': float, 'modeled': float}.
+    """
+    from dashboard.models import AssetInventory, ImpactCategory, Production
+    measured = sum(
+        inv.value
+        for inv in AssetInventory.objects.filter(
+            asset=asset, year=year, flow__theme=theme
+        )
+    )
+    cat_keys = list(
+        ImpactCategory.objects.filter(theme=theme).values_list('key', flat=True)
+    )
+    cf_index = build_cf_index(category_keys=cat_keys)
+    modeled = 0.0
+    for p in Production.objects.filter(asset=asset, year=year).select_related('commodity'):
+        for key in cat_keys:
+            modeled += p.production * cf_value(
+                cf_index, p.commodity_id, key,
+                asset.subnational_region_id, asset.country_id,
+            )
+    return {'measured': measured, 'modeled': modeled}

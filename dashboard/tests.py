@@ -2359,3 +2359,30 @@ class AssetConsumptionToInventoryTests(TestCase):
         self.assertEqual(
             AssetInventory.objects.get(asset=a, flow__key='co2').value, 50.0
         )
+
+
+class MeasuredVsModeledTests(TestCase):
+
+    def test_pairs_measured_and_modeled(self):
+        from .models import (
+            Asset, Country, SubnationalRegion, Commodity, Production,
+            Flow, AssetInventory, ImpactCategory, CharacterizationFactor,
+        )
+        from .services.impacts import measured_vs_modeled
+        country = Country.objects.create(name='FR', water_ownership='X', land_ownership='Y')
+        region = SubnationalRegion.objects.create(name='IDF', country=country)
+        asset = Asset.objects.create(name='S', latitude=1.0, longitude=1.0,
+                                     country=country, subnational_region=region)
+        # mesuré : 100 d'eau (Flow theme 'water')
+        water = Flow.objects.get(key='water')  # seedé par 0037
+        AssetInventory.objects.create(asset=asset, flow=water, year=2024, value=100.0)
+        # modélisé : production 10 × CF(catégorie theme 'water') = 10 × 2 = 20
+        com = Commodity.objects.create(name='Soja')
+        Production.objects.create(asset=asset, commodity=com, year=2024, production=10.0)
+        cat = ImpactCategory.objects.get(
+            key='impact_midpoint_ReCiPe2016_water_consumption'
+        )  # theme 'water' (seedé Plan A)
+        CharacterizationFactor.objects.create(category=cat, commodity=com, value=2.0)
+        out = measured_vs_modeled(asset, 'water', 2024)
+        self.assertAlmostEqual(out['measured'], 100.0, places=4)
+        self.assertAlmostEqual(out['modeled'], 20.0, places=4)
