@@ -496,3 +496,20 @@ class Flow(models.Model):
 
     def __str__(self):
         return self.key
+
+
+class AssetInventory(models.Model):
+    """Inventaire mesuré à l'échelle asset (généralise Asset_consumption)."""
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE,
+                              related_name='inventory')
+    flow = models.ForeignKey(Flow, on_delete=models.CASCADE)
+    year = models.IntegerField()
+    value = models.FloatField(default=0.0)
+    source = models.CharField(max_length=255, blank=True)
+    reference = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        unique_together = ('asset', 'flow', 'year')
+
+    def __str__(self):
+        return f'{self.asset.name} — {self.flow.key} {self.year}'

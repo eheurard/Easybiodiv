@@ -1967,6 +1967,36 @@ class GoldenViewOutputTests(TestCase):
             self.assertEqual(payload, expected, f'Sortie modifiée pour {fname}')
 
 
+class AssetInventoryModelTests(TestCase):
+
+    def _asset(self):
+        from .models import Asset, Country
+        c = Country.objects.create(name='FR', water_ownership='X',
+                                   land_ownership='Y')
+        return Asset.objects.create(name='Site', latitude=1.0, longitude=1.0,
+                                    country=c)
+
+    def test_create(self):
+        from .models import AssetInventory, Flow
+        a = self._asset()
+        f = Flow.objects.get(key='water')
+        inv = AssetInventory.objects.create(asset=a, flow=f, year=2024,
+                                            value=100.0)
+        self.assertEqual(inv.value, 100.0)
+        self.assertIn('Site', str(inv))
+
+    def test_unique_per_asset_flow_year(self):
+        from django.db import IntegrityError, transaction
+        from .models import AssetInventory, Flow
+        a = self._asset()
+        f = Flow.objects.get(key='co2')
+        AssetInventory.objects.create(asset=a, flow=f, year=2024, value=1.0)
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                AssetInventory.objects.create(asset=a, flow=f, year=2024,
+                                              value=2.0)
+
+
 class ImpactCatalogModelTests(TestCase):
 
     def test_method_str(self):
