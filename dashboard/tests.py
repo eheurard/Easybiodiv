@@ -840,7 +840,7 @@ class LeapEvaluateDataTests(TestCase):
 
     def setUp(self):
         from django.contrib.auth import get_user_model
-        from .models import Asset_consumption
+        from .models import AssetInventory, Flow
         User = get_user_model()
         self.user = User.objects.create_user(username='evaluser', password='testpass')
         self.client.force_login(self.user)
@@ -861,9 +861,14 @@ class LeapEvaluateDataTests(TestCase):
         Production.objects.create(
             asset=self.asset, commodity=self.commodity, year=2024, production=10.0,
         )
-        Asset_consumption.objects.create(
-            asset=self.asset, water_consumption=100.0,
-            CO2_emissions=50.0, waste_generated=25.0,
+        AssetInventory.objects.create(
+            asset=self.asset, flow=Flow.objects.get(key='water'), year=2024, value=100.0
+        )
+        AssetInventory.objects.create(
+            asset=self.asset, flow=Flow.objects.get(key='co2'), year=2024, value=50.0
+        )
+        AssetInventory.objects.create(
+            asset=self.asset, flow=Flow.objects.get(key='waste'), year=2024, value=25.0
         )
 
     def test_impact_sum_is_production_times_factor(self):

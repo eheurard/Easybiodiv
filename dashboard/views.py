@@ -8,7 +8,7 @@ from django.views.decorators.http import require_GET
 
 from django.db.models import Q
 from .models import (
-    Asset, Asset_consumption, Carbon_emission, Company, Company_Policy,
+    Asset, AssetInventory, Carbon_emission, Company, Company_Policy,
     Company_Revenue, Company_Revenue_Sector, DisclosureRequirement, E4Assessment,
     Exchange, Ownership, Production,
 )
@@ -707,13 +707,12 @@ def _get_leap_evaluate_data(company):
     )
     asset_ids = [a.pk for a in assets]
 
-    # Consommation/émissions par asset (somme des lignes Asset_consumption).
+    # Consommation/émissions par asset (somme des lignes AssetInventory).
     consumption = defaultdict(lambda: {'water': 0.0, 'co2': 0.0, 'waste': 0.0})
-    for c in Asset_consumption.objects.filter(asset_id__in=asset_ids):
-        agg = consumption[c.asset_id]
-        agg['water'] += c.water_consumption
-        agg['co2'] += c.CO2_emissions
-        agg['waste'] += c.waste_generated
+    for inv in AssetInventory.objects.filter(
+        asset_id__in=asset_ids, flow__key__in=('water', 'co2', 'waste')
+    ).select_related('flow'):
+        consumption[inv.asset_id][inv.flow.key] += inv.value
 
     # Productions de l'année la plus récente de chaque asset.
     latest_years = dict(
