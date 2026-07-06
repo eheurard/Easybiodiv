@@ -2,7 +2,7 @@ from django.test import TestCase
 from dashboard.models import (
     Country, SubnationalRegion, Commodity, CharacterizationFactor, Policy_Type,
     Policy_Subcategory, Policy_Level, Company, Asset, Production, Company_Revenue,
-    Ownership, Company_Policy,
+    Ownership, Company_Policy, AssetInventory,
 )
 from imports.services.importer import save_import
 
@@ -101,6 +101,21 @@ class ImporterCountryTest(TestCase):
         self.assertEqual(counts['Production'], 1)
         production = Production.objects.get(asset__name='Usine A', commodity__name='Soy')
         self.assertEqual(production.tier, 1)
+
+    def test_import_asset_consumption_creates_asset_inventory(self):
+        """Regression: _import_asset_consumption must create AssetInventory rows
+        (one per non-null measure, via the matching Flow) instead of legacy
+        Asset_consumption rows."""
+        country = Country.objects.create(
+            name='France', water_ownership='pub', land_ownership='priv')
+        asset = Asset.objects.create(
+            name='Usine A', latitude=48.85, longitude=2.35, country=country)
+        counts = save_import({'Asset_consumption': [
+            _ok({'asset_name': 'Usine A', 'year': '2024', 'water_consumption': '100'}),
+        ]})
+        self.assertEqual(counts['Asset_consumption'], 1)
+        inventory = AssetInventory.objects.get(asset=asset, flow__key='water', year=2024)
+        self.assertEqual(inventory.value, 100)
 
     def test_returns_empty_for_empty_input(self):
         counts = save_import({})

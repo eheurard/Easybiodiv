@@ -2,9 +2,9 @@ from datetime import date
 
 from django.db import transaction
 from dashboard.models import (
-    Asset, Asset_consumption, Carbon_emission, CharacterizationFactor, Commodity, Company,
+    Asset, AssetInventory, Carbon_emission, CharacterizationFactor, Commodity, Company,
     Company_Policy, Company_Revenue, Company_Revenue_Sector, Country, Currency, ESG_data,
-    ImpactCategory, Ownership, Policy_Level, Policy_Subcategory, Policy_Type, Production,
+    Flow, ImpactCategory, Ownership, Policy_Level, Policy_Subcategory, Policy_Type, Production,
     Sector, SubnationalRegion, SubSector,
 )
 from dashboard.services.impacts import LEGACY_IMPACT_COLUMNS
@@ -407,20 +407,29 @@ def _import_company_revenue_sector(rows, lookup):
 
 def _import_asset_consumption(rows, lookup):
     created = 0
+    flows = {f.key: f for f in Flow.objects.all()}
+    col_to_flow = {
+        'surface_area': 'surface_area', 'water_consumption': 'water',
+        'energy_consumption': 'energy', 'CO2_emissions': 'co2',
+        'waste_generated': 'waste',
+    }
     for r in rows:
         d = r['data']
         asset = lookup['asset'].get(d['asset_name'].lower())
         if not asset:
             continue
-        Asset_consumption.objects.create(
-            asset=asset,
-            surface_area=_f(d.get('surface_area')),
-            water_consumption=_f(d.get('water_consumption')),
-            energy_consumption=_f(d.get('energy_consumption')),
-            CO2_emissions=_f(d.get('CO2_emissions')),
-            waste_generated=_f(d.get('waste_generated')),
-        )
-        created += 1
+        try:
+            year = int(d['year'])
+        except (KeyError, ValueError, TypeError):
+            year = 2024
+        for col, flow_key in col_to_flow.items():
+            value = _f(d.get(col))
+            if value and flow_key in flows:
+                AssetInventory.objects.get_or_create(
+                    asset=asset, flow=flows[flow_key], year=year,
+                    defaults={'value': value},
+                )
+                created += 1
     return created
 
 
