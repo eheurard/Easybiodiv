@@ -2266,3 +2266,21 @@ class SupplyChainDroppedTests(TestCase):
         self.assertFalse(hasattr(p, 'scope'))
         import dashboard.models as m
         self.assertFalse(hasattr(m, 'Supply_chain'))
+
+
+class FlowModelTests(TestCase):
+
+    def test_create_and_str(self):
+        from .models import Flow
+        f = Flow.objects.create(key='water', name='Consommation eau', unit='m³',
+                                theme='water')
+        self.assertEqual(str(f), 'water')
+        self.assertEqual(f.theme, 'water')
+
+    def test_key_unique(self):
+        from django.db import IntegrityError, transaction
+        from .models import Flow
+        Flow.objects.create(key='co2', name='CO2', unit='t')
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Flow.objects.create(key='co2', name='CO2 bis', unit='t')

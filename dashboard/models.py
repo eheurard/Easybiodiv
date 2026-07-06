@@ -485,3 +485,14 @@ class Exchange(models.Model):
 
     def __str__(self):
         return f'{self.supplier} → {self.consumer} ({self.commodity.name}, {self.year})'
+
+
+class Flow(models.Model):
+    """Flux physique mesuré (inventaire) ; `theme` l'apparie aux ImpactCategory."""
+    key = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=255)
+    unit = models.CharField(max_length=50, blank=True)
+    theme = models.CharField(max_length=30, blank=True)
+
+    def __str__(self):
+        return self.key
