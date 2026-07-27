@@ -464,6 +464,7 @@ def _get_mesure_empreinte_data(company):
     productions = list(
         Production.objects.filter(asset_id__in=asset_ids)
         .select_related('commodity', 'asset__country')
+        .order_by('pk')  # ordre déterministe : parité SQLite/PostgreSQL (sankey_links)
     )
     productions = [p for p in productions if latest_years.get(p.asset_id) == p.year]
 
