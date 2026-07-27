@@ -372,6 +372,7 @@ def _get_company_data(company):
             },
             'properties': {
                 'name': asset.name,
+                'type': asset.type,
                 'country': asset.country.name,
                 'commodities': ', '.join(sorted({p.commodity.name for p in prods_all})),
                 'region': asset.subnational_region.name if asset.subnational_region else '',

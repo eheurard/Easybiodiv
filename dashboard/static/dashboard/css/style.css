@@ -2320,7 +2320,8 @@ a.app-header__avatar {
 }
 
 /* Liste potentiellement longue : limiter la hauteur et défiler. */
-.ll-commodity-legend .map-legend__list {
+.ll-commodity-legend .map-legend__list,
+#asset-type-legend .map-legend__list {
   max-height: 180px;
   overflow-y: auto;
   pointer-events: auto;

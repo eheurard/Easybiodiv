@@ -87,6 +87,22 @@ class Asset(models.Model):
     longitude = models.FloatField()
     country = models.ForeignKey(Country, on_delete=models.CASCADE)
     subnational_region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE,null=True,blank=True)
+    type = models.CharField(
+        max_length=255,
+        choices=[
+            ('Airport', 'Airport'),
+            ('Mine', 'Mine'),
+            ('Aluminium', 'Aluminium'),
+            ('Factory', 'Factory'),
+            ('Forest', 'Forest'),
+            ('Office', 'Office'),
+            ('Paper', 'Paper'),
+            ('Refinery', 'Refinery'),
+            ('Renewable', 'Renewable'),
+            ('Smelter', 'Smelter'),
+        ],
+        default='Factory',
+    )
 
     risk_water = models.FloatField(default=0)
     risk_pollination = models.FloatField(default=0)
