@@ -1,7 +1,7 @@
 import json
 from unittest import mock
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from .models import (
     Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
@@ -1965,22 +1965,27 @@ GOLDEN_VIEWS = [
 ]
 
 
-class GoldenViewOutputTests(TestCase):
+class GoldenViewOutputTests(TransactionTestCase):
     """Snapshot des sorties JSON sur le jeu déterministe `populate_acme`.
 
     Enregistrer la référence :  GOLDEN_RECORD=1 python manage.py test
         dashboard.tests.GoldenViewOutputTests
     Vérifier (défaut) :         python manage.py test
         dashboard.tests.GoldenViewOutputTests
+
+    TransactionTestCase + reset_sequences : les PK repartent de 1 à chaque
+    exécution, sur SQLite comme sur PostgreSQL (les séquences PG ne sont pas
+    remises à zéro entre classes de test). Le golden fige des PK absolus.
     """
 
-    @classmethod
-    def setUpTestData(cls):
+    reset_sequences = True
+
+    def setUp(self):
         call_command('populate_acme')
         from django.contrib.auth import get_user_model
         User = get_user_model()
-        cls.user = User.objects.create_user(username='golden', password='x')
-        cls.acme = Company.objects.get(name='Acme Corp')
+        self.user = User.objects.create_user(username='golden', password='x')
+        self.acme = Company.objects.get(name='Acme Corp')
 
     def _fetch(self, url_name):
         self.client.force_login(self.user)
