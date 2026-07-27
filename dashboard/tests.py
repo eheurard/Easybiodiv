@@ -786,6 +786,30 @@ class PhysicalRiskDataTests(TestCase):
         # annual_loss = 0.5 * 200 * 1.0 = 100 (only flood non-zero)
         self.assertAlmostEqual(data['kpis']['annual_loss'], 100.0, places=2)
 
+    def test_inventory_subset_latest_year_ordered(self):
+        from .models import AssetInventory, Flow
+        from .views import _get_physical_risk_data
+        water = Flow.objects.get(key='water')
+        co2 = Flow.objects.get(key='co2')
+        energy = Flow.objects.get(key='energy')
+        AssetInventory.objects.create(asset=self.a1, flow=water, year=2023, value=10.0)
+        AssetInventory.objects.create(asset=self.a1, flow=water, year=2024, value=100.0)
+        AssetInventory.objects.create(asset=self.a1, flow=co2, year=2024, value=50.0)
+        AssetInventory.objects.create(asset=self.a1, flow=energy, year=2024, value=999.0)
+        data = _get_physical_risk_data(self.company)
+        a1 = next(a for a in data['assets'] if a['name'] == 'Site A1')
+        # sous-ensemble + ordre (eau, CO2) ; énergie exclue ; année récente (100, pas 10)
+        self.assertEqual([e['name'] for e in a1['inventory']],
+                         ['Consommation eau', 'Émissions CO₂'])
+        self.assertEqual(a1['inventory'][0]['value'], 100.0)
+        self.assertEqual(a1['inventory'][0]['unit'], 'm³')
+
+    def test_inventory_empty_when_none(self):
+        from .views import _get_physical_risk_data
+        data = _get_physical_risk_data(self.company)
+        a2 = next(a for a in data['assets'] if a['name'] == 'Site A2')
+        self.assertEqual(a2['inventory'], [])
+
 
 class PhysicalRiskPageViewTests(TestCase):
 

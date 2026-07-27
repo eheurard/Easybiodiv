@@ -75,6 +75,14 @@ PHYSICAL_RISKS = [
      'group': 'Aléas climatiques'},
 ]
 
+# Inventaire mesuré affiché (informatif) sur la vue risque : sous-ensemble de flux.
+_RISK_INVENTORY_KEYS = ('water', 'co2', 'surface_area')
+_RISK_INVENTORY_LABELS = {
+    'water': 'Consommation eau',
+    'co2': 'Émissions CO₂',
+    'surface_area': 'Usage des sols',
+}
+
 
 def _exposure_label(score):
     if score >= 0.7:
@@ -1023,6 +1031,29 @@ def _get_physical_risk_data(company):
 
     # --- Exposition: sum of estimated_revenue for each asset's latest production year ---
     asset_ids = [a.pk for a in assets]
+
+    # Inventaire mesuré (informatif) : flux du sous-ensemble, année d'inventaire la
+    # plus récente de l'asset, valeurs non nulles. N'entre PAS dans la perte.
+    latest_inv_years = dict(
+        AssetInventory.objects.filter(
+            asset_id__in=asset_ids, flow__key__in=_RISK_INVENTORY_KEYS
+        ).values('asset_id').annotate(m=Max('year')).values_list('asset_id', 'm')
+    )
+    inv_by_asset = defaultdict(dict)
+    for inv in AssetInventory.objects.filter(
+        asset_id__in=asset_ids, flow__key__in=_RISK_INVENTORY_KEYS
+    ).select_related('flow'):
+        if inv.value and latest_inv_years.get(inv.asset_id) == inv.year:
+            inv_by_asset[inv.asset_id][inv.flow.key] = {
+                'name': _RISK_INVENTORY_LABELS[inv.flow.key],
+                'value': round(inv.value, 2),
+                'unit': inv.flow.unit,
+            }
+
+    def _inventory_for(asset_id):
+        entries = inv_by_asset.get(asset_id, {})
+        return [entries[k] for k in _RISK_INVENTORY_KEYS if k in entries]
+
     latest_years = dict(
         Production.objects.filter(asset_id__in=asset_ids)
         .values('asset_id')
@@ -1057,6 +1088,7 @@ def _get_physical_risk_data(company):
             'country': a.country.name,
             'exposition': round(expo, 2),
             'risk': {k: round(v, 4) for k, v in risk_vals.items()},
+            'inventory': _inventory_for(a.pk),
         })
 
     # --- Hazard ranking (also drives the client-side selector) ---
