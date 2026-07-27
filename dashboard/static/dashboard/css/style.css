@@ -2320,7 +2320,8 @@ a.app-header__avatar {
 }
 
 /* Liste potentiellement longue : limiter la hauteur et défiler. */
-.ll-commodity-legend .map-legend__list {
+.ll-commodity-legend .map-legend__list,
+#asset-type-legend .map-legend__list {
   max-height: 180px;
   overflow-y: auto;
   pointer-events: auto;
@@ -2544,6 +2545,40 @@ a.app-header__avatar {
   font-size: 11px;
   color: var(--color-on-surface-variant);
   font-style: italic;
+}
+
+.pr-table__asset {
+  position: relative;
+  cursor: help;
+}
+
+.pr-table__asset--has-inv {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+/* Reprend l'apparence de .pr-vuln-tooltip mais ancré à gauche (cellule nom). */
+.pr-inv-tooltip {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 20;
+  margin-top: 6px;
+  padding: 10px 12px;
+  background: var(--color-surface-container, #f4f4f4);
+  border: 1px solid var(--color-outline-variant, #ccc);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .12);
+  min-width: 200px;
+  text-align: left;
+  white-space: normal;
+  font-size: 12px;
+  color: var(--color-on-surface);
+}
+
+.pr-table__asset:hover .pr-inv-tooltip {
+  display: block;
 }
 
 /* ── Dette écologique ─────────────────────────────────────────────────────── */

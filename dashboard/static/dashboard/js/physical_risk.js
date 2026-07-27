@@ -225,7 +225,8 @@ function prRenderTable() {
   const rows = data.assets.map(a => {
     const hz = a.risk[key] || 0;
     const risk = hz * a.exposition * vuln;
-    return { name: a.name, hz: hz, expo: a.exposition, risk: risk };
+    return { name: a.name, hz: hz, expo: a.exposition, risk: risk,
+             inventory: a.inventory || [] };
   }).sort((x, y) => y.risk - x.risk);
 
   const detail = hazard.vulnerability_detail || [];
@@ -245,9 +246,21 @@ function prRenderTable() {
         ${detailRows}
         <span class="pr-vuln-tooltip__result">Moyenne : ${(vuln * 100).toFixed(1)}%</span>
       </span>`;
+    const invRows = r.inventory.map(e =>
+      `<span class="pr-vuln-tooltip__row">
+        <span class="pr-vuln-tooltip__policy">${escHtml(e.name)}</span>
+        <span class="pr-vuln-tooltip__val">${e.value.toLocaleString('fr-FR')} ${escHtml(e.unit)}</span>
+      </span>`).join('');
+    const nameCell = r.inventory.length
+      ? `<td class="pr-table__asset pr-table__asset--has-inv">${escHtml(r.name)}
+          <span class="pr-inv-tooltip" role="tooltip">
+            <span class="pr-vuln-tooltip__title">Inventaire mesuré</span>
+            ${invRows}
+          </span></td>`
+      : `<td>${escHtml(r.name)}</td>`;
     return `
     <tr>
-      <td>${escHtml(r.name)}</td>
+      ${nameCell}
       <td class="data-tabular">${(r.hz * 100).toFixed(1)}%</td>
       <td class="data-tabular">${prFmtEuro(r.expo)}</td>
       <td class="data-tabular pr-table__vuln">${(vuln * 100).toFixed(1)}%${tooltip}</td>

@@ -247,14 +247,64 @@ function fmtFootprint(n) {
   return `${mantissa}×10<sup>${exp}</sup>`;
 }
 
+// Palette catégorielle par type d'asset — teintes fixes dérivées de la charte
+// Terra Insight, validées (bande de clarté OKLCH, plancher de chroma, séparation
+// daltonisme protan/deutan sur toutes les paires, contraste). Ordre figé : ne pas
+// réordonner ni cycler ces teintes.
+const ASSET_TYPE_COLORS = {
+  Smelter: '#a32c33',
+  Mine: '#cf6228',
+  Factory: '#d0901e',
+  Paper: '#3e6200',
+  Forest: '#47a566',
+  Renewable: '#007149',
+  Airport: '#28a0c7',
+  Refinery: '#374b99',
+  Aluminium: '#8d6cc2',
+  Office: '#873e79',
+};
+const ASSET_TYPE_FALLBACK_COLOR = ASSET_TYPE_COLORS.Factory;
+
+// Légende dynamique : ne liste que les types réellement présents dans les
+// données affichées, dans l'ordre fixe de la palette (jamais alphabétique).
+function renderAssetTypeLegend(geojson) {
+  const el = document.getElementById('asset-type-legend');
+  if (!el) return;
+  const features = (geojson && geojson.features) ? geojson.features : [];
+  const present = new Set(features.map((f) => f.properties.type).filter(Boolean));
+  if (present.size === 0) {
+    el.hidden = true;
+    el.innerHTML = '';
+    return;
+  }
+  const items = Object.keys(ASSET_TYPE_COLORS).filter((t) => present.has(t));
+  el.hidden = false;
+  el.innerHTML = `
+    <p class="map-legend__title">Type d'actif</p>
+    <ul class="map-legend__list">
+      ${items.map((t) => `
+        <li>
+          <span class="map-legend__dot" style="background:${ASSET_TYPE_COLORS[t]}"></span>
+          <span>${escHtml(t)}</span>
+        </li>
+      `).join('')}
+    </ul>
+  `;
+}
+
 function addAssetsLayer(map) {
+  if (map.getLayer('assets-layer')) return;
   map.addLayer({
     id: 'assets-layer',
     type: 'circle',
     source: 'assets',
     paint: {
       'circle-radius': 7,
-      'circle-color': '#91452d',
+      'circle-color': [
+        'match', ['get', 'type'],
+        ...Object.entries(ASSET_TYPE_COLORS).flat(),
+        ASSET_TYPE_FALLBACK_COLOR,
+      ],
       'circle-stroke-width': 2,
       'circle-stroke-color': '#ffffff',
     },
@@ -371,6 +421,7 @@ function updateDashboard(data, map) {
       window._pendingGeojson = data.geojson;
     }
   }
+  renderAssetTypeLegend(data.geojson);
 
   // Build country → centroid from geojson features
   _countryCoords = {};

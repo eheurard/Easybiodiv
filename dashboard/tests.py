@@ -30,6 +30,14 @@ def _make_world():
     return company, country, region, commodity, asset
 
 
+def _make_cf(commodity, category_key, value, region=None, country=None):
+    from .models import ImpactCategory, CharacterizationFactor
+    cat = ImpactCategory.objects.get(key=category_key)
+    return CharacterizationFactor.objects.create(
+        commodity=commodity, category=cat, value=value, region=region, country=country,
+    )
+
+
 class CompanyDataViewTests(TestCase):
 
     def setUp(self):
@@ -114,6 +122,37 @@ class CompanyDataViewTests(TestCase):
         self.assertEqual(data['policies'], [])
 
 
+class CompanyDataRegionalCfTests(TestCase):
+
+    def test_regional_cf_overrides_global_for_footprint(self):
+        from .models import (
+            Company, Country, SubnationalRegion, Commodity, Asset, Ownership,
+            Production, ImpactCategory, CharacterizationFactor,
+        )
+        from .views import _get_company_data
+        company = Company.objects.create(name='RegCorp')
+        country = Country.objects.create(name='Brésil', water_ownership='X', land_ownership='Y')
+        region = SubnationalRegion.objects.create(name='Pará', country=country)
+        com = Commodity.objects.create(name='Soja')
+        cat = ImpactCategory.objects.get(
+            key='impact_endpoint_ReCiPe2016_ecosystem_diversity'
+        )
+        CharacterizationFactor.objects.create(category=cat, commodity=com, value=1.0)  # global
+        CharacterizationFactor.objects.create(
+            category=cat, commodity=com, region=region, value=5.0
+        )  # régional
+        asset = Asset.objects.create(
+            name='Ferme', latitude=-3.0, longitude=-47.0,
+            country=country, subnational_region=region,
+        )
+        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Production.objects.create(asset=asset, commodity=com, year=2024, production=10.0)
+        data = _get_company_data(company)
+        feature = data['geojson']['features'][0]
+        # footprint = 10 * 5.0 (CF régional), pas 10 * 1.0 (global)
+        self.assertAlmostEqual(feature['properties']['footprint'], 50.0, places=4)
+
+
 class DashboardIndexViewTests(TestCase):
 
     def test_index_returns_200(self):
@@ -158,10 +197,8 @@ class MesureEmpreinteDataViewTests(TestCase):
             name='Brésil', water_ownership='Public', land_ownership='Private'
         )
         region = SubnationalRegion.objects.create(name='Amazonie', country=country)
-        commodity = Commodity.objects.create(
-            name='SojaRisk',
-            impact_endpoint_ReCiPe2016_ecosystem_diversity=impact_factor,
-        )
+        commodity = Commodity.objects.create(name='SojaRisk')
+        _make_cf(commodity, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', impact_factor)
         asset = Asset.objects.create(
             name='Ferme A', latitude=-5.0, longitude=-55.0,
             country=country, subnational_region=region,
@@ -265,12 +302,10 @@ class MesureEmpreinteDataViewTests(TestCase):
             country=country, subnational_region=region,
         )
         Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
-        c1 = Commodity.objects.create(
-            name='Maïs', impact_endpoint_ReCiPe2016_ecosystem_diversity=1.0
-        )
-        c2 = Commodity.objects.create(
-            name='Blé', impact_endpoint_ReCiPe2016_ecosystem_diversity=3.0
-        )
+        c1 = Commodity.objects.create(name='Maïs')
+        _make_cf(c1, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 1.0)
+        c2 = Commodity.objects.create(name='Blé')
+        _make_cf(c2, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 3.0)
         Production.objects.create(asset=asset, commodity=c1, year=2024, production=100.0)
         Production.objects.create(asset=asset, commodity=c2, year=2024, production=100.0)
 
@@ -343,7 +378,7 @@ class DependenciesDataTests(TestCase):
             commodity=self.commodity,
             year=2024,
             production=100.0,
-            scope='direct',
+            tier=0,
         )
 
     def test_score_map_conversion(self):
@@ -495,7 +530,7 @@ class DependenciesDataTests(TestCase):
         # Older year — should be ignored
         Production.objects.create(
             company=self.company, commodity=commodity2, year=2020,
-            production=999.0, scope='direct',
+            production=999.0, tier=0,
         )
         data = _get_dependencies_data(self.company)
         self.assertEqual(data['year'], 2024)
@@ -521,7 +556,7 @@ class DependenciesDataTests(TestCase):
         )
         Production.objects.create(
             asset=asset, commodity=commodity_vh, year=2024,
-            production=50.0, scope='tier 1',
+            production=50.0, tier=1,
         )
         data = _get_dependencies_data(self.company)
         # 'tier 1' scope should appear because asset-linked production was included
@@ -551,6 +586,19 @@ class DependenciesDataTests(TestCase):
             s for cat in se['categories'] for s in cat['services'] if s['key'] == 'water'
         )
         self.assertIsNone(water_svc['revenue_exposure'])
+
+    def test_invalid_tier_does_not_raise(self):
+        from .views import _get_dependencies_data
+        # tier=5 simule une donnée corrompue (hors plage 0-3, ex. saisie admin
+        # directe) : .create() ne déclenche pas les validators du champ.
+        Production.objects.create(
+            company=self.company, commodity=self.commodity, year=2024,
+            production=10.0, tier=5,
+        )
+        data = _get_dependencies_data(self.company)  # ne doit pas lever KeyError
+        scopes = [t['scope'] for t in data['supply_chain']]
+        self.assertIn('direct', scopes)
+        self.assertNotIn(5, scopes)
 
 
 class DependenciesPageViewTests(TestCase):
@@ -738,6 +786,30 @@ class PhysicalRiskDataTests(TestCase):
         # annual_loss = 0.5 * 200 * 1.0 = 100 (only flood non-zero)
         self.assertAlmostEqual(data['kpis']['annual_loss'], 100.0, places=2)
 
+    def test_inventory_subset_latest_year_ordered(self):
+        from .models import AssetInventory, Flow
+        from .views import _get_physical_risk_data
+        water = Flow.objects.get(key='water')
+        co2 = Flow.objects.get(key='co2')
+        energy = Flow.objects.get(key='energy')
+        AssetInventory.objects.create(asset=self.a1, flow=water, year=2023, value=10.0)
+        AssetInventory.objects.create(asset=self.a1, flow=water, year=2024, value=100.0)
+        AssetInventory.objects.create(asset=self.a1, flow=co2, year=2024, value=50.0)
+        AssetInventory.objects.create(asset=self.a1, flow=energy, year=2024, value=999.0)
+        data = _get_physical_risk_data(self.company)
+        a1 = next(a for a in data['assets'] if a['name'] == 'Site A1')
+        # sous-ensemble + ordre (eau, CO2) ; énergie exclue ; année récente (100, pas 10)
+        self.assertEqual([e['name'] for e in a1['inventory']],
+                         ['Consommation eau', 'Émissions CO₂'])
+        self.assertEqual(a1['inventory'][0]['value'], 100.0)
+        self.assertEqual(a1['inventory'][0]['unit'], 'm³')
+
+    def test_inventory_empty_when_none(self):
+        from .views import _get_physical_risk_data
+        data = _get_physical_risk_data(self.company)
+        a2 = next(a for a in data['assets'] if a['name'] == 'Site A2')
+        self.assertEqual(a2['inventory'], [])
+
 
 class PhysicalRiskPageViewTests(TestCase):
 
@@ -792,7 +864,7 @@ class LeapEvaluateDataTests(TestCase):
 
     def setUp(self):
         from django.contrib.auth import get_user_model
-        from .models import Asset_consumption
+        from .models import AssetInventory, Flow
         User = get_user_model()
         self.user = User.objects.create_user(username='evaluser', password='testpass')
         self.client.force_login(self.user)
@@ -802,11 +874,9 @@ class LeapEvaluateDataTests(TestCase):
             name='France', water_ownership='Public', land_ownership='Private'
         )
         # Commodity with land_use=4 (midpoint impact), water_consumption=2
-        self.commodity = Commodity.objects.create(
-            name='Soja',
-            impact_midpoint_ReCiPe2016_land_use=4.0,
-            impact_midpoint_ReCiPe2016_water_consumption=2.0,
-        )
+        self.commodity = Commodity.objects.create(name='Soja')
+        _make_cf(self.commodity, 'impact_midpoint_ReCiPe2016_land_use', 4.0)
+        _make_cf(self.commodity, 'impact_midpoint_ReCiPe2016_water_consumption', 2.0)
         self.asset = Asset.objects.create(
             name='Site A', latitude=48.0, longitude=2.0, country=self.country,
             near_sensitive_zone=True, sensitive_zone_type='NATURA_2000',
@@ -815,9 +885,14 @@ class LeapEvaluateDataTests(TestCase):
         Production.objects.create(
             asset=self.asset, commodity=self.commodity, year=2024, production=10.0,
         )
-        Asset_consumption.objects.create(
-            asset=self.asset, water_consumption=100.0,
-            CO2_emissions=50.0, waste_generated=25.0,
+        AssetInventory.objects.create(
+            asset=self.asset, flow=Flow.objects.get(key='water'), year=2024, value=100.0
+        )
+        AssetInventory.objects.create(
+            asset=self.asset, flow=Flow.objects.get(key='co2'), year=2024, value=50.0
+        )
+        AssetInventory.objects.create(
+            asset=self.asset, flow=Flow.objects.get(key='waste'), year=2024, value=25.0
         )
 
     def test_impact_sum_is_production_times_factor(self):
@@ -840,6 +915,17 @@ class LeapEvaluateDataTests(TestCase):
         self.assertAlmostEqual(a['waste_generated'], 25.0, places=2)
         self.assertTrue(a['near_sensitive_zone'])
         self.assertEqual(a['sensitive_zone_type'], 'Natura 2000')
+
+    def test_consumption_uses_latest_inventory_year_only(self):
+        from .models import AssetInventory, Flow
+        from .views import _get_leap_evaluate_data
+        # Année antérieure sur le même flow/asset : ne doit pas s'additionner
+        # à l'année la plus récente (2024, value=100 créée dans setUp).
+        AssetInventory.objects.create(
+            asset=self.asset, flow=Flow.objects.get(key='water'), year=2023, value=10.0,
+        )
+        a = _get_leap_evaluate_data(self.company)['assets'][0]
+        self.assertAlmostEqual(a['water_consumption'], 100.0, places=2)
 
     def test_only_midpoint_impacts_listed(self):
         from .views import _get_leap_evaluate_data
@@ -904,11 +990,8 @@ class LeapPrepareDataTests(TestCase):
         self.country = Country.objects.create(
             name='France', water_ownership='Public', land_ownership='Private'
         )
-        # impact_endpoint_ReCiPe2016_ecosystem_diversity = 0.5
-        self.commodity = Commodity.objects.create(
-            name='Soja', unit='tonnes',
-            impact_endpoint_ReCiPe2016_ecosystem_diversity=0.5,
-        )
+        self.commodity = Commodity.objects.create(name='Soja', unit='tonnes')
+        _make_cf(self.commodity, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 0.5)
         self.asset = Asset.objects.create(
             name='Site A', latitude=48.0, longitude=2.0, country=self.country,
         )
@@ -1029,10 +1112,9 @@ class DetteEcologiqueDataTests(TestCase):
             Mean_X=2.3, Mean_Y=48.8,
         )
         self.commodity_agri = Commodity.objects.create(
-            name='Soja',
-            impact_endpoint_ReCiPe2016_ecosystem_diversity=0.5,
-            biodiversity_loss_class='Agriculture',
+            name='Soja', biodiversity_loss_class='Agriculture',
         )
+        _make_cf(self.commodity_agri, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 0.5)
         self.asset = Asset.objects.create(
             name='Site A', latitude=48.8, longitude=2.3,
             country=self.country, subnational_region=self.region,
@@ -1070,10 +1152,9 @@ class DetteEcologiqueDataTests(TestCase):
     def test_lbiodiv_formula_urbanisation(self):
         # biodiversity_loss_urbanization=3.0 → 3.0 * 10.0 * 100.0 * 0.5 = 1500.0
         commodity_urb = Commodity.objects.create(
-            name='Béton',
-            impact_endpoint_ReCiPe2016_ecosystem_diversity=0.5,
-            biodiversity_loss_class='Urbanisation',
+            name='Béton', biodiversity_loss_class='Urbanisation',
         )
+        _make_cf(commodity_urb, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 0.5)
         Production.objects.create(
             asset=self.asset, commodity=commodity_urb, year=2024, production=100.0,
         )
@@ -1083,10 +1164,9 @@ class DetteEcologiqueDataTests(TestCase):
     def test_lbiodiv_formula_mining(self):
         # biodiversity_loss_mining=1.5 → 1.5 * 10.0 * 100.0 * 0.5 = 750.0
         commodity_min = Commodity.objects.create(
-            name='Lithium',
-            impact_endpoint_ReCiPe2016_ecosystem_diversity=0.5,
-            biodiversity_loss_class='Mining',
+            name='Lithium', biodiversity_loss_class='Mining',
         )
+        _make_cf(commodity_min, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 0.5)
         Production.objects.create(
             asset=self.asset, commodity=commodity_min, year=2024, production=100.0,
         )
@@ -1744,15 +1824,17 @@ class LeapLocateDataTests(TestCase):
         self.assertEqual(data['geojson']['features'], [])
 
     def test_supplier_features_and_links(self):
-        # Un asset fournisseur approvisionne l'asset détenu via Supply_chain.
+        # Un asset fournisseur approvisionne l'asset détenu via un Exchange.
         supplier_asset = Asset.objects.create(
             name='Ferme Brésil', latitude=-15.0, longitude=-47.0,
             country=self.country, subnational_region=self.region,
         )
-        from .models import Supply_chain
-        Supply_chain.objects.create(
-            asset=self.asset, supplier=supplier_asset,
-            commodity=self.commodity, quantity=100.0, year=2024,
+        from .models import Exchange, SupplyNode
+        consumer = SupplyNode.objects.create(asset=self.asset)
+        supplier = SupplyNode.objects.create(asset=supplier_asset)
+        Exchange.objects.create(
+            supplier=supplier, consumer=consumer, commodity=self.commodity,
+            quantity=100.0, year=2024, tier=1,
         )
         from .views import _get_leap_locate_data
         data = _get_leap_locate_data(self.company)
@@ -1782,10 +1864,12 @@ class LeapLocateDataTests(TestCase):
             country=self.country, subnational_region=self.region,
         )
         Ownership.objects.create(Asset=supplier_asset, Company=self.company, ownership='100%')
-        from .models import Supply_chain
-        Supply_chain.objects.create(
-            asset=self.asset, supplier=supplier_asset,
-            commodity=self.commodity, quantity=100.0, year=2024,
+        from .models import Exchange, SupplyNode
+        consumer = SupplyNode.objects.create(asset=self.asset)
+        supplier = SupplyNode.objects.create(asset=supplier_asset)
+        Exchange.objects.create(
+            supplier=supplier, consumer=consumer, commodity=self.commodity,
+            quantity=100.0, year=2024, tier=1,
         )
         from .views import _get_leap_locate_data
         data = _get_leap_locate_data(self.company)
@@ -1836,3 +1920,522 @@ class LeapPagesTests(TestCase):
         c = Client()
         response = c.get(reverse('dashboard:leap_locate'))
         self.assertEqual(response.status_code, 302)
+
+
+class ComparisonDataCfTests(TestCase):
+
+    def test_totals_use_cf(self):
+        from .models import (
+            Company, Country, SubnationalRegion, Commodity, Asset, Ownership, Production,
+        )
+        from .views import _get_comparison_data
+        company = Company.objects.create(name='CmpCorp')
+        country = Country.objects.create(name='France', water_ownership='X', land_ownership='Y')
+        region = SubnationalRegion.objects.create(
+            name='IDF', country=country, restoration_cost_m2=10.0
+        )
+        com = Commodity.objects.create(name='Soja', biodiversity_loss_class='Agriculture')
+        _make_cf(com, 'impact_midpoint_ReCiPe2016_land_use', 4.0)
+        _make_cf(com, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 0.5)
+        asset = Asset.objects.create(
+            name='S', latitude=48.0, longitude=2.0, country=country, subnational_region=region,
+        )
+        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Production.objects.create(asset=asset, commodity=com, year=2024, production=10.0)
+        data = _get_comparison_data(company)
+        self.assertAlmostEqual(data['total_impact_midpoint_ReCiPe2016_land_use'], 40.0, places=2)
+
+
+import os
+from pathlib import Path
+from django.core.management import call_command
+
+GOLDEN_DIR = Path(__file__).resolve().parent / 'golden'
+
+# Vues du chemin ACV dont la forme de sortie doit rester invariante.
+GOLDEN_VIEWS = [
+    ('company_data',        'dashboard:company_data'),
+    ('mesure_empreinte',    'dashboard:mesure_empreinte_data'),
+    ('leap_evaluate',       'dashboard:leap_evaluate_data'),
+    ('leap_prepare',        'dashboard:leap_prepare_data'),
+    ('dette_ecologique',    'dashboard:dette_ecologique_data'),
+    ('compare',             'dashboard:compare_data'),
+    ('dependencies',        'dashboard:dependencies_data'),
+    ('leap_locate',         'dashboard:leap_locate_data'),
+]
+
+
+class GoldenViewOutputTests(TestCase):
+    """Snapshot des sorties JSON sur le jeu déterministe `populate_acme`.
+
+    Enregistrer la référence :  GOLDEN_RECORD=1 python manage.py test
+        dashboard.tests.GoldenViewOutputTests
+    Vérifier (défaut) :         python manage.py test
+        dashboard.tests.GoldenViewOutputTests
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        call_command('populate_acme')
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        cls.user = User.objects.create_user(username='golden', password='x')
+        cls.acme = Company.objects.get(name='Acme Corp')
+
+    def _fetch(self, url_name):
+        self.client.force_login(self.user)
+        url = reverse(url_name, kwargs={'pk': self.acme.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200, url_name)
+        return json.loads(response.content)
+
+    def test_golden_outputs_match(self):
+        record = os.environ.get('GOLDEN_RECORD') == '1'
+        if record:
+            GOLDEN_DIR.mkdir(exist_ok=True)
+        for fname, url_name in GOLDEN_VIEWS:
+            payload = self._fetch(url_name)
+            path = GOLDEN_DIR / f'{fname}.json'
+            if record:
+                path.write_text(
+                    json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True),
+                    encoding='utf-8',
+                )
+                continue
+            self.assertTrue(path.exists(), f'Golden manquant : {path} (lancer GOLDEN_RECORD=1)')
+            expected = json.loads(path.read_text(encoding='utf-8'))
+            self.assertEqual(payload, expected, f'Sortie modifiée pour {fname}')
+
+
+class AssetInventoryModelTests(TestCase):
+
+    def _asset(self):
+        from .models import Asset, Country
+        c = Country.objects.create(name='FR', water_ownership='X',
+                                   land_ownership='Y')
+        return Asset.objects.create(name='Site', latitude=1.0, longitude=1.0,
+                                    country=c)
+
+    def test_create(self):
+        from .models import AssetInventory, Flow
+        a = self._asset()
+        f = Flow.objects.get(key='water')
+        inv = AssetInventory.objects.create(asset=a, flow=f, year=2024,
+                                            value=100.0)
+        self.assertEqual(inv.value, 100.0)
+        self.assertIn('Site', str(inv))
+
+    def test_unique_per_asset_flow_year(self):
+        from django.db import IntegrityError, transaction
+        from .models import AssetInventory, Flow
+        a = self._asset()
+        f = Flow.objects.get(key='co2')
+        AssetInventory.objects.create(asset=a, flow=f, year=2024, value=1.0)
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                AssetInventory.objects.create(asset=a, flow=f, year=2024,
+                                              value=2.0)
+
+
+class ImpactCatalogModelTests(TestCase):
+
+    def test_method_str(self):
+        from .models import ImpactMethod
+        m, _ = ImpactMethod.objects.get_or_create(
+            name='ReCiPe2016', defaults={'version': '1.1'}
+        )
+        self.assertEqual(str(m), 'ReCiPe2016')
+
+    def test_category_str_and_level(self):
+        from .models import ImpactMethod, ImpactCategory
+        m, _ = ImpactMethod.objects.get_or_create(name='ReCiPe2016')
+        c, _ = ImpactCategory.objects.get_or_create(
+            key='impact_midpoint_ReCiPe2016_land_use',
+            defaults={
+                'method': m,
+                'name': 'Utilisation des terres',
+                'level': ImpactCategory.Level.MIDPOINT,
+            },
+        )
+        self.assertEqual(c.level, 'MIDPOINT')
+        self.assertIn('land_use', str(c))
+
+    def test_category_key_is_unique(self):
+        from django.db import IntegrityError, transaction
+        from .models import ImpactMethod, ImpactCategory
+        m = ImpactMethod.objects.create(name='TestMethodUnique')
+        ImpactCategory.objects.create(method=m, key='dup', name='A')
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                ImpactCategory.objects.create(method=m, key='dup', name='B')
+
+
+class CharacterizationFactorModelTests(TestCase):
+
+    def _cat(self):
+        from .models import ImpactMethod, ImpactCategory
+        m, _ = ImpactMethod.objects.get_or_create(name='ReCiPe2016')
+        cat, _ = ImpactCategory.objects.get_or_create(
+            key='impact_endpoint_ReCiPe2016_ecosystem_diversity',
+            defaults={
+                'method': m,
+                'name': 'Diversité des écosystèmes',
+                'level': ImpactCategory.Level.ENDPOINT,
+            },
+        )
+        return cat
+
+    def test_global_cf_has_null_location(self):
+        from .models import CharacterizationFactor, Commodity
+        cat = self._cat()
+        com = Commodity.objects.create(name='Soja')
+        cf = CharacterizationFactor.objects.create(category=cat, commodity=com, value=0.5)
+        self.assertIsNone(cf.region_id)
+        self.assertIsNone(cf.country_id)
+        self.assertIn('Soja', str(cf))
+
+    def test_region_and_country_cf(self):
+        from .models import CharacterizationFactor, Commodity, Country, SubnationalRegion
+        cat = self._cat()
+        com = Commodity.objects.create(name='Soja')
+        country = Country.objects.create(
+            name='Brésil', water_ownership='X', land_ownership='Y'
+        )
+        region = SubnationalRegion.objects.create(name='Pará', country=country)
+        CharacterizationFactor.objects.create(
+            category=cat, commodity=com, country=country, value=0.7
+        )
+        CharacterizationFactor.objects.create(
+            category=cat, commodity=com, region=region, value=0.9
+        )
+        self.assertEqual(CharacterizationFactor.objects.filter(commodity=com).count(), 2)
+
+
+class SeedImpactCatalogTests(TestCase):
+
+    def test_two_methods_seeded(self):
+        from .models import ImpactMethod
+        names = set(ImpactMethod.objects.values_list('name', flat=True))
+        self.assertTrue({'ReCiPe2016', 'GBS'}.issubset(names))
+
+    def test_sixteen_categories_seeded(self):
+        from .models import ImpactCategory
+        self.assertEqual(ImpactCategory.objects.count(), 16)
+
+    def test_ecosystem_diversity_is_endpoint(self):
+        from .models import ImpactCategory
+        cat = ImpactCategory.objects.get(
+            key='impact_endpoint_ReCiPe2016_ecosystem_diversity'
+        )
+        self.assertEqual(cat.level, 'ENDPOINT')
+        self.assertEqual(cat.method.name, 'ReCiPe2016')
+
+    def test_gbs_categories_use_gbs_method(self):
+        from .models import ImpactCategory
+        cat = ImpactCategory.objects.get(key='impact_endpoint_GBS_terrestrial_static')
+        self.assertEqual(cat.method.name, 'GBS')
+
+
+class CfServiceTests(TestCase):
+
+    def setUp(self):
+        from .models import (
+            ImpactMethod, ImpactCategory, CharacterizationFactor,
+            Commodity, Country, SubnationalRegion,
+        )
+        # NB : nom de méthode non-seedé (ReCiPe2016/GBS sont créés par la
+        # migration 0026) et clé de catégorie non-seedée, pour éviter toute
+        # collision d'unicité avec le catalogue seedé.
+        self.method = ImpactMethod.objects.create(name='TestMethod')
+        self.cat = ImpactCategory.objects.create(
+            method=self.method, key='k_eco', name='Eco',
+            level=ImpactCategory.Level.ENDPOINT,
+        )
+        self.com = Commodity.objects.create(name='Soja')
+        self.country = Country.objects.create(
+            name='Brésil', water_ownership='X', land_ownership='Y'
+        )
+        self.region = SubnationalRegion.objects.create(name='Pará', country=self.country)
+        CharacterizationFactor.objects.create(category=self.cat, commodity=self.com, value=1.0)
+        CharacterizationFactor.objects.create(
+            category=self.cat, commodity=self.com, country=self.country, value=2.0
+        )
+        CharacterizationFactor.objects.create(
+            category=self.cat, commodity=self.com, region=self.region, value=3.0
+        )
+
+    def test_region_wins(self):
+        from .services.impacts import build_cf_index, cf_value
+        idx = build_cf_index([self.com.pk], ['k_eco'])
+        self.assertEqual(
+            cf_value(idx, self.com.pk, 'k_eco', self.region.pk, self.country.pk), 3.0
+        )
+
+    def test_country_when_no_region_cf(self):
+        from .services.impacts import build_cf_index, cf_value
+        idx = build_cf_index([self.com.pk], ['k_eco'])
+        # region_id inconnu en base -> retombe sur pays
+        self.assertEqual(cf_value(idx, self.com.pk, 'k_eco', 99999, self.country.pk), 2.0)
+
+    def test_global_fallback(self):
+        from .services.impacts import build_cf_index, cf_value
+        idx = build_cf_index([self.com.pk], ['k_eco'])
+        self.assertEqual(cf_value(idx, self.com.pk, 'k_eco', None, None), 1.0)
+
+    def test_missing_returns_zero(self):
+        from .services.impacts import build_cf_index, cf_value
+        idx = build_cf_index([self.com.pk], ['k_eco'])
+        self.assertEqual(cf_value(idx, self.com.pk, 'inconnue', None, None), 0.0)
+
+    def test_legacy_cf_rows_maps_16_columns(self):
+        from .services.impacts import legacy_cf_rows, LEGACY_IMPACT_COLUMNS
+        rows = legacy_cf_rows({'impact_midpoint_ReCiPe2016_land_use': 6.5})
+        self.assertEqual(len(rows), 16)
+        self.assertEqual(len(LEGACY_IMPACT_COLUMNS), 16)
+        as_dict = dict(rows)
+        self.assertEqual(as_dict['impact_midpoint_ReCiPe2016_land_use'], 6.5)
+        self.assertEqual(as_dict['impact_endpoint_GBS_terrestrial_static'], 0.0)
+
+
+class CommodityColumnsDroppedTests(TestCase):
+
+    def test_impact_columns_removed(self):
+        from .models import Commodity
+        com = Commodity.objects.create(name='X')
+        self.assertFalse(hasattr(com, 'impact_endpoint_ReCiPe2016_ecosystem_diversity'))
+        self.assertFalse(hasattr(com, 'impact_midpoint_ReCiPe2016_land_use'))
+
+    def test_dependency_fields_still_present(self):
+        from .models import Commodity
+        com = Commodity.objects.create(name='X', dependency_water='H')
+        self.assertEqual(com.dependency_water, 'H')
+        self.assertEqual(com.biodiversity_loss_class, 'Agriculture')
+
+
+class PopulateAcmeCfTests(TestCase):
+
+    def test_acme_commodities_have_global_cfs(self):
+        from .models import Commodity, CharacterizationFactor
+        call_command('populate_acme')
+        soja = Commodity.objects.get(name='Soja')
+        cf = CharacterizationFactor.objects.get(
+            commodity=soja,
+            category__key='impact_endpoint_ReCiPe2016_ecosystem_diversity',
+            region__isnull=True, country__isnull=True,
+        )
+        self.assertAlmostEqual(cf.value, 0.0048, places=6)
+
+
+class TierVocabTests(TestCase):
+
+    def test_labels_match_legacy_scope_labels(self):
+        from .services.supply import TIER_LABELS, TIER_TO_SCOPE, SCOPE_TO_TIER
+        self.assertEqual(TIER_LABELS[0], 'Opérations directes')
+        self.assertEqual(TIER_LABELS[1], "Tier 1 : Chaîne d'approvisionnement")
+        self.assertEqual(TIER_LABELS[2], 'Tier 2 : Approvisionnement amont')
+        self.assertEqual(TIER_LABELS[3], 'Matières premières')
+
+    def test_scope_tier_roundtrip(self):
+        from .services.supply import SCOPE_TO_TIER, TIER_TO_SCOPE
+        self.assertEqual(SCOPE_TO_TIER['direct'], 0)
+        self.assertEqual(SCOPE_TO_TIER['tier 1'], 1)
+        self.assertEqual(SCOPE_TO_TIER['tier 2'], 2)
+        self.assertEqual(SCOPE_TO_TIER['raw material'], 3)
+        for scope, tier in SCOPE_TO_TIER.items():
+            self.assertEqual(TIER_TO_SCOPE[tier], scope)
+
+
+class SupplyNodeModelTests(TestCase):
+
+    def _country_region(self):
+        from .models import Country, SubnationalRegion
+        c = Country.objects.create(
+            name='Brésil', water_ownership='X', land_ownership='Y'
+        )
+        r = SubnationalRegion.objects.create(name='Pará', country=c)
+        return c, r
+
+    def test_asset_node_resolution_and_effective_location(self):
+        from .models import SupplyNode, Asset
+        c, r = self._country_region()
+        a = Asset.objects.create(
+            name='Ferme', latitude=-3.0, longitude=-47.0, country=c,
+            subnational_region=r
+        )
+        node = SupplyNode.objects.create(asset=a)
+        self.assertEqual(node.resolution, 'asset')
+        self.assertEqual(node.effective_region_id, r.pk)
+        self.assertEqual(node.effective_country_id, c.pk)
+
+    def test_country_node_resolution(self):
+        from .models import SupplyNode
+        c, r = self._country_region()
+        node = SupplyNode.objects.create(country=c, name='Fournisseur BR')
+        self.assertEqual(node.resolution, 'country')
+        self.assertIsNone(node.effective_region_id)
+        self.assertEqual(node.effective_country_id, c.pk)
+
+    def test_clean_requires_a_location(self):
+        from django.core.exceptions import ValidationError
+        from .models import SupplyNode
+        with self.assertRaises(ValidationError):
+            SupplyNode(name='vide').clean()
+
+
+class ExchangeModelTests(TestCase):
+
+    def test_directed_edge(self):
+        from .models import Exchange, SupplyNode, Asset, Country, Commodity
+        c = Country.objects.create(name='Brésil', water_ownership='X', land_ownership='Y')
+        a1 = Asset.objects.create(name='Usine', latitude=0.0, longitude=0.0, country=c)
+        a2 = Asset.objects.create(name='Ferme', latitude=-3.0, longitude=-47.0, country=c)
+        consumer = SupplyNode.objects.create(asset=a1)
+        supplier = SupplyNode.objects.create(asset=a2)
+        com = Commodity.objects.create(name='Soja')
+        ex = Exchange.objects.create(
+            supplier=supplier, consumer=consumer, commodity=com,
+            quantity=100.0, year=2024, tier=1,
+        )
+        self.assertEqual(consumer.incoming.count(), 1)
+        self.assertEqual(supplier.outgoing.count(), 1)
+        self.assertEqual(ex.tier, 1)
+        self.assertEqual(ex.data_confidence, 'country')
+
+
+class UpstreamChainTests(TestCase):
+
+    def test_multitier_traversal_with_cycle_guard(self):
+        from .models import Exchange, SupplyNode, Asset, Country, Commodity
+        from .services.supply import upstream_chain
+        c = Country.objects.create(name='BR', water_ownership='X', land_ownership='Y')
+        a = Asset.objects.create(name='A', latitude=0.0, longitude=0.0, country=c)
+        b = Asset.objects.create(name='B', latitude=1.0, longitude=1.0, country=c)
+        d = Asset.objects.create(name='D', latitude=2.0, longitude=2.0, country=c)
+        na = SupplyNode.objects.create(asset=a)
+        nb = SupplyNode.objects.create(asset=b)
+        nd = SupplyNode.objects.create(asset=d)
+        com = Commodity.objects.create(name='Soja')
+        # a <- b <- d  (deux tiers) + un cycle d -> b (doit être borné)
+        Exchange.objects.create(supplier=nb, consumer=na, commodity=com, quantity=1, year=2024)
+        Exchange.objects.create(supplier=nd, consumer=nb, commodity=com, quantity=1, year=2024)
+        Exchange.objects.create(supplier=nb, consumer=nd, commodity=com, quantity=1, year=2024)
+        chain = upstream_chain(na, 2024)
+        # 3 arêtes atteignables sans boucler indéfiniment
+        self.assertGreaterEqual(len(chain), 2)
+        self.assertLessEqual(len(chain), 3)
+
+
+class SupplyChainDroppedTests(TestCase):
+
+    def test_production_has_no_scope_and_supply_chain_gone(self):
+        from .models import Production, Commodity, Company
+        com = Commodity.objects.create(name='X')
+        company = Company.objects.create(name='C')
+        p = Production.objects.create(commodity=com, company=company, year=2024,
+                                      production=1.0, tier=1)
+        self.assertFalse(hasattr(p, 'scope'))
+        import dashboard.models as m
+        self.assertFalse(hasattr(m, 'Supply_chain'))
+
+
+class FlowModelTests(TestCase):
+
+    def test_create_and_str(self):
+        from .models import Flow
+        f = Flow.objects.create(key='custom_flow', name='Consommation eau',
+                                unit='m³', theme='water')
+        self.assertEqual(str(f), 'custom_flow')
+        self.assertEqual(f.theme, 'water')
+
+    def test_key_unique(self):
+        from django.db import IntegrityError, transaction
+        from .models import Flow
+        Flow.objects.create(key='unique_test', name='CO2', unit='t')
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Flow.objects.create(key='unique_test', name='CO2 bis', unit='t')
+
+
+class SeedFlowsTests(TestCase):
+
+    def test_five_flows_seeded(self):
+        from .models import Flow
+        keys = set(Flow.objects.values_list('key', flat=True))
+        self.assertEqual(keys, {'water', 'energy', 'co2', 'waste', 'surface_area'})
+
+    def test_themes(self):
+        from .models import Flow
+        self.assertEqual(Flow.objects.get(key='water').theme, 'water')
+        self.assertEqual(Flow.objects.get(key='co2').theme, 'carbon')
+        self.assertEqual(Flow.objects.get(key='surface_area').theme, 'land')
+
+
+class AssetConsumptionDroppedTests(TestCase):
+
+    def test_model_gone(self):
+        import dashboard.models as m
+        self.assertFalse(hasattr(m, 'Asset_consumption'))
+
+
+class MeasuredVsModeledTests(TestCase):
+
+    def test_pairs_measured_and_modeled(self):
+        from .models import (
+            Asset, Country, SubnationalRegion, Commodity, Production,
+            Flow, AssetInventory, ImpactCategory, CharacterizationFactor,
+        )
+        from .services.impacts import measured_vs_modeled
+        country = Country.objects.create(name='FR', water_ownership='X', land_ownership='Y')
+        region = SubnationalRegion.objects.create(name='IDF', country=country)
+        asset = Asset.objects.create(name='S', latitude=1.0, longitude=1.0,
+                                     country=country, subnational_region=region)
+        # mesuré : 100 d'eau (Flow theme 'water')
+        water = Flow.objects.get(key='water')  # seedé par 0037
+        AssetInventory.objects.create(asset=asset, flow=water, year=2024, value=100.0)
+        # modélisé : production 10 × CF(catégorie theme 'water') = 10 × 2 = 20
+        com = Commodity.objects.create(name='Soja')
+        Production.objects.create(asset=asset, commodity=com, year=2024, production=10.0)
+        cat = ImpactCategory.objects.get(
+            key='impact_midpoint_ReCiPe2016_water_consumption'
+        )  # theme 'water' (seedé Plan A)
+        CharacterizationFactor.objects.create(category=cat, commodity=com, value=2.0)
+        out = measured_vs_modeled(asset, 'water', 2024)
+        self.assertAlmostEqual(out['measured'], 100.0, places=4)
+        self.assertAlmostEqual(out['modeled'], 20.0, places=4)
+
+
+class AssetConsumptionMigrateHelperTests(TestCase):
+
+    def test_migrate_maps_measures_and_year(self):
+        from .models import AssetInventory, Flow, Production, Asset, Country, Commodity
+        from dashboard.migrations import _asset_consumption_to_inventory as conv
+        country = Country.objects.create(name='FR', water_ownership='X', land_ownership='Y')
+        asset = Asset.objects.create(name='S', latitude=1.0, longitude=1.0, country=country)
+        com = Commodity.objects.create(name='Soja')
+        Production.objects.create(asset=asset, commodity=com, year=2023, production=1.0)
+
+        class _AC:
+            def __init__(self, asset_id, **measures):
+                self.asset_id = asset_id
+                for k, v in measures.items():
+                    setattr(self, k, v)
+
+        rows = [_AC(asset.pk, water_consumption=100.0, CO2_emissions=50.0,
+                    surface_area=0.0, energy_consumption=0.0, waste_generated=0.0)]
+
+        class _Objects:
+            def all(self):
+                return rows
+
+        class _FakeAC:
+            objects = _Objects()
+
+        conv.migrate(_FakeAC, AssetInventory, Flow, Production)
+        # 2 mesures non nulles → 2 lignes ; année = dernière prod (2023)
+        self.assertEqual(AssetInventory.objects.filter(asset=asset).count(), 2)
+        water = AssetInventory.objects.get(asset=asset, flow__key='water')
+        self.assertEqual(water.value, 100.0)
+        self.assertEqual(water.year, 2023)
+        self.assertEqual(
+            AssetInventory.objects.get(asset=asset, flow__key='co2').value, 50.0
+        )

@@ -70,8 +70,8 @@ SHEET_COLUMNS = {
     ],
     'Company_Revenue_Sector': ['company_name', 'subsector_name', 'sector_name', 'year', 'revenue'],
     'Asset_consumption': [
-        'asset_name', 'surface_area', 'water_consumption', 'energy_consumption',
-        'CO2_emissions', 'waste_generated',
+        'asset_name', 'year', 'surface_area', 'water_consumption',
+        'energy_consumption', 'CO2_emissions', 'waste_generated',
     ],
     'ESG_data': ['company_name', 'year', 'employees_number'],
     'Carbon_emission': ['company_name', 'year', 'scope', 'carbon_emission'],

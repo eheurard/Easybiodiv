@@ -1,0 +1,233 @@
+{
+  "asset_count": 5,
+  "commodity_count": 4,
+  "company_id": 1,
+  "company_name": "Acme Corp",
+  "countries": [
+    {
+      "asset_count": 2,
+      "commodities": [
+        {
+          "count": 2,
+          "name": "Soja"
+        }
+      ],
+      "name": "Brésil"
+    },
+    {
+      "asset_count": 2,
+      "commodities": [
+        {
+          "count": 1,
+          "name": "Blé"
+        },
+        {
+          "count": 1,
+          "name": "Huile de palme"
+        },
+        {
+          "count": 1,
+          "name": "Maïs"
+        }
+      ],
+      "name": "France"
+    },
+    {
+      "asset_count": 1,
+      "commodities": [
+        {
+          "count": 1,
+          "name": "Huile de palme"
+        }
+      ],
+      "name": "Indonésie"
+    }
+  ],
+  "country_count": 3,
+  "geojson": {
+    "features": [
+      {
+        "geometry": {
+          "coordinates": [
+            -2.76,
+            48.51
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "commodities": "Huile de palme",
+          "country": "France",
+          "dette_eco": 14630.0,
+          "footprint": 836.0,
+          "name": "Usine de transformation Bretagne",
+          "productions": [
+            {
+              "commodity": "Huile de palme",
+              "quantity": 88000.0,
+              "revenue": 72000000.0,
+              "unit": "tonnes"
+            }
+          ],
+          "region": "Bretagne",
+          "year": 2024
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            1.35,
+            44.02
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "commodities": "Blé, Maïs",
+          "country": "France",
+          "dette_eco": 1675.8,
+          "footprint": 114.0,
+          "name": "Silo céréalier Occitanie",
+          "productions": [
+            {
+              "commodity": "Blé",
+              "quantity": 45000.0,
+              "revenue": 9000000.0,
+              "unit": "tonnes"
+            },
+            {
+              "commodity": "Maïs",
+              "quantity": 30000.0,
+              "revenue": 5400000.0,
+              "unit": "tonnes"
+            }
+          ],
+          "region": "Occitanie",
+          "year": 2024
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            -56.08,
+            -13.83
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "commodities": "Soja",
+          "country": "Brésil",
+          "dette_eco": 20217.6,
+          "footprint": 936.0,
+          "name": "Plantation soja Mato Grosso",
+          "productions": [
+            {
+              "commodity": "Soja",
+              "quantity": 195000.0,
+              "revenue": 117000000.0,
+              "unit": "tonnes"
+            }
+          ],
+          "region": "Mato Grosso",
+          "year": 2024
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            -47.35,
+            -2.98
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "commodities": "Soja",
+          "country": "Brésil",
+          "dette_eco": 12337.92,
+          "footprint": 489.6,
+          "name": "Plantation soja Pará",
+          "productions": [
+            {
+              "commodity": "Soja",
+              "quantity": 102000.0,
+              "revenue": 61200000.0,
+              "unit": "tonnes"
+            }
+          ],
+          "region": "Pará",
+          "year": 2024
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            102.1,
+            0.75
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "commodities": "Huile de palme",
+          "country": "Indonésie",
+          "dette_eco": 45208.12,
+          "footprint": 2232.5,
+          "name": "Palmeraie Sumatra",
+          "productions": [
+            {
+              "commodity": "Huile de palme",
+              "quantity": 235000.0,
+              "revenue": 188000000.0,
+              "unit": "tonnes"
+            }
+          ],
+          "region": "Sumatra",
+          "year": 2024
+        },
+        "type": "Feature"
+      }
+    ],
+    "type": "FeatureCollection"
+  },
+  "policies": [
+    {
+      "avg_score": 0.55,
+      "entries": [
+        {
+          "level": "En cours de conformité",
+          "score": 0.5,
+          "subcategory": "CSRD / ESRS E4"
+        },
+        {
+          "level": "Partiellement conforme",
+          "score": 0.6,
+          "subcategory": "EUDR — Règlement sur la déforestation"
+        },
+        {
+          "level": "Exposition modérée",
+          "score": 0.55,
+          "subcategory": "Taxe biodiversité / Paiement pour services écosystémiques"
+        }
+      ],
+      "type": "Risque Réglementaire"
+    },
+    {
+      "avg_score": 0.55,
+      "entries": [
+        {
+          "level": "Transition en cours",
+          "score": 0.5,
+          "subcategory": "Demande marchés durables"
+        },
+        {
+          "level": "Engagement limité",
+          "score": 0.6,
+          "subcategory": "Pression investisseurs ESG"
+        }
+      ],
+      "type": "Risque de Marché"
+    }
+  ],
+  "region_count": 5
+}

@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.core.validators import MaxValueValidator
 
 class Country(models.Model):
     name = models.CharField(max_length=255)
@@ -37,24 +38,7 @@ class Commodity (models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     unit = models.CharField(max_length=255, default="tonnes")
-    impact_midpoint_ReCiPe2016_water_consumption = models.FloatField(default=0)
-    impact_midpoint_ReCiPe2016_climate_change = models.FloatField(default=0)
-    impact_midpoint_ReCiPe2016_freshwater_ecotoxicity = models.FloatField(default=0)
-    impact_midpoint_ReCiPe2016_freshwater_eutrophication = models.FloatField(default=0)
-    impact_midpoint_ReCiPe2016_marine_eutrophication = models.FloatField(default=0)
-    impact_midpoint_ReCiPe2016_terrestrial_acidification = models.FloatField(default=0)
-    impact_midpoint_ReCiPe2016_soil_acidification = models.FloatField(default=0)
-    impact_midpoint_ReCiPe2016_ozonedepletion = models.FloatField(default=0)
-    impact_midpoint_ReCiPe2016_resource_depletion_fossil = models.FloatField(default=0)
-    impact_midpoint_ReCiPe2016_resource_depletion_minerals = models.FloatField(default=0)
-    impact_midpoint_ReCiPe2016_land_use=models.FloatField(default=0)
-    impact_endpoint_ReCiPe2016_human_health = models.FloatField(default=0)
-    impact_endpoint_ReCiPe2016_ecosystem_diversity = models.FloatField(default=0)
-    impact_endpoint_ReCiPe2016_resource_availability = models.FloatField(default=0)
 
-    impact_endpoint_GBS_terrestrial_dynamic = models.FloatField(default=0)
-    impact_endpoint_GBS_terrestrial_static = models.FloatField(default=0)
-    
     dependency_water = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
     dependency_pollination = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
     dependency_soil_quality = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
@@ -103,6 +87,22 @@ class Asset(models.Model):
     longitude = models.FloatField()
     country = models.ForeignKey(Country, on_delete=models.CASCADE)
     subnational_region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE,null=True,blank=True)
+    type = models.CharField(
+        max_length=255,
+        choices=[
+            ('Airport', 'Airport'),
+            ('Mine', 'Mine'),
+            ('Aluminium', 'Aluminium'),
+            ('Factory', 'Factory'),
+            ('Forest', 'Forest'),
+            ('Office', 'Office'),
+            ('Paper', 'Paper'),
+            ('Refinery', 'Refinery'),
+            ('Renewable', 'Renewable'),
+            ('Smelter', 'Smelter'),
+        ],
+        default='Factory',
+    )
 
     risk_water = models.FloatField(default=0)
     risk_pollination = models.FloatField(default=0)
@@ -151,36 +151,13 @@ class Production(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
     subnational_region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True)
     country = models.ForeignKey(Country, on_delete=models.CASCADE, null=True, blank=True)
-    scope = models.CharField(max_length=15, choices=[('direct', 'direct'), ('tier 1', 'tier 1'), ('tier 2', 'tier 2'), ('raw material', 'raw material')], default='direct')
+    tier = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(3)])
     year = models.IntegerField()
     production = models.FloatField()
     estimated_revenue = models.FloatField(default = 0.0)
     def __str__(self):
         asset_name = self.asset.name if self.asset else "no asset"
         return f"{asset_name} - {self.commodity.name} - {self.year}"
-
-class Supply_chain(models.Model):
-    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='asset_productions')
-    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE)
-    quantity = models.FloatField()
-    year = models.IntegerField()
-    supplier = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True, related_name='supplied_productions')
-    supplier_data_confidence = models.CharField(max_length=16, choices=[('country level','country'),('sub_region level', 'sub_region'),('asset level','asset')],default = 'country level')
-    def __str__(self):
-        asset_name = self.asset.name if self.asset else "no asset"
-        return f"{asset_name} - {self.commodity.name} - {self.year}"
-
-class Asset_consumption(models.Model):
-    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True)
-    surface_area = models.FloatField(default=0)
-    water_consumption = models.FloatField(default=0)
-    energy_consumption = models.FloatField(default=0)
-    CO2_emissions = models.FloatField(default=0)
-    waste_generated = models.FloatField(default=0)
-    def __str__(self):
-        asset_name = self.asset.name if self.asset else "no asset"
-        return f"{asset_name}"
-
 
 class Company_Revenue(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
@@ -375,3 +352,168 @@ class Carbon_emission(models.Model):
 
     class Meta:
         unique_together = ('company', 'year', 'scope')
+
+
+class ImpactMethod(models.Model):
+    """Méthode de caractérisation LCA (ReCiPe2016, GBS, …)."""
+    name = models.CharField(max_length=100, unique=True)
+    version = models.CharField(max_length=50, blank=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+class ImpactCategory(models.Model):
+    """Axe d'impact ACV. `key` == nom de colonne legacy (contrat de sortie)."""
+
+    class Level(models.TextChoices):
+        MIDPOINT = 'MIDPOINT', 'Midpoint'
+        ENDPOINT = 'ENDPOINT', 'Endpoint'
+
+    method = models.ForeignKey(
+        ImpactMethod, on_delete=models.CASCADE, related_name='categories'
+    )
+    key = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=255)
+    unit = models.CharField(max_length=50, blank=True)
+    level = models.CharField(max_length=10, choices=Level.choices,
+                             default=Level.MIDPOINT)
+    theme = models.CharField(max_length=30, blank=True)
+
+    def __str__(self):
+        return f'{self.method.name} — {self.key}'
+
+
+class CharacterizationFactor(models.Model):
+    """Facteur de caractérisation régionalisé : impact par unité de commodity.
+
+    Résolution du lieu : region renseigné → région ; sinon country → pays ;
+    sinon (les deux null) → global.
+    """
+    category = models.ForeignKey(
+        ImpactCategory, on_delete=models.CASCADE, related_name='factors'
+    )
+    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE, related_name='cfs')
+    region = models.ForeignKey(
+        SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True
+    )
+    country = models.ForeignKey(
+        Country, on_delete=models.CASCADE, null=True, blank=True
+    )
+    value = models.FloatField(default=0.0)
+    source = models.CharField(max_length=255, blank=True)
+    reference = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        # NB SQLite : les NULL sont distincts dans une contrainte unique ; l'unicité
+        # du CF global (region=country=null) est garantie applicativement par
+        # get_or_create côté backfill et populate_acme.
+        unique_together = ('category', 'commodity', 'region', 'country')
+
+    def __str__(self):
+        return f'{self.commodity.name} — {self.category.key}'
+
+
+class SupplyNode(models.Model):
+    """Sommet du graphe fournisseurs, à résolution variable
+    (asset/région/pays)."""
+
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True,
+                              blank=True)
+    region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE,
+                               null=True, blank=True)
+    country = models.ForeignKey(Country, on_delete=models.CASCADE, null=True,
+                                blank=True)
+    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE,
+                                  null=True, blank=True)
+    name = models.CharField(max_length=255, blank=True)
+    is_external = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if not (self.asset_id or self.region_id or self.country_id):
+            raise ValidationError(
+                'Un SupplyNode requiert au moins asset, region ou country.'
+            )
+
+    @property
+    def resolution(self):
+        if self.asset_id:
+            return 'asset'
+        if self.region_id:
+            return 'region'
+        return 'country'
+
+    @property
+    def effective_region_id(self):
+        return (self.asset.subnational_region_id if self.asset_id
+                else self.region_id)
+
+    @property
+    def effective_country_id(self):
+        return self.asset.country_id if self.asset_id else self.country_id
+
+    def __str__(self):
+        if self.asset_id:
+            return self.asset.name
+        return self.name or f'{self.resolution} node #{self.pk}'
+
+
+class Exchange(models.Model):
+    """Arête dirigée fournisseur → consommateur du graphe d'approvisionnement."""
+    supplier = models.ForeignKey(
+        SupplyNode, on_delete=models.CASCADE, related_name='outgoing'
+    )
+    consumer = models.ForeignKey(
+        SupplyNode, on_delete=models.CASCADE, related_name='incoming'
+    )
+    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE)
+    quantity = models.FloatField()
+    year = models.IntegerField()
+    tier = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(3)])
+    data_confidence = models.CharField(
+        max_length=16,
+        choices=[('asset', 'asset'), ('region', 'region'), ('country', 'country')],
+        default='country',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+
+    def __str__(self):
+        return f'{self.supplier} → {self.consumer} ({self.commodity.name}, {self.year})'
+
+
+class Flow(models.Model):
+    """Flux physique mesuré (inventaire) ; `theme` l'apparie aux ImpactCategory."""
+    key = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=255)
+    unit = models.CharField(max_length=50, blank=True)
+    theme = models.CharField(max_length=30, blank=True)
+
+    def __str__(self):
+        return self.key
+
+
+class AssetInventory(models.Model):
+    """Inventaire mesuré à l'échelle asset (flux water/energy/co2/waste/surface_area)."""
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE,
+                              related_name='inventory')
+    flow = models.ForeignKey(Flow, on_delete=models.CASCADE)
+    year = models.IntegerField()
+    value = models.FloatField(default=0.0)
+    source = models.CharField(max_length=255, blank=True)
+    reference = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        unique_together = ('asset', 'flow', 'year')
+
+    def __str__(self):
+        return f'{self.asset.name} — {self.flow.key} {self.year}'

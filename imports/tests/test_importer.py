@@ -1,7 +1,8 @@
 from django.test import TestCase
 from dashboard.models import (
-    Country, SubnationalRegion, Commodity, Policy_Type, Policy_Subcategory,
-    Policy_Level, Company, Asset, Production, Company_Revenue, Ownership, Company_Policy,
+    Country, SubnationalRegion, Commodity, CharacterizationFactor, Policy_Type,
+    Policy_Subcategory, Policy_Level, Company, Asset, Production, Company_Revenue,
+    Ownership, Company_Policy, AssetInventory,
 )
 from imports.services.importer import save_import
 
@@ -66,6 +67,55 @@ class ImporterCountryTest(TestCase):
         self.assertEqual(counts['Asset'], 1)
         asset = Asset.objects.get(name='Usine A')
         self.assertIsNone(asset.subnational_region)
+
+    def test_commodity_import_creates_global_characterization_factor(self):
+        """Regression: _import_commodity must no longer pass impact_* kwargs to
+        Commodity() — impact values now become global CharacterizationFactor rows."""
+        counts = save_import({'Commodity': [
+            _ok({'name': 'Soy', 'description': '', 'unit': 'tonnes',
+                 'biodiversity_loss_class': 'Agriculture',
+                 'impact_endpoint_ReCiPe2016_ecosystem_diversity': '0.5'}),
+        ]})
+        self.assertEqual(counts['Commodity'], 1)
+        commodity = Commodity.objects.get(name='Soy')
+        cf = CharacterizationFactor.objects.get(
+            commodity=commodity,
+            category__key='impact_endpoint_ReCiPe2016_ecosystem_diversity',
+            region=None, country=None,
+        )
+        self.assertEqual(cf.value, 0.5)
+
+    def test_import_production_maps_scope_to_tier(self):
+        """Regression: _import_production must map the sheet's `scope` column
+        (direct/tier 1/tier 2/raw material) to the model's `tier` integer field,
+        since dependencies now groups productions by `tier`."""
+        country = Country.objects.create(
+            name='France', water_ownership='pub', land_ownership='priv')
+        Asset.objects.create(
+            name='Usine A', latitude=48.85, longitude=2.35, country=country)
+        Commodity.objects.create(name='Soy')
+        counts = save_import({'Production': [
+            _ok({'asset_name': 'Usine A', 'commodity_name': 'Soy', 'scope': 'tier 1',
+                 'year': '2024', 'production': '100'}),
+        ]})
+        self.assertEqual(counts['Production'], 1)
+        production = Production.objects.get(asset__name='Usine A', commodity__name='Soy')
+        self.assertEqual(production.tier, 1)
+
+    def test_import_asset_consumption_creates_asset_inventory(self):
+        """Regression: _import_asset_consumption must create AssetInventory rows
+        (one per non-null measure, via the matching Flow) instead of legacy
+        Asset_consumption rows."""
+        country = Country.objects.create(
+            name='France', water_ownership='pub', land_ownership='priv')
+        asset = Asset.objects.create(
+            name='Usine A', latitude=48.85, longitude=2.35, country=country)
+        counts = save_import({'Asset_consumption': [
+            _ok({'asset_name': 'Usine A', 'year': '2024', 'water_consumption': '100'}),
+        ]})
+        self.assertEqual(counts['Asset_consumption'], 1)
+        inventory = AssetInventory.objects.get(asset=asset, flow__key='water', year=2024)
+        self.assertEqual(inventory.value, 100)
 
     def test_returns_empty_for_empty_input(self):
         counts = save_import({})

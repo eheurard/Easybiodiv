@@ -5,8 +5,10 @@ from dashboard.models import (
     Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
     Company_Revenue_Sector, Country, DisclosureRequirement, E4Assessment,
     Ownership, Policy_Level, Policy_Subcategory, Policy_Type, Production,
-    Sector, SubSector, SubnationalRegion,
+    Sector, SubSector, SubnationalRegion, CharacterizationFactor, ImpactCategory,
 )
+from dashboard.services.impacts import legacy_cf_rows
+from dashboard.services.supply import SCOPE_TO_TIER
 
 
 class Command(BaseCommand):
@@ -181,13 +183,6 @@ class Command(BaseCommand):
             defaults={
                 "description": "Triticum aestivum — céréale tempérée",
                 "unit": "tonnes",
-                "impact_midpoint_ReCiPe2016_water_consumption": 1.21,
-                "impact_midpoint_ReCiPe2016_climate_change": 0.29,
-                "impact_midpoint_ReCiPe2016_freshwater_ecotoxicity": 0.008,
-                "impact_midpoint_ReCiPe2016_land_use": 2.8,
-                "impact_endpoint_ReCiPe2016_ecosystem_diversity": 0.0014,
-                "impact_endpoint_GBS_terrestrial_dynamic": 0.42,
-                "impact_endpoint_GBS_terrestrial_static": 0.38,
                 "dependency_water": "H",
                 "dependency_pollination": "L",
                 "dependency_soil_quality": "VH",
@@ -203,13 +198,6 @@ class Command(BaseCommand):
             defaults={
                 "description": "Zea mays — céréale à haut rendement",
                 "unit": "tonnes",
-                "impact_midpoint_ReCiPe2016_water_consumption": 1.58,
-                "impact_midpoint_ReCiPe2016_climate_change": 0.33,
-                "impact_midpoint_ReCiPe2016_freshwater_ecotoxicity": 0.012,
-                "impact_midpoint_ReCiPe2016_land_use": 3.1,
-                "impact_endpoint_ReCiPe2016_ecosystem_diversity": 0.0017,
-                "impact_endpoint_GBS_terrestrial_dynamic": 0.48,
-                "impact_endpoint_GBS_terrestrial_static": 0.43,
                 "dependency_water": "VH",
                 "dependency_pollination": "M",
                 "dependency_soil_quality": "VH",
@@ -225,13 +213,6 @@ class Command(BaseCommand):
             defaults={
                 "description": "Glycine max — légumineuse à haute valeur protéique",
                 "unit": "tonnes",
-                "impact_midpoint_ReCiPe2016_water_consumption": 2.14,
-                "impact_midpoint_ReCiPe2016_climate_change": 0.72,
-                "impact_midpoint_ReCiPe2016_freshwater_ecotoxicity": 0.021,
-                "impact_midpoint_ReCiPe2016_land_use": 6.5,
-                "impact_endpoint_ReCiPe2016_ecosystem_diversity": 0.0048,
-                "impact_endpoint_GBS_terrestrial_dynamic": 1.12,
-                "impact_endpoint_GBS_terrestrial_static": 0.95,
                 "dependency_water": "VH",
                 "dependency_pollination": "H",
                 "dependency_soil_quality": "VH",
@@ -247,13 +228,6 @@ class Command(BaseCommand):
             defaults={
                 "description": "Elaeis guineensis — huile végétale tropicale",
                 "unit": "tonnes",
-                "impact_midpoint_ReCiPe2016_water_consumption": 3.45,
-                "impact_midpoint_ReCiPe2016_climate_change": 1.82,
-                "impact_midpoint_ReCiPe2016_freshwater_ecotoxicity": 0.038,
-                "impact_midpoint_ReCiPe2016_land_use": 12.0,
-                "impact_endpoint_ReCiPe2016_ecosystem_diversity": 0.0095,
-                "impact_endpoint_GBS_terrestrial_dynamic": 2.45,
-                "impact_endpoint_GBS_terrestrial_static": 2.10,
                 "dependency_water": "VH",
                 "dependency_pollination": "H",
                 "dependency_soil_quality": "VH",
@@ -263,6 +237,53 @@ class Command(BaseCommand):
                 "biodiversity_loss_class": "Agriculture",
             },
         )
+
+        # ── Facteurs de caractérisation globaux ────────────────────────────────
+        _cf_values = {
+            ble: {
+                'impact_midpoint_ReCiPe2016_water_consumption': 1.21,
+                'impact_midpoint_ReCiPe2016_climate_change': 0.29,
+                'impact_midpoint_ReCiPe2016_freshwater_ecotoxicity': 0.008,
+                'impact_midpoint_ReCiPe2016_land_use': 2.8,
+                'impact_endpoint_ReCiPe2016_ecosystem_diversity': 0.0014,
+                'impact_endpoint_GBS_terrestrial_dynamic': 0.42,
+                'impact_endpoint_GBS_terrestrial_static': 0.38,
+            },
+            mais: {
+                'impact_midpoint_ReCiPe2016_water_consumption': 1.58,
+                'impact_midpoint_ReCiPe2016_climate_change': 0.33,
+                'impact_midpoint_ReCiPe2016_freshwater_ecotoxicity': 0.012,
+                'impact_midpoint_ReCiPe2016_land_use': 3.1,
+                'impact_endpoint_ReCiPe2016_ecosystem_diversity': 0.0017,
+                'impact_endpoint_GBS_terrestrial_dynamic': 0.48,
+                'impact_endpoint_GBS_terrestrial_static': 0.43,
+            },
+            soja: {
+                'impact_midpoint_ReCiPe2016_water_consumption': 2.14,
+                'impact_midpoint_ReCiPe2016_climate_change': 0.72,
+                'impact_midpoint_ReCiPe2016_freshwater_ecotoxicity': 0.021,
+                'impact_midpoint_ReCiPe2016_land_use': 6.5,
+                'impact_endpoint_ReCiPe2016_ecosystem_diversity': 0.0048,
+                'impact_endpoint_GBS_terrestrial_dynamic': 1.12,
+                'impact_endpoint_GBS_terrestrial_static': 0.95,
+            },
+            palme: {
+                'impact_midpoint_ReCiPe2016_water_consumption': 3.45,
+                'impact_midpoint_ReCiPe2016_climate_change': 1.82,
+                'impact_midpoint_ReCiPe2016_freshwater_ecotoxicity': 0.038,
+                'impact_midpoint_ReCiPe2016_land_use': 12.0,
+                'impact_endpoint_ReCiPe2016_ecosystem_diversity': 0.0095,
+                'impact_endpoint_GBS_terrestrial_dynamic': 2.45,
+                'impact_endpoint_GBS_terrestrial_static': 2.10,
+            },
+        }
+        _categories = {c.key: c for c in ImpactCategory.objects.all()}
+        for commodity, values in _cf_values.items():
+            for col, val in legacy_cf_rows(values):
+                CharacterizationFactor.objects.get_or_create(
+                    commodity=commodity, category=_categories[col],
+                    region=None, country=None, defaults={'value': val},
+                )
 
         # ── Entreprise ────────────────────────────────────────────────────────
 
@@ -397,7 +418,7 @@ class Command(BaseCommand):
             Production.objects.get_or_create(
                 asset=asset,
                 commodity=commodity,
-                scope=scope,
+                tier=SCOPE_TO_TIER[scope],
                 year=year,
                 defaults={
                     "company": acme,

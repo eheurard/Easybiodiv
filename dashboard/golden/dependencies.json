@@ -1,0 +1,281 @@
+{
+  "company_id": 1,
+  "company_name": "Acme Corp",
+  "critical_nodes": 5,
+  "global_exposure_score": 0.828,
+  "primary_service": {
+    "key": "soil_quality",
+    "name": "Qualité des sols",
+    "score": 1.0
+  },
+  "revenue_segments": [
+    {
+      "dep_score": 0.792,
+      "exposure_label": "Critical",
+      "revenue": 295000000.0,
+      "revenue_at_risk": 233492500,
+      "sector": "Agriculture",
+      "subsectors": [
+        {
+          "dep_score": 0.9,
+          "exposure_label": "Critical",
+          "revenue": 250000000.0,
+          "revenue_at_risk": 225000000,
+          "services": [
+            {
+              "key": "water",
+              "label": "Critical",
+              "name": "Approvisionnement en eau",
+              "score": 1.0
+            },
+            {
+              "key": "soil_quality",
+              "label": "Critical",
+              "name": "Qualité des sols",
+              "score": 1.0
+            },
+            {
+              "key": "carbon_sequestration",
+              "label": "Critical",
+              "name": "Séquestration carbone",
+              "score": 1.0
+            },
+            {
+              "key": "water_purification",
+              "label": "Critical",
+              "name": "Épuration de l'eau",
+              "score": 1.0
+            },
+            {
+              "key": "pest_control",
+              "label": "Critical",
+              "name": "Contrôle des ravageurs",
+              "score": 0.7
+            },
+            {
+              "key": "pollination",
+              "label": "Critical",
+              "name": "Pollinisation",
+              "score": 0.7
+            }
+          ],
+          "subsector": "Oléagineux tropicaux"
+        },
+        {
+          "dep_score": 0.683,
+          "exposure_label": "High",
+          "revenue": 45000000.0,
+          "revenue_at_risk": 30750000,
+          "services": [
+            {
+              "key": "water",
+              "label": "Critical",
+              "name": "Approvisionnement en eau",
+              "score": 0.7
+            },
+            {
+              "key": "soil_quality",
+              "label": "Critical",
+              "name": "Qualité des sols",
+              "score": 1.0
+            },
+            {
+              "key": "carbon_sequestration",
+              "label": "High",
+              "name": "Séquestration carbone",
+              "score": 0.5
+            },
+            {
+              "key": "water_purification",
+              "label": "Critical",
+              "name": "Épuration de l'eau",
+              "score": 0.7
+            },
+            {
+              "key": "pest_control",
+              "label": "Critical",
+              "name": "Contrôle des ravageurs",
+              "score": 0.7
+            },
+            {
+              "key": "pollination",
+              "label": "High",
+              "name": "Pollinisation",
+              "score": 0.5
+            }
+          ],
+          "subsector": "Grandes cultures céréalières"
+        }
+      ]
+    },
+    {
+      "dep_score": 0.267,
+      "exposure_label": "Moderate",
+      "revenue": 157600000.0,
+      "revenue_at_risk": 42079200,
+      "sector": "Industrie alimentaire",
+      "subsectors": [
+        {
+          "dep_score": 0.267,
+          "exposure_label": "Moderate",
+          "revenue": 157600000.0,
+          "revenue_at_risk": 42026667,
+          "services": [
+            {
+              "key": "water",
+              "label": "High",
+              "name": "Approvisionnement en eau",
+              "score": 0.5
+            },
+            {
+              "key": "soil_quality",
+              "label": "Moderate",
+              "name": "Qualité des sols",
+              "score": 0.2
+            },
+            {
+              "key": "carbon_sequestration",
+              "label": "Moderate",
+              "name": "Séquestration carbone",
+              "score": 0.2
+            },
+            {
+              "key": "water_purification",
+              "label": "High",
+              "name": "Épuration de l'eau",
+              "score": 0.5
+            },
+            {
+              "key": "pest_control",
+              "label": "Moderate",
+              "name": "Contrôle des ravageurs",
+              "score": 0.2
+            },
+            {
+              "key": "pollination",
+              "label": "Low",
+              "name": "Pollinisation",
+              "score": 0.0
+            }
+          ],
+          "subsector": "Transformation huiles végétales"
+        }
+      ]
+    }
+  ],
+  "service_exposure": {
+    "categories": [
+      {
+        "name": "Services de provisionnement",
+        "services": [
+          {
+            "key": "water",
+            "name": "Approvisionnement en eau",
+            "revenue_exposure": 429970000,
+            "score": 0.95
+          },
+          {
+            "key": "soil_quality",
+            "name": "Qualité des sols",
+            "revenue_exposure": 452600000,
+            "score": 1.0
+          }
+        ]
+      },
+      {
+        "name": "Services de régulation",
+        "services": [
+          {
+            "key": "carbon_sequestration",
+            "name": "Séquestration carbone",
+            "revenue_exposure": 377166667,
+            "score": 0.833
+          },
+          {
+            "key": "water_purification",
+            "name": "Épuration de l'eau",
+            "revenue_exposure": 407340000,
+            "score": 0.9
+          },
+          {
+            "key": "pest_control",
+            "name": "Contrôle des ravageurs",
+            "revenue_exposure": 316820000,
+            "score": 0.7
+          },
+          {
+            "key": "pollination",
+            "name": "Pollinisation",
+            "revenue_exposure": 264016667,
+            "score": 0.583
+          }
+        ]
+      }
+    ],
+    "currency": "EUR",
+    "total_revenue": 157600000.0
+  },
+  "supply_chain": [
+    {
+      "label": "Opérations directes",
+      "scope": "direct",
+      "services": [
+        {
+          "key": "soil_quality",
+          "label": "Critical",
+          "name": "Qualité des sols",
+          "score": 1.0
+        },
+        {
+          "key": "water",
+          "label": "Critical",
+          "name": "Approvisionnement en eau",
+          "score": 0.9
+        },
+        {
+          "key": "water_purification",
+          "label": "Critical",
+          "name": "Épuration de l'eau",
+          "score": 0.8
+        },
+        {
+          "key": "pest_control",
+          "label": "High",
+          "name": "Contrôle des ravageurs",
+          "score": 0.7
+        }
+      ]
+    },
+    {
+      "label": "Tier 1 : Chaîne d'approvisionnement",
+      "scope": "tier 1",
+      "services": [
+        {
+          "key": "water",
+          "label": "Critical",
+          "name": "Approvisionnement en eau",
+          "score": 1.0
+        },
+        {
+          "key": "soil_quality",
+          "label": "Critical",
+          "name": "Qualité des sols",
+          "score": 1.0
+        },
+        {
+          "key": "carbon_sequestration",
+          "label": "Critical",
+          "name": "Séquestration carbone",
+          "score": 1.0
+        },
+        {
+          "key": "water_purification",
+          "label": "Critical",
+          "name": "Épuration de l'eau",
+          "score": 1.0
+        }
+      ]
+    }
+  ],
+  "year": 2024
+}

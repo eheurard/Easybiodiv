@@ -1,0 +1,192 @@
+{
+  "assets": [
+    {
+      "commodities": [
+        {
+          "lbiodiv": 45208.125,
+          "name": "Huile de palme",
+          "pct": 1.0
+        }
+      ],
+      "id": 5,
+      "latitude": 0.75,
+      "longitude": 102.1,
+      "name": "Palmeraie Sumatra",
+      "pct": 0.4806,
+      "total_lbiodiv": 45208.125
+    },
+    {
+      "commodities": [
+        {
+          "lbiodiv": 20217.6,
+          "name": "Soja",
+          "pct": 1.0
+        }
+      ],
+      "id": 3,
+      "latitude": -13.83,
+      "longitude": -56.08,
+      "name": "Plantation soja Mato Grosso",
+      "pct": 0.2149,
+      "total_lbiodiv": 20217.6
+    },
+    {
+      "commodities": [
+        {
+          "lbiodiv": 14630.0,
+          "name": "Huile de palme",
+          "pct": 1.0
+        }
+      ],
+      "id": 1,
+      "latitude": 48.51,
+      "longitude": -2.76,
+      "name": "Usine de transformation Bretagne",
+      "pct": 0.1555,
+      "total_lbiodiv": 14630.0
+    },
+    {
+      "commodities": [
+        {
+          "lbiodiv": 12337.92,
+          "name": "Soja",
+          "pct": 1.0
+        }
+      ],
+      "id": 4,
+      "latitude": -2.98,
+      "longitude": -47.35,
+      "name": "Plantation soja Pará",
+      "pct": 0.1312,
+      "total_lbiodiv": 12337.92
+    },
+    {
+      "commodities": [
+        {
+          "lbiodiv": 926.1,
+          "name": "Blé",
+          "pct": 0.5526
+        },
+        {
+          "lbiodiv": 749.7,
+          "name": "Maïs",
+          "pct": 0.4474
+        }
+      ],
+      "id": 2,
+      "latitude": 44.02,
+      "longitude": 1.35,
+      "name": "Silo céréalier Occitanie",
+      "pct": 0.0178,
+      "total_lbiodiv": 1675.8
+    }
+  ],
+  "commodities": [
+    {
+      "lbiodiv": 59838.125,
+      "name": "Huile de palme",
+      "pct": 0.6361
+    },
+    {
+      "lbiodiv": 32555.52,
+      "name": "Soja",
+      "pct": 0.3461
+    },
+    {
+      "lbiodiv": 926.1,
+      "name": "Blé",
+      "pct": 0.0098
+    },
+    {
+      "lbiodiv": 749.7,
+      "name": "Maïs",
+      "pct": 0.008
+    }
+  ],
+  "company_id": 1,
+  "company_name": "Acme Corp",
+  "regions": [
+    {
+      "commodities": [
+        {
+          "lbiodiv": 45208.125,
+          "name": "Huile de palme",
+          "pct": 1.0
+        }
+      ],
+      "id": 5,
+      "latitude": 0.5,
+      "longitude": 102.0,
+      "name": "Sumatra",
+      "pct": 0.4806,
+      "total_lbiodiv": 45208.125
+    },
+    {
+      "commodities": [
+        {
+          "lbiodiv": 20217.6,
+          "name": "Soja",
+          "pct": 1.0
+        }
+      ],
+      "id": 3,
+      "latitude": -12.5,
+      "longitude": -55.0,
+      "name": "Mato Grosso",
+      "pct": 0.2149,
+      "total_lbiodiv": 20217.6
+    },
+    {
+      "commodities": [
+        {
+          "lbiodiv": 14630.0,
+          "name": "Huile de palme",
+          "pct": 1.0
+        }
+      ],
+      "id": 1,
+      "latitude": 48.1,
+      "longitude": -2.8,
+      "name": "Bretagne",
+      "pct": 0.1555,
+      "total_lbiodiv": 14630.0
+    },
+    {
+      "commodities": [
+        {
+          "lbiodiv": 12337.92,
+          "name": "Soja",
+          "pct": 1.0
+        }
+      ],
+      "id": 4,
+      "latitude": -3.8,
+      "longitude": -51.0,
+      "name": "Pará",
+      "pct": 0.1312,
+      "total_lbiodiv": 12337.92
+    },
+    {
+      "commodities": [
+        {
+          "lbiodiv": 926.1,
+          "name": "Blé",
+          "pct": 0.5526
+        },
+        {
+          "lbiodiv": 749.7,
+          "name": "Maïs",
+          "pct": 0.4474
+        }
+      ],
+      "id": 2,
+      "latitude": 43.6,
+      "longitude": 2.35,
+      "name": "Occitanie",
+      "pct": 0.0178,
+      "total_lbiodiv": 1675.8
+    }
+  ],
+  "total_lbiodiv": 94069.445,
+  "year": 2024
+}

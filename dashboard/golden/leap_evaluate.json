@@ -1,0 +1,188 @@
+{
+  "assets": [
+    {
+      "co2_emissions": 0.0,
+      "country": "France",
+      "id": 1,
+      "impacts": {
+        "impact_midpoint_ReCiPe2016_climate_change": 160160.0,
+        "impact_midpoint_ReCiPe2016_freshwater_ecotoxicity": 3344.0,
+        "impact_midpoint_ReCiPe2016_freshwater_eutrophication": 0.0,
+        "impact_midpoint_ReCiPe2016_land_use": 1056000.0,
+        "impact_midpoint_ReCiPe2016_marine_eutrophication": 0.0,
+        "impact_midpoint_ReCiPe2016_ozonedepletion": 0.0,
+        "impact_midpoint_ReCiPe2016_resource_depletion_fossil": 0.0,
+        "impact_midpoint_ReCiPe2016_resource_depletion_minerals": 0.0,
+        "impact_midpoint_ReCiPe2016_soil_acidification": 0.0,
+        "impact_midpoint_ReCiPe2016_terrestrial_acidification": 0.0,
+        "impact_midpoint_ReCiPe2016_water_consumption": 303600.0
+      },
+      "latitude": 48.51,
+      "longitude": -2.76,
+      "name": "Usine de transformation Bretagne",
+      "near_sensitive_zone": false,
+      "sensitive_zone_type": "",
+      "waste_generated": 0.0,
+      "water_consumption": 0.0
+    },
+    {
+      "co2_emissions": 0.0,
+      "country": "France",
+      "id": 2,
+      "impacts": {
+        "impact_midpoint_ReCiPe2016_climate_change": 22950.0,
+        "impact_midpoint_ReCiPe2016_freshwater_ecotoxicity": 720.0,
+        "impact_midpoint_ReCiPe2016_freshwater_eutrophication": 0.0,
+        "impact_midpoint_ReCiPe2016_land_use": 219000.0,
+        "impact_midpoint_ReCiPe2016_marine_eutrophication": 0.0,
+        "impact_midpoint_ReCiPe2016_ozonedepletion": 0.0,
+        "impact_midpoint_ReCiPe2016_resource_depletion_fossil": 0.0,
+        "impact_midpoint_ReCiPe2016_resource_depletion_minerals": 0.0,
+        "impact_midpoint_ReCiPe2016_soil_acidification": 0.0,
+        "impact_midpoint_ReCiPe2016_terrestrial_acidification": 0.0,
+        "impact_midpoint_ReCiPe2016_water_consumption": 101850.0
+      },
+      "latitude": 44.02,
+      "longitude": 1.35,
+      "name": "Silo céréalier Occitanie",
+      "near_sensitive_zone": false,
+      "sensitive_zone_type": "",
+      "waste_generated": 0.0,
+      "water_consumption": 0.0
+    },
+    {
+      "co2_emissions": 0.0,
+      "country": "Brésil",
+      "id": 3,
+      "impacts": {
+        "impact_midpoint_ReCiPe2016_climate_change": 140400.0,
+        "impact_midpoint_ReCiPe2016_freshwater_ecotoxicity": 4095.0,
+        "impact_midpoint_ReCiPe2016_freshwater_eutrophication": 0.0,
+        "impact_midpoint_ReCiPe2016_land_use": 1267500.0,
+        "impact_midpoint_ReCiPe2016_marine_eutrophication": 0.0,
+        "impact_midpoint_ReCiPe2016_ozonedepletion": 0.0,
+        "impact_midpoint_ReCiPe2016_resource_depletion_fossil": 0.0,
+        "impact_midpoint_ReCiPe2016_resource_depletion_minerals": 0.0,
+        "impact_midpoint_ReCiPe2016_soil_acidification": 0.0,
+        "impact_midpoint_ReCiPe2016_terrestrial_acidification": 0.0,
+        "impact_midpoint_ReCiPe2016_water_consumption": 417300.0
+      },
+      "latitude": -13.83,
+      "longitude": -56.08,
+      "name": "Plantation soja Mato Grosso",
+      "near_sensitive_zone": false,
+      "sensitive_zone_type": "",
+      "waste_generated": 0.0,
+      "water_consumption": 0.0
+    },
+    {
+      "co2_emissions": 0.0,
+      "country": "Brésil",
+      "id": 4,
+      "impacts": {
+        "impact_midpoint_ReCiPe2016_climate_change": 73440.0,
+        "impact_midpoint_ReCiPe2016_freshwater_ecotoxicity": 2142.0,
+        "impact_midpoint_ReCiPe2016_freshwater_eutrophication": 0.0,
+        "impact_midpoint_ReCiPe2016_land_use": 663000.0,
+        "impact_midpoint_ReCiPe2016_marine_eutrophication": 0.0,
+        "impact_midpoint_ReCiPe2016_ozonedepletion": 0.0,
+        "impact_midpoint_ReCiPe2016_resource_depletion_fossil": 0.0,
+        "impact_midpoint_ReCiPe2016_resource_depletion_minerals": 0.0,
+        "impact_midpoint_ReCiPe2016_soil_acidification": 0.0,
+        "impact_midpoint_ReCiPe2016_terrestrial_acidification": 0.0,
+        "impact_midpoint_ReCiPe2016_water_consumption": 218280.0
+      },
+      "latitude": -2.98,
+      "longitude": -47.35,
+      "name": "Plantation soja Pará",
+      "near_sensitive_zone": true,
+      "sensitive_zone_type": "IUCN Key Biodiversity Area",
+      "waste_generated": 0.0,
+      "water_consumption": 0.0
+    },
+    {
+      "co2_emissions": 0.0,
+      "country": "Indonésie",
+      "id": 5,
+      "impacts": {
+        "impact_midpoint_ReCiPe2016_climate_change": 427700.0,
+        "impact_midpoint_ReCiPe2016_freshwater_ecotoxicity": 8930.0,
+        "impact_midpoint_ReCiPe2016_freshwater_eutrophication": 0.0,
+        "impact_midpoint_ReCiPe2016_land_use": 2820000.0,
+        "impact_midpoint_ReCiPe2016_marine_eutrophication": 0.0,
+        "impact_midpoint_ReCiPe2016_ozonedepletion": 0.0,
+        "impact_midpoint_ReCiPe2016_resource_depletion_fossil": 0.0,
+        "impact_midpoint_ReCiPe2016_resource_depletion_minerals": 0.0,
+        "impact_midpoint_ReCiPe2016_soil_acidification": 0.0,
+        "impact_midpoint_ReCiPe2016_terrestrial_acidification": 0.0,
+        "impact_midpoint_ReCiPe2016_water_consumption": 810750.0
+      },
+      "latitude": 0.75,
+      "longitude": 102.1,
+      "name": "Palmeraie Sumatra",
+      "near_sensitive_zone": true,
+      "sensitive_zone_type": "Aire protégée nationale",
+      "waste_generated": 0.0,
+      "water_consumption": 0.0
+    }
+  ],
+  "company_id": 1,
+  "company_name": "Acme Corp",
+  "impacts": [
+    {
+      "key": "impact_midpoint_ReCiPe2016_land_use",
+      "name": "Utilisation des terres",
+      "total": 6025500.0
+    },
+    {
+      "key": "impact_midpoint_ReCiPe2016_water_consumption",
+      "name": "Consommation eau",
+      "total": 1851780.0
+    },
+    {
+      "key": "impact_midpoint_ReCiPe2016_climate_change",
+      "name": "Changement climatique",
+      "total": 824650.0
+    },
+    {
+      "key": "impact_midpoint_ReCiPe2016_freshwater_ecotoxicity",
+      "name": "Écotoxicité eau douce",
+      "total": 19231.0
+    },
+    {
+      "key": "impact_midpoint_ReCiPe2016_freshwater_eutrophication",
+      "name": "Eutrophisation eau douce",
+      "total": 0.0
+    },
+    {
+      "key": "impact_midpoint_ReCiPe2016_marine_eutrophication",
+      "name": "Eutrophisation marine",
+      "total": 0.0
+    },
+    {
+      "key": "impact_midpoint_ReCiPe2016_terrestrial_acidification",
+      "name": "Acidification terrestre",
+      "total": 0.0
+    },
+    {
+      "key": "impact_midpoint_ReCiPe2016_soil_acidification",
+      "name": "Acidification des sols",
+      "total": 0.0
+    },
+    {
+      "key": "impact_midpoint_ReCiPe2016_ozonedepletion",
+      "name": "Appauvrissement de l'ozone",
+      "total": 0.0
+    },
+    {
+      "key": "impact_midpoint_ReCiPe2016_resource_depletion_fossil",
+      "name": "Épuisement ressources fossiles",
+      "total": 0.0
+    },
+    {
+      "key": "impact_midpoint_ReCiPe2016_resource_depletion_minerals",
+      "name": "Épuisement ressources minérales",
+      "total": 0.0
+    }
+  ]
+}
