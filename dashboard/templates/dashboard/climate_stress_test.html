@@ -1,9 +1,184 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Stress test climatique — Easybiodiv{% endblock %}
 
+{% block nav_risks_open %}open{% endblock %}
+{% block nav_climate_stress_test %}active{% endblock %}
+
+{% block header_left %}
+<div class="company-combobox" id="company-combobox" role="combobox"
+     aria-expanded="false" aria-haspopup="listbox" aria-owns="company-listbox">
+  <span class="company-combobox__label label-caps">Entreprise</span>
+  <div class="company-combobox__input-wrap">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M10 10l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+    <input type="text" id="company-search" class="company-combobox__input"
+           placeholder="Rechercher une entreprise…"
+           autocomplete="off" aria-autocomplete="list"
+           aria-controls="company-listbox" aria-label="Sélectionner une entreprise">
+    <svg class="company-combobox__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <ul id="company-listbox" class="company-combobox__listbox" role="listbox" hidden></ul>
+</div>
+{% endblock header_left %}
+
 {% block content %}
-<div class="cst-page"></div>
+<div class="cst-page">
+
+  <p class="cst-warnings" id="cst-warnings" role="status" aria-live="polite" hidden></p>
+
+  <!-- Scénarios -->
+  <section class="card cst-scenarios" aria-labelledby="cst-scenarios-title">
+    <h2 class="label-caps cst-section-title" id="cst-scenarios-title">
+      Scénario de référence
+    </h2>
+    <div class="cst-scenario-grid" id="cst-scenarios"
+         role="radiogroup" aria-labelledby="cst-scenarios-title"></div>
+  </section>
+
+  <!-- Hypothèses -->
+  <section class="card cst-assumptions" aria-labelledby="cst-hypotheses-title">
+    <div class="cst-assumptions__head">
+      <h2 class="label-caps cst-section-title" id="cst-hypotheses-title">Hypothèses</h2>
+      <button type="button" class="cst-reset" id="cst-reset">
+        Réinitialiser aux valeurs du scénario
+      </button>
+    </div>
+
+    <div class="cst-fields">
+      <div class="cst-field">
+        <span class="cst-field__label" id="cst-horizon-label">Horizon</span>
+        <div class="cst-segmented" role="radiogroup" aria-labelledby="cst-horizon-label"
+             id="cst-horizon"></div>
+      </div>
+
+      <div class="cst-field">
+        <label class="cst-field__label" for="cst-carbon-price">
+          Prix du carbone (€/tCO₂e)
+        </label>
+        <input type="number" id="cst-carbon-price" class="form-input"
+               min="0" step="5" inputmode="numeric">
+      </div>
+
+      <div class="cst-field">
+        <label class="cst-field__label" for="cst-pass-through">
+          Répercussion au client — <output id="cst-pass-through-value">30 %</output>
+        </label>
+        <input type="range" id="cst-pass-through" min="0" max="100" step="5" value="30">
+      </div>
+
+      <div class="cst-field">
+        <label class="cst-field__label" for="cst-ebitda-margin">
+          Marge EBITDA (%)
+        </label>
+        <input type="number" id="cst-ebitda-margin" class="form-input"
+               min="0.1" max="100" step="0.5" inputmode="decimal">
+      </div>
+
+      <div class="cst-field">
+        <label class="cst-field__label" for="cst-pd-baseline">
+          PD initiale (%)
+        </label>
+        <input type="number" id="cst-pd-baseline" class="form-input"
+               min="0.001" max="99" step="0.05" inputmode="decimal">
+      </div>
+
+      <div class="cst-field cst-field--check">
+        <input type="checkbox" id="cst-scope3">
+        <label for="cst-scope3">
+          Inclure le scope 3 amont
+          <span class="cst-hint" id="cst-scope3-hint"></span>
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <!-- KPI -->
+  <div class="kpi-row" id="cst-kpis" role="status" aria-live="polite">
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="cst-pd-baseline-kpi">—</div>
+      <div class="kpi-card__label label-caps">PD initiale</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="cst-pd-stressed-kpi">—</div>
+      <div class="kpi-card__label label-caps">PD stressée</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="cst-delta-kpi">—</div>
+      <div class="kpi-card__label label-caps">Écart</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value data-tabular" id="cst-rating-kpi">—</div>
+      <div class="kpi-card__label label-caps">Équivalent notation</div>
+    </div>
+  </div>
+
+  <!-- Graphiques -->
+  <div class="cst-charts">
+    <div class="card cst-chart-card">
+      <h2 class="label-caps cst-section-title">
+        Décomposition du choc
+        <span class="cst-tooltip" tabindex="0"
+              aria-label="Attribution séquentielle : le canal transition est appliqué avant le canal physique. Le choc total est additif en écarts-types ; seule la répartition en points de base dépend de l'ordre.">ⓘ</span>
+      </h2>
+      <canvas id="cst-waterfall" height="220"
+              aria-label="Décomposition de la probabilité de défaut par canal"></canvas>
+    </div>
+    <div class="card cst-chart-card">
+      <h2 class="label-caps cst-section-title">PD par horizon</h2>
+      <canvas id="cst-horizon-chart" height="220"
+              aria-label="Probabilité de défaut stressée par horizon"></canvas>
+    </div>
+  </div>
+
+  <div class="card cst-chart-card">
+    <h2 class="label-caps cst-section-title">Comparaison des scénarios</h2>
+    <canvas id="cst-comparison" height="200"
+            aria-label="Probabilité de défaut stressée par scénario"></canvas>
+  </div>
+
+  <!-- Canaux + hypothèses -->
+  <div class="cst-bottom">
+    <div class="card cst-channels-card">
+      <h2 class="label-caps cst-section-title">
+        Canaux de risque
+        <span class="cst-tooltip" tabindex="0"
+              aria-label="La perte physique est la sévérité moyenne des aléas de chaque actif, bornée par son exposition. Elle diffère volontairement du chiffre de la page Risque physique, qui somme les aléas.">ⓘ</span>
+      </h2>
+      <table class="cst-table">
+        <thead>
+          <tr><th scope="col">Canal</th><th scope="col">Montant</th>
+              <th scope="col">% EBITDA</th><th scope="col">Choc (σ)</th></tr>
+        </thead>
+        <tbody id="cst-channels"></tbody>
+      </table>
+    </div>
+
+    <div class="card cst-assumptions-card">
+      <h2 class="label-caps cst-section-title">Hypothèses retenues</h2>
+      <table class="cst-table">
+        <thead>
+          <tr><th scope="col">Hypothèse</th><th scope="col">Valeur</th>
+              <th scope="col">Source</th></tr>
+        </thead>
+        <tbody id="cst-assumptions"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
 {{ companies|json_script:"companies-data" }}
 {{ initial_data|json_script:"initial-data" }}
 {% endblock content %}
+
+{% block extra_js %}
+<script>var CLIMATE_STRESS_TEST_API_URL = "{% url 'dashboard:climate_stress_test_data' pk=0 %}";</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+<script src="{% static 'dashboard/js/climate_stress_test.js' %}" defer></script>
+{% endblock %}
