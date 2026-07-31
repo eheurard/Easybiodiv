@@ -1,0 +1,153 @@
+"""Tests du stress test climatique (noyau pur, service, formulaire, vues)."""
+import json
+
+from django.test import SimpleTestCase, TestCase
+from django.urls import reverse
+
+from dashboard.services.stress_test import (
+    DEFAULT_CREDIT_PROFILE, MAX_SHOCK_SIGMA, SCOPE3_TRANSMISSION,
+    carbon_cost, interpolate_trajectory, pd_to_rating, physical_loss_ratio,
+    retained_emissions, shock_to_pd, shock_to_sigma,
+)
+
+
+class RetainedEmissionsTests(SimpleTestCase):
+
+    def test_scopes_1_and_2_only_by_default(self):
+        self.assertEqual(retained_emissions(100.0, 50.0, 900.0, False), 150.0)
+
+    def test_scope3_enters_partially(self):
+        expected = 150.0 + 900.0 * SCOPE3_TRANSMISSION
+        self.assertEqual(retained_emissions(100.0, 50.0, 900.0, True), expected)
+
+    def test_scope3_transmission_is_below_one(self):
+        self.assertLess(SCOPE3_TRANSMISSION, 1.0)
+        self.assertGreater(SCOPE3_TRANSMISSION, 0.0)
+
+
+class CarbonCostTests(SimpleTestCase):
+
+    def test_nominal(self):
+        self.assertAlmostEqual(carbon_cost(1000.0, 200.0, 0.30), 140_000.0)
+
+    def test_full_pass_through_cancels_the_cost(self):
+        self.assertEqual(carbon_cost(1000.0, 200.0, 1.0), 0.0)
+
+    def test_falling_carbon_price_yields_no_gain(self):
+        self.assertEqual(carbon_cost(1000.0, -50.0, 0.30), 0.0)
+
+    def test_no_emissions_yields_no_cost(self):
+        self.assertEqual(carbon_cost(0.0, 200.0, 0.30), 0.0)
+
+
+class PhysicalLossRatioTests(SimpleTestCase):
+
+    def test_no_hazard_yields_no_loss(self):
+        self.assertEqual(physical_loss_ratio([], 1.0), 0.0)
+
+    def test_single_hazard(self):
+        self.assertAlmostEqual(physical_loss_ratio([(0.2, 1.0)], 1.0), 0.2)
+
+    def test_two_hazards_combine_multiplicatively(self):
+        # 1 - (1-0.2)(1-0.5) = 0.6, et non 0.7
+        self.assertAlmostEqual(physical_loss_ratio([(0.2, 1.0), (0.5, 1.0)], 1.0), 0.6)
+
+    def test_ratio_stays_bounded_by_one(self):
+        pairs = [(0.9, 2.0)] * 20
+        self.assertLessEqual(physical_loss_ratio(pairs, 3.0), 1.0)
+
+    def test_multiplier_amplifies_the_loss(self):
+        low = physical_loss_ratio([(0.2, 1.0)], 1.0)
+        high = physical_loss_ratio([(0.2, 1.0)], 2.0)
+        self.assertGreater(high, low)
+
+
+class ShockToSigmaTests(SimpleTestCase):
+
+    def test_ratio_divided_by_volatility(self):
+        self.assertAlmostEqual(shock_to_sigma(0.10, 0.25), 0.4)
+
+    def test_capped(self):
+        self.assertEqual(shock_to_sigma(100.0, 0.25), MAX_SHOCK_SIGMA)
+
+    def test_zero_volatility_returns_the_cap(self):
+        self.assertEqual(shock_to_sigma(0.10, 0.0), MAX_SHOCK_SIGMA)
+
+    def test_negative_ratio_floored_at_zero(self):
+        self.assertEqual(shock_to_sigma(-0.5, 0.25), 0.0)
+
+
+class ShockToPdTests(SimpleTestCase):
+
+    def test_zero_shock_is_exactly_neutral(self):
+        self.assertAlmostEqual(shock_to_pd(0.012, 0.0), 0.012, places=9)
+
+    def test_monotonic_in_the_shock(self):
+        self.assertLess(shock_to_pd(0.012, 0.2), shock_to_pd(0.012, 0.5))
+
+    def test_stays_strictly_inside_zero_one(self):
+        for sigma in (0.0, 1.0, MAX_SHOCK_SIGMA):
+            value = shock_to_pd(0.012, sigma)
+            self.assertGreater(value, 0.0)
+            self.assertLess(value, 1.0)
+
+    def test_extreme_baseline_is_clamped_not_crashing(self):
+        self.assertGreater(shock_to_pd(0.0, 1.0), 0.0)
+        self.assertLess(shock_to_pd(1.0, 1.0), 1.0)
+
+    def test_shock_is_additive_in_sigma_space(self):
+        # Un choc de 0.3 puis 0.2 équivaut à un choc unique de 0.5.
+        direct = shock_to_pd(0.012, 0.5)
+        chained = shock_to_pd(0.012, 0.3 + 0.2)
+        self.assertAlmostEqual(direct, chained, places=12)
+
+
+class PdToRatingTests(SimpleTestCase):
+
+    def test_investment_grade(self):
+        self.assertEqual(pd_to_rating(0.0001), 'AAA')
+        self.assertEqual(pd_to_rating(0.0040), 'BBB')
+
+    def test_speculative_grade(self):
+        self.assertEqual(pd_to_rating(0.020), 'BB')
+        self.assertEqual(pd_to_rating(0.080), 'B')
+
+    def test_worst_band_catches_everything(self):
+        self.assertEqual(pd_to_rating(0.95), 'CCC')
+
+
+class InterpolateTrajectoryTests(SimpleTestCase):
+
+    def setUp(self):
+        self.points = {2025: 80.0, 2030: 180.0, 2040: 400.0, 2050: 560.0}
+
+    def test_exact_grid_point(self):
+        self.assertEqual(interpolate_trajectory(self.points, 2030), 180.0)
+
+    def test_linear_between_two_points(self):
+        # mi-chemin entre 2030 (180) et 2040 (400)
+        self.assertAlmostEqual(interpolate_trajectory(self.points, 2035), 290.0)
+
+    def test_constant_before_the_first_point(self):
+        self.assertEqual(interpolate_trajectory(self.points, 2019), 80.0)
+
+    def test_constant_after_the_last_point(self):
+        self.assertEqual(interpolate_trajectory(self.points, 2080), 560.0)
+
+    def test_empty_trajectory(self):
+        self.assertEqual(interpolate_trajectory({}, 2030), 0.0)
+
+
+class DefaultCreditProfileTests(SimpleTestCase):
+
+    def test_has_the_four_expected_keys(self):
+        self.assertEqual(
+            sorted(DEFAULT_CREDIT_PROFILE),
+            ['carbon_pass_through', 'ebitda_margin', 'ebitda_volatility', 'pd_baseline'],
+        )
+
+    def test_values_are_plausible(self):
+        self.assertGreater(DEFAULT_CREDIT_PROFILE['pd_baseline'], 0.0)
+        self.assertLess(DEFAULT_CREDIT_PROFILE['pd_baseline'], 1.0)
+        self.assertGreater(DEFAULT_CREDIT_PROFILE['ebitda_margin'], 0.0)
+        self.assertLessEqual(DEFAULT_CREDIT_PROFILE['ebitda_margin'], 1.0)
