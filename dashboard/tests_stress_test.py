@@ -173,7 +173,9 @@ class ClimateScenarioModelTests(TestCase):
     def test_ordering_follows_order_then_key(self):
         ClimateScenario.objects.create(key='B', name='B', order=2)
         ClimateScenario.objects.create(key='A', name='A', order=1)
-        self.assertEqual([s.key for s in ClimateScenario.objects.all()], ['A', 'B'])
+        # Vérifier l'ordre des scénarios créés par ce test uniquement
+        test_scenarios = ClimateScenario.objects.filter(key__in=['A', 'B'])
+        self.assertEqual([s.key for s in test_scenarios], ['A', 'B'])
 
 
 class ScenarioVariableModelTests(TestCase):
@@ -223,3 +225,55 @@ class SectorCreditProfileModelTests(TestCase):
         sector = Sector.objects.create(name='Agriculture', NACE_code='A01')
         profile = SectorCreditProfile.objects.create(sector=sector, pd_baseline=0.02)
         self.assertEqual(sector.credit_profile, profile)
+
+
+class SeedClimateScenariosTests(TestCase):
+    """Le seed tourne dans les migrations : les données sont là dès la base de test."""
+
+    EXPECTED_KEYS = [
+        'NET_ZERO_2050', 'BELOW_2C', 'DELAYED_TRANSITION',
+        'FRAGMENTED_WORLD', 'CURRENT_POLICIES',
+    ]
+
+    def test_the_five_scenarios_exist(self):
+        keys = set(ClimateScenario.objects.values_list('key', flat=True))
+        for key in self.EXPECTED_KEYS:
+            self.assertIn(key, keys)
+
+    def test_each_scenario_has_four_points_per_variable(self):
+        for scenario in ClimateScenario.objects.all():
+            for key in (ScenarioVariable.Key.CARBON_PRICE,
+                        ScenarioVariable.Key.HAZARD_MULTIPLIER):
+                count = scenario.variables.filter(key=key).count()
+                self.assertEqual(count, 4, f'{scenario.key}/{key}')
+
+    def test_trajectories_are_non_decreasing(self):
+        for scenario in ClimateScenario.objects.all():
+            for key in (ScenarioVariable.Key.CARBON_PRICE,
+                        ScenarioVariable.Key.HAZARD_MULTIPLIER):
+                values = list(
+                    scenario.variables.filter(key=key)
+                    .order_by('year').values_list('value', flat=True)
+                )
+                self.assertEqual(values, sorted(values), f'{scenario.key}/{key}')
+
+    def test_every_scenario_is_sourced(self):
+        for scenario in ClimateScenario.objects.all():
+            self.assertTrue(scenario.source, scenario.key)
+            self.assertTrue(scenario.reference, scenario.key)
+
+    def test_hot_house_hurts_more_physically_than_net_zero(self):
+        def multiplier(key):
+            return (
+                ClimateScenario.objects.get(key=key).variables
+                .get(year=2050, key=ScenarioVariable.Key.HAZARD_MULTIPLIER).value
+            )
+        self.assertGreater(multiplier('CURRENT_POLICIES'), multiplier('NET_ZERO_2050'))
+
+    def test_net_zero_prices_carbon_higher_than_current_policies(self):
+        def price(key):
+            return (
+                ClimateScenario.objects.get(key=key).variables
+                .get(year=2050, key=ScenarioVariable.Key.CARBON_PRICE).value
+            )
+        self.assertGreater(price('NET_ZERO_2050'), price('CURRENT_POLICIES'))
