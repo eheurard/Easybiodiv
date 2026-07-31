@@ -98,7 +98,7 @@ Créer `dashboard/tests_stress_test.py` :
 """Tests du stress test climatique (noyau pur, service, formulaire, vues)."""
 import json
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from dashboard.services.stress_test import (
@@ -108,7 +108,7 @@ from dashboard.services.stress_test import (
 )
 
 
-class RetainedEmissionsTests(TestCase):
+class RetainedEmissionsTests(SimpleTestCase):
 
     def test_scopes_1_and_2_only_by_default(self):
         self.assertEqual(retained_emissions(100.0, 50.0, 900.0, False), 150.0)
@@ -122,7 +122,7 @@ class RetainedEmissionsTests(TestCase):
         self.assertGreater(SCOPE3_TRANSMISSION, 0.0)
 
 
-class CarbonCostTests(TestCase):
+class CarbonCostTests(SimpleTestCase):
 
     def test_nominal(self):
         self.assertAlmostEqual(carbon_cost(1000.0, 200.0, 0.30), 140_000.0)
@@ -137,7 +137,7 @@ class CarbonCostTests(TestCase):
         self.assertEqual(carbon_cost(0.0, 200.0, 0.30), 0.0)
 
 
-class PhysicalLossRatioTests(TestCase):
+class PhysicalLossRatioTests(SimpleTestCase):
 
     def test_no_hazard_yields_no_loss(self):
         self.assertEqual(physical_loss_ratio([], 1.0), 0.0)
@@ -159,7 +159,7 @@ class PhysicalLossRatioTests(TestCase):
         self.assertGreater(high, low)
 
 
-class ShockToSigmaTests(TestCase):
+class ShockToSigmaTests(SimpleTestCase):
 
     def test_ratio_divided_by_volatility(self):
         self.assertAlmostEqual(shock_to_sigma(0.10, 0.25), 0.4)
@@ -174,7 +174,7 @@ class ShockToSigmaTests(TestCase):
         self.assertEqual(shock_to_sigma(-0.5, 0.25), 0.0)
 
 
-class ShockToPdTests(TestCase):
+class ShockToPdTests(SimpleTestCase):
 
     def test_zero_shock_is_exactly_neutral(self):
         self.assertAlmostEqual(shock_to_pd(0.012, 0.0), 0.012, places=9)
@@ -199,7 +199,7 @@ class ShockToPdTests(TestCase):
         self.assertAlmostEqual(direct, chained, places=12)
 
 
-class PdToRatingTests(TestCase):
+class PdToRatingTests(SimpleTestCase):
 
     def test_investment_grade(self):
         self.assertEqual(pd_to_rating(0.0001), 'AAA')
@@ -213,7 +213,7 @@ class PdToRatingTests(TestCase):
         self.assertEqual(pd_to_rating(0.95), 'CCC')
 
 
-class InterpolateTrajectoryTests(TestCase):
+class InterpolateTrajectoryTests(SimpleTestCase):
 
     def setUp(self):
         self.points = {2025: 80.0, 2030: 180.0, 2040: 400.0, 2050: 560.0}
@@ -235,7 +235,7 @@ class InterpolateTrajectoryTests(TestCase):
         self.assertEqual(interpolate_trajectory({}, 2030), 0.0)
 
 
-class DefaultCreditProfileTests(TestCase):
+class DefaultCreditProfileTests(SimpleTestCase):
 
     def test_has_the_four_expected_keys(self):
         self.assertEqual(
