@@ -13,7 +13,7 @@ from dashboard.models import (
 from dashboard.services.stress_test import (
     DEFAULT_CREDIT_PROFILE, HORIZONS, MAX_SHOCK_SIGMA, SCOPE3_TRANSMISSION,
     carbon_cost, carbon_price_delta, company_snapshot, get_stress_test_data,
-    interpolate_trajectory, pd_to_rating, physical_loss_ratio,
+    hazard_severity_ratio, interpolate_trajectory, pd_to_rating,
     resolve_credit_profile, retained_emissions, scenario_trajectory,
     scenario_value, shock_to_pd, shock_to_sigma,
 )
@@ -48,25 +48,37 @@ class CarbonCostTests(SimpleTestCase):
         self.assertEqual(carbon_cost(0.0, 200.0, 0.30), 0.0)
 
 
-class PhysicalLossRatioTests(SimpleTestCase):
+class HazardSeverityRatioTests(SimpleTestCase):
 
     def test_no_hazard_yields_no_loss(self):
-        self.assertEqual(physical_loss_ratio([], 1.0), 0.0)
+        self.assertEqual(hazard_severity_ratio([], 1.0), 0.0)
 
     def test_single_hazard(self):
-        self.assertAlmostEqual(physical_loss_ratio([(0.2, 1.0)], 1.0), 0.2)
+        self.assertAlmostEqual(hazard_severity_ratio([(0.2, 1.0)], 1.0), 0.2)
 
-    def test_two_hazards_combine_multiplicatively(self):
-        # 1 - (1-0.2)(1-0.5) = 0.6, et non 0.7
-        self.assertAlmostEqual(physical_loss_ratio([(0.2, 1.0), (0.5, 1.0)], 1.0), 0.6)
+    def test_two_hazards_are_averaged_not_compounded(self):
+        # (0.2 + 0.5) / 2 = 0.35 — et surtout PAS 1 - (1-0.2)(1-0.5) = 0.6
+        self.assertAlmostEqual(hazard_severity_ratio([(0.2, 1.0), (0.5, 1.0)], 1.0), 0.35)
+
+    def test_null_hazards_weigh_in_the_average(self):
+        # Un actif exposé à 1 aléa sur 4 est moins touché qu'un actif exposé aux 4.
+        few = hazard_severity_ratio([(0.8, 1.0), (0.0, 1.0), (0.0, 1.0), (0.0, 1.0)], 1.0)
+        many = hazard_severity_ratio([(0.8, 1.0)] * 4, 1.0)
+        self.assertAlmostEqual(few, 0.2)
+        self.assertAlmostEqual(many, 0.8)
+
+    def test_does_not_saturate_on_a_long_hazard_panel(self):
+        # Régression : la forme multiplicative renvoyait ~0.96 ici, ce qui
+        # saturait la métrique. La moyenne doit rester à 0.2.
+        self.assertAlmostEqual(hazard_severity_ratio([(0.2, 1.0)] * 15, 1.0), 0.2)
 
     def test_ratio_stays_bounded_by_one(self):
         pairs = [(0.9, 2.0)] * 20
-        self.assertLessEqual(physical_loss_ratio(pairs, 3.0), 1.0)
+        self.assertLessEqual(hazard_severity_ratio(pairs, 3.0), 1.0)
 
     def test_multiplier_amplifies_the_loss(self):
-        low = physical_loss_ratio([(0.2, 1.0)], 1.0)
-        high = physical_loss_ratio([(0.2, 1.0)], 2.0)
+        low = hazard_severity_ratio([(0.2, 1.0)], 1.0)
+        high = hazard_severity_ratio([(0.2, 1.0)], 2.0)
         self.assertGreater(high, low)
 
 

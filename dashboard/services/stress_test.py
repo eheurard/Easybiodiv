@@ -29,6 +29,13 @@ SCOPE3_TRANSMISSION = 0.50
 # plafond évite qu'un proxy d'EBITDA proche de zéro ne produise un infini.
 MAX_SHOCK_SIGMA = 8.0
 
+# Coefficient de dommage : fraction du chiffre d'affaires exposé réellement
+# perdue sur un an lorsque la sévérité des aléas vaut 1. Les scores `risk_*`
+# sont des indices de sévérité relative, pas des taux de perte ; sans cette
+# conversion, une sévérité de 0,64 signifierait « 64 % du CA perdu chaque
+# année ». Fonction de dommage au sens de MSCI Climate VaR / Trucost.
+PHYSICAL_DAMAGE_FACTOR = 0.10
+
 # Bornes de sécurité appliquées à la PD avant inversion de Φ.
 PD_MIN = 1e-6
 PD_MAX = 0.99
@@ -77,19 +84,31 @@ def carbon_cost(emissions_t, delta_price, pass_through):
     return emissions_t * delta_price * (1.0 - pass_through)
 
 
-def physical_loss_ratio(hazard_pairs, multiplier):
-    """Part de l'exposition perdue, bornée dans [0, 1].
+def hazard_severity_ratio(hazard_pairs, multiplier):
+    """Sévérité moyenne des aléas d'un actif, bornée dans [0, 1].
 
-    `hazard_pairs` : itérable de `(aléa, vulnérabilité)` pour un même actif.
-    L'agrégation est multiplicative (dommages indépendants), donc bornée —
-    contrairement à la somme utilisée par la vue Risque physique, qui peut
-    dépasser 100 % du chiffre d'affaires.
+    Ce n'est **pas** une fraction de chiffre d'affaires perdue : la conversion
+    en perte économique passe par `PHYSICAL_DAMAGE_FACTOR`, appliqué par
+    l'appelant.
+
+    `hazard_pairs` : itérable de `(aléa, vulnérabilité)` pour un même actif,
+    couvrant **tout le panel d'aléas**. Un aléa nul signifie « cet actif n'est
+    pas exposé » et pèse dans la moyenne.
+
+    L'agrégation est une **moyenne**, pas une composition d'événements
+    indépendants. Les scores `risk_*` sont des indices de sévérité relative,
+    pas des probabilités annuelles de perte totale : les composer par
+    `1 − Π(1 − r·v·λ)` sature à 1 dès une dizaine d'aléas (0,82¹⁵ ≈ 0,05) et
+    prive la métrique de tout pouvoir discriminant. La moyenne ne sature pas
+    et ne dépend pas du nombre de colonnes d'aléas.
     """
-    survival = 1.0
-    for hazard, vulnerability in hazard_pairs:
-        damage = min(1.0, max(0.0, hazard * vulnerability * multiplier))
-        survival *= (1.0 - damage)
-    return 1.0 - survival
+    pairs = list(hazard_pairs)
+    if not pairs:
+        return 0.0
+    severity = sum(
+        max(0.0, hazard * vulnerability) for hazard, vulnerability in pairs
+    ) / len(pairs)
+    return min(1.0, severity * multiplier)
 
 
 def shock_to_sigma(shock_ratio, volatility):
@@ -301,8 +320,9 @@ def _evaluate(snapshot, options, delta_price, hazard_multiplier):
 
     loss = 0.0
     for asset in snapshot['assets']:
-        loss += asset['exposure'] * physical_loss_ratio(
-            asset['hazard_pairs'], hazard_multiplier
+        loss += (
+            asset['exposure'] * PHYSICAL_DAMAGE_FACTOR
+            * hazard_severity_ratio(asset['hazard_pairs'], hazard_multiplier)
         )
     exposure = snapshot['exposure']
     loss_ratio = (loss / exposure) if exposure > 0 else 0.0
@@ -321,15 +341,8 @@ def _evaluate(snapshot, options, delta_price, hazard_multiplier):
     pd_total = shock_to_pd(pd0, sigma_total)
 
     return {
-        # Arrondi à 9 décimales (et non 6) : avec un choc au plafond
-        # (MAX_SHOCK_SIGMA), la PD stressée peut être à moins de 1e-6 de 1 —
-        # cf. Acme/CURRENT_POLICIES où les actifs brésiliens/indonésiens très
-        # exposés saturent le canal physique. Arrondir à 6 décimales ferait
-        # alors remonter la valeur affichée exactement à 1.0, ce qui viole
-        # l'invariant « PD strictement dans ]0, 1[ » documenté par
-        # `shock_to_pd`. 9 décimales laissent la marge nécessaire.
-        'pd_baseline': round(pd0, 9),
-        'pd_stressed': round(pd_total, 9),
+        'pd_baseline': round(pd0, 6),
+        'pd_stressed': round(pd_total, 6),
         'delta_bps': round((pd_total - pd0) * 10_000, 1),
         'multiple': round(pd_total / pd0, 2) if pd0 > 0 else None,
         'rating_baseline': pd_to_rating(pd0),
@@ -350,10 +363,10 @@ def _evaluate(snapshot, options, delta_price, hazard_multiplier):
             'shock_sigma': round(sigma_physical, 4),
         },
         'waterfall': [
-            {'label': 'PD initiale', 'pd': round(pd0, 9), 'delta_bps': 0.0},
-            {'label': 'Transition', 'pd': round(pd_transition, 9),
+            {'label': 'PD initiale', 'pd': round(pd0, 6), 'delta_bps': 0.0},
+            {'label': 'Transition', 'pd': round(pd_transition, 6),
              'delta_bps': round((pd_transition - pd0) * 10_000, 1)},
-            {'label': 'Physique', 'pd': round(pd_total, 9),
+            {'label': 'Physique', 'pd': round(pd_total, 6),
              'delta_bps': round((pd_total - pd_transition) * 10_000, 1)},
         ],
     }
@@ -413,6 +426,11 @@ def _assumptions(scenario, horizon, options, carbon_price, reference_price,
          'value': f'{SCOPE3_TRANSMISSION:.0%}',
          'source': 'Constante Easybiodiv',
          'reference': 'Traitement Trucost CEaR / MSCI Climate VaR'},
+        {'label': 'Coefficient de dommage physique',
+         'value': f'{PHYSICAL_DAMAGE_FACTOR:.0%}',
+         'source': 'Constante Easybiodiv',
+         'reference': "Fonction de dommage au sens MSCI Climate VaR / Trucost ; "
+                      "part du CA exposé perdue à sévérité 1"},
         {'label': 'Répercussion du coût carbone',
          'value': f"{options['pass_through']:.0%}",
          'source': 'Profil sectoriel ou choix utilisateur', 'reference': ''},
