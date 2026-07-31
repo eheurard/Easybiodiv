@@ -175,29 +175,43 @@ KEY_CARBON_PRICE = ScenarioVariable.Key.CARBON_PRICE
 KEY_HAZARD_MULTIPLIER = ScenarioVariable.Key.HAZARD_MULTIPLIER
 
 
-def scenario_trajectory(scenario, key):
-    """`{année: valeur}` pour une variable d'un scénario."""
-    return {
+def scenario_trajectory(scenario, key, cache=None):
+    """`{année: valeur}` pour une variable d'un scénario.
+
+    `cache` : dict optionnel `{(scenario_id, key): trajectoire}` fourni par
+    l'appelant (typiquement le temps d'un seul appel à `get_stress_test_data`)
+    pour éviter de refaire la même requête plusieurs fois. `None` par défaut
+    (comportement inchangé pour tout appelant qui ne le fournit pas).
+    """
+    if cache is not None:
+        cache_key = (scenario.pk, key)
+        if cache_key in cache:
+            return cache[cache_key]
+    trajectory = {
         variable.year: variable.value
         for variable in scenario.variables.filter(key=key)
     }
+    if cache is not None:
+        cache[cache_key] = trajectory
+    return trajectory
 
 
-def scenario_value(scenario, key, year):
+def scenario_value(scenario, key, year, cache=None):
     """Valeur d'une variable de scénario à une année quelconque."""
-    return interpolate_trajectory(scenario_trajectory(scenario, key), year)
+    trajectory = scenario_trajectory(scenario, key, cache=cache)
+    return interpolate_trajectory(trajectory, year)
 
 
-def carbon_price_delta(scenario, year, reference_year, override=None):
+def carbon_price_delta(scenario, year, reference_year, override=None, cache=None):
     """Différentiel de prix carbone entre `year` et `reference_year`, ≥ 0.
 
     `override` remplace le prix du scénario à l'horizon (curseur utilisateur) ;
     le prix de référence, lui, reste celui du scénario.
     """
-    reference = scenario_value(scenario, KEY_CARBON_PRICE, reference_year)
+    reference = scenario_value(scenario, KEY_CARBON_PRICE, reference_year, cache=cache)
     price = (
         float(override) if override is not None
-        else scenario_value(scenario, KEY_CARBON_PRICE, year)
+        else scenario_value(scenario, KEY_CARBON_PRICE, year, cache=cache)
     )
     return max(0.0, price - reference)
 
@@ -451,6 +465,11 @@ def get_stress_test_data(company, params=None):
     """Payload complet du stress test climatique pour une entreprise."""
     params = params or {}
     warnings = []
+    # Cache local (durée de vie = cet appel) des trajectoires de scénario,
+    # partagé par tous les appels à `scenario_value`/`carbon_price_delta`
+    # ci-dessous : évite de relire la même trajectoire à chaque horizon et à
+    # chaque scénario comparé (sinon jusqu'à ~16 requêtes redondantes).
+    trajectory_cache = {}
     scenarios = list(ClimateScenario.objects.all())
 
     revenue_row = (
@@ -497,14 +516,21 @@ def get_stress_test_data(company, params=None):
             'Aucun actif rattaché à cette entreprise : le canal physique est nul.'
         )
 
-    reference_price = scenario_value(scenario, KEY_CARBON_PRICE, reference_year)
+    reference_price = scenario_value(
+        scenario, KEY_CARBON_PRICE, reference_year, cache=trajectory_cache
+    )
     carbon_price = params.get('carbon_price')
     if carbon_price is None:
-        carbon_price = scenario_value(scenario, KEY_CARBON_PRICE, horizon)
+        carbon_price = scenario_value(
+            scenario, KEY_CARBON_PRICE, horizon, cache=trajectory_cache
+        )
     delta_price = carbon_price_delta(
-        scenario, horizon, reference_year, override=params.get('carbon_price')
+        scenario, horizon, reference_year, override=params.get('carbon_price'),
+        cache=trajectory_cache,
     )
-    hazard_multiplier = scenario_value(scenario, KEY_HAZARD_MULTIPLIER, horizon)
+    hazard_multiplier = scenario_value(
+        scenario, KEY_HAZARD_MULTIPLIER, horizon, cache=trajectory_cache
+    )
 
     result = _evaluate(snapshot, options, delta_price, hazard_multiplier)
     if result is None:
@@ -517,8 +543,8 @@ def get_stress_test_data(company, params=None):
     for year in HORIZONS:
         point = _evaluate(
             snapshot, options,
-            carbon_price_delta(scenario, year, reference_year),
-            scenario_value(scenario, KEY_HAZARD_MULTIPLIER, year),
+            carbon_price_delta(scenario, year, reference_year, cache=trajectory_cache),
+            scenario_value(scenario, KEY_HAZARD_MULTIPLIER, year, cache=trajectory_cache),
         )
         horizon_curve.append({'year': year,
                               'pd': point['pd_stressed'] if point else None})
@@ -527,8 +553,8 @@ def get_stress_test_data(company, params=None):
     for other in scenarios:
         point = _evaluate(
             snapshot, options,
-            carbon_price_delta(other, horizon, reference_year),
-            scenario_value(other, KEY_HAZARD_MULTIPLIER, horizon),
+            carbon_price_delta(other, horizon, reference_year, cache=trajectory_cache),
+            scenario_value(other, KEY_HAZARD_MULTIPLIER, horizon, cache=trajectory_cache),
         )
         comparison.append({
             'key': other.key,

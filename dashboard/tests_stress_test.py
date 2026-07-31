@@ -7,8 +7,8 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from dashboard.models import (
-    ClimateScenario, Company, Company_Revenue_Sector, ScenarioVariable, Sector,
-    SectorCreditProfile, SubSector,
+    ClimateScenario, Company, Company_Revenue, Company_Revenue_Sector,
+    ScenarioVariable, Sector, SectorCreditProfile, SubSector,
 )
 from dashboard.services.stress_test import (
     DEFAULT_CREDIT_PROFILE, HORIZONS, MAX_SHOCK_SIGMA, SCOPE3_TRANSMISSION,
@@ -563,6 +563,20 @@ class GetStressTestDataTests(TestCase):
             self.assertTrue(row['label'])
             self.assertTrue(row['value'])
 
+    def test_assumptions_disclose_the_damage_coefficient(self):
+        # Parametre libre, doit etre visible pour l'utilisateur, pas implicite.
+        data = get_stress_test_data(self.acme)
+        labels = [row['label'] for row in data['assumptions']]
+        self.assertIn('Coefficient de dommage physique', labels)
+
+    def test_scenarios_produce_distinct_non_saturated_pds(self):
+        data = get_stress_test_data(self.acme)
+        pds = [row['pd'] for row in data['scenario_comparison']]
+        self.assertEqual(len(set(pds)), len(pds))
+        for pd in pds:
+            self.assertLess(pd, 0.99)
+            self.assertGreater(pd, data['result']['pd_baseline'])
+
 
 class StressTestEmptyCasesTests(TestCase):
 
@@ -581,3 +595,17 @@ class StressTestEmptyCasesTests(TestCase):
         for key in ('scenarios', 'waterfall', 'horizon_curve',
                     'scenario_comparison', 'assumptions', 'warnings'):
             self.assertIsInstance(data[key], list)
+
+    def test_non_positive_ebitda_proxy_returns_a_warning_not_a_crash(self):
+        # CA connu et positif, mais marge EBITDA nulle : le proxy est <= 0.
+        company = Company.objects.create(name='CA sans marge')
+        Company_Revenue.objects.create(
+            company=company, year=2024, revenue=1_000_000.0, currency='EUR'
+        )
+        data = get_stress_test_data(company, {'ebitda_margin': 0.0})
+        self.assertIsNone(data['result'])
+        self.assertIsNone(data['selected'])
+        self.assertIsNone(data['channels'])
+        self.assertIsNone(data['inputs'])
+        self.assertEqual(data['waterfall'], [])
+        self.assertTrue(data['warnings'])
