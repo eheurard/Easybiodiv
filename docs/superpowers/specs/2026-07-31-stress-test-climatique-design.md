@@ -119,15 +119,22 @@ Coût  = ΔP × E × (1 − pass_through)                            €
 
 ### 2.3 Canal physique — agrégation multiplicative bornée
 
+L'agrégation se fait **par actif**, puis se somme :
+
 ```
-ratio_perte = 1 − Π_aléas ( 1 − min(1, risk_h × vuln_h × λ(scénario, horizon)) )
-Perte       = ratio_perte × exposition_totale
+ratio_perte(actif) = 1 − Π_aléas ( 1 − min(1, risk_h × vuln_h × λ(scénario, horizon)) )
+Perte              = Σ_actifs  exposition(actif) × ratio_perte(actif)
+ratio_perte_global = Perte / exposition_totale
 ```
 
-où `exposition_totale` = somme des `estimated_revenue` des actifs détenus par
-l'entreprise sur leur dernière année de production, `risk_h` le score d'aléa de
-l'actif, `vuln_h` la vulnérabilité moyenne des politiques de l'entreprise, et `λ`
-le multiplicateur d'aléa du scénario à l'horizon retenu.
+où `exposition(actif)` = `estimated_revenue` de l'actif sur sa dernière année de
+production, `risk_h` le score d'aléa de cet actif, `vuln_h` la vulnérabilité
+moyenne des politiques de l'entreprise, et `λ` le multiplicateur d'aléa du
+scénario à l'horizon retenu.
+
+Appliquer les 15 aléas de **tous** les actifs à l'exposition **totale** ferait
+croître le dommage avec le simple nombre d'actifs ; la perte reste ici bornée par
+l'exposition, actif par actif.
 
 **Divergence assumée avec la page Risque physique.** Celle-ci *somme* les
 contributions des 15 aléas (`Σ hazard × expo × vuln`), ce qui peut produire une
@@ -395,6 +402,8 @@ Documenté dans l'infobulle du graphique.
 **Créés**
 
 - `dashboard/services/stress_test.py`
+- `dashboard/services/hazards.py` — `PHYSICAL_RISKS` déplacé depuis `views.py`,
+  pour être importable par le service sans créer de cycle `views` ↔ `services`
 - `dashboard/forms.py`
 - `dashboard/templates/dashboard/climate_stress_test.html`
 - `dashboard/static/dashboard/js/climate_stress_test.js`
@@ -405,7 +414,9 @@ Documenté dans l'infobulle du graphique.
 **Modifiés**
 
 - `dashboard/models.py` — 3 modèles
-- `dashboard/views.py` — 2 vues fines
+- `dashboard/views.py` — 2 vues fines ; `PHYSICAL_RISKS` ré-importé depuis
+  `services/hazards.py` au lieu d'y être défini (déplacement neutre, couvert par
+  les tests existants)
 - `dashboard/urls.py` — 2 routes (`climate_stress_test`, `climate_stress_test_data`)
 - `dashboard/admin.py` — enregistrement des 3 modèles
 - `templates/base.html` — sous-item de navigation
