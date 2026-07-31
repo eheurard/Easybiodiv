@@ -6,6 +6,7 @@ from django.db import IntegrityError, transaction
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
+from dashboard.forms import StressTestForm
 from dashboard.models import (
     ClimateScenario, Company, Company_Revenue, Company_Revenue_Sector,
     ScenarioVariable, Sector, SectorCreditProfile, SubSector,
@@ -609,3 +610,70 @@ class StressTestEmptyCasesTests(TestCase):
         self.assertIsNone(data['inputs'])
         self.assertEqual(data['waterfall'], [])
         self.assertTrue(data['warnings'])
+
+
+class StressTestFormTests(TestCase):
+
+    def test_empty_form_is_valid(self):
+        form = StressTestForm(data={})
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_empty_form_produces_neutral_params(self):
+        form = StressTestForm(data={})
+        form.is_valid()
+        params = form.to_params()
+        self.assertIsNone(params['scenario'])
+        self.assertIsNone(params['horizon'])
+        self.assertIsNone(params['carbon_price'])
+        self.assertFalse(params['include_scope3'])
+
+    def test_known_scenario_key_resolves_to_an_instance(self):
+        form = StressTestForm(data={'scenario': 'NET_ZERO_2050'})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.to_params()['scenario'].key, 'NET_ZERO_2050')
+
+    def test_unknown_scenario_key_is_rejected(self):
+        form = StressTestForm(data={'scenario': 'INCONNU'})
+        self.assertFalse(form.is_valid())
+        self.assertIn('scenario', form.errors)
+
+    def test_unknown_horizon_is_rejected(self):
+        form = StressTestForm(data={'horizon': '2027'})
+        self.assertFalse(form.is_valid())
+        self.assertIn('horizon', form.errors)
+
+    def test_known_horizon_is_accepted(self):
+        form = StressTestForm(data={'horizon': str(HORIZONS[-1])})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.to_params()['horizon'], HORIZONS[-1])
+
+    def test_pass_through_above_one_is_rejected(self):
+        form = StressTestForm(data={'pass_through': '1.5'})
+        self.assertFalse(form.is_valid())
+        self.assertIn('pass_through', form.errors)
+
+    def test_negative_pass_through_is_rejected(self):
+        form = StressTestForm(data={'pass_through': '-0.1'})
+        self.assertFalse(form.is_valid())
+
+    def test_zero_pd_baseline_is_rejected(self):
+        form = StressTestForm(data={'pd_baseline': '0'})
+        self.assertFalse(form.is_valid())
+        self.assertIn('pd_baseline', form.errors)
+
+    def test_pd_baseline_of_one_is_rejected(self):
+        form = StressTestForm(data={'pd_baseline': '1'})
+        self.assertFalse(form.is_valid())
+
+    def test_zero_ebitda_margin_is_rejected(self):
+        form = StressTestForm(data={'ebitda_margin': '0'})
+        self.assertFalse(form.is_valid())
+
+    def test_negative_carbon_price_is_rejected(self):
+        form = StressTestForm(data={'carbon_price': '-5'})
+        self.assertFalse(form.is_valid())
+
+    def test_include_scope3_checkbox(self):
+        form = StressTestForm(data={'include_scope3': '1'})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertTrue(form.to_params()['include_scope3'])
