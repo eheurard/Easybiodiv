@@ -122,10 +122,17 @@ Coût  = ΔP × E × (1 − pass_through)                            €
 L'agrégation se fait **par actif**, puis se somme :
 
 ```
-ratio_perte(actif) = min( 1 , moyenne_aléas( risk_h × vuln_h ) × λ(scénario, horizon) )
-Perte              = Σ_actifs  exposition(actif) × ratio_perte(actif)
+sévérité(actif)    = min( 1 , moyenne_aléas( risk_h × vuln_h ) × λ(scénario, horizon) )
+Perte              = Σ_actifs  exposition(actif) × δ × sévérité(actif)
 ratio_perte_global = Perte / exposition_totale
 ```
+
+`δ` = **coefficient de dommage**, constante documentée, défaut **0,10** : la
+fraction du chiffre d'affaires exposé réellement perdue sur un an lorsque la
+sévérité vaut 1. C'est la *fonction de dommage* des méthodes MSCI Climate VaR et
+Trucost. Sans elle, un indice de sévérité de 0,64 signifierait « 64 % du chiffre
+d'affaires perdu chaque année », ce qui n'est pas ce que mesurent les scores
+`risk_*`.
 
 où `exposition(actif)` = `estimated_revenue` de l'actif sur sa dernière année de
 production, `risk_h` le score d'aléa de cet actif, `vuln_h` la vulnérabilité
@@ -159,10 +166,24 @@ La moyenne les traite pour ce qu'ils sont — une sévérité moyenne sur un pan
 d'aléas de taille fixe — ne sature pas, ne dépend pas du nombre de colonnes
 d'aléas, et n'introduit aucun coefficient de calibration arbitraire.
 
-Ordres de grandeur obtenus sur ACME à λ = 1,1 : Site Paris 0 %, Usine de
-transformation ≈ 19 %, Site Lyon ≈ 17 %, Plantation soja Pará ≈ 66 %. Les actifs
-amazoniens et indonésiens restent lourdement touchés, ce qui est le résultat
-attendu pour du soja et du palmier à huile.
+Sévérités obtenues sur le jeu `populate_acme` à λ = 1,1 : Usine de
+transformation Bretagne 21,4 %, Silo céréalier Occitanie 40,5 %, Plantation soja
+Mato Grosso 64,5 %, Palmeraie Sumatra 75,2 %, Plantation soja Pará 78,5 %. Les
+actifs amazoniens et indonésiens restent lourdement touchés, ce qui est le
+résultat attendu pour du soja et du palmier à huile.
+
+### Pourquoi un coefficient de dommage est nécessaire
+
+La sévérité seule, appliquée au chiffre d'affaires exposé puis rapportée à
+l'EBITDA, produit encore un choc inexploitable : sur ACME, une sévérité moyenne
+pondérée de ≈ 64 % du CA représente **5,6 fois** l'EBITDA, avec une marge de
+11,4 %. Le décalage latent est alors écrêté par `MAX_SHOCK_SIGMA` et la PD
+ressort à 100 % quel que soit le scénario — la saturation réapparaît un cran
+plus loin dans la chaîne.
+
+`δ` corrige l'amplification chiffre d'affaires → marge en disant ce que la
+sévérité coûte réellement. C'est un paramètre libre, assumé comme tel : il est
+consigné dans la table d'hypothèses affichée à l'utilisateur, avec sa source.
 
 **Divergence assumée avec la page Risque physique.** Celle-ci *somme* les
 contributions des 15 aléas (`Σ hazard × expo × vuln`), ce qui peut produire une

@@ -81,10 +81,10 @@ Sept fonctions sans ORM, testables isolément. C'est toute la méthodologie ; le
 
 **Interfaces:**
 - Produces:
-  - `SCOPE3_TRANSMISSION: float`, `MAX_SHOCK_SIGMA: float`, `PD_MIN`, `PD_MAX`, `HORIZONS: tuple[int, ...]`, `DEFAULT_CREDIT_PROFILE: dict[str, float]`, `RATING_BANDS: list[tuple[str, float]]`
+  - `SCOPE3_TRANSMISSION: float`, `MAX_SHOCK_SIGMA: float`, `PHYSICAL_DAMAGE_FACTOR: float`, `PD_MIN`, `PD_MAX`, `HORIZONS: tuple[int, ...]`, `DEFAULT_CREDIT_PROFILE: dict[str, float]`, `RATING_BANDS: list[tuple[str, float]]`
   - `retained_emissions(scope1: float, scope2: float, scope3: float, include_scope3: bool) -> float`
   - `carbon_cost(emissions_t: float, delta_price: float, pass_through: float) -> float`
-  - `physical_loss_ratio(hazard_pairs: list[tuple[float, float]], multiplier: float) -> float`
+  - `hazard_severity_ratio(hazard_pairs: list[tuple[float, float]], multiplier: float) -> float`
   - `shock_to_sigma(shock_ratio: float, volatility: float) -> float`
   - `shock_to_pd(pd_baseline: float, shock_sigma: float) -> float`
   - `pd_to_rating(pd: float) -> str`
@@ -103,7 +103,7 @@ from django.urls import reverse
 
 from dashboard.services.stress_test import (
     DEFAULT_CREDIT_PROFILE, MAX_SHOCK_SIGMA, SCOPE3_TRANSMISSION,
-    carbon_cost, interpolate_trajectory, pd_to_rating, physical_loss_ratio,
+    carbon_cost, interpolate_trajectory, pd_to_rating, hazard_severity_ratio,
     retained_emissions, shock_to_pd, shock_to_sigma,
 )
 
@@ -137,37 +137,37 @@ class CarbonCostTests(SimpleTestCase):
         self.assertEqual(carbon_cost(0.0, 200.0, 0.30), 0.0)
 
 
-class PhysicalLossRatioTests(SimpleTestCase):
+class HazardSeverityRatioTests(SimpleTestCase):
 
     def test_no_hazard_yields_no_loss(self):
-        self.assertEqual(physical_loss_ratio([], 1.0), 0.0)
+        self.assertEqual(hazard_severity_ratio([], 1.0), 0.0)
 
     def test_single_hazard(self):
-        self.assertAlmostEqual(physical_loss_ratio([(0.2, 1.0)], 1.0), 0.2)
+        self.assertAlmostEqual(hazard_severity_ratio([(0.2, 1.0)], 1.0), 0.2)
 
     def test_two_hazards_are_averaged_not_compounded(self):
         # (0.2 + 0.5) / 2 = 0.35 — et surtout PAS 1 - (1-0.2)(1-0.5) = 0.6
-        self.assertAlmostEqual(physical_loss_ratio([(0.2, 1.0), (0.5, 1.0)], 1.0), 0.35)
+        self.assertAlmostEqual(hazard_severity_ratio([(0.2, 1.0), (0.5, 1.0)], 1.0), 0.35)
 
     def test_null_hazards_weigh_in_the_average(self):
         # Un actif exposé à 1 aléa sur 4 est moins touché qu'un actif exposé aux 4.
-        few = physical_loss_ratio([(0.8, 1.0), (0.0, 1.0), (0.0, 1.0), (0.0, 1.0)], 1.0)
-        many = physical_loss_ratio([(0.8, 1.0)] * 4, 1.0)
+        few = hazard_severity_ratio([(0.8, 1.0), (0.0, 1.0), (0.0, 1.0), (0.0, 1.0)], 1.0)
+        many = hazard_severity_ratio([(0.8, 1.0)] * 4, 1.0)
         self.assertAlmostEqual(few, 0.2)
         self.assertAlmostEqual(many, 0.8)
 
     def test_does_not_saturate_on_a_long_hazard_panel(self):
         # Régression : la forme multiplicative renvoyait ~0.96 ici, ce qui
         # saturait la métrique. La moyenne doit rester à 0.2.
-        self.assertAlmostEqual(physical_loss_ratio([(0.2, 1.0)] * 15, 1.0), 0.2)
+        self.assertAlmostEqual(hazard_severity_ratio([(0.2, 1.0)] * 15, 1.0), 0.2)
 
     def test_ratio_stays_bounded_by_one(self):
         pairs = [(0.9, 2.0)] * 20
-        self.assertLessEqual(physical_loss_ratio(pairs, 3.0), 1.0)
+        self.assertLessEqual(hazard_severity_ratio(pairs, 3.0), 1.0)
 
     def test_multiplier_amplifies_the_loss(self):
-        low = physical_loss_ratio([(0.2, 1.0)], 1.0)
-        high = physical_loss_ratio([(0.2, 1.0)], 2.0)
+        low = hazard_severity_ratio([(0.2, 1.0)], 1.0)
+        high = hazard_severity_ratio([(0.2, 1.0)], 2.0)
         self.assertGreater(high, low)
 
 
@@ -303,6 +303,13 @@ SCOPE3_TRANSMISSION = 0.50
 # plafond évite qu'un proxy d'EBITDA proche de zéro ne produise un infini.
 MAX_SHOCK_SIGMA = 8.0
 
+# Coefficient de dommage : fraction du chiffre d'affaires exposé réellement
+# perdue sur un an lorsque la sévérité des aléas vaut 1. Les scores `risk_*`
+# sont des indices de sévérité relative, pas des taux de perte ; sans cette
+# conversion, une sévérité de 0,64 signifierait « 64 % du CA perdu chaque
+# année ». Fonction de dommage au sens de MSCI Climate VaR / Trucost.
+PHYSICAL_DAMAGE_FACTOR = 0.10
+
 # Bornes de sécurité appliquées à la PD avant inversion de Φ.
 PD_MIN = 1e-6
 PD_MAX = 0.99
@@ -351,8 +358,12 @@ def carbon_cost(emissions_t, delta_price, pass_through):
     return emissions_t * delta_price * (1.0 - pass_through)
 
 
-def physical_loss_ratio(hazard_pairs, multiplier):
-    """Part de l'exposition perdue par un actif, bornée dans [0, 1].
+def hazard_severity_ratio(hazard_pairs, multiplier):
+    """Sévérité moyenne des aléas d'un actif, bornée dans [0, 1].
+
+    Ce n'est **pas** une fraction de chiffre d'affaires perdue : la conversion
+    en perte économique passe par `PHYSICAL_DAMAGE_FACTOR`, appliqué par
+    l'appelant.
 
     `hazard_pairs` : itérable de `(aléa, vulnérabilité)` pour un même actif,
     couvrant **tout le panel d'aléas**. Un aléa nul signifie « cet actif n'est
@@ -1517,8 +1528,9 @@ def _evaluate(snapshot, options, delta_price, hazard_multiplier):
 
     loss = 0.0
     for asset in snapshot['assets']:
-        loss += asset['exposure'] * physical_loss_ratio(
-            asset['hazard_pairs'], hazard_multiplier
+        loss += (
+            asset['exposure'] * PHYSICAL_DAMAGE_FACTOR
+            * hazard_severity_ratio(asset['hazard_pairs'], hazard_multiplier)
         )
     exposure = snapshot['exposure']
     loss_ratio = (loss / exposure) if exposure > 0 else 0.0
@@ -1622,6 +1634,11 @@ def _assumptions(scenario, horizon, options, carbon_price, reference_price,
          'value': f'{SCOPE3_TRANSMISSION:.0%}',
          'source': 'Constante Easybiodiv',
          'reference': 'Traitement Trucost CEaR / MSCI Climate VaR'},
+        {'label': 'Coefficient de dommage physique',
+         'value': f'{PHYSICAL_DAMAGE_FACTOR:.0%}',
+         'source': 'Constante Easybiodiv',
+         'reference': "Fonction de dommage au sens MSCI Climate VaR / Trucost ; "
+                      "part du CA exposé perdue à sévérité 1"},
         {'label': 'Répercussion du coût carbone',
          'value': f"{options['pass_through']:.0%}",
          'source': 'Profil sectoriel ou choix utilisateur', 'reference': ''},
