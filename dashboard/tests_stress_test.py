@@ -1,6 +1,7 @@
 """Tests du stress test climatique (noyau pur, service, formulaire, vues)."""
 import json
 
+from django.core.management import call_command
 from django.db import IntegrityError, transaction
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
@@ -10,10 +11,11 @@ from dashboard.models import (
     SectorCreditProfile, SubSector,
 )
 from dashboard.services.stress_test import (
-    DEFAULT_CREDIT_PROFILE, MAX_SHOCK_SIGMA, SCOPE3_TRANSMISSION,
-    carbon_cost, carbon_price_delta, interpolate_trajectory, pd_to_rating,
-    physical_loss_ratio, resolve_credit_profile, retained_emissions,
-    scenario_trajectory, scenario_value, shock_to_pd, shock_to_sigma,
+    DEFAULT_CREDIT_PROFILE, HORIZONS, MAX_SHOCK_SIGMA, SCOPE3_TRANSMISSION,
+    carbon_cost, carbon_price_delta, company_snapshot, get_stress_test_data,
+    interpolate_trajectory, pd_to_rating, physical_loss_ratio,
+    resolve_credit_profile, retained_emissions, scenario_trajectory,
+    scenario_value, shock_to_pd, shock_to_sigma,
 )
 
 
@@ -429,3 +431,141 @@ class AcmeCreditProfilesTests(TestCase):
         self.assertEqual(warnings, [])
         self.assertGreater(profile['pd_baseline'], 0.0)
         self.assertLess(profile['pd_baseline'], 1.0)
+
+
+class CompanySnapshotTests(TestCase):
+
+    def setUp(self):
+        call_command('populate_acme')
+        self.acme = Company.objects.get(name='Acme Corp')
+
+    def test_reads_emissions_by_scope(self):
+        snapshot = company_snapshot(self.acme, 2024)
+        self.assertEqual(snapshot['scope1'], 22000.0)
+        self.assertEqual(snapshot['scope2'], 12000.0)
+        self.assertEqual(snapshot['scope3'], 70000.0)
+
+    def test_zero_emissions_for_an_unknown_year(self):
+        snapshot = company_snapshot(self.acme, 1990)
+        self.assertEqual(snapshot['scope1'], 0.0)
+
+    def test_exposure_is_positive(self):
+        snapshot = company_snapshot(self.acme, 2024)
+        self.assertGreater(snapshot['exposure'], 0.0)
+
+    def test_each_asset_carries_fifteen_hazard_pairs(self):
+        snapshot = company_snapshot(self.acme, 2024)
+        self.assertGreater(len(snapshot['assets']), 0)
+        for asset in snapshot['assets']:
+            self.assertEqual(len(asset['hazard_pairs']), 15)
+
+
+class GetStressTestDataTests(TestCase):
+
+    def setUp(self):
+        call_command('populate_acme')
+        self.acme = Company.objects.get(name='Acme Corp')
+
+    def test_payload_has_every_contract_key(self):
+        data = get_stress_test_data(self.acme)
+        for key in ('company_id', 'company_name', 'reference_year', 'scenarios',
+                    'selected', 'inputs', 'result', 'waterfall', 'channels',
+                    'horizon_curve', 'scenario_comparison', 'assumptions',
+                    'warnings'):
+            self.assertIn(key, data)
+
+    def test_lists_the_five_scenarios(self):
+        data = get_stress_test_data(self.acme)
+        self.assertEqual(len(data['scenarios']), 5)
+
+    def test_stressed_pd_exceeds_baseline(self):
+        data = get_stress_test_data(self.acme)
+        self.assertGreater(data['result']['pd_stressed'], data['result']['pd_baseline'])
+
+    def test_pd_stays_inside_zero_one(self):
+        data = get_stress_test_data(self.acme)
+        self.assertGreater(data['result']['pd_stressed'], 0.0)
+        self.assertLess(data['result']['pd_stressed'], 1.0)
+
+    def test_waterfall_deltas_sum_to_the_total(self):
+        data = get_stress_test_data(self.acme)
+        total = sum(step['delta_bps'] for step in data['waterfall'])
+        self.assertAlmostEqual(total, data['result']['delta_bps'], places=1)
+
+    def test_hot_house_hurts_more_than_net_zero_physically(self):
+        net_zero = ClimateScenario.objects.get(key='NET_ZERO_2050')
+        hot_house = ClimateScenario.objects.get(key='CURRENT_POLICIES')
+        params_nz = {'scenario': net_zero, 'horizon': 2050}
+        params_hh = {'scenario': hot_house, 'horizon': 2050}
+        loss_nz = get_stress_test_data(self.acme, params_nz)['channels']['physical']
+        loss_hh = get_stress_test_data(self.acme, params_hh)['channels']['physical']
+        self.assertGreater(loss_hh['loss_eur'], loss_nz['loss_eur'])
+
+    def test_net_zero_hurts_more_than_current_policies_on_transition(self):
+        net_zero = ClimateScenario.objects.get(key='NET_ZERO_2050')
+        current = ClimateScenario.objects.get(key='CURRENT_POLICIES')
+        cost_nz = get_stress_test_data(
+            self.acme, {'scenario': net_zero, 'horizon': 2050}
+        )['channels']['transition']['cost_eur']
+        cost_cp = get_stress_test_data(
+            self.acme, {'scenario': current, 'horizon': 2050}
+        )['channels']['transition']['cost_eur']
+        self.assertGreater(cost_nz, cost_cp)
+
+    def test_scope3_increases_the_transition_cost(self):
+        without = get_stress_test_data(self.acme, {'include_scope3': False})
+        with_s3 = get_stress_test_data(self.acme, {'include_scope3': True})
+        self.assertGreater(
+            with_s3['channels']['transition']['cost_eur'],
+            without['channels']['transition']['cost_eur'],
+        )
+
+    def test_full_pass_through_removes_the_transition_channel(self):
+        data = get_stress_test_data(self.acme, {'pass_through': 1.0})
+        self.assertEqual(data['channels']['transition']['cost_eur'], 0.0)
+
+    def test_pd_baseline_override_is_honoured(self):
+        data = get_stress_test_data(self.acme, {'pd_baseline': 0.05})
+        self.assertAlmostEqual(data['result']['pd_baseline'], 0.05)
+
+    def test_horizon_curve_covers_every_horizon(self):
+        data = get_stress_test_data(self.acme)
+        self.assertEqual([p['year'] for p in data['horizon_curve']], list(HORIZONS))
+
+    def test_horizon_curve_is_non_decreasing_for_net_zero(self):
+        net_zero = ClimateScenario.objects.get(key='NET_ZERO_2050')
+        curve = get_stress_test_data(
+            self.acme, {'scenario': net_zero}
+        )['horizon_curve']
+        values = [point['pd'] for point in curve]
+        self.assertEqual(values, sorted(values))
+
+    def test_comparison_covers_every_scenario(self):
+        data = get_stress_test_data(self.acme)
+        self.assertEqual(len(data['scenario_comparison']), 5)
+
+    def test_assumptions_are_all_labelled(self):
+        data = get_stress_test_data(self.acme)
+        self.assertGreaterEqual(len(data['assumptions']), 8)
+        for row in data['assumptions']:
+            self.assertTrue(row['label'])
+            self.assertTrue(row['value'])
+
+
+class StressTestEmptyCasesTests(TestCase):
+
+    def setUp(self):
+        self.company = Company.objects.create(name='Vide')
+
+    def test_company_without_revenue_returns_a_warning_not_a_crash(self):
+        data = get_stress_test_data(self.company)
+        self.assertIsNone(data['result'])
+        self.assertIsNone(data['selected'])
+        self.assertEqual(data['waterfall'], [])
+        self.assertTrue(data['warnings'])
+
+    def test_contract_keys_present_even_when_empty(self):
+        data = get_stress_test_data(self.company)
+        for key in ('scenarios', 'waterfall', 'horizon_curve',
+                    'scenario_comparison', 'assumptions', 'warnings'):
+            self.assertIsInstance(data[key], list)
