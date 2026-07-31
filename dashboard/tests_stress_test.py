@@ -367,6 +367,11 @@ class ResolveCreditProfileTests(TestCase):
         self.assertEqual(len(warnings), 1)
         self.assertIn('repli', warnings[0])
 
+    def test_fallback_profile_is_a_copy_not_the_shared_constant(self):
+        profile, _ = resolve_credit_profile(self.company, 2024)
+        profile['pd_baseline'] = 0.99
+        self.assertNotEqual(DEFAULT_CREDIT_PROFILE['pd_baseline'], 0.99)
+
     def test_single_sector_uses_its_profile(self):
         SectorCreditProfile.objects.create(
             sector=self.agri, pd_baseline=0.02, ebitda_margin=0.10,
