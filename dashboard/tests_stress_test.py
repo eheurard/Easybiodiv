@@ -1,6 +1,7 @@
 """Tests du stress test climatique (noyau pur, service, formulaire, vues)."""
 import json
 
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.db import IntegrityError, transaction
 from django.test import SimpleTestCase, TestCase
@@ -677,3 +678,68 @@ class StressTestFormTests(TestCase):
         form = StressTestForm(data={'include_scope3': '1'})
         self.assertTrue(form.is_valid(), form.errors)
         self.assertTrue(form.to_params()['include_scope3'])
+
+
+class ClimateStressTestViewTests(TestCase):
+
+    def setUp(self):
+        call_command('populate_acme')
+        self.acme = Company.objects.get(name='Acme Corp')
+        User = get_user_model()
+        self.user = User.objects.create_user(username='u', password='x')
+        self.page_url = reverse('dashboard:climate_stress_test')
+        self.api_url = reverse(
+            'dashboard:climate_stress_test_data', kwargs={'pk': self.acme.pk}
+        )
+
+    def test_page_requires_login(self):
+        response = self.client.get(self.page_url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_api_requires_login(self):
+        response = self.client.get(self.api_url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_page_renders_with_companies_and_initial_data(self):
+        self.client.force_login(self.user)
+        response = self.client.get(self.page_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'dashboard/climate_stress_test.html')
+        self.assertIn('companies', response.context)
+        self.assertIn('initial_data', response.context)
+
+    def test_api_returns_json(self):
+        self.client.force_login(self.user)
+        response = self.client.get(self.api_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/json', response['Content-Type'])
+        payload = json.loads(response.content)
+        self.assertEqual(payload['company_name'], 'Acme Corp')
+
+    def test_api_honours_the_scenario_parameter(self):
+        self.client.force_login(self.user)
+        response = self.client.get(self.api_url, {'scenario': 'CURRENT_POLICIES'})
+        payload = json.loads(response.content)
+        self.assertEqual(payload['selected']['scenario'], 'CURRENT_POLICIES')
+
+    def test_api_honours_the_horizon_parameter(self):
+        self.client.force_login(self.user)
+        response = self.client.get(self.api_url, {'horizon': '2050'})
+        payload = json.loads(response.content)
+        self.assertEqual(payload['selected']['horizon'], 2050)
+
+    def test_api_rejects_an_invalid_parameter(self):
+        self.client.force_login(self.user)
+        response = self.client.get(self.api_url, {'pass_through': '2'})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('pass_through', json.loads(response.content)['errors'])
+
+    def test_api_rejects_an_unknown_scenario(self):
+        self.client.force_login(self.user)
+        response = self.client.get(self.api_url, {'scenario': 'NOPE'})
+        self.assertEqual(response.status_code, 400)
+
+    def test_api_404_on_unknown_company(self):
+        self.client.force_login(self.user)
+        url = reverse('dashboard:climate_stress_test_data', kwargs={'pk': 999999})
+        self.assertEqual(self.client.get(url).status_code, 404)

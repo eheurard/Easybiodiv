@@ -12,10 +12,12 @@ from .models import (
     Company_Revenue, Company_Revenue_Sector, DisclosureRequirement, E4Assessment,
     Exchange, Ownership, Production,
 )
+from .forms import StressTestForm
 from .services.market import get_market_data, DEFAULT_RANGE
 from .services.impacts import build_cf_index, cf_value, CAT_ECOSYSTEM_DIVERSITY
 from .services.supply import TIER_LABELS, TIER_TO_SCOPE
 from .services.hazards import PHYSICAL_RISKS
+from .services.stress_test import get_stress_test_data
 
 from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
 
@@ -1738,3 +1740,27 @@ def compliance(request):
 def compliance_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_compliance_data(company))
+
+
+@login_required
+@require_GET
+def climate_stress_test(request):
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    initial_data = None
+    if companies:
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = get_stress_test_data(first)
+    return render(request, 'dashboard/climate_stress_test.html', {
+        'companies': companies,
+        'initial_data': initial_data,
+    })
+
+
+@login_required
+@require_GET
+def climate_stress_test_data(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    form = StressTestForm(data=request.GET)
+    if not form.is_valid():
+        return JsonResponse({'errors': form.errors}, status=400)
+    return JsonResponse(get_stress_test_data(company, form.to_params()))

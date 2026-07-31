@@ -7,6 +7,7 @@ from .models import (
     DisclosureRequirement, E4Assessment, ESG_data,Carbon_emission,
     ImpactMethod, ImpactCategory, CharacterizationFactor,
     SupplyNode, Exchange, Flow, AssetInventory,
+    ClimateScenario, ScenarioVariable, SectorCreditProfile,
 )
 
 
@@ -221,3 +222,33 @@ class AssetInventoryAdmin(admin.ModelAdmin):
     list_display = ('asset', 'flow', 'year', 'value')
     list_filter = ('flow', 'year')
     autocomplete_fields = ('asset', 'flow')
+
+
+class ScenarioVariableInline(admin.TabularInline):
+    model = ScenarioVariable
+    extra = 0
+
+
+@admin.register(ClimateScenario)
+class ClimateScenarioAdmin(admin.ModelAdmin):
+    search_fields = ('key', 'name')
+    list_display = ('name', 'key', 'family', 'warming_c', 'order')
+    list_filter = ('family',)
+    ordering = ('order', 'key')
+    inlines = (ScenarioVariableInline,)
+
+
+@admin.register(ScenarioVariable)
+class ScenarioVariableAdmin(admin.ModelAdmin):
+    search_fields = ('scenario__key', 'scenario__name')
+    list_display = ('scenario', 'key', 'year', 'value')
+    list_filter = ('key', 'year', 'scenario')
+    autocomplete_fields = ('scenario',)
+
+
+@admin.register(SectorCreditProfile)
+class SectorCreditProfileAdmin(admin.ModelAdmin):
+    search_fields = ('sector__name', 'sector__NACE_code')
+    list_display = ('sector', 'pd_baseline', 'ebitda_margin',
+                    'ebitda_volatility', 'carbon_pass_through')
+    autocomplete_fields = ('sector',)

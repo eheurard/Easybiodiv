@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block title %}Stress test climatique — Easybiodiv{% endblock %}
+
+{% block content %}
+<div class="cst-page"></div>
+{{ companies|json_script:"companies-data" }}
+{{ initial_data|json_script:"initial-data" }}
+{% endblock content %}
