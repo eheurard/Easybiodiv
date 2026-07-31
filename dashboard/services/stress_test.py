@@ -143,6 +143,7 @@ def interpolate_trajectory(points, year):
 # Tout ce qui suit touche la base. Le noyau ci-dessus reste pur.
 
 from ..models import ScenarioVariable  # noqa: E402  (import après le noyau pur)
+from ..models import Company_Revenue_Sector, SectorCreditProfile  # noqa: E402
 
 KEY_CARBON_PRICE = ScenarioVariable.Key.CARBON_PRICE
 KEY_HAZARD_MULTIPLIER = ScenarioVariable.Key.HAZARD_MULTIPLIER
@@ -173,3 +174,50 @@ def carbon_price_delta(scenario, year, reference_year, override=None):
         else scenario_value(scenario, KEY_CARBON_PRICE, year)
     )
     return max(0.0, price - reference)
+
+
+def resolve_credit_profile(company, year):
+    """Profil de crédit pondéré par le mix de CA sectoriel de l'année.
+
+    Retourne `(profil, avertissements)`. Le profil a toujours les 4 clés de
+    `DEFAULT_CREDIT_PROFILE`.
+    """
+    weights = {}
+    rows = (
+        Company_Revenue_Sector.objects
+        .filter(company=company, year=year)
+        .select_related('subsector')
+    )
+    for row in rows:
+        if row.revenue > 0:
+            sector_id = row.subsector.sector_id
+            weights[sector_id] = weights.get(sector_id, 0.0) + row.revenue
+
+    total = sum(weights.values())
+    if not total:
+        return dict(DEFAULT_CREDIT_PROFILE), [
+            f"Aucun mix sectoriel connu pour {year} : profil de crédit de repli "
+            f"appliqué."
+        ]
+
+    profiles = {
+        profile.sector_id: profile
+        for profile in SectorCreditProfile.objects.filter(sector_id__in=weights)
+    }
+    warnings = []
+    missing = [sector_id for sector_id in weights if sector_id not in profiles]
+    if missing:
+        warnings.append(
+            f"{len(missing)} secteur(s) sans profil de crédit : valeurs de repli "
+            f"utilisées pour cette part du chiffre d'affaires."
+        )
+
+    resolved = {}
+    for field, fallback in DEFAULT_CREDIT_PROFILE.items():
+        accumulator = 0.0
+        for sector_id, weight in weights.items():
+            profile = profiles.get(sector_id)
+            value = getattr(profile, field) if profile is not None else fallback
+            accumulator += (weight / total) * value
+        resolved[field] = accumulator
+    return resolved, warnings

@@ -6,13 +6,14 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from dashboard.models import (
-    ClimateScenario, ScenarioVariable, Sector, SectorCreditProfile,
+    ClimateScenario, Company, Company_Revenue_Sector, ScenarioVariable, Sector,
+    SectorCreditProfile, SubSector,
 )
 from dashboard.services.stress_test import (
     DEFAULT_CREDIT_PROFILE, MAX_SHOCK_SIGMA, SCOPE3_TRANSMISSION,
     carbon_cost, carbon_price_delta, interpolate_trajectory, pd_to_rating,
-    physical_loss_ratio, retained_emissions, scenario_trajectory, scenario_value,
-    shock_to_pd, shock_to_sigma,
+    physical_loss_ratio, resolve_credit_profile, retained_emissions,
+    scenario_trajectory, scenario_value, shock_to_pd, shock_to_sigma,
 )
 
 
@@ -349,3 +350,77 @@ class HazardCatalogTests(TestCase):
         names = {f.name for f in Policy_Level._meta.get_fields()}
         for risk in PHYSICAL_RISKS:
             self.assertIn(f"vulnerability_{risk['key']}", names)
+
+
+class ResolveCreditProfileTests(TestCase):
+
+    def setUp(self):
+        self.company = Company.objects.create(name='TestCorp')
+        self.agri = Sector.objects.create(name='Agriculture', NACE_code='A01')
+        self.food = Sector.objects.create(name='Alimentaire', NACE_code='C10')
+        self.ss_agri = SubSector.objects.create(name='Céréales', sector=self.agri)
+        self.ss_food = SubSector.objects.create(name='Transfo', sector=self.food)
+
+    def test_falls_back_when_no_sector_mix(self):
+        profile, warnings = resolve_credit_profile(self.company, 2024)
+        self.assertEqual(profile, DEFAULT_CREDIT_PROFILE)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn('repli', warnings[0])
+
+    def test_single_sector_uses_its_profile(self):
+        SectorCreditProfile.objects.create(
+            sector=self.agri, pd_baseline=0.02, ebitda_margin=0.10,
+            ebitda_volatility=0.30, carbon_pass_through=0.20,
+        )
+        Company_Revenue_Sector.objects.create(
+            company=self.company, subsector=self.ss_agri, year=2024, revenue=100.0
+        )
+        profile, warnings = resolve_credit_profile(self.company, 2024)
+        self.assertAlmostEqual(profile['pd_baseline'], 0.02)
+        self.assertAlmostEqual(profile['ebitda_margin'], 0.10)
+        self.assertEqual(warnings, [])
+
+    def test_two_sectors_are_revenue_weighted(self):
+        SectorCreditProfile.objects.create(sector=self.agri, pd_baseline=0.02)
+        SectorCreditProfile.objects.create(sector=self.food, pd_baseline=0.01)
+        Company_Revenue_Sector.objects.create(
+            company=self.company, subsector=self.ss_agri, year=2024, revenue=75.0
+        )
+        Company_Revenue_Sector.objects.create(
+            company=self.company, subsector=self.ss_food, year=2024, revenue=25.0
+        )
+        profile, _ = resolve_credit_profile(self.company, 2024)
+        self.assertAlmostEqual(profile['pd_baseline'], 0.75 * 0.02 + 0.25 * 0.01)
+
+    def test_sector_without_profile_uses_the_fallback_and_warns(self):
+        Company_Revenue_Sector.objects.create(
+            company=self.company, subsector=self.ss_agri, year=2024, revenue=100.0
+        )
+        profile, warnings = resolve_credit_profile(self.company, 2024)
+        self.assertAlmostEqual(
+            profile['pd_baseline'], DEFAULT_CREDIT_PROFILE['pd_baseline']
+        )
+        self.assertEqual(len(warnings), 1)
+        self.assertIn('profil de crédit', warnings[0])
+
+    def test_other_years_are_ignored(self):
+        SectorCreditProfile.objects.create(sector=self.agri, pd_baseline=0.02)
+        Company_Revenue_Sector.objects.create(
+            company=self.company, subsector=self.ss_agri, year=2023, revenue=100.0
+        )
+        profile, warnings = resolve_credit_profile(self.company, 2024)
+        self.assertEqual(profile, DEFAULT_CREDIT_PROFILE)
+        self.assertEqual(len(warnings), 1)
+
+
+class AcmeCreditProfilesTests(TestCase):
+
+    def test_populate_acme_seeds_both_sector_profiles(self):
+        from django.core.management import call_command
+        call_command('populate_acme')
+        self.assertEqual(SectorCreditProfile.objects.count(), 2)
+        acme = Company.objects.get(name='Acme Corp')
+        profile, warnings = resolve_credit_profile(acme, 2024)
+        self.assertEqual(warnings, [])
+        self.assertGreater(profile['pd_baseline'], 0.0)
+        self.assertLess(profile['pd_baseline'], 1.0)

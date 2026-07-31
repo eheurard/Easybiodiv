@@ -5,7 +5,8 @@ from dashboard.models import (
     Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
     Company_Revenue_Sector, Country, DisclosureRequirement, E4Assessment,
     Ownership, Policy_Level, Policy_Subcategory, Policy_Type, Production,
-    Sector, SubSector, SubnationalRegion, CharacterizationFactor, ImpactCategory,
+    Sector, SectorCreditProfile, SubSector, SubnationalRegion,
+    CharacterizationFactor, ImpactCategory,
 )
 from dashboard.services.impacts import legacy_cf_rows
 from dashboard.services.supply import SCOPE_TO_TIER
@@ -445,6 +446,28 @@ class Command(BaseCommand):
         ]:
             Company_Revenue_Sector.objects.get_or_create(
                 company=acme, subsector=subsector, year=year, defaults={"revenue": rev}
+            )
+
+        # ── Profils de crédit sectoriels (démo) ───────────────────────────────
+        #
+        # PD 1 an, marge et volatilité d'EBITDA, répercussion du coût carbone.
+        # Valeurs de démonstration : ordres de grandeur plausibles, à remplacer
+        # par des données de marché pour un usage réel.
+
+        for sector, pd_baseline, margin, volatility, pass_through in [
+            (sector_agri, 0.0180, 0.10, 0.28, 0.20),
+            (sector_food, 0.0090, 0.14, 0.22, 0.35),
+        ]:
+            SectorCreditProfile.objects.get_or_create(
+                sector=sector,
+                defaults={
+                    "pd_baseline": pd_baseline,
+                    "ebitda_margin": margin,
+                    "ebitda_volatility": volatility,
+                    "carbon_pass_through": pass_through,
+                    "source": "Démonstration Easybiodiv",
+                    "reference": "Ordres de grandeur, non calibrés sur données de marché",
+                },
             )
 
         # ── Catalogue des politiques de transition ────────────────────────────
