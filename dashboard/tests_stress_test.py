@@ -1,9 +1,13 @@
 """Tests du stress test climatique (noyau pur, service, formulaire, vues)."""
 import json
 
+from django.db import IntegrityError, transaction
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
+from dashboard.models import (
+    ClimateScenario, ScenarioVariable, Sector, SectorCreditProfile,
+)
 from dashboard.services.stress_test import (
     DEFAULT_CREDIT_PROFILE, MAX_SHOCK_SIGMA, SCOPE3_TRANSMISSION,
     carbon_cost, interpolate_trajectory, pd_to_rating, physical_loss_ratio,
@@ -151,3 +155,71 @@ class DefaultCreditProfileTests(SimpleTestCase):
         self.assertLess(DEFAULT_CREDIT_PROFILE['pd_baseline'], 1.0)
         self.assertGreater(DEFAULT_CREDIT_PROFILE['ebitda_margin'], 0.0)
         self.assertLessEqual(DEFAULT_CREDIT_PROFILE['ebitda_margin'], 1.0)
+
+
+class ClimateScenarioModelTests(TestCase):
+
+    def test_created_with_defaults(self):
+        scenario = ClimateScenario.objects.create(key='TEST', name='Test')
+        self.assertEqual(scenario.family, ClimateScenario.Family.ORDERLY)
+        self.assertEqual(scenario.warming_c, 0.0)
+        self.assertEqual(str(scenario), 'Test')
+
+    def test_key_is_unique(self):
+        ClimateScenario.objects.create(key='TEST', name='Test')
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            ClimateScenario.objects.create(key='TEST', name='Autre')
+
+    def test_ordering_follows_order_then_key(self):
+        ClimateScenario.objects.create(key='B', name='B', order=2)
+        ClimateScenario.objects.create(key='A', name='A', order=1)
+        self.assertEqual([s.key for s in ClimateScenario.objects.all()], ['A', 'B'])
+
+
+class ScenarioVariableModelTests(TestCase):
+
+    def setUp(self):
+        self.scenario = ClimateScenario.objects.create(key='TEST', name='Test')
+
+    def test_reverse_accessor_is_variables(self):
+        ScenarioVariable.objects.create(
+            scenario=self.scenario, year=2030,
+            key=ScenarioVariable.Key.CARBON_PRICE, value=180.0,
+        )
+        self.assertEqual(self.scenario.variables.count(), 1)
+
+    def test_unique_per_scenario_year_key(self):
+        ScenarioVariable.objects.create(
+            scenario=self.scenario, year=2030,
+            key=ScenarioVariable.Key.CARBON_PRICE, value=180.0,
+        )
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            ScenarioVariable.objects.create(
+                scenario=self.scenario, year=2030,
+                key=ScenarioVariable.Key.CARBON_PRICE, value=200.0,
+            )
+
+    def test_same_year_different_key_is_allowed(self):
+        ScenarioVariable.objects.create(
+            scenario=self.scenario, year=2030,
+            key=ScenarioVariable.Key.CARBON_PRICE, value=180.0,
+        )
+        ScenarioVariable.objects.create(
+            scenario=self.scenario, year=2030,
+            key=ScenarioVariable.Key.HAZARD_MULTIPLIER, value=1.2,
+        )
+        self.assertEqual(self.scenario.variables.count(), 2)
+
+
+class SectorCreditProfileModelTests(TestCase):
+
+    def test_one_profile_per_sector(self):
+        sector = Sector.objects.create(name='Agriculture', NACE_code='A01')
+        SectorCreditProfile.objects.create(sector=sector, pd_baseline=0.02)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            SectorCreditProfile.objects.create(sector=sector, pd_baseline=0.03)
+
+    def test_reverse_accessor_is_credit_profile(self):
+        sector = Sector.objects.create(name='Agriculture', NACE_code='A01')
+        profile = SectorCreditProfile.objects.create(sector=sector, pd_baseline=0.02)
+        self.assertEqual(sector.credit_profile, profile)
