@@ -329,7 +329,7 @@ séparées :
 
 ```python
 def carbon_cost(emissions_t, delta_price, pass_through) -> float
-def physical_loss_ratio(hazard_pairs, multiplier)      -> float
+def hazard_severity_ratio(hazard_pairs, multiplier)    -> float
 def shock_to_pd(pd_baseline, shock, sigma)             -> float
 def pd_to_rating(pd)                                   -> str
 ```
