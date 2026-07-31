@@ -42,13 +42,15 @@ function cstRenderScenarios(data) {
   data.scenarios.forEach((scenario) => {
     const card = document.createElement('button');
     card.type = 'button';
-    card.className = 'cst-scenario' + (scenario.key === selected ? ' is-active' : '');
+    const isActive = scenario.key === selected;
+    card.className = 'cst-scenario' + (isActive ? ' is-active' : '');
     card.setAttribute('role', 'radio');
-    card.setAttribute('aria-checked', scenario.key === selected ? 'true' : 'false');
+    card.setAttribute('aria-checked', isActive ? 'true' : 'false');
+    card.tabIndex = isActive ? 0 : -1;  // roving tabindex : un seul arrêt de tabulation
     card.dataset.key = scenario.key;
     card.innerHTML =
-      '<span class="cst-scenario__name">' + scenario.name + '</span>' +
-      '<span class="cst-scenario__family">' + scenario.family_label + '</span>' +
+      '<span class="cst-scenario__name">' + escHtml(scenario.name) + '</span>' +
+      '<span class="cst-scenario__family">' + escHtml(scenario.family_label) + '</span>' +
       '<span class="cst-scenario__warming">' +
       scenario.warming_c.toFixed(1).replace('.', ',') + ' °C</span>';
     card.title = scenario.narrative;
@@ -58,15 +60,28 @@ function cstRenderScenarios(data) {
     });
     host.appendChild(card);
   });
+
+  // Aucun scénario sélectionné : le premier reste atteignable au clavier.
+  if (!selected && host.children.length) {
+    host.children[0].tabIndex = 0;
+  }
 }
 
 function cstRenderHorizons(data) {
   const host = document.getElementById('cst-horizon');
+  if (!data.horizon_curve.length) {
+    // Pas de courbe (payload vide) : rien à afficher. Sortir ici est indispensable —
+    // sans ce garde, le forEach ci-dessous ne peuple aucun enfant et l'appel
+    // récursif de fin de fonction boucle indéfiniment (RangeError).
+    host.innerHTML = '';
+    return;
+  }
   if (host.children.length) {
     Array.from(host.children).forEach((button) => {
       const active = data.selected && String(data.selected.horizon) === button.dataset.year;
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-checked', active ? 'true' : 'false');
+      button.tabIndex = active ? 0 : -1;  // roving tabindex
     });
     return;
   }
@@ -85,6 +100,33 @@ function cstRenderHorizons(data) {
     host.appendChild(button);
   });
   cstRenderHorizons(data);
+}
+
+/* ── Navigation clavier des radiogroups (roving tabindex) ─────────────────
+   Un seul écouteur par groupe, posé une fois au chargement : il relit
+   host.children à chaque pression de touche, donc il reste valide même
+   après que cstRenderScenarios/cstRenderHorizons aient reconstruit le DOM. */
+
+function cstBindRadioGroupKeyboard(hostId) {
+  const host = document.getElementById(hostId);
+  if (!host) return;
+  host.addEventListener('keydown', (event) => {
+    const forward = event.key === 'ArrowRight' || event.key === 'ArrowDown';
+    const backward = event.key === 'ArrowLeft' || event.key === 'ArrowUp';
+    if (!forward && !backward) return;
+
+    const items = Array.from(host.children);
+    if (!items.length) return;
+    const currentIndex = items.indexOf(document.activeElement);
+    if (currentIndex === -1) return;
+
+    event.preventDefault();
+    const nextIndex = forward
+      ? (currentIndex + 1) % items.length
+      : (currentIndex - 1 + items.length) % items.length;
+    items[nextIndex].focus();
+    items[nextIndex].click();  // déclenche la même logique de sélection qu'un clic
+  });
 }
 
 function cstRenderFields(data) {
@@ -146,12 +188,16 @@ function cstRenderAssumptions(data) {
   body.innerHTML = '';
   data.assumptions.forEach((row) => {
     const tr = document.createElement('tr');
-    const source = row.reference
+    // label/value/source/reference viennent du backend et incluent des champs
+    // éditables en admin (nom, source et référence du scénario) : échapper avant
+    // toute insertion dans innerHTML.
+    const rawSource = row.reference
       ? row.source + ' — ' + row.reference
       : row.source;
+    const source = rawSource ? escHtml(rawSource) : '';
     tr.innerHTML =
-      '<th scope="row">' + row.label + '</th>' +
-      '<td class="data-tabular">' + row.value + '</td>' +
+      '<th scope="row">' + escHtml(row.label) + '</th>' +
+      '<td class="data-tabular">' + escHtml(row.value) + '</td>' +
       '<td class="cst-source">' + (source || '—') + '</td>';
     body.appendChild(tr);
   });
@@ -263,16 +309,24 @@ function cstRenderComparison(data) {
 
 function cstRender(data) {
   CST_STATE.data = data;
-  cstRenderWarnings(data);
-  cstRenderScenarios(data);
-  cstRenderHorizons(data);
-  cstRenderFields(data);
-  cstRenderKpis(data);
-  cstRenderChannels(data);
-  cstRenderAssumptions(data);
-  cstRenderWaterfall(data);
-  cstRenderHorizonChart(data);
-  cstRenderComparison(data);
+  // Un rendu qui échoue ne doit jamais empêcher l'appelant d'initialiser le
+  // combobox juste après (sinon l'utilisateur reste bloqué sans pouvoir
+  // changer d'entreprise pour se sortir d'un payload qui fait planter un
+  // des rendus ci-dessous).
+  try {
+    cstRenderWarnings(data);
+    cstRenderScenarios(data);
+    cstRenderHorizons(data);
+    cstRenderFields(data);
+    cstRenderKpis(data);
+    cstRenderChannels(data);
+    cstRenderAssumptions(data);
+    cstRenderWaterfall(data);
+    cstRenderHorizonChart(data);
+    cstRenderComparison(data);
+  } catch (error) {
+    console.error('cstRender a échoué :', error);
+  }
 }
 
 /* ── Chargement ────────────────────────────────────────────────────────── */
@@ -415,6 +469,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const initialData = initialEl ? JSON.parse(initialEl.textContent) : null;
 
   cstBindInputs();
+  cstBindRadioGroupKeyboard('cst-scenarios');
+  cstBindRadioGroupKeyboard('cst-horizon');
 
   const savedId = parseInt(localStorage.getItem(CST_COMPANY_KEY), 10);
   const savedExists = savedId && companies.some((c) => c.id === savedId);

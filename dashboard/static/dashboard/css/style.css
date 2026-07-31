@@ -3750,7 +3750,7 @@ a.app-header__avatar {
 .cst-field { display: flex; flex-direction: column; gap: 5px; }
 .cst-field__label { font-size: 12px; color: #54433e; font-weight: 500; }
 .cst-field--check { flex-direction: row; align-items: flex-start; gap: 8px; }
-.cst-hint { display: block; font-size: 11px; color: #8a7a73; }
+.cst-hint { display: block; font-size: 11px; color: #6e615b; }
 
 .cst-segmented { display: inline-flex; gap: 4px; }
 .cst-segmented__btn {
@@ -3775,9 +3775,9 @@ a.app-header__avatar {
 .cst-table th, .cst-table td {
   padding: 7px 8px; text-align: left; border-bottom: 1px solid #f0ede8;
 }
-.cst-table thead th { font-size: 11px; text-transform: uppercase; color: #8a7a73; }
+.cst-table thead th { font-size: 11px; text-transform: uppercase; color: #6e615b; }
 .cst-table td.data-tabular { text-align: right; font-variant-numeric: tabular-nums; }
-.cst-source { color: #8a7a73; font-size: 11px; }
+.cst-source { color: #6e615b; font-size: 11px; }
 
-.cst-tooltip { cursor: help; color: #8a7a73; font-size: 13px; }
+.cst-tooltip { cursor: help; color: #6e615b; font-size: 13px; }
 .cst-tooltip:focus-visible { outline: 2px solid #91452d; outline-offset: 2px; }
