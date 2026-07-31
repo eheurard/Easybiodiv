@@ -145,9 +145,21 @@ class PhysicalLossRatioTests(SimpleTestCase):
     def test_single_hazard(self):
         self.assertAlmostEqual(physical_loss_ratio([(0.2, 1.0)], 1.0), 0.2)
 
-    def test_two_hazards_combine_multiplicatively(self):
-        # 1 - (1-0.2)(1-0.5) = 0.6, et non 0.7
-        self.assertAlmostEqual(physical_loss_ratio([(0.2, 1.0), (0.5, 1.0)], 1.0), 0.6)
+    def test_two_hazards_are_averaged_not_compounded(self):
+        # (0.2 + 0.5) / 2 = 0.35 — et surtout PAS 1 - (1-0.2)(1-0.5) = 0.6
+        self.assertAlmostEqual(physical_loss_ratio([(0.2, 1.0), (0.5, 1.0)], 1.0), 0.35)
+
+    def test_null_hazards_weigh_in_the_average(self):
+        # Un actif exposé à 1 aléa sur 4 est moins touché qu'un actif exposé aux 4.
+        few = physical_loss_ratio([(0.8, 1.0), (0.0, 1.0), (0.0, 1.0), (0.0, 1.0)], 1.0)
+        many = physical_loss_ratio([(0.8, 1.0)] * 4, 1.0)
+        self.assertAlmostEqual(few, 0.2)
+        self.assertAlmostEqual(many, 0.8)
+
+    def test_does_not_saturate_on_a_long_hazard_panel(self):
+        # Régression : la forme multiplicative renvoyait ~0.96 ici, ce qui
+        # saturait la métrique. La moyenne doit rester à 0.2.
+        self.assertAlmostEqual(physical_loss_ratio([(0.2, 1.0)] * 15, 1.0), 0.2)
 
     def test_ratio_stays_bounded_by_one(self):
         pairs = [(0.9, 2.0)] * 20
@@ -340,18 +352,26 @@ def carbon_cost(emissions_t, delta_price, pass_through):
 
 
 def physical_loss_ratio(hazard_pairs, multiplier):
-    """Part de l'exposition perdue, bornée dans [0, 1].
+    """Part de l'exposition perdue par un actif, bornée dans [0, 1].
 
-    `hazard_pairs` : itérable de `(aléa, vulnérabilité)` pour un même actif.
-    L'agrégation est multiplicative (dommages indépendants), donc bornée —
-    contrairement à la somme utilisée par la vue Risque physique, qui peut
-    dépasser 100 % du chiffre d'affaires.
+    `hazard_pairs` : itérable de `(aléa, vulnérabilité)` pour un même actif,
+    couvrant **tout le panel d'aléas**. Un aléa nul signifie « cet actif n'est
+    pas exposé » et pèse dans la moyenne.
+
+    L'agrégation est une **moyenne**, pas une composition d'événements
+    indépendants. Les scores `risk_*` sont des indices de sévérité relative,
+    pas des probabilités annuelles de perte totale : les composer par
+    `1 − Π(1 − r·v·λ)` sature à 1 dès une dizaine d'aléas (0,82¹⁵ ≈ 0,05) et
+    prive la métrique de tout pouvoir discriminant. La moyenne ne sature pas
+    et ne dépend pas du nombre de colonnes d'aléas.
     """
-    survival = 1.0
-    for hazard, vulnerability in hazard_pairs:
-        damage = min(1.0, max(0.0, hazard * vulnerability * multiplier))
-        survival *= (1.0 - damage)
-    return 1.0 - survival
+    pairs = list(hazard_pairs)
+    if not pairs:
+        return 0.0
+    severity = sum(
+        max(0.0, hazard * vulnerability) for hazard, vulnerability in pairs
+    ) / len(pairs)
+    return min(1.0, severity * multiplier)
 
 
 def shock_to_sigma(shock_ratio, volatility):
@@ -2336,7 +2356,7 @@ Remplacer intégralement `dashboard/templates/dashboard/climate_stress_test.html
       <h2 class="label-caps cst-section-title">
         Canaux de risque
         <span class="cst-tooltip" tabindex="0"
-              aria-label="La perte physique est agrégée de façon multiplicative par actif, donc bornée par l'exposition. Elle diffère volontairement du chiffre de la page Risque physique, qui somme les aléas.">ⓘ</span>
+              aria-label="La perte physique est la sévérité moyenne des aléas de chaque actif, bornée par son exposition. Elle diffère volontairement du chiffre de la page Risque physique, qui somme les aléas.">ⓘ</span>
       </h2>
       <table class="cst-table">
         <thead>

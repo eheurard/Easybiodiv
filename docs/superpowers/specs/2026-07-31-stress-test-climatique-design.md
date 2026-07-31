@@ -117,12 +117,12 @@ Coût  = ΔP × E × (1 − pass_through)                            €
 - `ΔP` est borné à zéro par le bas : un prix carbone décroissant ne génère pas de
   gain.
 
-### 2.3 Canal physique — agrégation multiplicative bornée
+### 2.3 Canal physique — sévérité moyenne bornée
 
 L'agrégation se fait **par actif**, puis se somme :
 
 ```
-ratio_perte(actif) = 1 − Π_aléas ( 1 − min(1, risk_h × vuln_h × λ(scénario, horizon)) )
+ratio_perte(actif) = min( 1 , moyenne_aléas( risk_h × vuln_h ) × λ(scénario, horizon) )
 Perte              = Σ_actifs  exposition(actif) × ratio_perte(actif)
 ratio_perte_global = Perte / exposition_totale
 ```
@@ -130,18 +130,45 @@ ratio_perte_global = Perte / exposition_totale
 où `exposition(actif)` = `estimated_revenue` de l'actif sur sa dernière année de
 production, `risk_h` le score d'aléa de cet actif, `vuln_h` la vulnérabilité
 moyenne des politiques de l'entreprise, et `λ` le multiplicateur d'aléa du
-scénario à l'horizon retenu.
+scénario à l'horizon retenu. La moyenne porte sur **les 15 aléas du panel**, pas
+seulement sur les aléas non nuls : un score nul signifie « cet actif n'est pas
+exposé à cet aléa », et doit peser dans la moyenne.
 
 Appliquer les 15 aléas de **tous** les actifs à l'exposition **totale** ferait
 croître le dommage avec le simple nombre d'actifs ; la perte reste ici bornée par
 l'exposition, actif par actif.
 
+### Pourquoi la moyenne, et non une composition d'événements indépendants
+
+Une première version de cette spec agrégeait les aléas multiplicativement,
+`1 − Π(1 − risk_h × vuln_h × λ)`, au motif que cette forme est bornée dans [0,1]
+— contrairement à la somme employée par la page Risque physique, qui peut
+dépasser 100 % du chiffre d'affaires.
+
+**Cette forme a été mesurée sur les données réelles et rejetée.** Elle est
+bornée, mais elle *sature* : sur 15 facteurs, `0,82¹⁵ ≈ 0,05`. Sur ACME, à
+λ = 1,1, un actif dont le pire aléa vaut 0,35 ressortait à **96,7 % de perte**,
+et quatre actifs sur huit à exactement 100 % — produisant une PD stressée de
+99,99999 % sous *tous* les scénarios. Une métrique qui sature n'a aucun pouvoir
+discriminant ; elle est aussi inexploitable qu'une métrique non bornée.
+
+La faute de raisonnement est identifiable : les scores `risk_*` sont des
+**indices de sévérité relative**, pas des probabilités annuelles de perte
+totale. Les composer comme des événements indépendants est une erreur de modèle.
+La moyenne les traite pour ce qu'ils sont — une sévérité moyenne sur un panel
+d'aléas de taille fixe — ne sature pas, ne dépend pas du nombre de colonnes
+d'aléas, et n'introduit aucun coefficient de calibration arbitraire.
+
+Ordres de grandeur obtenus sur ACME à λ = 1,1 : Site Paris 0 %, Usine de
+transformation ≈ 19 %, Site Lyon ≈ 17 %, Plantation soja Pará ≈ 66 %. Les actifs
+amazoniens et indonésiens restent lourdement touchés, ce qui est le résultat
+attendu pour du soja et du palmier à huile.
+
 **Divergence assumée avec la page Risque physique.** Celle-ci *somme* les
 contributions des 15 aléas (`Σ hazard × expo × vuln`), ce qui peut produire une
 perte supérieure à 100 % du chiffre d'affaires. Inoffensif pour un classement
-d'aléas, inacceptable pour alimenter une PD. L'agrégation multiplicative est
-naturellement bornée dans [0,1] et correspond à la combinaison standard de
-probabilités de dommage indépendants.
+d'aléas, inacceptable pour alimenter une PD. La sévérité moyenne est bornée par
+construction et conserve son pouvoir discriminant entre actifs.
 
 **Conséquence acceptée** : les deux pages afficheront des pertes physiques
 différentes. Elle sera signalée dans l'infobulle du canal physique.
@@ -444,7 +471,7 @@ Documenté dans l'infobulle du graphique.
 
 ## 7. Hors périmètre
 
-- Alignement de la page Risque physique sur l'agrégation multiplicative (§2.3).
+- Alignement de la page Risque physique sur la sévérité moyenne (§2.3).
 - Persistance des exécutions (`StressTestRun`) et historique.
 - Import des trajectoires NGFS depuis un export du portail (app `imports`).
 - Canal biodiversité adossé à la dette écologique.
