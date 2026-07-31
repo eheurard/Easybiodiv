@@ -15,6 +15,7 @@ from .models import (
 from .services.market import get_market_data, DEFAULT_RANGE
 from .services.impacts import build_cf_index, cf_value, CAT_ECOSYSTEM_DIVERSITY
 from .services.supply import TIER_LABELS, TIER_TO_SCOPE
+from .services.hazards import PHYSICAL_RISKS
 
 from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
 
@@ -51,29 +52,6 @@ _SUBSECTOR_DEP_FIELDS = {
     'pest_control':         'Pest_control_dependency',
     'pollination':          'Pollination_dependency',
 }
-
-PHYSICAL_RISKS = [
-    {'key': 'water', 'name': 'Eau', 'group': 'Services écosystémiques'},
-    {'key': 'pollination', 'name': 'Pollinisation', 'group': 'Services écosystémiques'},
-    {'key': 'soil_quality', 'name': 'Qualité des sols', 'group': 'Services écosystémiques'},
-    {'key': 'carbon_sequestration', 'name': 'Séquestration carbone',
-     'group': 'Services écosystémiques'},
-    {'key': 'water_purification', 'name': "Épuration de l'eau",
-     'group': 'Services écosystémiques'},
-    {'key': 'pest_control', 'name': 'Contrôle des ravageurs',
-     'group': 'Services écosystémiques'},
-    {'key': 'water_stress', 'name': 'Stress hydrique', 'group': 'Aléas climatiques'},
-    {'key': 'wildfire', 'name': 'Incendie', 'group': 'Aléas climatiques'},
-    {'key': 'cyclone', 'name': 'Cyclone', 'group': 'Aléas climatiques'},
-    {'key': 'drought', 'name': 'Sécheresse', 'group': 'Aléas climatiques'},
-    {'key': 'flood', 'name': 'Inondation', 'group': 'Aléas climatiques'},
-    {'key': 'coastal_inundation', 'name': 'Submersion côtière', 'group': 'Aléas climatiques'},
-    {'key': 'heatwave', 'name': 'Canicule', 'group': 'Aléas climatiques'},
-    {'key': 'temperature_variation', 'name': 'Variation de température',
-     'group': 'Aléas climatiques'},
-    {'key': 'precipitation_variation', 'name': 'Variation des précipitations',
-     'group': 'Aléas climatiques'},
-]
 
 # Inventaire mesuré affiché (informatif) sur la vue risque : sous-ensemble de flux.
 _RISK_INVENTORY_KEYS = ('water', 'co2', 'surface_area')

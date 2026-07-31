@@ -323,3 +323,29 @@ class CarbonPriceDeltaTests(TestCase):
         self.assertEqual(
             carbon_price_delta(self.scenario, 2030, 2024, override=10.0), 0.0
         )
+
+
+class HazardCatalogTests(TestCase):
+
+    def test_fifteen_hazards(self):
+        from dashboard.services.hazards import PHYSICAL_RISKS
+        self.assertEqual(len(PHYSICAL_RISKS), 15)
+
+    def test_views_reexports_the_same_object(self):
+        from dashboard import views
+        from dashboard.services.hazards import PHYSICAL_RISKS
+        self.assertIs(views.PHYSICAL_RISKS, PHYSICAL_RISKS)
+
+    def test_every_key_matches_an_asset_field(self):
+        from dashboard.models import Asset
+        from dashboard.services.hazards import PHYSICAL_RISKS
+        names = {f.name for f in Asset._meta.get_fields()}
+        for risk in PHYSICAL_RISKS:
+            self.assertIn(f"risk_{risk['key']}", names)
+
+    def test_every_key_matches_a_policy_vulnerability_field(self):
+        from dashboard.models import Policy_Level
+        from dashboard.services.hazards import PHYSICAL_RISKS
+        names = {f.name for f in Policy_Level._meta.get_fields()}
+        for risk in PHYSICAL_RISKS:
+            self.assertIn(f"vulnerability_{risk['key']}", names)
