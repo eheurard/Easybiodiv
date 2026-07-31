@@ -136,3 +136,40 @@ def interpolate_trajectory(points, year):
             weight = (year - low) / (high - low)
             return float(points[low] + (points[high] - points[low]) * weight)
     return float(points[years[-1]])
+
+
+# ── Couche ORM ────────────────────────────────────────────────────────────────
+#
+# Tout ce qui suit touche la base. Le noyau ci-dessus reste pur.
+
+from ..models import ScenarioVariable  # noqa: E402  (import après le noyau pur)
+
+KEY_CARBON_PRICE = ScenarioVariable.Key.CARBON_PRICE
+KEY_HAZARD_MULTIPLIER = ScenarioVariable.Key.HAZARD_MULTIPLIER
+
+
+def scenario_trajectory(scenario, key):
+    """`{année: valeur}` pour une variable d'un scénario."""
+    return {
+        variable.year: variable.value
+        for variable in scenario.variables.filter(key=key)
+    }
+
+
+def scenario_value(scenario, key, year):
+    """Valeur d'une variable de scénario à une année quelconque."""
+    return interpolate_trajectory(scenario_trajectory(scenario, key), year)
+
+
+def carbon_price_delta(scenario, year, reference_year, override=None):
+    """Différentiel de prix carbone entre `year` et `reference_year`, ≥ 0.
+
+    `override` remplace le prix du scénario à l'horizon (curseur utilisateur) ;
+    le prix de référence, lui, reste celui du scénario.
+    """
+    reference = scenario_value(scenario, KEY_CARBON_PRICE, reference_year)
+    price = (
+        float(override) if override is not None
+        else scenario_value(scenario, KEY_CARBON_PRICE, year)
+    )
+    return max(0.0, price - reference)

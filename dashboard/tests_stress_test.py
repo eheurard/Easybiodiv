@@ -10,8 +10,9 @@ from dashboard.models import (
 )
 from dashboard.services.stress_test import (
     DEFAULT_CREDIT_PROFILE, MAX_SHOCK_SIGMA, SCOPE3_TRANSMISSION,
-    carbon_cost, interpolate_trajectory, pd_to_rating, physical_loss_ratio,
-    retained_emissions, shock_to_pd, shock_to_sigma,
+    carbon_cost, carbon_price_delta, interpolate_trajectory, pd_to_rating,
+    physical_loss_ratio, retained_emissions, scenario_trajectory, scenario_value,
+    shock_to_pd, shock_to_sigma,
 )
 
 
@@ -277,3 +278,48 @@ class SeedClimateScenariosTests(TestCase):
                 .get(year=2050, key=ScenarioVariable.Key.CARBON_PRICE).value
             )
         self.assertGreater(price('NET_ZERO_2050'), price('CURRENT_POLICIES'))
+
+
+class ScenarioTrajectoryTests(TestCase):
+
+    def setUp(self):
+        self.scenario = ClimateScenario.objects.get(key='NET_ZERO_2050')
+
+    def test_trajectory_is_a_year_to_value_map(self):
+        traj = scenario_trajectory(self.scenario, ScenarioVariable.Key.CARBON_PRICE)
+        self.assertEqual(sorted(traj), [2025, 2030, 2040, 2050])
+
+    def test_value_on_a_grid_year(self):
+        value = scenario_value(self.scenario, ScenarioVariable.Key.CARBON_PRICE, 2030)
+        self.assertEqual(value, 190.0)
+
+    def test_value_between_grid_years_is_interpolated(self):
+        value = scenario_value(self.scenario, ScenarioVariable.Key.CARBON_PRICE, 2035)
+        self.assertAlmostEqual(value, 295.0)
+
+    def test_value_before_the_grid_is_clamped(self):
+        value = scenario_value(self.scenario, ScenarioVariable.Key.CARBON_PRICE, 2020)
+        self.assertEqual(value, 80.0)
+
+    def test_unknown_variable_key_returns_zero(self):
+        self.assertEqual(scenario_value(self.scenario, 'inconnue', 2030), 0.0)
+
+
+class CarbonPriceDeltaTests(TestCase):
+
+    def setUp(self):
+        self.scenario = ClimateScenario.objects.get(key='NET_ZERO_2050')
+
+    def test_delta_against_the_reference_year(self):
+        # 2030 (190) − 2024 (borné à 2025 = 80)
+        self.assertAlmostEqual(carbon_price_delta(self.scenario, 2030, 2024), 110.0)
+
+    def test_override_replaces_the_scenario_price(self):
+        self.assertAlmostEqual(
+            carbon_price_delta(self.scenario, 2030, 2024, override=300.0), 220.0
+        )
+
+    def test_delta_is_floored_at_zero(self):
+        self.assertEqual(
+            carbon_price_delta(self.scenario, 2030, 2024, override=10.0), 0.0
+        )
