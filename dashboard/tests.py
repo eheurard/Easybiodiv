@@ -1962,6 +1962,7 @@ GOLDEN_VIEWS = [
     ('compare',             'dashboard:compare_data'),
     ('dependencies',        'dashboard:dependencies_data'),
     ('leap_locate',         'dashboard:leap_locate_data'),
+    ('climate_stress_test', 'dashboard:climate_stress_test_data'),
 ]
 
 
