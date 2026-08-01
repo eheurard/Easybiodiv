@@ -253,6 +253,31 @@ dans le service : c'est une convention d'affichage, pas une donnée métier à
 éditer. Affichée comme « équivalent indicatif », jamais comme une notation
 attribuée.
 
+### 2.7 Cas ACME : un profil de démonstration délibérément extrême
+
+La revue finale de branche a mesuré, sur ACME, la PD stressée aux 5 scénarios ×
+3 horizons (15 combinaisons) : elle s'étale de **51 % à 94 %**, avec un
+équivalent notation **CCC dans les 15 cas**. Le choc reste toutefois loin du
+plafond du modèle : `shock_sigma` va de **2,20 à 3,75**, contre un plafond
+`MAX_SHOCK_SIGMA = 8.0` — aucune saturation numérique n'est en jeu.
+
+**Cause identifiée.** La marge EBITDA d'ACME (11,4 % — cf. §2.3, « Pourquoi un
+coefficient de dommage est nécessaire ») est mince, et son exposition combine
+une forte part d'actifs en Amazonie (Mato Grosso, Pará) et à Sumatra
+(Indonésie), les zones les plus sévèrement touchées par les aléas physiques
+retenus (§2.3). Un choc de coût carbone et de perte physique qui représenterait
+une fraction raisonnable du chiffre d'affaires devient, rapporté à une marge
+aussi mince, un choc élevé en écarts-types d'EBITDA — donc une PD stressée
+élevée par construction de la chaîne de calcul, pas par un artefact numérique.
+
+**Décision.** Ce comportement est accepté tel quel. ACME est un profil de
+démonstration délibérément extrême (marge mince + exposition à haut risque
+physique cumulées), pas un cas représentatif de la base installée ; le résultat
+est cohérent avec la méthodologie et ne révèle aucun défaut de calibration des
+constantes (`PHYSICAL_DAMAGE_FACTOR`, `MAX_SHOCK_SIGMA`, profils sectoriels).
+Aucune donnée `populate_acme` ni aucune constante du service n'est modifiée à
+la suite de ce constat.
+
 ---
 
 ## 3. Architecture

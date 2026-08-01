@@ -36,8 +36,28 @@ function cstBps(value) {
 
 function cstRenderScenarios(data) {
   const host = document.getElementById('cst-scenarios');
-  host.innerHTML = '';
+  if (!data.scenarios.length) {
+    // Pas de scénario (payload vide) : rien à afficher.
+    host.innerHTML = '';
+    return;
+  }
   const selected = data.selected ? data.selected.scenario : null;
+
+  if (host.children.length) {
+    // Les cartes existent déjà et la liste des scénarios ne change jamais :
+    // ne mettre à jour que l'état actif, pour ne pas voler le focus clavier
+    // à chaque rendu déclenché par un champ sans rapport (marge EBITDA,
+    // pass-through, PD₀, scope 3…). Même logique que cstRenderHorizons.
+    Array.from(host.children).forEach((card) => {
+      const isActive = card.dataset.key === selected;
+      card.classList.toggle('is-active', isActive);
+      card.setAttribute('aria-checked', isActive ? 'true' : 'false');
+      card.tabIndex = isActive ? 0 : -1;  // roving tabindex
+    });
+    // Aucun scénario sélectionné : le premier reste atteignable au clavier.
+    if (!selected) host.children[0].tabIndex = 0;
+    return;
+  }
 
   data.scenarios.forEach((scenario) => {
     const card = document.createElement('button');

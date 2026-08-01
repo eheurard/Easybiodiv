@@ -13,7 +13,7 @@ from dashboard.models import (
     ScenarioVariable, Sector, SectorCreditProfile, SubSector,
 )
 from dashboard.services.stress_test import (
-    DEFAULT_CREDIT_PROFILE, HORIZONS, MAX_SHOCK_SIGMA, SCOPE3_TRANSMISSION,
+    DEFAULT_CREDIT_PROFILE, HORIZONS, MAX_SHOCK_SIGMA, PD_MAX, SCOPE3_TRANSMISSION,
     carbon_cost, carbon_price_delta, company_snapshot, get_stress_test_data,
     hazard_severity_ratio, interpolate_trajectory, pd_to_rating,
     resolve_credit_profile, retained_emissions, scenario_trajectory,
@@ -579,6 +579,30 @@ class GetStressTestDataTests(TestCase):
             self.assertLess(pd, 0.99)
             self.assertGreater(pd, data['result']['pd_baseline'])
 
+    def test_carbon_price_override_matches_the_kpi_at_the_selected_point(self):
+        # Le curseur "prix carbone" surcharge un prix absolu épinglé à
+        # l'horizon et au scénario sélectionnés. Le point de la courbe par
+        # horizon et la barre de comparaison qui correspondent exactement à la
+        # sélection courante doivent afficher la même PD que le bandeau KPI
+        # (`result.pd_stressed`) : sinon l'écran montre deux chiffres
+        # différents pour le même point.
+        scenario = ClimateScenario.objects.get(key='NET_ZERO_2050')
+        data = get_stress_test_data(
+            self.acme,
+            {'scenario': scenario, 'horizon': 2030, 'carbon_price': 900},
+        )
+        horizon_point = next(
+            p for p in data['horizon_curve']
+            if p['year'] == data['selected']['horizon']
+        )
+        self.assertEqual(horizon_point['pd'], data['result']['pd_stressed'])
+
+        comparison_row = next(
+            row for row in data['scenario_comparison']
+            if row['key'] == data['selected']['scenario']
+        )
+        self.assertEqual(comparison_row['pd'], data['result']['pd_stressed'])
+
 
 class StressTestEmptyCasesTests(TestCase):
 
@@ -665,6 +689,15 @@ class StressTestFormTests(TestCase):
     def test_pd_baseline_of_one_is_rejected(self):
         form = StressTestForm(data={'pd_baseline': '1'})
         self.assertFalse(form.is_valid())
+
+    def test_pd_baseline_above_the_service_clamp_is_rejected(self):
+        # Le formulaire acceptait jusqu'à 0.999 alors que le service écrête à
+        # PD_MAX=0.99 : une valeur comme 0.995 était échoée dans
+        # `selected.pd_baseline` sans jamais être réellement utilisée par le
+        # calcul. La borne du formulaire doit coïncider avec celle du service.
+        form = StressTestForm(data={'pd_baseline': str(PD_MAX + 0.005)})
+        self.assertFalse(form.is_valid())
+        self.assertIn('pd_baseline', form.errors)
 
     def test_zero_ebitda_margin_is_rejected(self):
         form = StressTestForm(data={'ebitda_margin': '0'})

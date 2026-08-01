@@ -6,7 +6,7 @@ passe par un formulaire, jamais par une lecture brute de `request.GET`.
 from django import forms
 
 from .models import ClimateScenario
-from .services.stress_test import HORIZONS
+from .services.stress_test import HORIZONS, PD_MAX
 
 
 class StressTestForm(forms.Form):
@@ -25,7 +25,7 @@ class StressTestForm(forms.Form):
     include_scope3 = forms.BooleanField(required=False)
     pass_through = forms.FloatField(required=False, min_value=0.0, max_value=1.0)
     ebitda_margin = forms.FloatField(required=False, min_value=0.001, max_value=1.0)
-    pd_baseline = forms.FloatField(required=False, min_value=1e-6, max_value=0.999)
+    pd_baseline = forms.FloatField(required=False, min_value=1e-6, max_value=PD_MAX)
 
     def clean_scenario(self):
         key = (self.cleaned_data.get('scenario') or '').strip()

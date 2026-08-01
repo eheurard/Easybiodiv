@@ -541,9 +541,17 @@ def get_stress_test_data(company, params=None):
 
     horizon_curve = []
     for year in HORIZONS:
+        # Le prix carbone saisi par l'utilisateur est un prix ABSOLU épinglé à
+        # l'horizon sélectionné : il n'a pas de sens rapporté à un autre
+        # horizon (le prix pour 2030 n'est pas un prix pour 2050). Mais le
+        # point que l'utilisateur regarde effectivement doit rester cohérent
+        # avec le bandeau KPI juste au-dessus, donc on le propage uniquement
+        # à l'entrée qui correspond à la sélection courante.
+        year_override = params.get('carbon_price') if year == horizon else None
         point = _evaluate(
             snapshot, options,
-            carbon_price_delta(scenario, year, reference_year, cache=trajectory_cache),
+            carbon_price_delta(scenario, year, reference_year,
+                                override=year_override, cache=trajectory_cache),
             scenario_value(scenario, KEY_HAZARD_MULTIPLIER, year, cache=trajectory_cache),
         )
         horizon_curve.append({'year': year,
@@ -551,9 +559,15 @@ def get_stress_test_data(company, params=None):
 
     comparison = []
     for other in scenarios:
+        # Même raisonnement : un prix pinné par l'utilisateur pour le scénario
+        # sélectionné n'est pas transposable à la trajectoire d'un autre
+        # scénario ; seule la ligne du scénario réellement sélectionné doit
+        # correspondre au bandeau KPI.
+        other_override = params.get('carbon_price') if other.key == scenario.key else None
         point = _evaluate(
             snapshot, options,
-            carbon_price_delta(other, horizon, reference_year, cache=trajectory_cache),
+            carbon_price_delta(other, horizon, reference_year,
+                                override=other_override, cache=trajectory_cache),
             scenario_value(other, KEY_HAZARD_MULTIPLIER, horizon, cache=trajectory_cache),
         )
         comparison.append({
