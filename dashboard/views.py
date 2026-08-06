@@ -12,9 +12,12 @@ from .models import (
     Company_Revenue, Company_Revenue_Sector, DisclosureRequirement, E4Assessment,
     Exchange, Ownership, Production,
 )
+from .forms import StressTestForm
 from .services.market import get_market_data, DEFAULT_RANGE
 from .services.impacts import build_cf_index, cf_value, CAT_ECOSYSTEM_DIVERSITY
 from .services.supply import TIER_LABELS, TIER_TO_SCOPE
+from .services.hazards import PHYSICAL_RISKS
+from .services.stress_test import get_stress_test_data
 
 from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
 
@@ -51,29 +54,6 @@ _SUBSECTOR_DEP_FIELDS = {
     'pest_control':         'Pest_control_dependency',
     'pollination':          'Pollination_dependency',
 }
-
-PHYSICAL_RISKS = [
-    {'key': 'water', 'name': 'Eau', 'group': 'Services écosystémiques'},
-    {'key': 'pollination', 'name': 'Pollinisation', 'group': 'Services écosystémiques'},
-    {'key': 'soil_quality', 'name': 'Qualité des sols', 'group': 'Services écosystémiques'},
-    {'key': 'carbon_sequestration', 'name': 'Séquestration carbone',
-     'group': 'Services écosystémiques'},
-    {'key': 'water_purification', 'name': "Épuration de l'eau",
-     'group': 'Services écosystémiques'},
-    {'key': 'pest_control', 'name': 'Contrôle des ravageurs',
-     'group': 'Services écosystémiques'},
-    {'key': 'water_stress', 'name': 'Stress hydrique', 'group': 'Aléas climatiques'},
-    {'key': 'wildfire', 'name': 'Incendie', 'group': 'Aléas climatiques'},
-    {'key': 'cyclone', 'name': 'Cyclone', 'group': 'Aléas climatiques'},
-    {'key': 'drought', 'name': 'Sécheresse', 'group': 'Aléas climatiques'},
-    {'key': 'flood', 'name': 'Inondation', 'group': 'Aléas climatiques'},
-    {'key': 'coastal_inundation', 'name': 'Submersion côtière', 'group': 'Aléas climatiques'},
-    {'key': 'heatwave', 'name': 'Canicule', 'group': 'Aléas climatiques'},
-    {'key': 'temperature_variation', 'name': 'Variation de température',
-     'group': 'Aléas climatiques'},
-    {'key': 'precipitation_variation', 'name': 'Variation des précipitations',
-     'group': 'Aléas climatiques'},
-]
 
 # Inventaire mesuré affiché (informatif) sur la vue risque : sous-ensemble de flux.
 _RISK_INVENTORY_KEYS = ('water', 'co2', 'surface_area')
@@ -464,6 +444,7 @@ def _get_mesure_empreinte_data(company):
     productions = list(
         Production.objects.filter(asset_id__in=asset_ids)
         .select_related('commodity', 'asset__country')
+        .order_by('pk')  # ordre déterministe : parité SQLite/PostgreSQL (sankey_links)
     )
     productions = [p for p in productions if latest_years.get(p.asset_id) == p.year]
 
@@ -1759,3 +1740,27 @@ def compliance(request):
 def compliance_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_compliance_data(company))
+
+
+@login_required
+@require_GET
+def climate_stress_test(request):
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    initial_data = None
+    if companies:
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = get_stress_test_data(first)
+    return render(request, 'dashboard/climate_stress_test.html', {
+        'companies': companies,
+        'initial_data': initial_data,
+    })
+
+
+@login_required
+@require_GET
+def climate_stress_test_data(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    form = StressTestForm(data=request.GET)
+    if not form.is_valid():
+        return JsonResponse({'errors': form.errors}, status=400)
+    return JsonResponse(get_stress_test_data(company, form.to_params()))

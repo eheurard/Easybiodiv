@@ -23,6 +23,9 @@ local_settings.py
 media/
 staticfiles/
 
+# Dump de migration de données (temporaire, jamais commité)
+dump.json
+
 # Passenger (fichier de redémarrage recréé à chaque déploiement)
 tmp/
 

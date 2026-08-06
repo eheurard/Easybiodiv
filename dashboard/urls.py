@@ -27,4 +27,8 @@ urlpatterns = [
     path('api/company/<int:pk>/compare/', views.compare_data, name='compare_data'),
     path('compliance/', views.compliance, name='compliance'),
     path('api/company/<int:pk>/compliance/', views.compliance_data, name='compliance_data'),
+    path('climate-stress-test/', views.climate_stress_test,
+         name='climate_stress_test'),
+    path('api/company/<int:pk>/climate-stress-test/',
+         views.climate_stress_test_data, name='climate_stress_test_data'),
 ]

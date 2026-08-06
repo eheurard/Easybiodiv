@@ -517,3 +517,77 @@ class AssetInventory(models.Model):
 
     def __str__(self):
         return f'{self.asset.name} — {self.flow.key} {self.year}'
+
+
+class ClimateScenario(models.Model):
+    """Scénario climatique de référence (NGFS Phase V)."""
+
+    class Family(models.TextChoices):
+        ORDERLY = 'ORDERLY', 'Transition ordonnée'
+        DISORDERLY = 'DISORDERLY', 'Transition désordonnée'
+        TOO_LITTLE = 'TOO_LITTLE', 'Trop peu, trop tard'
+        HOT_HOUSE = 'HOT_HOUSE', 'Monde en surchauffe'
+
+    key = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=255)
+    family = models.CharField(
+        max_length=20, choices=Family.choices, default=Family.ORDERLY
+    )
+    narrative = models.TextField(blank=True)
+    warming_c = models.FloatField(default=0.0)
+    source = models.CharField(max_length=255, blank=True)
+    reference = models.CharField(max_length=255, blank=True)
+    order = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ('order', 'key')
+
+    def __str__(self):
+        return self.name
+
+
+class ScenarioVariable(models.Model):
+    """Point de trajectoire d'un scénario (prix carbone, multiplicateur d'aléa)."""
+
+    class Key(models.TextChoices):
+        CARBON_PRICE = 'carbon_price', 'Prix du carbone (€/tCO₂e)'
+        HAZARD_MULTIPLIER = 'hazard_multiplier', "Multiplicateur d'aléa"
+
+    scenario = models.ForeignKey(
+        ClimateScenario, on_delete=models.CASCADE, related_name='variables'
+    )
+    year = models.IntegerField()
+    key = models.CharField(max_length=30, choices=Key.choices)
+    value = models.FloatField(default=0.0)
+
+    class Meta:
+        unique_together = ('scenario', 'year', 'key')
+        ordering = ('scenario', 'key', 'year')
+
+    def __str__(self):
+        return f'{self.scenario.key} — {self.key} {self.year}'
+
+
+class SectorCreditProfile(models.Model):
+    """Paramètres de crédit et de marge d'un secteur (NACE).
+
+    Sert de valeur par défaut : l'utilisateur peut surcharger la PD initiale et
+    la marge EBITDA à l'écran.
+    """
+
+    sector = models.OneToOneField(
+        Sector, on_delete=models.CASCADE, related_name='credit_profile'
+    )
+    pd_baseline = models.FloatField(default=0.015)
+    ebitda_margin = models.FloatField(default=0.12)
+    ebitda_volatility = models.FloatField(default=0.25)
+    carbon_pass_through = models.FloatField(default=0.30)
+    source = models.CharField(max_length=255, blank=True)
+    reference = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'{self.sector.name} — PD {self.pd_baseline:.2%}'

@@ -69,6 +69,7 @@
             }
           ],
           "region": "Bretagne",
+          "type": "Factory",
           "year": 2024
         },
         "type": "Feature"
@@ -102,6 +103,7 @@
             }
           ],
           "region": "Occitanie",
+          "type": "Factory",
           "year": 2024
         },
         "type": "Feature"
@@ -129,6 +131,7 @@
             }
           ],
           "region": "Mato Grosso",
+          "type": "Factory",
           "year": 2024
         },
         "type": "Feature"
@@ -156,6 +159,7 @@
             }
           ],
           "region": "Pará",
+          "type": "Factory",
           "year": 2024
         },
         "type": "Feature"
@@ -183,6 +187,7 @@
             }
           ],
           "region": "Sumatra",
+          "type": "Factory",
           "year": 2024
         },
         "type": "Feature"

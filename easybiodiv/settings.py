@@ -15,6 +15,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from easybiodiv.db import database_config
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -91,12 +93,11 @@ WSGI_APPLICATION = 'easybiodiv.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# PostgreSQL si DB_NAME est défini dans l'environnement, sinon repli SQLite.
+# Le jour des cartes (PostGIS), basculer ENGINE sur
+# 'django.contrib.gis.db.backends.postgis' (nécessite GDAL/GEOS + CREATE
+# EXTENSION postgis) — voir docs/deploiement-postgresql.md.
+DATABASES = {'default': database_config(os.environ, BASE_DIR)}
 
 
 # Password validation
