@@ -94,9 +94,8 @@ WSGI_APPLICATION = 'easybiodiv.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 # PostgreSQL si DB_NAME est défini dans l'environnement, sinon repli SQLite.
-# Le jour des cartes (PostGIS), basculer ENGINE sur
-# 'django.contrib.gis.db.backends.postgis' (nécessite GDAL/GEOS + CREATE
-# EXTENSION postgis) — voir docs/deploiement-postgresql.md.
+# La production tourne sur SQLite : le PostgreSQL d'o2switch est en 9.6, Django
+# 6.0 exige 14+ — voir docs/deploiement-production.md.
 DATABASES = {'default': database_config(os.environ, BASE_DIR)}
 
 

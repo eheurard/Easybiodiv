@@ -23,4 +23,16 @@ def database_config(env, base_dir):
     return {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': base_dir / 'db.sqlite3',
+        # SQLite sert aussi en production (voir docs/deploiement-production.md).
+        # Passenger lance plusieurs processus sur le même fichier :
+        # - WAL : lectures concurrentes pendant une écriture ;
+        # - synchronous=NORMAL : suffisant avec WAL, bien plus rapide que FULL ;
+        # - IMMEDIATE : prend le verrou d'écriture dès le BEGIN, ce qui évite
+        #   les interblocages de promotion lecture -> écriture ;
+        # - timeout : 20 s d'attente avant « database is locked ».
+        'OPTIONS': {
+            'init_command': 'PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;',
+            'transaction_mode': 'IMMEDIATE',
+            'timeout': 20,
+        },
     }
