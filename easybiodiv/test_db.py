@@ -27,3 +27,10 @@ class DatabaseConfigTests(SimpleTestCase):
         cfg = database_config({}, Path('/base'))
         self.assertEqual(cfg['ENGINE'], 'django.db.backends.sqlite3')
         self.assertEqual(cfg['NAME'], Path('/base') / 'db.sqlite3')
+
+    def test_sqlite_is_tuned_for_multi_process_access(self):
+        """SQLite sert en prod sous Passenger : WAL + verrou d'écriture immédiat."""
+        options = database_config({}, Path('/base'))['OPTIONS']
+        self.assertIn('journal_mode=WAL', options['init_command'])
+        self.assertEqual(options['transaction_mode'], 'IMMEDIATE')
+        self.assertEqual(options['timeout'], 20)
