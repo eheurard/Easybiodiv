@@ -146,6 +146,12 @@ MODEL_KEY_TO_SOURCE = {
 **vide** : les `node_ref` sont locaux au fichier, la résolution est donc
 purement intra-fichier.
 
+Une table `AT_LEAST_ONE_OF` est ajoutée pour exprimer les contraintes que le
+modèle porte dans `clean()` — non appelé par `objects.create()`. Elle sert
+aujourd'hui à `SupplyNode`, qui exige `asset_name`, `subnational_region_name` ou
+`country_name` : sans elle, une ligne ne portant qu'un `node_ref` créerait un
+sommet sans localisation.
+
 `_existing_keys()` est complété pour les nouvelles feuilles ainsi que pour
 `Company_Revenue_Sector`, `ESG_data` et `Carbon_emission`, qui ne bénéficiaient
 d'aucune détection de doublon côté base. `SupplyNode` et `Exchange` renvoient un
