@@ -575,9 +575,13 @@ class AdminTooltipTests(TestCase):
         self.assertContains(self.response, 'eb-help')
 
     def test_l_icone_est_decorative(self):
-        """Non focusable : pas d'arret de tabulation supplementaire par champ."""
-        self.assertContains(self.response, 'eb-help__icon')
-        self.assertNotContains(self.response, 'eb-help__icon" tabindex')
+        """Ni focusable ni annoncee : l'explication passe par l'aria-describedby
+        que Django pose deja sur le champ. Assertion sur le markup exact, donc
+        aucun tabindex ni role ne peut s'y glisser."""
+        self.assertContains(
+            self.response,
+            '<span class="eb-help__icon" aria-hidden="true">?</span>',
+        )
 
     def test_l_ancre_aria_describedby_est_conservee(self):
         """Django pointe aria-describedby vers cet id : il doit survivre."""
@@ -1031,28 +1035,46 @@ Ajouter dans `dashboard/tests_admin_console.py` :
 
 ```python
 from django.apps import apps
+from django.db import models as django_models
 
 
 class ModelLabelTests(TestCase):
-    """Aucune table n'affiche un libelle derive du nom de classe."""
+    """Aucune table, aucun champ n'affiche un libelle derive du nom Python.
+
+    On teste la DECLARATION explicite, jamais la valeur du libelle. Comparer
+    le libelle a son nom auto-derive produirait des faux positifs indelebiles :
+    « Production », « Description », « Latitude » sont des libelles francais
+    corrects et identiques au nom auto-derive, et un test par comparaison
+    exigerait de les remplacer par des libelles faux pour passer au vert.
+    """
+
+    @staticmethod
+    def _modeles_dashboard():
+        return list(apps.get_app_config('dashboard').get_models())
 
     def test_tous_les_modeles_ont_un_verbose_name_explicite(self):
-        """Sinon l'accueil de la console dit « Esg datas »."""
-        manquants = []
-        for model in apps.get_app_config('dashboard').get_models():
-            defaut = model.__name__.replace('_', ' ').lower()
-            if str(model._meta.verbose_name).lower() == defaut:
-                manquants.append(model.__name__)
-        self.assertEqual(sorted(manquants), [])
+        """Sans Meta, l'accueil de la console dit « Esg datas ».
+
+        `Meta.original_attrs` ne contient que les attributs declares a la main.
+        `verbose_name_plural` est exige aussi : la pluralisation automatique de
+        Django ajoute un « s » et donnerait « Payss ».
+        """
+        manquants = sorted(
+            m.__name__ for m in self._modeles_dashboard()
+            if 'verbose_name' not in m._meta.original_attrs
+            or 'verbose_name_plural' not in m._meta.original_attrs
+        )
+        self.assertEqual(manquants, [])
 
     def test_tous_les_champs_ont_un_verbose_name_explicite(self):
+        """`verbose_name` n'apparait dans les kwargs de deconstruct() que s'il
+        a ete passe explicitement au champ."""
         manquants = []
-        for model in apps.get_app_config('dashboard').get_models():
+        for model in self._modeles_dashboard():
             for field in model._meta.get_fields():
-                if not hasattr(field, 'verbose_name') or field.auto_created:
+                if not isinstance(field, django_models.Field) or field.auto_created:
                     continue
-                defaut = field.name.replace('_', ' ').lower()
-                if str(field.verbose_name).lower() == defaut:
+                if 'verbose_name' not in field.deconstruct()[3]:
                     manquants.append(f'{model.__name__}.{field.name}')
         self.assertEqual(sorted(manquants), [])
 ```
@@ -1063,7 +1085,7 @@ class ModelLabelTests(TestCase):
 python manage.py test dashboard.tests_admin_console.ModelLabelTests -v 2
 ```
 
-Attendu : 2 FAIL. Le second liste ~200 champs — **conserver cette liste**, elle sert de checklist pour les étapes suivantes.
+Attendu : 2 FAIL — 30 modèles sans `Meta` explicite et **215 champs** sans `verbose_name`. Ces deux nombres ont été mesurés sur l'état de départ : s'ils diffèrent, le test ne mesure pas ce qu'il croit, ne pas continuer. **Conserver la liste des 215 champs**, elle sert de checklist aux étapes suivantes.
 
 - [ ] **Step 3: Libeller les référentiels (`Country` → `SectorCreditProfile`)**
 
