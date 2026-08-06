@@ -117,24 +117,79 @@ Coût  = ΔP × E × (1 − pass_through)                            €
 - `ΔP` est borné à zéro par le bas : un prix carbone décroissant ne génère pas de
   gain.
 
-### 2.3 Canal physique — agrégation multiplicative bornée
+### 2.3 Canal physique — sévérité moyenne bornée
+
+L'agrégation se fait **par actif**, puis se somme :
 
 ```
-ratio_perte = 1 − Π_aléas ( 1 − min(1, risk_h × vuln_h × λ(scénario, horizon)) )
-Perte       = ratio_perte × exposition_totale
+sévérité(actif)    = min( 1 , moyenne_aléas( risk_h × vuln_h ) × λ(scénario, horizon) )
+Perte              = Σ_actifs  exposition(actif) × δ × sévérité(actif)
+ratio_perte_global = Perte / exposition_totale
 ```
 
-où `exposition_totale` = somme des `estimated_revenue` des actifs détenus par
-l'entreprise sur leur dernière année de production, `risk_h` le score d'aléa de
-l'actif, `vuln_h` la vulnérabilité moyenne des politiques de l'entreprise, et `λ`
-le multiplicateur d'aléa du scénario à l'horizon retenu.
+`δ` = **coefficient de dommage**, constante documentée, défaut **0,10** : la
+fraction du chiffre d'affaires exposé réellement perdue sur un an lorsque la
+sévérité vaut 1. C'est la *fonction de dommage* des méthodes MSCI Climate VaR et
+Trucost. Sans elle, un indice de sévérité de 0,64 signifierait « 64 % du chiffre
+d'affaires perdu chaque année », ce qui n'est pas ce que mesurent les scores
+`risk_*`.
+
+où `exposition(actif)` = `estimated_revenue` de l'actif sur sa dernière année de
+production, `risk_h` le score d'aléa de cet actif, `vuln_h` la vulnérabilité
+moyenne des politiques de l'entreprise, et `λ` le multiplicateur d'aléa du
+scénario à l'horizon retenu. La moyenne porte sur **les 15 aléas du panel**, pas
+seulement sur les aléas non nuls : un score nul signifie « cet actif n'est pas
+exposé à cet aléa », et doit peser dans la moyenne.
+
+Appliquer les 15 aléas de **tous** les actifs à l'exposition **totale** ferait
+croître le dommage avec le simple nombre d'actifs ; la perte reste ici bornée par
+l'exposition, actif par actif.
+
+### Pourquoi la moyenne, et non une composition d'événements indépendants
+
+Une première version de cette spec agrégeait les aléas multiplicativement,
+`1 − Π(1 − risk_h × vuln_h × λ)`, au motif que cette forme est bornée dans [0,1]
+— contrairement à la somme employée par la page Risque physique, qui peut
+dépasser 100 % du chiffre d'affaires.
+
+**Cette forme a été mesurée sur les données réelles et rejetée.** Elle est
+bornée, mais elle *sature* : sur 15 facteurs, `0,82¹⁵ ≈ 0,05`. Sur ACME, à
+λ = 1,1, un actif dont le pire aléa vaut 0,35 ressortait à **96,7 % de perte**,
+et quatre actifs sur huit à exactement 100 % — produisant une PD stressée de
+99,99999 % sous *tous* les scénarios. Une métrique qui sature n'a aucun pouvoir
+discriminant ; elle est aussi inexploitable qu'une métrique non bornée.
+
+La faute de raisonnement est identifiable : les scores `risk_*` sont des
+**indices de sévérité relative**, pas des probabilités annuelles de perte
+totale. Les composer comme des événements indépendants est une erreur de modèle.
+La moyenne les traite pour ce qu'ils sont — une sévérité moyenne sur un panel
+d'aléas de taille fixe — ne sature pas, ne dépend pas du nombre de colonnes
+d'aléas, et n'introduit aucun coefficient de calibration arbitraire.
+
+Sévérités obtenues sur le jeu `populate_acme` à λ = 1,1 : Usine de
+transformation Bretagne 21,4 %, Silo céréalier Occitanie 40,5 %, Plantation soja
+Mato Grosso 64,5 %, Palmeraie Sumatra 75,2 %, Plantation soja Pará 78,5 %. Les
+actifs amazoniens et indonésiens restent lourdement touchés, ce qui est le
+résultat attendu pour du soja et du palmier à huile.
+
+### Pourquoi un coefficient de dommage est nécessaire
+
+La sévérité seule, appliquée au chiffre d'affaires exposé puis rapportée à
+l'EBITDA, produit encore un choc inexploitable : sur ACME, une sévérité moyenne
+pondérée de ≈ 64 % du CA représente **5,6 fois** l'EBITDA, avec une marge de
+11,4 %. Le décalage latent est alors écrêté par `MAX_SHOCK_SIGMA` et la PD
+ressort à 100 % quel que soit le scénario — la saturation réapparaît un cran
+plus loin dans la chaîne.
+
+`δ` corrige l'amplification chiffre d'affaires → marge en disant ce que la
+sévérité coûte réellement. C'est un paramètre libre, assumé comme tel : il est
+consigné dans la table d'hypothèses affichée à l'utilisateur, avec sa source.
 
 **Divergence assumée avec la page Risque physique.** Celle-ci *somme* les
 contributions des 15 aléas (`Σ hazard × expo × vuln`), ce qui peut produire une
 perte supérieure à 100 % du chiffre d'affaires. Inoffensif pour un classement
-d'aléas, inacceptable pour alimenter une PD. L'agrégation multiplicative est
-naturellement bornée dans [0,1] et correspond à la combinaison standard de
-probabilités de dommage indépendants.
+d'aléas, inacceptable pour alimenter une PD. La sévérité moyenne est bornée par
+construction et conserve son pouvoir discriminant entre actifs.
 
 **Conséquence acceptée** : les deux pages afficheront des pertes physiques
 différentes. Elle sera signalée dans l'infobulle du canal physique.
@@ -197,6 +252,31 @@ Table de correspondance PD → notation indicative (AAA … CCC), **constante Py
 dans le service : c'est une convention d'affichage, pas une donnée métier à
 éditer. Affichée comme « équivalent indicatif », jamais comme une notation
 attribuée.
+
+### 2.7 Cas ACME : un profil de démonstration délibérément extrême
+
+La revue finale de branche a mesuré, sur ACME, la PD stressée aux 5 scénarios ×
+3 horizons (15 combinaisons) : elle s'étale de **51 % à 94 %**, avec un
+équivalent notation **CCC dans les 15 cas**. Le choc reste toutefois loin du
+plafond du modèle : `shock_sigma` va de **2,20 à 3,75**, contre un plafond
+`MAX_SHOCK_SIGMA = 8.0` — aucune saturation numérique n'est en jeu.
+
+**Cause identifiée.** La marge EBITDA d'ACME (11,4 % — cf. §2.3, « Pourquoi un
+coefficient de dommage est nécessaire ») est mince, et son exposition combine
+une forte part d'actifs en Amazonie (Mato Grosso, Pará) et à Sumatra
+(Indonésie), les zones les plus sévèrement touchées par les aléas physiques
+retenus (§2.3). Un choc de coût carbone et de perte physique qui représenterait
+une fraction raisonnable du chiffre d'affaires devient, rapporté à une marge
+aussi mince, un choc élevé en écarts-types d'EBITDA — donc une PD stressée
+élevée par construction de la chaîne de calcul, pas par un artefact numérique.
+
+**Décision.** Ce comportement est accepté tel quel. ACME est un profil de
+démonstration délibérément extrême (marge mince + exposition à haut risque
+physique cumulées), pas un cas représentatif de la base installée ; le résultat
+est cohérent avec la méthodologie et ne révèle aucun défaut de calibration des
+constantes (`PHYSICAL_DAMAGE_FACTOR`, `MAX_SHOCK_SIGMA`, profils sectoriels).
+Aucune donnée `populate_acme` ni aucune constante du service n'est modifiée à
+la suite de ce constat.
 
 ---
 
@@ -274,7 +354,7 @@ séparées :
 
 ```python
 def carbon_cost(emissions_t, delta_price, pass_through) -> float
-def physical_loss_ratio(hazard_pairs, multiplier)      -> float
+def hazard_severity_ratio(hazard_pairs, multiplier)    -> float
 def shock_to_pd(pd_baseline, shock, sigma)             -> float
 def pd_to_rating(pd)                                   -> str
 ```
@@ -395,6 +475,8 @@ Documenté dans l'infobulle du graphique.
 **Créés**
 
 - `dashboard/services/stress_test.py`
+- `dashboard/services/hazards.py` — `PHYSICAL_RISKS` déplacé depuis `views.py`,
+  pour être importable par le service sans créer de cycle `views` ↔ `services`
 - `dashboard/forms.py`
 - `dashboard/templates/dashboard/climate_stress_test.html`
 - `dashboard/static/dashboard/js/climate_stress_test.js`
@@ -405,7 +487,9 @@ Documenté dans l'infobulle du graphique.
 **Modifiés**
 
 - `dashboard/models.py` — 3 modèles
-- `dashboard/views.py` — 2 vues fines
+- `dashboard/views.py` — 2 vues fines ; `PHYSICAL_RISKS` ré-importé depuis
+  `services/hazards.py` au lieu d'y être défini (déplacement neutre, couvert par
+  les tests existants)
 - `dashboard/urls.py` — 2 routes (`climate_stress_test`, `climate_stress_test_data`)
 - `dashboard/admin.py` — enregistrement des 3 modèles
 - `templates/base.html` — sous-item de navigation
@@ -433,7 +517,7 @@ Documenté dans l'infobulle du graphique.
 
 ## 7. Hors périmètre
 
-- Alignement de la page Risque physique sur l'agrégation multiplicative (§2.3).
+- Alignement de la page Risque physique sur la sévérité moyenne (§2.3).
 - Persistance des exécutions (`StressTestRun`) et historique.
 - Import des trajectoires NGFS depuis un export du portail (app `imports`).
 - Canal biodiversité adossé à la dette écologique.

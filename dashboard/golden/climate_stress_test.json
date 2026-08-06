@@ -1,0 +1,233 @@
+{
+  "assumptions": [
+    {
+      "label": "Scénario",
+      "reference": "Valeurs indicatives cohérentes avec les narratifs NGFS — à recaler sur https://www.ngfs.net/ngfs-scenarios-portal/",
+      "source": "NGFS — Climate Scenarios for Central Banks and Supervisors, Phase V (nov. 2024)",
+      "value": "Net Zero 2050"
+    },
+    {
+      "label": "Horizon",
+      "reference": "",
+      "source": "",
+      "value": "2030"
+    },
+    {
+      "label": "Prix du carbone à l’horizon",
+      "reference": "Valeurs indicatives cohérentes avec les narratifs NGFS — à recaler sur https://www.ngfs.net/ngfs-scenarios-portal/",
+      "source": "NGFS — Climate Scenarios for Central Banks and Supervisors, Phase V (nov. 2024)",
+      "value": "190 €/tCO₂e"
+    },
+    {
+      "label": "Prix du carbone de référence",
+      "reference": "Valeurs indicatives cohérentes avec les narratifs NGFS — à recaler sur https://www.ngfs.net/ngfs-scenarios-portal/",
+      "source": "NGFS — Climate Scenarios for Central Banks and Supervisors, Phase V (nov. 2024)",
+      "value": "80 €/tCO₂e"
+    },
+    {
+      "label": "Multiplicateur d'aléa physique",
+      "reference": "Valeurs indicatives cohérentes avec les narratifs NGFS — à recaler sur https://www.ngfs.net/ngfs-scenarios-portal/",
+      "source": "NGFS — Climate Scenarios for Central Banks and Supervisors, Phase V (nov. 2024)",
+      "value": "1.10"
+    },
+    {
+      "label": "Périmètre des émissions",
+      "reference": "",
+      "source": "Choix utilisateur",
+      "value": "Scopes 1+2"
+    },
+    {
+      "label": "Transmission du scope 3 amont",
+      "reference": "Traitement Trucost CEaR / MSCI Climate VaR",
+      "source": "Constante Easybiodiv",
+      "value": "50%"
+    },
+    {
+      "label": "Coefficient de dommage physique",
+      "reference": "Fonction de dommage au sens MSCI Climate VaR / Trucost ; part du CA exposé perdue à sévérité 1",
+      "source": "Constante Easybiodiv",
+      "value": "10%"
+    },
+    {
+      "label": "Répercussion du coût carbone",
+      "reference": "",
+      "source": "Profil sectoriel ou choix utilisateur",
+      "value": "25%"
+    },
+    {
+      "label": "Marge EBITDA",
+      "reference": "",
+      "source": "Profil sectoriel ou choix utilisateur",
+      "value": "11.4%"
+    },
+    {
+      "label": "Volatilité d'EBITDA",
+      "reference": "",
+      "source": "Profil sectoriel",
+      "value": "26%"
+    },
+    {
+      "label": "PD initiale",
+      "reference": "",
+      "source": "Profil sectoriel pondéré ou choix utilisateur",
+      "value": "1.49%"
+    }
+  ],
+  "channels": {
+    "physical": {
+      "loss_eur": 28618230.67,
+      "loss_ratio": 0.0632,
+      "pct_ebitda": 0.555,
+      "shock_sigma": 2.142
+    },
+    "transition": {
+      "cost_eur": 2796654.0,
+      "pct_ebitda": 0.0542,
+      "shock_sigma": 0.2093
+    }
+  },
+  "company_id": 1,
+  "company_name": "Acme Corp",
+  "horizon_curve": [
+    {
+      "pd": 0.570507,
+      "year": 2030
+    },
+    {
+      "pd": 0.779944,
+      "year": 2040
+    },
+    {
+      "pd": 0.901514,
+      "year": 2050
+    }
+  ],
+  "inputs": {
+    "asset_count": 5,
+    "ebitda_proxy": 51564000.0,
+    "emissions": {
+      "retained": 34000.0,
+      "scope1": 22000.0,
+      "scope2": 12000.0,
+      "scope3": 70000.0
+    },
+    "exposure": 452600000.0,
+    "revenue": 452600000.0
+  },
+  "reference_year": 2024,
+  "result": {
+    "delta_bps": 5556.4,
+    "multiple": 38.38,
+    "pd_baseline": 0.014866,
+    "pd_stressed": 0.570507,
+    "rating_baseline": "BB",
+    "rating_stressed": "CCC",
+    "shock_ratio": 0.6092,
+    "shock_sigma": 2.3513
+  },
+  "scenario_comparison": [
+    {
+      "delta_bps": 5556.4,
+      "key": "NET_ZERO_2050",
+      "name": "Net Zero 2050",
+      "pd": 0.570507
+    },
+    {
+      "delta_bps": 4952.8,
+      "key": "BELOW_2C",
+      "name": "Below 2 °C",
+      "pd": 0.510145
+    },
+    {
+      "delta_bps": 5151.2,
+      "key": "DELAYED_TRANSITION",
+      "name": "Delayed Transition",
+      "pd": 0.529981
+    },
+    {
+      "delta_bps": 5611.1,
+      "key": "FRAGMENTED_WORLD",
+      "name": "Fragmented World",
+      "pd": 0.575978
+    },
+    {
+      "delta_bps": 5915.3,
+      "key": "CURRENT_POLICIES",
+      "name": "Current Policies",
+      "pd": 0.6064
+    }
+  ],
+  "scenarios": [
+    {
+      "family": "ORDERLY",
+      "family_label": "Transition ordonnée",
+      "key": "NET_ZERO_2050",
+      "name": "Net Zero 2050",
+      "narrative": "Politiques climatiques ambitieuses et immédiates, neutralité carbone atteinte vers 2050. Risque de transition élevé mais anticipé, risque physique contenu.",
+      "warming_c": 1.5
+    },
+    {
+      "family": "ORDERLY",
+      "family_label": "Transition ordonnée",
+      "key": "BELOW_2C",
+      "name": "Below 2 °C",
+      "narrative": "Durcissement progressif des politiques, réchauffement limité sous 2 °C. Transition graduelle, risques répartis dans le temps.",
+      "warming_c": 1.7
+    },
+    {
+      "family": "DISORDERLY",
+      "family_label": "Transition désordonnée",
+      "key": "DELAYED_TRANSITION",
+      "name": "Delayed Transition",
+      "narrative": "Aucune baisse des émissions avant 2030, puis politiques abruptes pour tenir la cible. Choc de transition tardif et brutal.",
+      "warming_c": 1.8
+    },
+    {
+      "family": "TOO_LITTLE",
+      "family_label": "Trop peu, trop tard",
+      "key": "FRAGMENTED_WORLD",
+      "name": "Fragmented World",
+      "narrative": "Ambition climatique divergente selon les pays ; les objectifs net zéro ne sont atteints que partiellement. Risques de transition ET physiques élevés.",
+      "warming_c": 2.3
+    },
+    {
+      "family": "HOT_HOUSE",
+      "family_label": "Monde en surchauffe",
+      "key": "CURRENT_POLICIES",
+      "name": "Current Policies",
+      "narrative": "Seules les politiques déjà en vigueur sont maintenues. Risque de transition faible, risque physique sévère et croissant.",
+      "warming_c": 3.0
+    }
+  ],
+  "selected": {
+    "carbon_price": 190.0,
+    "carbon_price_reference": 80.0,
+    "ebitda_margin": 0.1139,
+    "ebitda_volatility": 0.2591,
+    "hazard_multiplier": 1.1,
+    "horizon": 2030,
+    "include_scope3": false,
+    "pass_through": 0.2522,
+    "pd_baseline": 0.014866,
+    "scenario": "NET_ZERO_2050",
+    "scope3_transmission": 0.5
+  },
+  "warnings": [],
+  "waterfall": [
+    {
+      "delta_bps": 0.0,
+      "label": "PD initiale",
+      "pd": 0.014866
+    },
+    {
+      "delta_bps": 98.8,
+      "label": "Transition",
+      "pd": 0.024747
+    },
+    {
+      "delta_bps": 5457.6,
+      "label": "Physique",
+      "pd": 0.570507
+    }
+  ]
+}
