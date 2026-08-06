@@ -54,7 +54,8 @@ Fichiers créés :
 |---|---|
 | `dashboard/admin_site.py` | `EasybiodivAdminSite` + table `GROUPS` |
 | `dashboard/apps.py` (modifié) | `EasybiodivAdminConfig` avec `default_site` |
-| `templates/admin/base_site.html` | Branding + chargement du CSS de thème |
+| `templates/admin/base_site.html` | Branding, CSS de thème, neutralisation du mode sombre |
+| `templates/admin/color_theme_toggle.html` | Vide — retire le sélecteur de thème |
 | `templates/admin/app_list.html` | En-tête de groupe non cliquable |
 | `templates/admin/includes/fieldset.html` | `help_text` → bulle `(?)` |
 | `dashboard/static/dashboard/css/admin-easybiodiv.css` | Thème + styles de bulle |
@@ -302,20 +303,26 @@ quarantaine de lignes, au lieu de centaines de surcharges de sélecteurs.
 
 ### Mode sombre : console mono-thème assumée
 
-`dark_mode.css` de Django déclare sa palette à la fois dans
-`@media (prefers-color-scheme: dark) { :root {…} }` et dans `html[data-theme="dark"] {…}`.
-Ce second sélecteur a une spécificité de 0,1,1 et battrait un simple `:root`, quel que soit
-l'ordre de chargement.
-
 Le dashboard Easybiodiv n'a aucun mode sombre (zéro occurrence de `prefers-color-scheme` ou
-`data-theme` dans `style.css`). Pour rester cohérent, les variables du thème sont donc
-déclarées sur `:root, html[data-theme="dark"], html[data-theme="light"]` avec les mêmes
-valeurs. Sans cela, un superuser dont l'OS est en thème sombre verrait l'admin bleu-gris de
-Django au lieu de la console Easybiodiv.
+`data-theme` dans `style.css`). La console suit, sinon un superuser dont l'OS est en thème
+sombre verrait l'admin bleu-gris de Django au lieu de la console Easybiodiv.
 
-Conséquence assumée : le sélecteur de thème de l'admin devient sans effet, il est donc
-masqué (`.theme-toggle { display: none; }`). Un contrôle absent vaut mieux qu'un contrôle
-mort.
+`dark_mode.css` déclare sa palette dans `@media (prefers-color-scheme: dark) { :root {…} }`
+**et** dans `html[data-theme="dark"] {…}`, dont la spécificité de 0,1,1 battrait un simple
+`:root` quel que soit l'ordre de chargement. Plutôt que de dupliquer les variables sous les
+trois sélecteurs pour gagner cette bataille, on coupe à la racine — `admin/base.html` charge
+la feuille et son script dans un bloc dédié :
+
+```django
+{% block dark-mode-vars %}{% endblock %}
+```
+
+Ni `dark_mode.css` ni `theme.js` ne sont alors chargés : aucun conflit de spécificité, et
+`admin-easybiodiv.css` n'a qu'un bloc `:root` à écrire.
+
+Le sélecteur de thème devient sans objet. Il vit dans son propre template
+`admin/color_theme_toggle.html`, inclus par `base.html` — un override **vide** le fait
+disparaître, ce qui vaut mieux qu'un `display: none` sur un contrôle qui ne fait plus rien.
 
 ### `LANGUAGE_CODE = 'fr-fr'`
 
@@ -366,6 +373,11 @@ python manage.py makemigrations dashboard --name libelles_metier_console
 
 Nouveau fichier, suivant la convention à plat du projet (`tests.py`,
 `tests_stress_test.py`).
+
+**Runner :** `django.test.TestCase` et `python manage.py test`. À noter, contrairement à ce
+qu'annonce [CLAUDE.md](../../../CLAUDE.md) : `pytest` n'est ni dans `requirements.txt` ni
+installé dans `.venv`, et aucun fichier de configuration pytest n'existe. Les tests
+existants sont tous en `TestCase`. On suit l'existant plutôt que d'ajouter une dépendance.
 
 | Test | Ce qu'il protège |
 |---|---|
@@ -423,7 +435,8 @@ suite naturelle de ce chantier, pas comme un reste optionnel.
   échec de test, pas une table invisible.
 - **Icône de tooltip décorative.** Évite ~30 arrêts de tabulation par formulaire ;
   l'accessibilité passe par l'`aria-describedby` que Django pose déjà.
-- **Console mono-thème.** Cohérent avec un dashboard sans mode sombre, et nécessaire vu la
-  spécificité de `html[data-theme="dark"]`.
+- **Console mono-thème, par neutralisation du bloc `dark-mode-vars`** plutôt que par
+  duplication des variables sous `html[data-theme]`. Supprime le conflit au lieu de le
+  gagner.
 - **`DisclosureRequirement` reste en inline.** C'est un enfant d'agrégat, pas un
   référentiel.
