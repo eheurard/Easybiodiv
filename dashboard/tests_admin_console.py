@@ -1,7 +1,10 @@
 """Tests de la console de donnees superuser (/admin durci et habille)."""
+from django.contrib import admin as django_admin
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+
+from dashboard.models import Currency, ESG_data
 
 User = get_user_model()
 
@@ -50,3 +53,13 @@ class AdminAccessTests(TestCase):
         self.client.force_login(self.superuser)
         response = self.client.get(reverse('admin:index'))
         self.assertContains(response, 'Console de données')
+
+
+class AdminCoverageTests(TestCase):
+    """Les tables editables le restent."""
+
+    def test_currency_est_enregistre(self):
+        self.assertIn(Currency, django_admin.site._registry)
+
+    def test_esg_data_est_enregistre(self):
+        self.assertIn(ESG_data, django_admin.site._registry)
