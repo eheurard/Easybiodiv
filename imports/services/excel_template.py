@@ -3,14 +3,24 @@ import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
 
 from dashboard.models import (
-    Asset, Commodity, Company, Country, Currency, Policy_Level, Policy_Subcategory,
-    Policy_Type, Sector, SubnationalRegion, SubSector,
+    Asset, ClimateScenario, Commodity, Company, Country, Currency, Flow,
+    ImpactCategory, Policy_Level, Policy_Subcategory, Policy_Type, Sector,
+    SubnationalRegion, SubSector,
 )
-from .constants import SHEET_COLUMNS
+from .constants import CHOICE_FIELDS, SHEET_COLUMNS
 
 _HEADER_FILL = PatternFill(start_color='1F7A4A', end_color='1F7A4A', fill_type='solid')
 _HEADER_FONT = Font(bold=True, color='FFFFFF')
 _HEADER_ALIGN = Alignment(horizontal='center')
+
+# Énumérations qui ne sont pas déjà portées par CHOICE_FIELDS, ou dont la
+# formulation aide au remplissage.
+_EXTRA_ENUMS = {
+    'Codes de dépendance': ['VL', 'L', 'M', 'H', 'VH'],
+    'Classes de perte de biodiversité': ['Agriculture', 'Urbanisation', 'Mining'],
+    'Niveaux de tier': ['0 (direct)', '1', '2', '3 (matière première)'],
+    'Booléens': ['TRUE', 'FALSE'],
+}
 
 
 def build_template():
@@ -35,13 +45,33 @@ def build_template():
     return buffer
 
 
+def _write_column(ws, col_idx, title, sections):
+    """Write a titled stack of (section_name, values) blocks in one column."""
+    cell = ws.cell(row=1, column=col_idx, value=title)
+    cell.font = _HEADER_FONT
+    cell.fill = _HEADER_FILL
+
+    row = 2
+    bold = Font(bold=True)
+    for section_name, values in sections:
+        ws.cell(row=row, column=col_idx, value=section_name).font = bold
+        row += 1
+        for value in values:
+            ws.cell(row=row, column=col_idx, value=value)
+            row += 1
+        row += 1
+
+
 def _build_reference_sheet(wb):
     ws = wb.create_sheet('_Référence')
-    bold = Font(bold=True)
-    sections = [
+
+    db_sections = [
         ('Countries', Country.objects.values_list('name', flat=True)),
         ('SubnationalRegions', SubnationalRegion.objects.values_list('name', flat=True)),
         ('Commodities', Commodity.objects.values_list('name', flat=True)),
+        ('ImpactCategories (category_key)',
+         ImpactCategory.objects.values_list('key', flat=True)),
+        ('Flows (flow_key)', Flow.objects.values_list('key', flat=True)),
         ('Policy_Types', Policy_Type.objects.values_list('name', flat=True)),
         ('Policy_Subcategories', Policy_Subcategory.objects.values_list('name', flat=True)),
         ('Policy_Levels', Policy_Level.objects.values_list('name', flat=True)),
@@ -50,12 +80,20 @@ def _build_reference_sheet(wb):
         ('SubSectors', SubSector.objects.values_list('name', flat=True)),
         ('Companies', Company.objects.values_list('name', flat=True)),
         ('Assets', Asset.objects.values_list('name', flat=True)),
+        ('ClimateScenarios (scenario_key)',
+         ClimateScenario.objects.values_list('key', flat=True)),
     ]
-    row = 1
-    for section_name, qs in sections:
-        ws.cell(row=row, column=1, value=section_name).font = bold
-        row += 1
-        for name in qs:
-            ws.cell(row=row, column=1, value=name)
-            row += 1
-        row += 1
+
+    enum_sections = [
+        ("Asset — type", CHOICE_FIELDS['Asset']['type']),
+        ("Asset — sensitive_zone_type", CHOICE_FIELDS['Asset']['sensitive_zone_type']),
+        ("Exchange — data_confidence", CHOICE_FIELDS['Exchange']['data_confidence']),
+        ("ClimateScenario — family", CHOICE_FIELDS['ClimateScenario']['family']),
+        ("ScenarioVariable — key", CHOICE_FIELDS['ScenarioVariable']['key']),
+    ] + list(_EXTRA_ENUMS.items())
+
+    _write_column(ws, 1, 'Valeurs enregistrées en base', db_sections)
+    _write_column(ws, 3, 'Valeurs autorisées', enum_sections)
+
+    ws.column_dimensions['A'].width = 46
+    ws.column_dimensions['C'].width = 46
