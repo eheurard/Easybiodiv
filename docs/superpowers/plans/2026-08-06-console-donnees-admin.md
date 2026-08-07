@@ -891,11 +891,22 @@ Ajouter dans `docs/deploiement-production.md`, à la section des étapes de mise
 
 ```markdown
 - `python manage.py collectstatic --noinput` — obligatoire à chaque déploiement
-  touchant les statiques. `STATICFILES_STORAGE` est
-  `CompressedManifestStaticFilesStorage` : un fichier absent du manifeste fait
-  lever une erreur à `{% static %}`, et non un simple 404. La console de données
-  charge `dashboard/css/admin-easybiodiv.css`.
+  touchant les statiques. La console de données charge un fichier de plus,
+  `dashboard/css/admin-easybiodiv.css`, en supplément des statiques de
+  `django.contrib.admin`.
 ```
+
+**Ne rien écrire de plus que ça dans le doc, et ne pas toucher aux settings de statiques.**
+Mesuré sur cet environnement : `STATICFILES_STORAGE` est présent dans
+`easybiodiv/settings.py` mais **Django 6.0 ne le lit pas** — le réglage a été supprimé en
+Django 5.1 au profit de `STORAGES`. `STORAGES['staticfiles']` vaut donc le
+`StaticFilesStorage` par défaut, et la compression comme le hachage de WhiteNoise ne
+s'appliquent pas. C'est un défaut de production pré-existant, réel mais **hors périmètre de
+ce plan** : le corriger changerait le nommage des fichiers servis en production. Le
+signaler dans le rapport de tâche, ne pas le réparer ici.
+
+Conséquence pratique pour toi : `{% static %}` résout sans manifeste, donc le test du
+chargement du CSS passe sans avoir à lancer `collectstatic`.
 
 - [ ] **Step 8: Lancer les tests et vérifier qu'ils passent**
 
