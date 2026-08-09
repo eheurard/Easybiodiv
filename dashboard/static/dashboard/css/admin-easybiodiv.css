@@ -40,6 +40,19 @@
   --selected-bg: #eae8e3;
   --selected-row: #f5f3ee;
 
+  /* Django code son seul bleu en dur ici (hors var(--secondary)), sur les
+     boutons : --button-hover-bg et --default-button-bg valent #205067 dans
+     base.css, jamais autre chose. Sans ces deux lignes, le bouton "Enregistrer"
+     — le CTA le plus visible de chaque formulaire — resterait bleu Django.
+     Palette du projet uniquement (design.md) : secondaire #865220 pour le
+     survol/focus/actif des boutons ordinaires, on-secondary-container #784714
+     (le ton le plus sombre autorise) pour le bouton par defaut au repos, qui
+     doit rester visuellement plus marquant qu'un bouton ordinaire meme survole.
+     --default-button-hover-bg n'a pas besoin d'etre repris : il vaut deja
+     var(--secondary) dans base.css, donc herite de notre terre cuite. */
+  --button-hover-bg: #865220;
+  --default-button-bg: #784714;
+
   --font-family-primary: 'Inter', system-ui, sans-serif;
 }
 

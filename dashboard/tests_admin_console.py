@@ -1,4 +1,7 @@
 """Tests de la console de donnees superuser (/admin durci et habille)."""
+import re
+from pathlib import Path
+
 from django.contrib import admin as django_admin
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory, TestCase
@@ -189,3 +192,35 @@ class AdminThemeTests(TestCase):
 
     def test_le_selecteur_de_theme_est_retire(self):
         self.assertNotContains(self.response, 'theme-toggle')
+
+
+class AdminThemeButtonVariablesTests(TestCase):
+    """Aucune variable de bouton de base.css ne doit laisser filtrer le bleu
+    Django : ce bleu n'existe qu'en dur, sur une poignee de variables, jamais
+    via var(--secondary). Recensement dynamique plutot que liste figee : si
+    une future version de Django ajoute une troisieme variable bleue, ce test
+    doit echouer au lieu de laisser passer un bouton Django au milieu de la
+    console terre cuite.
+    """
+
+    def test_toutes_les_variables_bleues_de_base_css_sont_redefinies(self):
+        base_css_path = (
+            Path(django_admin.__file__).resolve().parent
+            / 'static' / 'admin' / 'css' / 'base.css'
+        )
+        base_css = base_css_path.read_text(encoding='utf-8')
+        variables_bleues = re.findall(r'(--[\w-]+):\s*#205067\s*;', base_css)
+        # Garde-fou sur le garde-fou : si la regex ne trouve plus rien, le
+        # test passerait a vide sans plus rien verifier.
+        self.assertTrue(variables_bleues, "aucune variable bleue trouvee dans base.css")
+
+        theme_css_path = (
+            Path(__file__).resolve().parent
+            / 'static' / 'dashboard' / 'css' / 'admin-easybiodiv.css'
+        )
+        theme_css = theme_css_path.read_text(encoding='utf-8')
+        manquantes = [
+            variable for variable in variables_bleues
+            if not re.search(rf'{re.escape(variable)}\s*:', theme_css)
+        ]
+        self.assertEqual(manquantes, [])
