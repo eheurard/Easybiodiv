@@ -29,9 +29,11 @@
                     {% if field.field.help_text %}
                         {# Bulle explicative. L'icone est decorative : l'ouverture se
                            fait au survol ET au focus du champ (.form-row:focus-within),
-                           ce qui evite un arret de tabulation par champ. Le texte reste
-                           dans l'arbre d'accessibilite (opacity/visibility, jamais
-                           display:none) car Django y pointe via aria-describedby. #}
+                           ce qui evite un arret de tabulation par champ. Masquage par
+                           opacity/visibility, jamais display:none : display ne se
+                           transitionne pas. Ce qui doit réellement survivre, c'est l'id
+                           _helptext ci-dessous, cible de l'aria-describedby que Django
+                           pose sur le champ. #}
                         <span class="eb-help{% if field.field.is_hidden %} hidden{% endif %}">
                             <span class="eb-help__icon" aria-hidden="true">?</span>
                             <span class="eb-help__bubble"{% if field.field.id_for_label %} id="{{ field.field.id_for_label }}_helptext"{% endif %}>{{ field.field.help_text|safe }}</span>

@@ -160,3 +160,32 @@ class AdminTooltipTests(TestCase):
 
     def test_le_css_de_la_console_est_charge(self):
         self.assertContains(self.response, 'admin-easybiodiv.css')
+
+
+class AdminThemeTests(TestCase):
+    """Console aux couleurs Easybiodiv, en francais, mono-theme."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.superuser = User.objects.create_superuser(
+            username='root4', email='root4@example.com', password='pwd-root-123',
+        )
+
+    def setUp(self):
+        self.client.force_login(self.superuser)
+        self.response = self.client.get(reverse('admin:index'))
+
+    def test_le_chrome_est_en_francais(self):
+        self.assertContains(self.response, 'Déconnexion')
+
+    def test_la_langue_du_document_est_le_francais(self):
+        self.assertContains(self.response, 'lang="fr-fr"')
+
+    def test_le_mode_sombre_de_django_n_est_pas_charge(self):
+        self.assertNotContains(self.response, 'dark_mode.css')
+
+    def test_le_script_de_theme_n_est_pas_charge(self):
+        self.assertNotContains(self.response, 'theme.js')
+
+    def test_le_selecteur_de_theme_est_retire(self):
+        self.assertNotContains(self.response, 'theme-toggle')

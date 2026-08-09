@@ -78,6 +78,11 @@ Le déploiement est piloté par `.cpanel.yml` (`migrate`, `collectstatic`, puis
 `touch tmp/restart.txt`). Dans cPanel : **Git Version Control → Update from
 Remote**.
 
+- `python manage.py collectstatic --noinput` — obligatoire à chaque déploiement
+  touchant les statiques. La console de données charge un fichier de plus,
+  `dashboard/css/admin-easybiodiv.css`, en supplément des statiques de
+  `django.contrib.admin`.
+
 Si cPanel affiche *« The system cannot deploy »*, le blocage est presque toujours
 la seconde condition, pas le `.cpanel.yml`. Dans le Terminal cPanel :
 

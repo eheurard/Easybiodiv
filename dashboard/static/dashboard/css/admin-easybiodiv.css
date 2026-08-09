@@ -1,5 +1,47 @@
-/* Console de donnees Easybiodiv — surcouche de django.contrib.admin.
-   Le theme (variables) est ajoute par une tache ulterieure. */
+/* Console de donnees Easybiodiv — surcouche de django.contrib.admin. */
+
+/* ── Theme : redefinition des variables de base.css de Django ─────────────
+   Les 49 variables du bloc :root de admin/css/base.css pilotent tout le
+   chrome. Un simple :root suffit ici parce que base_site.html ne charge pas
+   dark_mode.css — sinon html[data-theme="dark"] l'emporterait.
+   Valeurs reprises de dashboard/static/dashboard/css/style.css. */
+
+:root {
+  --primary: #91452d;
+  --secondary: #91452d;
+  --accent: #af5d43;
+  --primary-fg: #ffffff;
+
+  --body-fg: #1b1c19;
+  --body-bg: #fbf9f4;
+  --body-quiet-color: #54433e;
+  --body-medium-color: #54433e;
+  --body-loud-color: #1b1c19;
+
+  --header-color: #ffffff;
+  --header-branding-color: #ffffff;
+  --header-bg: #91452d;
+  --header-link-color: #ffffff;
+
+  --breadcrumbs-fg: #fffaf9;
+  --breadcrumbs-link-fg: #ffffff;
+  --breadcrumbs-bg: #af5d43;
+
+  --link-fg: #91452d;
+  --link-hover-color: #af5d43;
+  --link-selected-fg: #91452d;
+
+  --hairline-color: #e4e2dd;
+  --border-color: #dac1ba;
+
+  --error-fg: #ba1a1a;
+
+  --darkened-bg: #f0eee9;
+  --selected-bg: #eae8e3;
+  --selected-row: #f5f3ee;
+
+  --font-family-primary: 'Inter', system-ui, sans-serif;
+}
 
 /* ── Bulles explicatives (help_text) ──────────────────────────────────── */
 
@@ -24,8 +66,10 @@
   cursor: help;
 }
 
-/* Masquage par opacity/visibility et JAMAIS display:none : la bulle est la
-   cible de l'aria-describedby que Django pose sur le champ. */
+/* Masquage par opacity/visibility, jamais display:none : display ne se
+   transitionne pas, or l'apparition doit être animée. Ce qui doit réellement
+   survivre, c'est l'id _helptext sur cette bulle : c'est la cible de
+   l'aria-describedby que Django pose sur le champ. */
 .eb-help__bubble {
   position: absolute;
   bottom: calc(100% + 8px);
