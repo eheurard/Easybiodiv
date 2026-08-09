@@ -192,12 +192,17 @@ class SubSector(models.Model):
         return self.name
 
 class Asset(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    latitude = models.FloatField()
-    longitude = models.FloatField()
-    country = models.ForeignKey(Country, on_delete=models.CASCADE)
-    subnational_region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE,null=True,blank=True)
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    description = models.TextField(blank=True, verbose_name='Description')
+    latitude = models.FloatField(verbose_name='Latitude')
+    longitude = models.FloatField(verbose_name='Longitude')
+    country = models.ForeignKey(
+        Country, on_delete=models.CASCADE, verbose_name='Pays',
+    )
+    subnational_region = models.ForeignKey(
+        SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True,
+        verbose_name='Région infranationale',
+    )
     type = models.CharField(
         max_length=255,
         choices=[
@@ -213,23 +218,54 @@ class Asset(models.Model):
             ('Smelter', 'Smelter'),
         ],
         default='Factory',
+        verbose_name='Type de site',
     )
 
-    risk_water = models.FloatField(default=0)
-    risk_pollination = models.FloatField(default=0)
-    risk_soil_quality = models.FloatField(default=0)
-    risk_carbon_sequestration = models.FloatField(default=0)
-    risk_water_purification = models.FloatField(default=0)
-    risk_pest_control = models.FloatField(default=0)
-    risk_water_stress = models.FloatField(default=0)
-    risk_wildfire = models.FloatField(default=0)
-    risk_cyclone = models.FloatField(default=0)
-    risk_drought = models.FloatField(default=0)
-    risk_flood = models.FloatField(default=0)
-    risk_coastal_inundation = models.FloatField(default=0)
-    risk_heatwave = models.FloatField(default=0)
-    risk_temperature_variation = models.FloatField(default=0)
-    risk_precipitation_variation = models.FloatField(default=0)
+    risk_water = models.FloatField(
+        default=0, verbose_name='Risque — approvisionnement en eau',
+    )
+    risk_pollination = models.FloatField(
+        default=0, verbose_name='Risque — pollinisation',
+    )
+    risk_soil_quality = models.FloatField(
+        default=0, verbose_name='Risque — qualité des sols',
+    )
+    risk_carbon_sequestration = models.FloatField(
+        default=0, verbose_name='Risque — séquestration carbone',
+    )
+    risk_water_purification = models.FloatField(
+        default=0, verbose_name="Risque — épuration de l'eau",
+    )
+    risk_pest_control = models.FloatField(
+        default=0, verbose_name='Risque — contrôle des ravageurs',
+    )
+    risk_water_stress = models.FloatField(
+        default=0, verbose_name='Aléa — stress hydrique',
+    )
+    risk_wildfire = models.FloatField(
+        default=0, verbose_name='Aléa — feu de forêt',
+    )
+    risk_cyclone = models.FloatField(
+        default=0, verbose_name='Aléa — cyclone',
+    )
+    risk_drought = models.FloatField(
+        default=0, verbose_name='Aléa — sécheresse',
+    )
+    risk_flood = models.FloatField(
+        default=0, verbose_name='Aléa — inondation',
+    )
+    risk_coastal_inundation = models.FloatField(
+        default=0, verbose_name='Aléa — submersion côtière',
+    )
+    risk_heatwave = models.FloatField(
+        default=0, verbose_name='Aléa — canicule',
+    )
+    risk_temperature_variation = models.FloatField(
+        default=0, verbose_name='Aléa — variation de température',
+    )
+    risk_precipitation_variation = models.FloatField(
+        default=0, verbose_name='Aléa — variation des précipitations',
+    )
 
     class SensitiveZoneType(models.TextChoices):
         NATURA_2000 = 'NATURA_2000', 'Natura 2000'
@@ -238,21 +274,41 @@ class Asset(models.Model):
         IUCN_KBA = 'IUCN_KBA', 'IUCN Key Biodiversity Area'
         OTHER = 'OTHER', 'Autre'
 
-    near_sensitive_zone = models.BooleanField(default=False)
-    sensitive_zone_type = models.CharField(
-        max_length=20, choices=SensitiveZoneType.choices, blank=True
+    SENSITIVE_ZONE_HELP_TEXT = 'Renseigné seulement si « Proche d’une zone sensible » est coché.'
+
+    near_sensitive_zone = models.BooleanField(
+        default=False, verbose_name="Proche d'une zone sensible",
     )
-    sensitive_zone_name = models.CharField(max_length=255, blank=True)
-    sensitive_zone_area_ha = models.FloatField(default=0)
+    sensitive_zone_type = models.CharField(
+        max_length=20, choices=SensitiveZoneType.choices, blank=True,
+        verbose_name='Type de zone sensible', help_text=SENSITIVE_ZONE_HELP_TEXT,
+    )
+    sensitive_zone_name = models.CharField(
+        max_length=255, blank=True, verbose_name='Nom de la zone sensible',
+        help_text=SENSITIVE_ZONE_HELP_TEXT,
+    )
+    sensitive_zone_area_ha = models.FloatField(
+        default=0, verbose_name='Surface de la zone sensible (ha)',
+        help_text=SENSITIVE_ZONE_HELP_TEXT,
+    )
+
+    class Meta:
+        verbose_name = 'Actif'
+        verbose_name_plural = 'Actifs'
 
     def __str__(self):
         return self.name
 
 class Company (models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    isin = models.CharField(max_length=255, default="0")
-    ticker = models.CharField(max_length=255, default="0")
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    description = models.TextField(blank=True, verbose_name='Description')
+    isin = models.CharField(max_length=255, default="0", verbose_name='Code ISIN')
+    ticker = models.CharField(max_length=255, default="0", verbose_name='Ticker boursier')
+
+    class Meta:
+        verbose_name = 'Entreprise'
+        verbose_name_plural = 'Entreprises'
+
     def __str__(self):
         return self.name
 
@@ -271,18 +327,34 @@ class Production(models.Model):
         return f"{asset_name} - {self.commodity.name} - {self.year}"
 
 class Company_Revenue(models.Model):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    year = models.IntegerField()
-    revenue = models.FloatField()
-    currency = models.CharField(max_length=255)
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, verbose_name='Entreprise',
+    )
+    year = models.IntegerField(verbose_name='Exercice')
+    revenue = models.FloatField(verbose_name="Chiffre d'affaires")
+    currency = models.CharField(max_length=255, verbose_name='Devise')
+
+    class Meta:
+        verbose_name = "Chiffre d'affaires"
+        verbose_name_plural = "Chiffres d'affaires"
+
     def __str__(self):
         return str(self.company.name) + " - " + str(self.year)
 
 class Company_Revenue_Sector(models.Model):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    subsector = models.ForeignKey(SubSector, on_delete=models.CASCADE)
-    year = models.IntegerField()
-    revenue = models.FloatField()
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, verbose_name='Entreprise',
+    )
+    subsector = models.ForeignKey(
+        SubSector, on_delete=models.CASCADE, verbose_name='Sous-secteur',
+    )
+    year = models.IntegerField(verbose_name='Exercice')
+    revenue = models.FloatField(verbose_name="Chiffre d'affaires")
+
+    class Meta:
+        verbose_name = 'CA par sous-secteur'
+        verbose_name_plural = 'CA par sous-secteur'
+
     def __str__(self):
         return str(self.company.name) + " - " + str(self.subsector.sector.name) + " - " + str(self.subsector.name) + " - " + str(self.year)
 
@@ -334,10 +406,15 @@ class Company_Policy(models.Model):
 
 
 class Ownership(models.Model):
-    Asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
-    Company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    ownership = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+    Asset = models.ForeignKey(Asset, on_delete=models.CASCADE, verbose_name='Actif')
+    Company = models.ForeignKey(Company, on_delete=models.CASCADE, verbose_name='Entreprise')
+    ownership = models.CharField(max_length=255, verbose_name='Part de détention')
+    description = models.TextField(blank=True, verbose_name='Description')
+
+    class Meta:
+        verbose_name = 'Détention'
+        verbose_name_plural = 'Détentions'
+
     def __str__(self):
         return str(self.Asset.name) + " - " + str(self.Company.name)
 
@@ -448,26 +525,30 @@ class ESG_data(models.Model):
     """
     Table des données financières et opérationnelles.
     """
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    year = models.IntegerField()
-    employees_number = models.IntegerField(default=0)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, verbose_name='Entreprise')
+    year = models.IntegerField(verbose_name='Exercice')
+    employees_number = models.IntegerField(default=0, verbose_name='Nombre de salariés')
     def __str__(self):
         return f"{self.company.name} - {self.year}"
-    
+
     class Meta:
         unique_together = ('company', 'year')
+        verbose_name = 'Donnée ESG'
+        verbose_name_plural = 'Données ESG'
 
 class Carbon_emission(models.Model):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    year = models.IntegerField()
-    scope = models.CharField(max_length=255)
-    carbon_emission = models.FloatField(default=0)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, verbose_name='Entreprise')
+    year = models.IntegerField(verbose_name='Exercice')
+    scope = models.CharField(max_length=255, verbose_name='Scope')
+    carbon_emission = models.FloatField(default=0, verbose_name='Émissions (tCO₂e)')
 
     def __str__(self):
         return f"{self.company.name} - {self.year} - {self.scope}"
 
     class Meta:
         unique_together = ('company', 'year', 'scope')
+        verbose_name = 'Émission carbone'
+        verbose_name_plural = 'Émissions carbone'
 
 
 class ImpactMethod(models.Model):
