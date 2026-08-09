@@ -385,50 +385,103 @@ class Company_Revenue_Sector(models.Model):
         return str(self.company.name) + " - " + str(self.subsector.sector.name) + " - " + str(self.subsector.name) + " - " + str(self.year)
 
 class Policy_Type(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    description = models.TextField(blank=True, verbose_name='Description')
+
+    class Meta:
+        verbose_name = 'Type de politique'
+        verbose_name_plural = 'Types de politique'
+
     def __str__(self):
         return self.name
 
 class Policy_Subcategory(models.Model):
-    policy_type = models.ForeignKey(Policy_Type, on_delete=models.CASCADE)
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+    policy_type = models.ForeignKey(
+        Policy_Type, on_delete=models.CASCADE, verbose_name='Type de politique',
+    )
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    description = models.TextField(blank=True, verbose_name='Description')
+
+    class Meta:
+        verbose_name = 'Sous-catégorie de politique'
+        verbose_name_plural = 'Sous-catégories de politique'
+
     def __str__(self):
         return str(self.policy_type.name) + " - " + str(self.name)
 
 class Policy_Level(models.Model):
-    subcategory = models.ForeignKey(Policy_Subcategory, on_delete=models.CASCADE)
-    name = models.CharField(max_length=255) 
-    score = models.FloatField(null=True,blank=True)
-    description = models.TextField(blank=True)
-    vulnerability_water = models.FloatField(default=1.0)
-    vulnerability_pollination = models.FloatField(default=1.0)
-    vulnerability_soil_quality = models.FloatField(default=1.0)
-    vulnerability_carbon_sequestration = models.FloatField(default=1.0)
-    vulnerability_water_purification = models.FloatField(default=1.0)
-    vulnerability_pest_control = models.FloatField(default=1.0)
-    vulnerability_water_stress = models.FloatField(default=1.0)
-    vulnerability_wildfire = models.FloatField(default=1.0)
-    vulnerability_cyclone = models.FloatField(default=1.0)
-    vulnerability_drought = models.FloatField(default=1.0)
-    vulnerability_flood = models.FloatField(default=1.0)
-    vulnerability_coastal_inundation = models.FloatField(default=1.0)
-    vulnerability_heatwave = models.FloatField(default=1.0)
-    vulnerability_temperature_variation = models.FloatField(default=1.0)
-    vulnerability_precipitation_variation = models.FloatField(default=1.0)
+    subcategory = models.ForeignKey(
+        Policy_Subcategory, on_delete=models.CASCADE, verbose_name='Sous-catégorie',
+    )
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    score = models.FloatField(null=True, blank=True, verbose_name='Score')
+    description = models.TextField(blank=True, verbose_name='Description')
+    vulnerability_water = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — approvisionnement en eau',
+    )
+    vulnerability_pollination = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — pollinisation',
+    )
+    vulnerability_soil_quality = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — qualité des sols',
+    )
+    vulnerability_carbon_sequestration = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — séquestration carbone',
+    )
+    vulnerability_water_purification = models.FloatField(
+        default=1.0, verbose_name="Vulnérabilité — épuration de l'eau",
+    )
+    vulnerability_pest_control = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — contrôle des ravageurs',
+    )
+    vulnerability_water_stress = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — stress hydrique',
+    )
+    vulnerability_wildfire = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — feu de forêt',
+    )
+    vulnerability_cyclone = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — cyclone',
+    )
+    vulnerability_drought = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — sécheresse',
+    )
+    vulnerability_flood = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — inondation',
+    )
+    vulnerability_coastal_inundation = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — submersion côtière',
+    )
+    vulnerability_heatwave = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — canicule',
+    )
+    vulnerability_temperature_variation = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — variation de température',
+    )
+    vulnerability_precipitation_variation = models.FloatField(
+        default=1.0, verbose_name='Vulnérabilité — variation des précipitations',
+    )
+
+    class Meta:
+        verbose_name = 'Niveau de politique'
+        verbose_name_plural = 'Niveaux de politique'
+
     def __str__(self):
         return str(self.subcategory.policy_type.name) + " - " + str(self.subcategory.name) + " - " + str(self.name)
-    
+
 class Company_Policy(models.Model):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    policy_level = models.ForeignKey(Policy_Level, on_delete=models.CASCADE,null=True)
-    policy_date = models.DateField(default="2026-01-01")  
-    comment=models.TextField(blank=True)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, verbose_name='Entreprise')
+    policy_level = models.ForeignKey(
+        Policy_Level, on_delete=models.CASCADE, null=True, verbose_name='Niveau de politique',
+    )
+    policy_date = models.DateField(default="2026-01-01", verbose_name="Date d'adoption")
+    comment = models.TextField(blank=True, verbose_name='Commentaire')
     def __str__(self):
         return str(self.company.name) + " - " +str(self.policy_level.subcategory.name) + " - " +str(self.policy_level.name)
     class Meta:
-        unique_together = ('company', 'policy_level')  
+        unique_together = ('company', 'policy_level')
+        verbose_name = "Politique d'entreprise"
+        verbose_name_plural = "Politiques d'entreprise"
 
 
 class Ownership(models.Model):
@@ -462,40 +515,58 @@ class E4Assessment(models.Model):
         IN_PROGRESS = 'IN_PROGRESS', 'En cours'
         DONE = 'DONE', 'Fait'
 
-    company = models.ForeignKey(
-        Company, on_delete=models.CASCADE, related_name='e4_assessments'
+    LEAP_STATUS_HELP_TEXT = (
+        'La phase Prepare est hors périmètre ESRS E4 : seules Locate, '
+        'Evaluate et Assess servent à la détermination de matérialité.'
     )
-    reporting_year = models.IntegerField(default=2024)
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='e4_assessments',
+        verbose_name='Entreprise',
+    )
+    reporting_year = models.IntegerField(default=2024, verbose_name='Exercice de reporting')
     standard_version = models.CharField(
         max_length=20, choices=StandardVersion.choices,
         default=StandardVersion.AMENDED_2025,
+        verbose_name='Version du standard',
     )
     materiality_status = models.CharField(
         max_length=20, choices=Materiality.choices,
         default=Materiality.NOT_ASSESSED,
+        verbose_name='Statut de matérialité',
     )
-    materiality_justification = models.TextField(blank=True)
+    materiality_justification = models.TextField(
+        blank=True, verbose_name='Justification de matérialité',
+    )
 
     # Approche LEAP limitée à 3 phases (Locate/Evaluate/Assess) pour la
     # détermination de matérialité — la phase Prepare est hors périmètre E4.
     leap_locate_status = models.CharField(
-        max_length=20, choices=LeapStatus.choices, default=LeapStatus.TODO
+        max_length=20, choices=LeapStatus.choices, default=LeapStatus.TODO,
+        verbose_name='LEAP — Locate, statut', help_text=LEAP_STATUS_HELP_TEXT,
     )
     leap_evaluate_status = models.CharField(
-        max_length=20, choices=LeapStatus.choices, default=LeapStatus.TODO
+        max_length=20, choices=LeapStatus.choices, default=LeapStatus.TODO,
+        verbose_name='LEAP — Evaluate, statut', help_text=LEAP_STATUS_HELP_TEXT,
     )
     leap_assess_status = models.CharField(
-        max_length=20, choices=LeapStatus.choices, default=LeapStatus.TODO
+        max_length=20, choices=LeapStatus.choices, default=LeapStatus.TODO,
+        verbose_name='LEAP — Assess, statut', help_text=LEAP_STATUS_HELP_TEXT,
     )
-    leap_locate_notes = models.TextField(blank=True)
-    leap_evaluate_notes = models.TextField(blank=True)
-    leap_assess_notes = models.TextField(blank=True)
+    leap_locate_notes = models.TextField(blank=True, verbose_name='LEAP — Locate, notes')
+    leap_evaluate_notes = models.TextField(blank=True, verbose_name='LEAP — Evaluate, notes')
+    leap_assess_notes = models.TextField(blank=True, verbose_name='LEAP — Assess, notes')
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name='Créé par',
     )
+
+    class Meta:
+        verbose_name = 'Évaluation ESRS E4'
+        verbose_name_plural = 'Évaluations ESRS E4'
 
     def __str__(self):
         return f"{self.company.name} — E4 {self.reporting_year}"
@@ -520,16 +591,25 @@ class DisclosureRequirement(models.Model):
         NOT_APPLICABLE = 'NOT_APPLICABLE', 'Non applicable'
 
     assessment = models.ForeignKey(
-        E4Assessment, on_delete=models.CASCADE, related_name='disclosure_requirements'
+        E4Assessment, on_delete=models.CASCADE, related_name='disclosure_requirements',
+        verbose_name='Évaluation',
     )
-    code = models.CharField(max_length=10, choices=Code.choices)
+    code = models.CharField(
+        max_length=10, choices=Code.choices, verbose_name='Code du DR',
+        help_text='Les DR applicables dépendent de la version du standard retenue '
+                  'sur l’évaluation (5 DR pour la version amendée 2025, 6 pour '
+                  'l’originale 2023).',
+    )
     status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.NOT_STARTED
+        max_length=20, choices=Status.choices, default=Status.NOT_STARTED,
+        verbose_name='Statut de conformité',
     )
-    justification = models.TextField(blank=True)
+    justification = models.TextField(blank=True, verbose_name='Justification')
 
     class Meta:
         unique_together = ('assessment', 'code')
+        verbose_name = 'Disclosure Requirement'
+        verbose_name_plural = 'Disclosure Requirements'
 
     def __str__(self):
         return f"{self.assessment.company.name} — {self.get_code_display()}"
@@ -841,21 +921,27 @@ class ClimateScenario(models.Model):
         TOO_LITTLE = 'TOO_LITTLE', 'Trop peu, trop tard'
         HOT_HOUSE = 'HOT_HOUSE', 'Monde en surchauffe'
 
-    key = models.CharField(max_length=50, unique=True)
-    name = models.CharField(max_length=255)
+    key = models.CharField(max_length=50, unique=True, verbose_name='Clé technique')
+    name = models.CharField(max_length=255, verbose_name='Nom')
     family = models.CharField(
-        max_length=20, choices=Family.choices, default=Family.ORDERLY
+        max_length=20, choices=Family.choices, default=Family.ORDERLY,
+        verbose_name='Famille',
     )
-    narrative = models.TextField(blank=True)
-    warming_c = models.FloatField(default=0.0)
-    source = models.CharField(max_length=255, blank=True)
-    reference = models.CharField(max_length=255, blank=True)
-    order = models.PositiveSmallIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    narrative = models.TextField(blank=True, verbose_name='Narratif')
+    warming_c = models.FloatField(default=0.0, verbose_name='Réchauffement (°C)')
+    source = models.CharField(max_length=255, blank=True, verbose_name='Source')
+    reference = models.CharField(max_length=255, blank=True, verbose_name='Référence')
+    order = models.PositiveSmallIntegerField(
+        default=0, verbose_name="Ordre d'affichage",
+        help_text='Contrôle l’ordre d’affichage des scénarios dans les écrans.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
 
     class Meta:
         ordering = ('order', 'key')
+        verbose_name = 'Scénario climatique'
+        verbose_name_plural = 'Scénarios climatiques'
 
     def __str__(self):
         return self.name
@@ -869,15 +955,22 @@ class ScenarioVariable(models.Model):
         HAZARD_MULTIPLIER = 'hazard_multiplier', "Multiplicateur d'aléa"
 
     scenario = models.ForeignKey(
-        ClimateScenario, on_delete=models.CASCADE, related_name='variables'
+        ClimateScenario, on_delete=models.CASCADE, related_name='variables',
+        verbose_name='Scénario',
     )
-    year = models.IntegerField()
-    key = models.CharField(max_length=30, choices=Key.choices)
-    value = models.FloatField(default=0.0)
+    year = models.IntegerField(verbose_name='Année')
+    key = models.CharField(max_length=30, choices=Key.choices, verbose_name='Variable')
+    value = models.FloatField(
+        default=0.0, verbose_name='Valeur',
+        help_text='L’unité dépend de la variable choisie : €/tCO₂e pour un prix du '
+                  'carbone, facteur sans unité pour un multiplicateur d’aléa.',
+    )
 
     class Meta:
         unique_together = ('scenario', 'year', 'key')
         ordering = ('scenario', 'key', 'year')
+        verbose_name = 'Variable de scénario'
+        verbose_name_plural = 'Variables de scénario'
 
     def __str__(self):
         return f'{self.scenario.key} — {self.key} {self.year}'
