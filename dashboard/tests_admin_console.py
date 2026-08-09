@@ -123,3 +123,40 @@ class AdminGroupingTests(TestCase):
         response = self.client.get(reverse('admin:index'))
         self.assertContains(response, 'Référentiels géographiques')
         self.assertContains(response, 'Chaîne d&#x27;approvisionnement')
+
+
+class AdminTooltipTests(TestCase):
+    """Les help_text sont rendus en bulle, pas en texte statique."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.superuser = User.objects.create_superuser(
+            username='root3', email='root3@example.com', password='pwd-root-123',
+        )
+
+    def setUp(self):
+        self.client.force_login(self.superuser)
+        url = reverse('admin:authentication_user_change', args=[self.superuser.pk])
+        self.response = self.client.get(url)
+
+    def test_le_formulaire_repond(self):
+        self.assertEqual(self.response.status_code, 200)
+
+    def test_la_bulle_est_rendue(self):
+        self.assertContains(self.response, 'eb-help')
+
+    def test_l_icone_est_decorative(self):
+        """Ni focusable ni annoncee : l'explication passe par l'aria-describedby
+        que Django pose deja sur le champ. Assertion sur le markup exact, donc
+        aucun tabindex ni role ne peut s'y glisser."""
+        self.assertContains(
+            self.response,
+            '<span class="eb-help__icon" aria-hidden="true">?</span>',
+        )
+
+    def test_l_ancre_aria_describedby_est_conservee(self):
+        """Django pointe aria-describedby vers cet id : il doit survivre."""
+        self.assertContains(self.response, '_helptext')
+
+    def test_le_css_de_la_console_est_charge(self):
+        self.assertContains(self.response, 'admin-easybiodiv.css')

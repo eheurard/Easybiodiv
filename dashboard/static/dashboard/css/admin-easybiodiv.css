@@ -1,0 +1,59 @@
+/* Console de donnees Easybiodiv — surcouche de django.contrib.admin.
+   Le theme (variables) est ajoute par une tache ulterieure. */
+
+/* ── Bulles explicatives (help_text) ──────────────────────────────────── */
+
+.eb-help {
+  position: relative;
+  display: inline-flex;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.eb-help__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid #87736d;
+  background: #f0eee9;
+  color: #54433e;
+  font: 600 11px/1 'Inter', system-ui, sans-serif;
+  cursor: help;
+}
+
+/* Masquage par opacity/visibility et JAMAIS display:none : la bulle est la
+   cible de l'aria-describedby que Django pose sur le champ. */
+.eb-help__bubble {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: -8px;
+  z-index: 20;
+  width: max-content;
+  max-width: 320px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid #dac1ba;
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(27, 28, 25, .14);
+  color: #1b1c19;
+  font: 400 12px/1.45 'Inter', system-ui, sans-serif;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .13s ease, visibility .13s ease;
+}
+
+/* Ouverture au survol de l'icone, et au focus du champ lui-meme. */
+.eb-help:hover .eb-help__bubble,
+.form-row:focus-within .eb-help__bubble {
+  opacity: 1;
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eb-help__bubble { transition: none; }
+}
