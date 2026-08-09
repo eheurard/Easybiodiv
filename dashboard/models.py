@@ -3,27 +3,56 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator
 
 class Country(models.Model):
-    name = models.CharField(max_length=255)
-    water_ownership = models.CharField(max_length=255)
-    land_ownership = models.CharField(max_length=255)
-    water_Governance=models.TextField(blank=True)
-    land_Governance=models.TextField(blank=True)
-    restoration_cost_m2 = models.FloatField(default=0)
-    biodiversity_loss_agriculture=models.FloatField(default=0)
-    biodiversity_loss_urbanization=models.FloatField(default=0)
-    biodiversity_loss_mining=models.FloatField(default=0)
-    
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    water_ownership = models.CharField(
+        max_length=255, verbose_name="Régime de propriété de l'eau",
+    )
+    land_ownership = models.CharField(
+        max_length=255, verbose_name='Régime de propriété foncière',
+    )
+    water_Governance = models.TextField(
+        blank=True, verbose_name="Gouvernance de l'eau",
+    )
+    land_Governance = models.TextField(
+        blank=True, verbose_name='Gouvernance foncière',
+    )
+    restoration_cost_m2 = models.FloatField(
+        default=0, verbose_name='Coût de restauration (par m²)',
+    )
+    biodiversity_loss_agriculture = models.FloatField(
+        default=0, verbose_name='Perte de biodiversité — agriculture',
+    )
+    biodiversity_loss_urbanization = models.FloatField(
+        default=0, verbose_name='Perte de biodiversité — urbanisation',
+    )
+    biodiversity_loss_mining = models.FloatField(
+        default=0, verbose_name='Perte de biodiversité — extraction minière',
+    )
+
+    class Meta:
+        verbose_name = 'Pays'
+        verbose_name_plural = 'Pays'
+
     def __str__(self):
-        return self.name    
+        return self.name
 
 
 class SubnationalRegion(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    country = models.ForeignKey(Country, on_delete=models.CASCADE)
-    restoration_cost_m2 = models.FloatField(default=0)
-    Mean_X=models.FloatField(default=0)
-    Mean_Y=models.FloatField(default=0)
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    description = models.TextField(blank=True, verbose_name='Description')
+    country = models.ForeignKey(
+        Country, on_delete=models.CASCADE, verbose_name='Pays',
+    )
+    restoration_cost_m2 = models.FloatField(
+        default=0, verbose_name='Coût de restauration (par m²)',
+    )
+    Mean_X = models.FloatField(default=0, verbose_name='Coordonnée X moyenne')
+    Mean_Y = models.FloatField(default=0, verbose_name='Coordonnée Y moyenne')
+
+    class Meta:
+        verbose_name = 'Région infranationale'
+        verbose_name_plural = 'Régions infranationales'
+
     def __str__(self):
         return self.name
 
@@ -35,26 +64,76 @@ class Commodity (models.Model):
         ('H', 'High'),
         ('VH', 'Very High'),
     ]
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    unit = models.CharField(max_length=255, default="tonnes")
+    DEPENDENCY_HELP_TEXT = (
+        'Niveau de dépendance à ce service écosystémique. Converti en '
+        'score de calcul : très faible 0 · faible 0,2 · moyen 0,5 · '
+        'fort 0,7 · très fort 1.'
+    )
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    description = models.TextField(blank=True, verbose_name='Description')
+    unit = models.CharField(
+        max_length=255, default="tonnes", verbose_name='Unité de mesure',
+        help_text='Unité dans laquelle les productions et les échanges de cette '
+                  'commodité sont exprimés (par défaut : tonnes).',
+    )
 
-    dependency_water = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
-    dependency_pollination = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
-    dependency_soil_quality = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
-    dependency_carbon_sequestration = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
-    dependency_water_purification = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
-    dependency_pest_control = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+    dependency_water = models.CharField(
+        max_length=2, choices=DEPENDENCY_CHOICES, default='VL',
+        verbose_name='Dépendance — approvisionnement en eau',
+        help_text=DEPENDENCY_HELP_TEXT,
+    )
+    dependency_pollination = models.CharField(
+        max_length=2, choices=DEPENDENCY_CHOICES, default='VL',
+        verbose_name='Dépendance — pollinisation',
+        help_text=DEPENDENCY_HELP_TEXT,
+    )
+    dependency_soil_quality = models.CharField(
+        max_length=2, choices=DEPENDENCY_CHOICES, default='VL',
+        verbose_name='Dépendance — qualité des sols',
+        help_text=DEPENDENCY_HELP_TEXT,
+    )
+    dependency_carbon_sequestration = models.CharField(
+        max_length=2, choices=DEPENDENCY_CHOICES, default='VL',
+        verbose_name='Dépendance — séquestration carbone',
+        help_text=DEPENDENCY_HELP_TEXT,
+    )
+    dependency_water_purification = models.CharField(
+        max_length=2, choices=DEPENDENCY_CHOICES, default='VL',
+        verbose_name="Dépendance — épuration de l'eau",
+        help_text=DEPENDENCY_HELP_TEXT,
+    )
+    dependency_pest_control = models.CharField(
+        max_length=2, choices=DEPENDENCY_CHOICES, default='VL',
+        verbose_name='Dépendance — contrôle des ravageurs',
+        help_text=DEPENDENCY_HELP_TEXT,
+    )
 
-    biodiversity_loss_class = models.CharField(choices=[('Agriculture','Agriculture'),('Urbanisation','Urbanisation'),('Mining','Mining')],default="Agriculture")
+    biodiversity_loss_class = models.CharField(
+        choices=[('Agriculture', 'Agriculture'), ('Urbanisation', 'Urbanisation'), ('Mining', 'Mining')],
+        default="Agriculture",
+        verbose_name='Classe de perte de biodiversité',
+        help_text='Détermine lequel des trois taux de perte du pays s’applique : '
+                  'agriculture, urbanisation ou extraction minière.',
+    )
+
+    class Meta:
+        verbose_name = 'Commodité'
+        verbose_name_plural = 'Commodités'
 
     def __str__(self):
         return self.name
 
 class Sector(models.Model):
-    name = models.CharField(max_length=255)
-    NACE_code = models.CharField(max_length=255, blank=True,null=True)
-    description = models.TextField(blank=True,null=True)
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    NACE_code = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name='Code NACE',
+    )
+    description = models.TextField(blank=True, null=True, verbose_name='Description')
+
+    class Meta:
+        verbose_name = 'Secteur'
+        verbose_name_plural = 'Secteurs'
+
     def __str__(self):
         return self.name
 
@@ -66,16 +145,48 @@ class SubSector(models.Model):
         ('H', 'High'),
         ('VH', 'Very High'),
     ]
-    name = models.CharField(max_length=255)
-    sector = models.ForeignKey(Sector, on_delete=models.CASCADE)
-    NACE_code = models.CharField(max_length=255, blank=True,null=True)
-    description = models.TextField(blank=True,null=True)
-    Water_dependency = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
-    Pollination_dependency = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
-    Soil_quality_dependency = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
-    Carbon_Sequestration = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
-    Water_purification_dependency = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
-    Pest_control_dependency = models.CharField(max_length=2, choices=DEPENDENCY_CHOICES, default='VL')
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    sector = models.ForeignKey(
+        Sector, on_delete=models.CASCADE, verbose_name='Secteur',
+    )
+    NACE_code = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name='Code NACE',
+    )
+    description = models.TextField(blank=True, null=True, verbose_name='Description')
+    Water_dependency = models.CharField(
+        max_length=2, choices=DEPENDENCY_CHOICES, default='VL',
+        verbose_name='Dépendance — approvisionnement en eau',
+        help_text=Commodity.DEPENDENCY_HELP_TEXT,
+    )
+    Pollination_dependency = models.CharField(
+        max_length=2, choices=DEPENDENCY_CHOICES, default='VL',
+        verbose_name='Dépendance — pollinisation',
+        help_text=Commodity.DEPENDENCY_HELP_TEXT,
+    )
+    Soil_quality_dependency = models.CharField(
+        max_length=2, choices=DEPENDENCY_CHOICES, default='VL',
+        verbose_name='Dépendance — qualité des sols',
+        help_text=Commodity.DEPENDENCY_HELP_TEXT,
+    )
+    Carbon_Sequestration = models.CharField(
+        max_length=2, choices=DEPENDENCY_CHOICES, default='VL',
+        verbose_name='Dépendance — séquestration carbone',
+        help_text=Commodity.DEPENDENCY_HELP_TEXT,
+    )
+    Water_purification_dependency = models.CharField(
+        max_length=2, choices=DEPENDENCY_CHOICES, default='VL',
+        verbose_name="Dépendance — épuration de l'eau",
+        help_text=Commodity.DEPENDENCY_HELP_TEXT,
+    )
+    Pest_control_dependency = models.CharField(
+        max_length=2, choices=DEPENDENCY_CHOICES, default='VL',
+        verbose_name='Dépendance — contrôle des ravageurs',
+        help_text=Commodity.DEPENDENCY_HELP_TEXT,
+    )
+
+    class Meta:
+        verbose_name = 'Sous-secteur'
+        verbose_name_plural = 'Sous-secteurs'
 
     def __str__(self):
         return self.name
@@ -321,10 +432,15 @@ class DisclosureRequirement(models.Model):
         return f"{self.assessment.company.name} — {self.get_code_display()}"
 
 class Currency(models.Model):
-    code = models.CharField(max_length=3)
-    name = models.CharField(max_length=255)
-    symbol = models.CharField(max_length=3)
-    ratio_USD=models.FloatField(default=1)
+    code = models.CharField(max_length=3, verbose_name='Code ISO')
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    symbol = models.CharField(max_length=3, verbose_name='Symbole')
+    ratio_USD = models.FloatField(default=1, verbose_name="Taux de conversion vers l'USD")
+
+    class Meta:
+        verbose_name = 'Devise'
+        verbose_name_plural = 'Devises'
+
     def __str__(self):
         return self.code
 
@@ -578,16 +694,33 @@ class SectorCreditProfile(models.Model):
     """
 
     sector = models.OneToOneField(
-        Sector, on_delete=models.CASCADE, related_name='credit_profile'
+        Sector, on_delete=models.CASCADE, related_name='credit_profile',
+        verbose_name='Secteur',
     )
-    pd_baseline = models.FloatField(default=0.015)
-    ebitda_margin = models.FloatField(default=0.12)
-    ebitda_volatility = models.FloatField(default=0.25)
-    carbon_pass_through = models.FloatField(default=0.30)
-    source = models.CharField(max_length=255, blank=True)
-    reference = models.CharField(max_length=255, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    pd_baseline = models.FloatField(
+        default=0.015, verbose_name='Probabilité de défaut de référence',
+        help_text='Valeur par défaut du secteur. L’utilisateur peut la surcharger '
+                  'dans l’écran de stress test climatique.',
+    )
+    ebitda_margin = models.FloatField(
+        default=0.12, verbose_name="Marge d'EBITDA",
+        help_text='Valeur par défaut du secteur. L’utilisateur peut la surcharger '
+                  'dans l’écran de stress test climatique.',
+    )
+    ebitda_volatility = models.FloatField(
+        default=0.25, verbose_name="Volatilité de l'EBITDA",
+    )
+    carbon_pass_through = models.FloatField(
+        default=0.30, verbose_name='Répercussion du coût carbone',
+    )
+    source = models.CharField(max_length=255, blank=True, verbose_name='Source')
+    reference = models.CharField(max_length=255, blank=True, verbose_name='Référence')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
+
+    class Meta:
+        verbose_name = 'Profil crédit sectoriel'
+        verbose_name_plural = 'Profils crédit sectoriels'
 
     def __str__(self):
         return f'{self.sector.name} — PD {self.pd_baseline:.2%}'
