@@ -224,3 +224,30 @@ class AdminThemeButtonVariablesTests(TestCase):
             if not re.search(rf'{re.escape(variable)}\s*:', theme_css)
         ]
         self.assertEqual(manquantes, [])
+
+
+class SidebarEntryTests(TestCase):
+    """Le lien vers la console n'apparait que pour un superuser."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.superuser = User.objects.create_superuser(
+            username='root5', email='root5@example.com', password='pwd-root-123',
+        )
+        cls.creator = User.objects.create_user(
+            username='creator5', password='pwd-creator-123', role=User.CREATOR,
+        )
+
+    def test_le_superuser_voit_le_lien(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse('dashboard:index'))
+        self.assertContains(response, 'Console de données')
+
+    def test_le_creator_ne_voit_pas_le_lien(self):
+        self.client.force_login(self.creator)
+        response = self.client.get(reverse('dashboard:index'))
+        self.assertNotContains(response, 'Console de données')
+
+    def test_l_anonyme_ne_voit_pas_le_lien(self):
+        response = self.client.get(reverse('dashboard:index'))
+        self.assertNotContains(response, 'Console de données')
