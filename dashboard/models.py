@@ -312,16 +312,42 @@ class Company (models.Model):
     def __str__(self):
         return self.name
 
+TIER_HELP_TEXT = (
+    'Position dans la chaîne : 0 opérations directes · 1 chaîne '
+    'd’approvisionnement · 2 approvisionnement amont · 3 matières '
+    'premières.'
+)
+
+
 class Production(models.Model):
-    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE)
-    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True, blank=True)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
-    subnational_region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True)
-    country = models.ForeignKey(Country, on_delete=models.CASCADE, null=True, blank=True)
-    tier = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(3)])
-    year = models.IntegerField()
-    production = models.FloatField()
-    estimated_revenue = models.FloatField(default = 0.0)
+    commodity = models.ForeignKey(
+        Commodity, on_delete=models.CASCADE, verbose_name='Commodité',
+    )
+    asset = models.ForeignKey(
+        Asset, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Actif',
+    )
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Entreprise',
+    )
+    subnational_region = models.ForeignKey(
+        SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True,
+        verbose_name='Région infranationale',
+    )
+    country = models.ForeignKey(
+        Country, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Pays',
+    )
+    tier = models.PositiveSmallIntegerField(
+        default=0, validators=[MaxValueValidator(3)], verbose_name='Tier',
+        help_text=TIER_HELP_TEXT,
+    )
+    year = models.IntegerField(verbose_name='Année')
+    production = models.FloatField(verbose_name='Quantité produite')
+    estimated_revenue = models.FloatField(default=0.0, verbose_name='Revenu estimé')
+
+    class Meta:
+        verbose_name = 'Production'
+        verbose_name_plural = 'Productions'
+
     def __str__(self):
         asset_name = self.asset.name if self.asset else "no asset"
         return f"{asset_name} - {self.commodity.name} - {self.year}"
@@ -551,11 +577,27 @@ class Carbon_emission(models.Model):
         verbose_name_plural = 'Émissions carbone'
 
 
+KEY_HELP_TEXT = (
+    'Identifiant technique repris tel quel dans les clés JSON des vues. '
+    'Ne pas modifier sur un enregistrement existant sans vérifier les '
+    'vues qui le consomment.'
+)
+
+THEME_HELP_TEXT = (
+    'Clé d’appariement entre mesure et modèle : un inventaire d’actif '
+    'est comparé aux catégories d’impact qui portent le même thème.'
+)
+
+
 class ImpactMethod(models.Model):
     """Méthode de caractérisation LCA (ReCiPe2016, GBS, …)."""
-    name = models.CharField(max_length=100, unique=True)
-    version = models.CharField(max_length=50, blank=True)
-    description = models.TextField(blank=True)
+    name = models.CharField(max_length=100, unique=True, verbose_name='Nom')
+    version = models.CharField(max_length=50, blank=True, verbose_name='Version')
+    description = models.TextField(blank=True, verbose_name='Description')
+
+    class Meta:
+        verbose_name = 'Méthode de caractérisation'
+        verbose_name_plural = 'Méthodes de caractérisation'
 
     def __str__(self):
         return self.name
@@ -569,14 +611,24 @@ class ImpactCategory(models.Model):
         ENDPOINT = 'ENDPOINT', 'Endpoint'
 
     method = models.ForeignKey(
-        ImpactMethod, on_delete=models.CASCADE, related_name='categories'
+        ImpactMethod, on_delete=models.CASCADE, related_name='categories',
+        verbose_name='Méthode',
     )
-    key = models.CharField(max_length=100, unique=True)
-    name = models.CharField(max_length=255)
-    unit = models.CharField(max_length=50, blank=True)
+    key = models.CharField(
+        max_length=100, unique=True, verbose_name='Clé technique',
+        help_text=KEY_HELP_TEXT,
+    )
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    unit = models.CharField(max_length=50, blank=True, verbose_name='Unité')
     level = models.CharField(max_length=10, choices=Level.choices,
-                             default=Level.MIDPOINT)
-    theme = models.CharField(max_length=30, blank=True)
+                             default=Level.MIDPOINT, verbose_name='Niveau')
+    theme = models.CharField(
+        max_length=30, blank=True, verbose_name='Thème', help_text=THEME_HELP_TEXT,
+    )
+
+    class Meta:
+        verbose_name = "Catégorie d'impact"
+        verbose_name_plural = "Catégories d'impact"
 
     def __str__(self):
         return f'{self.method.name} — {self.key}'
@@ -588,27 +640,43 @@ class CharacterizationFactor(models.Model):
     Résolution du lieu : region renseigné → région ; sinon country → pays ;
     sinon (les deux null) → global.
     """
-    category = models.ForeignKey(
-        ImpactCategory, on_delete=models.CASCADE, related_name='factors'
+    LOCATION_HELP_TEXT = (
+        'Laisser les deux vides pour un facteur global. La résolution suit '
+        'l’ordre région → pays → global : le premier facteur trouvé gagne.'
     )
-    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE, related_name='cfs')
+
+    category = models.ForeignKey(
+        ImpactCategory, on_delete=models.CASCADE, related_name='factors',
+        verbose_name="Catégorie d'impact",
+    )
+    commodity = models.ForeignKey(
+        Commodity, on_delete=models.CASCADE, related_name='cfs', verbose_name='Commodité',
+    )
     region = models.ForeignKey(
-        SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True
+        SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True,
+        verbose_name='Région infranationale', help_text=LOCATION_HELP_TEXT,
     )
     country = models.ForeignKey(
-        Country, on_delete=models.CASCADE, null=True, blank=True
+        Country, on_delete=models.CASCADE, null=True, blank=True,
+        verbose_name='Pays', help_text=LOCATION_HELP_TEXT,
     )
-    value = models.FloatField(default=0.0)
-    source = models.CharField(max_length=255, blank=True)
-    reference = models.CharField(max_length=255, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    value = models.FloatField(
+        default=0.0, verbose_name='Facteur',
+        help_text='Impact généré par une unité de la commodité. Multiplié par la '
+                  'quantité produite pour obtenir l’impact total.',
+    )
+    source = models.CharField(max_length=255, blank=True, verbose_name='Source')
+    reference = models.CharField(max_length=255, blank=True, verbose_name='Référence')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
 
     class Meta:
         # NB SQLite : les NULL sont distincts dans une contrainte unique ; l'unicité
         # du CF global (region=country=null) est garantie applicativement par
         # get_or_create côté backfill et populate_acme.
         unique_together = ('category', 'commodity', 'region', 'country')
+        verbose_name = 'Facteur de caractérisation'
+        verbose_name_plural = 'Facteurs de caractérisation'
 
     def __str__(self):
         return f'{self.commodity.name} — {self.category.key}'
@@ -618,18 +686,35 @@ class SupplyNode(models.Model):
     """Sommet du graphe fournisseurs, à résolution variable
     (asset/région/pays)."""
 
-    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, null=True,
-                              blank=True)
-    region = models.ForeignKey(SubnationalRegion, on_delete=models.CASCADE,
-                               null=True, blank=True)
-    country = models.ForeignKey(Country, on_delete=models.CASCADE, null=True,
-                                blank=True)
-    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE,
-                                  null=True, blank=True)
-    name = models.CharField(max_length=255, blank=True)
-    is_external = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    LOCATION_HELP_TEXT = (
+        'Un nœud requiert au moins un actif, une région ou un pays. Le plus '
+        'précis des trois détermine sa résolution.'
+    )
+
+    asset = models.ForeignKey(
+        Asset, on_delete=models.CASCADE, null=True, blank=True,
+        verbose_name='Actif', help_text=LOCATION_HELP_TEXT,
+    )
+    region = models.ForeignKey(
+        SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True,
+        verbose_name='Région infranationale', help_text=LOCATION_HELP_TEXT,
+    )
+    country = models.ForeignKey(
+        Country, on_delete=models.CASCADE, null=True, blank=True,
+        verbose_name='Pays', help_text=LOCATION_HELP_TEXT,
+    )
+    commodity = models.ForeignKey(
+        Commodity, on_delete=models.CASCADE, null=True, blank=True,
+        verbose_name='Commodité',
+    )
+    name = models.CharField(max_length=255, blank=True, verbose_name='Nom')
+    is_external = models.BooleanField(default=False, verbose_name='Fournisseur externe')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
+
+    class Meta:
+        verbose_name = "Nœud d'approvisionnement"
+        verbose_name_plural = "Nœuds d'approvisionnement"
 
     def clean(self):
         from django.core.exceptions import ValidationError
@@ -664,25 +749,40 @@ class SupplyNode(models.Model):
 class Exchange(models.Model):
     """Arête dirigée fournisseur → consommateur du graphe d'approvisionnement."""
     supplier = models.ForeignKey(
-        SupplyNode, on_delete=models.CASCADE, related_name='outgoing'
+        SupplyNode, on_delete=models.CASCADE, related_name='outgoing',
+        verbose_name='Fournisseur',
     )
     consumer = models.ForeignKey(
-        SupplyNode, on_delete=models.CASCADE, related_name='incoming'
+        SupplyNode, on_delete=models.CASCADE, related_name='incoming',
+        verbose_name='Consommateur',
     )
-    commodity = models.ForeignKey(Commodity, on_delete=models.CASCADE)
-    quantity = models.FloatField()
-    year = models.IntegerField()
-    tier = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(3)])
+    commodity = models.ForeignKey(
+        Commodity, on_delete=models.CASCADE, verbose_name='Commodité',
+    )
+    quantity = models.FloatField(verbose_name='Quantité échangée')
+    year = models.IntegerField(verbose_name='Année')
+    tier = models.PositiveSmallIntegerField(
+        default=0, validators=[MaxValueValidator(3)], verbose_name='Tier',
+        help_text=TIER_HELP_TEXT,
+    )
     data_confidence = models.CharField(
         max_length=16,
         choices=[('asset', 'asset'), ('region', 'region'), ('country', 'country')],
         default='country',
+        verbose_name='Résolution de la donnée',
+        help_text='Précision de la localisation d’où provient cette donnée : relevée '
+                  'sur l’actif, estimée à la région, ou estimée au pays.',
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name='Créé par',
     )
+
+    class Meta:
+        verbose_name = 'Échange'
+        verbose_name_plural = 'Échanges'
 
     def __str__(self):
         return f'{self.supplier} → {self.consumer} ({self.commodity.name}, {self.year})'
@@ -690,10 +790,19 @@ class Exchange(models.Model):
 
 class Flow(models.Model):
     """Flux physique mesuré (inventaire) ; `theme` l'apparie aux ImpactCategory."""
-    key = models.CharField(max_length=50, unique=True)
-    name = models.CharField(max_length=255)
-    unit = models.CharField(max_length=50, blank=True)
-    theme = models.CharField(max_length=30, blank=True)
+    key = models.CharField(
+        max_length=50, unique=True, verbose_name='Clé technique',
+        help_text=KEY_HELP_TEXT,
+    )
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    unit = models.CharField(max_length=50, blank=True, verbose_name='Unité')
+    theme = models.CharField(
+        max_length=30, blank=True, verbose_name='Thème', help_text=THEME_HELP_TEXT,
+    )
+
+    class Meta:
+        verbose_name = 'Flux'
+        verbose_name_plural = 'Flux'
 
     def __str__(self):
         return self.key
@@ -701,16 +810,23 @@ class Flow(models.Model):
 
 class AssetInventory(models.Model):
     """Inventaire mesuré à l'échelle asset (flux water/energy/co2/waste/surface_area)."""
-    asset = models.ForeignKey(Asset, on_delete=models.CASCADE,
-                              related_name='inventory')
-    flow = models.ForeignKey(Flow, on_delete=models.CASCADE)
-    year = models.IntegerField()
-    value = models.FloatField(default=0.0)
-    source = models.CharField(max_length=255, blank=True)
-    reference = models.CharField(max_length=255, blank=True)
+    asset = models.ForeignKey(
+        Asset, on_delete=models.CASCADE, related_name='inventory',
+        verbose_name='Actif',
+    )
+    flow = models.ForeignKey(Flow, on_delete=models.CASCADE, verbose_name='Flux')
+    year = models.IntegerField(verbose_name='Année')
+    value = models.FloatField(
+        default=0.0, verbose_name='Valeur mesurée',
+        help_text='Valeur relevée sur le terrain, dans l’unité du flux sélectionné.',
+    )
+    source = models.CharField(max_length=255, blank=True, verbose_name='Source')
+    reference = models.CharField(max_length=255, blank=True, verbose_name='Référence')
 
     class Meta:
         unique_together = ('asset', 'flow', 'year')
+        verbose_name = "Inventaire d'actif"
+        verbose_name_plural = "Inventaires d'actifs"
 
     def __str__(self):
         return f'{self.asset.name} — {self.flow.key} {self.year}'
