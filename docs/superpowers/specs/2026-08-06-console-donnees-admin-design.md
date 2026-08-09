@@ -279,9 +279,22 @@ Résolution retenue :
 
 Aucun JavaScript.
 
-**Contrainte technique à ne pas rater :** la bulle se masque en `opacity` + `visibility`,
-**jamais en `display: none`**. `display: none` la sortirait de l'arbre d'accessibilité et
-l'`aria-describedby` du champ pointerait vers un contenu inaccessible.
+**Masquage : `opacity` + `visibility`, pour l'animation — pas pour l'accessibilité.**
+`display` ne se transitionne pas, c'est là toute la raison du choix.
+
+Une version antérieure de cette spec justifiait ce choix par l'accessibilité, en affirmant
+que `display: none` sortirait la bulle de l'arbre d'accessibilité et laisserait
+l'`aria-describedby` pointer dans le vide. **C'est faux**, et la correction vaut d'être
+retenue : `visibility: hidden` retire l'élément de l'arbre exactement comme `display: none`.
+Mais l'algorithme accname prévoit une exception explicite pour les nœuds *directement
+référencés* — étape 2.1 *Hidden Not Referenced* : un nœud masqué ne renvoie la chaîne vide
+que s'il n'est **pas** la cible d'un `aria-labelledby`/`aria-describedby`, et les user
+agents « MUST include all nodes in the subtree […] when the node referenced by
+`aria-labelledby` or `aria-describedby` is hidden ».
+
+La description parvient donc aux lecteurs d'écran quelle que soit la technique de masquage.
+Ce qui reste réellement obligatoire, c'est de **conserver l'`id` `_helptext`** sur la bulle :
+c'est lui que Django cible.
 
 ---
 
