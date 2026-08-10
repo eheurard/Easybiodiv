@@ -483,3 +483,32 @@ suite naturelle de ce chantier, pas comme un reste optionnel.
   gagner.
 - **`DisclosureRequirement` reste en inline.** C'est un enfant d'agrégat, pas un
   référentiel.
+
+---
+
+## Reste à vérifier au navigateur — à faire avant merge
+
+**Rien de cette console n'a jamais été affiché dans un navigateur.** Toute la vérification
+a été faite par tests et par lecture de la cascade CSS. Ce n'est pas un détail de
+procédure : les trois défauts les plus graves trouvés en revue finale venaient exactement
+de ce trou, et chacun aurait sauté aux yeux au premier chargement de page.
+
+- Des commentaires `{# … #}` **multi-lignes** ne sont pas des commentaires pour Django (son
+  `tag_re` n'a pas `re.DOTALL`) : ils étaient rendus en clair. Mesuré à 1 occurrence sur
+  `/admin/`, 9 sur un formulaire d'ajout. Corrigé, et un test compte désormais `{#` dans
+  les réponses.
+- `.form-row { overflow: hidden }` de `forms.css` rognait la bulle d'aide, c'est-à-dire la
+  seule fonctionnalité que le rendu en bulle existe pour livrer.
+- Renommer la classe `help` en `eb-help` faisait perdre le `margin-left: 160px` de Django,
+  détachant l'icône `?` de son champ.
+
+Deux pages suffisent à clore ce qui reste :
+
+| Page | Ce qu'on regarde |
+|---|---|
+| `/admin/dashboard/commodity/add/` | La bulle s'ouvre entière, non rognée, sur survol **et** sur tabulation dans le champ ; l'icône `?` est bien collée à son champ |
+| `/admin/dashboard/characterizationfactor/add/` | Même chose sur un formulaire à FK multiples ; bulle non coupée par le bord droit |
+| L'une des deux, OS en thème sombre | Apparence identique, pas de bleu-gris Django |
+
+Restent aussi non observés : la hiérarchie visuelle des quatre tons de bouton, et le
+rendu des tooltips d'inline (voir « Limite connue » plus haut).
