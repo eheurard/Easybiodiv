@@ -2,6 +2,17 @@ from django.db import models
 from django.conf import settings
 from django.core.validators import MaxValueValidator
 
+# Champs dont ni le code metier, ni l'importeur, ni les tests n'etablissent
+# l'unite ou l'echelle. Sur une console dont c'est justement le role
+# d'expliquer, se taire sur ces champs-la reviendrait a les presenter comme
+# evidents, alors qu'une valeur fausse y corrompt les calculs sans erreur
+# visible. Ce texte n'invente aucune definition : il signale le trou.
+UNDOCUMENTED_SCALE_HELP_TEXT = (
+    'Échelle et unité non documentées à ce jour — vérifier le glossaire '
+    'métier avant de saisir une valeur.'
+)
+
+
 class Country(models.Model):
     name = models.CharField(max_length=255, verbose_name='Nom')
     water_ownership = models.CharField(
@@ -18,15 +29,19 @@ class Country(models.Model):
     )
     restoration_cost_m2 = models.FloatField(
         default=0, verbose_name='Coût de restauration (par m²)',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     biodiversity_loss_agriculture = models.FloatField(
         default=0, verbose_name='Perte de biodiversité — agriculture',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     biodiversity_loss_urbanization = models.FloatField(
         default=0, verbose_name='Perte de biodiversité — urbanisation',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     biodiversity_loss_mining = models.FloatField(
         default=0, verbose_name='Perte de biodiversité — extraction minière',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
 
     class Meta:
@@ -46,8 +61,14 @@ class SubnationalRegion(models.Model):
     restoration_cost_m2 = models.FloatField(
         default=0, verbose_name='Coût de restauration (par m²)',
     )
-    Mean_X = models.FloatField(default=0, verbose_name='Coordonnée X moyenne')
-    Mean_Y = models.FloatField(default=0, verbose_name='Coordonnée Y moyenne')
+    Mean_X = models.FloatField(
+        default=0, verbose_name='Coordonnée X moyenne',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+    )
+    Mean_Y = models.FloatField(
+        default=0, verbose_name='Coordonnée Y moyenne',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+    )
 
     class Meta:
         verbose_name = 'Région infranationale'
@@ -109,7 +130,11 @@ class Commodity (models.Model):
     )
 
     biodiversity_loss_class = models.CharField(
-        choices=[('Agriculture', 'Agriculture'), ('Urbanisation', 'Urbanisation'), ('Mining', 'Mining')],
+        choices=[
+            ('Agriculture', 'Agriculture'),
+            ('Urbanisation', 'Urbanisation'),
+            ('Mining', 'Mining'),
+        ],
         default="Agriculture",
         verbose_name='Classe de perte de biodiversité',
         help_text='Détermine lequel des trois taux de perte du pays s’applique : '
@@ -223,48 +248,63 @@ class Asset(models.Model):
 
     risk_water = models.FloatField(
         default=0, verbose_name='Risque — approvisionnement en eau',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_pollination = models.FloatField(
         default=0, verbose_name='Risque — pollinisation',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_soil_quality = models.FloatField(
         default=0, verbose_name='Risque — qualité des sols',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_carbon_sequestration = models.FloatField(
         default=0, verbose_name='Risque — séquestration carbone',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_water_purification = models.FloatField(
         default=0, verbose_name="Risque — épuration de l'eau",
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_pest_control = models.FloatField(
         default=0, verbose_name='Risque — contrôle des ravageurs',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_water_stress = models.FloatField(
         default=0, verbose_name='Aléa — stress hydrique',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_wildfire = models.FloatField(
         default=0, verbose_name='Aléa — feu de forêt',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_cyclone = models.FloatField(
         default=0, verbose_name='Aléa — cyclone',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_drought = models.FloatField(
         default=0, verbose_name='Aléa — sécheresse',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_flood = models.FloatField(
         default=0, verbose_name='Aléa — inondation',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_coastal_inundation = models.FloatField(
         default=0, verbose_name='Aléa — submersion côtière',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_heatwave = models.FloatField(
         default=0, verbose_name='Aléa — canicule',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_temperature_variation = models.FloatField(
         default=0, verbose_name='Aléa — variation de température',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     risk_precipitation_variation = models.FloatField(
         default=0, verbose_name='Aléa — variation des précipitations',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
 
     class SensitiveZoneType(models.TextChoices):
@@ -274,7 +314,9 @@ class Asset(models.Model):
         IUCN_KBA = 'IUCN_KBA', 'IUCN Key Biodiversity Area'
         OTHER = 'OTHER', 'Autre'
 
-    SENSITIVE_ZONE_HELP_TEXT = 'Renseigné seulement si « Proche d’une zone sensible » est coché.'
+    SENSITIVE_ZONE_HELP_TEXT = (
+        'Renseigné seulement si « Proche d’une zone sensible » est coché.'
+    )
 
     near_sensitive_zone = models.BooleanField(
         default=False, verbose_name="Proche d'une zone sensible",
@@ -342,7 +384,10 @@ class Production(models.Model):
     )
     year = models.IntegerField(verbose_name='Année')
     production = models.FloatField(verbose_name='Quantité produite')
-    estimated_revenue = models.FloatField(default=0.0, verbose_name='Revenu estimé')
+    estimated_revenue = models.FloatField(
+        default=0.0, verbose_name='Revenu estimé',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+    )
 
     class Meta:
         verbose_name = 'Production'
@@ -414,52 +459,70 @@ class Policy_Level(models.Model):
         Policy_Subcategory, on_delete=models.CASCADE, verbose_name='Sous-catégorie',
     )
     name = models.CharField(max_length=255, verbose_name='Nom')
-    score = models.FloatField(null=True, blank=True, verbose_name='Score')
+    score = models.FloatField(
+        null=True, blank=True, verbose_name='Score',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+    )
     description = models.TextField(blank=True, verbose_name='Description')
     vulnerability_water = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — approvisionnement en eau',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_pollination = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — pollinisation',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_soil_quality = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — qualité des sols',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_carbon_sequestration = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — séquestration carbone',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_water_purification = models.FloatField(
         default=1.0, verbose_name="Vulnérabilité — épuration de l'eau",
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_pest_control = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — contrôle des ravageurs',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_water_stress = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — stress hydrique',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_wildfire = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — feu de forêt',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_cyclone = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — cyclone',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_drought = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — sécheresse',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_flood = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — inondation',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_coastal_inundation = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — submersion côtière',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_heatwave = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — canicule',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_temperature_variation = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — variation de température',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     vulnerability_precipitation_variation = models.FloatField(
         default=1.0, verbose_name='Vulnérabilité — variation des précipitations',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
 
     class Meta:
@@ -714,16 +777,18 @@ class ImpactCategory(models.Model):
         return f'{self.method.name} — {self.key}'
 
 
+CF_LOCATION_HELP_TEXT = (
+    'Laisser les deux vides pour un facteur global. La résolution suit '
+    'l’ordre région → pays → global : le premier facteur trouvé gagne.'
+)
+
+
 class CharacterizationFactor(models.Model):
     """Facteur de caractérisation régionalisé : impact par unité de commodity.
 
     Résolution du lieu : region renseigné → région ; sinon country → pays ;
     sinon (les deux null) → global.
     """
-    LOCATION_HELP_TEXT = (
-        'Laisser les deux vides pour un facteur global. La résolution suit '
-        'l’ordre région → pays → global : le premier facteur trouvé gagne.'
-    )
 
     category = models.ForeignKey(
         ImpactCategory, on_delete=models.CASCADE, related_name='factors',
@@ -734,11 +799,11 @@ class CharacterizationFactor(models.Model):
     )
     region = models.ForeignKey(
         SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Région infranationale', help_text=LOCATION_HELP_TEXT,
+        verbose_name='Région infranationale', help_text=CF_LOCATION_HELP_TEXT,
     )
     country = models.ForeignKey(
         Country, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Pays', help_text=LOCATION_HELP_TEXT,
+        verbose_name='Pays', help_text=CF_LOCATION_HELP_TEXT,
     )
     value = models.FloatField(
         default=0.0, verbose_name='Facteur',
@@ -762,26 +827,28 @@ class CharacterizationFactor(models.Model):
         return f'{self.commodity.name} — {self.category.key}'
 
 
+SUPPLY_NODE_LOCATION_HELP_TEXT = (
+    'Un nœud requiert au moins un actif, une région ou un pays. Le plus '
+    'précis des trois détermine sa résolution.'
+)
+
+
 class SupplyNode(models.Model):
     """Sommet du graphe fournisseurs, à résolution variable
     (asset/région/pays)."""
 
-    LOCATION_HELP_TEXT = (
-        'Un nœud requiert au moins un actif, une région ou un pays. Le plus '
-        'précis des trois détermine sa résolution.'
-    )
-
     asset = models.ForeignKey(
         Asset, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Actif', help_text=LOCATION_HELP_TEXT,
+        verbose_name='Actif', help_text=SUPPLY_NODE_LOCATION_HELP_TEXT,
     )
     region = models.ForeignKey(
         SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Région infranationale', help_text=LOCATION_HELP_TEXT,
+        verbose_name='Région infranationale',
+        help_text=SUPPLY_NODE_LOCATION_HELP_TEXT,
     )
     country = models.ForeignKey(
         Country, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Pays', help_text=LOCATION_HELP_TEXT,
+        verbose_name='Pays', help_text=SUPPLY_NODE_LOCATION_HELP_TEXT,
     )
     commodity = models.ForeignKey(
         Commodity, on_delete=models.CASCADE, null=True, blank=True,
@@ -999,9 +1066,11 @@ class SectorCreditProfile(models.Model):
     )
     ebitda_volatility = models.FloatField(
         default=0.25, verbose_name="Volatilité de l'EBITDA",
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     carbon_pass_through = models.FloatField(
         default=0.30, verbose_name='Répercussion du coût carbone',
+        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
     )
     source = models.CharField(max_length=255, blank=True, verbose_name='Source')
     reference = models.CharField(max_length=255, blank=True, verbose_name='Référence')
