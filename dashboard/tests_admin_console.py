@@ -166,6 +166,12 @@ class AdminTooltipTests(TestCase):
     def test_le_css_de_la_console_est_charge(self):
         self.assertContains(self.response, 'admin-easybiodiv.css')
 
+    def test_aucun_commentaire_de_gabarit_ne_fuit_dans_le_formulaire(self):
+        """tag_re de Django est compile sans re.DOTALL : un commentaire
+        accolade-diese multiligne n'est pas tokenise et part tel quel dans la
+        page. Prose de developpeur au milieu d'un formulaire."""
+        self.assertNotContains(self.response, '{#')
+
 
 class AdminThemeTests(TestCase):
     """Console aux couleurs Easybiodiv, en francais, mono-theme."""
@@ -194,6 +200,12 @@ class AdminThemeTests(TestCase):
 
     def test_le_selecteur_de_theme_est_retire(self):
         self.assertNotContains(self.response, 'theme-toggle')
+
+    def test_aucun_commentaire_de_gabarit_ne_fuit_dans_le_chrome(self):
+        """Le gabarit vide du selecteur de theme est inclus dans le <header>
+        de toute page authentifiee : un commentaire non tokenise s'y afficherait
+        juste apres le bouton Deconnexion."""
+        self.assertNotContains(self.response, '{#')
 
 
 class AdminThemeButtonVariablesTests(TestCase):

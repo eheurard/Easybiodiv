@@ -58,9 +58,31 @@
 
 /* ── Bulles explicatives (help_text) ──────────────────────────────────── */
 
+/* forms.css pose `.form-row { overflow: hidden }`. La bulle est en
+   position:absolute et son bloc conteneur (.eb-help) est DANS la ligne : un
+   ancetre a overflow != visible la rognerait, dans un sens comme dans l'autre
+   — il y a une dizaine de pixels de marge au-dessus comme au-dessous de
+   l'icone, pour une bulle de trois lignes qui en fait ~70. La retourner vers
+   le bas ne suffirait donc pas ; il faut lever le rognage.
+
+   Specificite : notre feuille est chargee AVANT forms.css (change_form.html
+   rouvre extrastyle et ajoute forms.css apres block.super), donc un
+   `.form-row` nu perdrait a egalite de specificite sur l'ordre des sources.
+   `form .aligned .form-row` (0,2,1) l'emporte quel que soit l'ordre.
+
+   `display: flow-root` remplace le bloc de formatage que `overflow: hidden`
+   creait : sans lui, un `form ul.inline li { float: left }` (choix radio en
+   ligne) ne serait plus contenu par sa ligne. */
+form .aligned .form-row {
+  overflow: visible;
+  display: flow-root;
+}
+
 .eb-help {
   position: relative;
   display: inline-flex;
+  flex: 0 0 auto;
+  align-self: center;
   margin-left: 6px;
   vertical-align: middle;
 }
@@ -82,14 +104,19 @@
 /* Masquage par opacity/visibility, jamais display:none : display ne se
    transitionne pas, or l'apparition doit être animée. Ce qui doit réellement
    survivre, c'est l'id _helptext sur cette bulle : c'est la cible de
-   l'aria-describedby que Django pose sur le champ. */
+   l'aria-describedby que Django pose sur le champ.
+
+   Ancree a droite : l'icone suit le widget, donc se trouve du cote droit de
+   la colonne des champs. Une bulle ancree a gauche (left: -8px) y deborderait
+   du viewport ; ancree a droite elle s'etale vers le centre de la page.
+   La borne 100vw evite le debordement dans l'autre sens sur petit ecran. */
 .eb-help__bubble {
   position: absolute;
   bottom: calc(100% + 8px);
-  left: -8px;
+  right: -8px;
   z-index: 20;
   width: max-content;
-  max-width: 320px;
+  max-width: min(320px, calc(100vw - 40px));
   padding: 9px 12px;
   border-radius: 8px;
   border: 1px solid #dac1ba;
@@ -104,8 +131,10 @@
   transition: opacity .13s ease, visibility .13s ease;
 }
 
-/* Ouverture au survol de l'icone, et au focus du champ lui-meme. */
-.eb-help:hover .eb-help__bubble,
+/* Ouverture au survol de la LIGNE — pas de l'icone : 16 px de cible de survol
+   sont trop peu, et la ligne entiere est la zone que l'utilisateur vise deja.
+   Et au focus-within, donc des que le champ lui-meme prend le focus clavier. */
+.form-row:hover .eb-help__bubble,
 .form-row:focus-within .eb-help__bubble {
   opacity: 1;
   visibility: visible;

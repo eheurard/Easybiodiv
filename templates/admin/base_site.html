@@ -14,7 +14,13 @@
   <link rel="stylesheet" href="{% static 'dashboard/css/admin-easybiodiv.css' %}">
 {% endblock %}
 
-{# Console mono-theme, comme le dashboard qui n'a pas de mode sombre. Ce bloc
-   charge dark_mode.css et theme.js chez Django ; le vider supprime le conflit
-   de specificite avec html[data-theme="dark"] au lieu d'avoir a le gagner. #}
+{% comment %}
+Console mono-theme, comme le dashboard qui n'a pas de mode sombre. Ce bloc
+charge dark_mode.css et theme.js chez Django ; le vider supprime le conflit
+de specificite avec html[data-theme="dark"] au lieu d'avoir a le gagner.
+
+Balise comment, et surtout pas un commentaire accolade-diese multiligne : le
+lexer de Django compile tag_re SANS re.DOTALL, donc un tel commentaire est
+recopie tel quel dans le HTML.
+{% endcomment %}
 {% block dark-mode-vars %}{% endblock %}

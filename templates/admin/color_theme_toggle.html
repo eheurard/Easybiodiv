@@ -1,2 +1,8 @@
-{# Volontairement vide : la console est mono-theme, un selecteur sans effet
-   vaudrait moins qu'aucun selecteur. Voir templates/admin/base_site.html. #}
+{% comment %}
+Volontairement vide : la console est mono-theme, un selecteur sans effet
+vaudrait moins qu'aucun selecteur. Voir templates/admin/base_site.html.
+
+Balise comment, et surtout pas un commentaire accolade-diese multiligne : le
+lexer de Django compile tag_re SANS re.DOTALL, donc un tel commentaire n'est
+pas tokenise et part tel quel dans le HTML de chaque page authentifiee.
+{% endcomment %}
