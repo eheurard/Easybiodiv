@@ -2,12 +2,14 @@
 import re
 from pathlib import Path
 
+import django
 from django.apps import apps
 from django.contrib import admin as django_admin
 from django.contrib.auth import get_user_model
 from django.db import models as django_models
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
+from django.utils.text import slugify
 
 from dashboard.admin_site import GROUPS, UNGROUPED_TITLE
 from dashboard.models import Currency, ESG_data
@@ -33,6 +35,11 @@ class AdminAccessTests(TestCase):
         cls.subscriber = User.objects.create_user(
             username='abonne', password='pwd-abonne-123', role=User.SUBSCRIBER,
         )
+        # La moitie non testee du `and` de has_permission.
+        cls.superuser_desactive = User.objects.create_superuser(
+            username='root-off', email='root-off@example.com',
+            password='pwd-root-123', is_active=False,
+        )
 
     def test_superuser_accede_a_la_console(self):
         self.client.force_login(self.superuser)
@@ -52,6 +59,25 @@ class AdminAccessTests(TestCase):
 
     def test_subscriber_est_refuse(self):
         self.client.force_login(self.subscriber)
+        response = self.client.get(reverse('admin:index'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_superuser_desactive_est_refuse(self):
+        """La moitie `is_active` du `and` de has_permission.
+
+        Appel direct et non via le client : `ModelBackend.get_user` renvoie
+        None pour un compte inactif, donc une requete HTTP arriverait ici avec
+        un AnonymousUser et passerait au vert meme si le test `is_active`
+        disparaissait de has_permission.
+        """
+        request = RequestFactory().get('/admin/')
+        request.user = self.superuser_desactive
+        self.assertFalse(django_admin.site.has_permission(request))
+
+    def test_superuser_desactive_n_atteint_pas_la_console(self):
+        """Le pendant HTTP du test precedent : bout en bout, un compte
+        superuser desactive est renvoye vers la connexion."""
+        self.client.force_login(self.superuser_desactive)
         response = self.client.get(reverse('admin:index'))
         self.assertEqual(response.status_code, 302)
 
@@ -88,6 +114,14 @@ class AdminGroupingTests(TestCase):
     def test_titres_de_groupes_uniques(self):
         titres = [titre for titre, _ in GROUPS]
         self.assertEqual(len(titres), len(set(titres)))
+
+    def test_slugs_de_groupes_uniques(self):
+        """`_pseudo_app` derive `app_label` du titre par slugify, et app_list.html
+        en fait des ids DOM (`{{ app.app_label }}-{{ model_name }}`). Deux titres
+        qui ne different que par la ponctuation slugifient pareil et produiraient
+        des ids dupliques, donc des `aria-describedby` qui pointent au hasard."""
+        slugs = [slugify(titre) for titre, _ in GROUPS]
+        self.assertEqual(len(slugs), len(set(slugs)))
 
     def test_aucun_modele_dans_deux_groupes(self):
         modeles = [m for _, liste in GROUPS for m in liste]
@@ -237,7 +271,40 @@ class AdminThemeButtonVariablesTests(TestCase):
             variable for variable in variables_bleues
             if not re.search(rf'{re.escape(variable)}\s*:', theme_css)
         ]
-        self.assertEqual(manquantes, [])
+        self.assertEqual(
+            manquantes, [],
+            msg=(
+                'Variables de base.css encore en bleu Django (#205067) et non '
+                'redefinies dans admin-easybiodiv.css. Ce test lit base.css dans '
+                'site-packages : un bump de Django peut donc le faire echouer '
+                'pour une raison exterieure au depot. Dans ce cas, relire le '
+                'bloc :root de django/contrib/admin/static/admin/css/base.css et '
+                'ajouter les nouvelles variables au :root du theme — ne pas '
+                'assouplir le test.'
+            ),
+        )
+
+
+class AdminTemplateOverlayTests(TestCase):
+    """Les trois templates recopies de Django doivent etre re-differes a chaque
+    montee de version : rien dans le code ne signale une divergence amont."""
+
+    def test_les_overlays_sont_cales_sur_cette_version_de_django(self):
+        """Sur bump de Django : re-differ templates/admin/* contre
+        django/contrib/admin/templates/admin/* avant de lever cette borne."""
+        self.assertEqual(
+            django.VERSION[:2], (6, 0),
+            msg=(
+                'Version de Django changee. Re-differer les trois templates '
+                'recopies avant de lever cette borne : '
+                'templates/admin/app_list.html, '
+                'templates/admin/includes/fieldset.html et '
+                'templates/admin/color_theme_toggle.html, contre leurs '
+                'homologues de django/contrib/admin/templates/admin/. '
+                'Une divergence silencieuse sur fieldset.html reverterait le '
+                'rendu des champs sans rien casser de visible.'
+            ),
+        )
 
 
 class SidebarEntryTests(TestCase):
