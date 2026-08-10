@@ -258,10 +258,36 @@ Le template Django rend le `help_text` ainsi :
 </div>
 ```
 
-L'override remplace ce bloc par une icône `?` décorative plus une bulle. Il réutilise
-`icon-unknown.svg`, livré par `django.contrib.admin`. **L'id `_helptext` est conservé
-tel quel** : Django pose automatiquement `aria-describedby` sur le widget vers cet id, et
-c'est ce qui donne le texte complet aux lecteurs d'écran.
+L'override remplace ce bloc par une icône `?` décorative plus une bulle. **L'id `_helptext`
+est conservé tel quel** : Django pose automatiquement `aria-describedby` sur le widget vers
+cet id, et c'est ce qui donne le texte complet aux lecteurs d'écran.
+
+L'icône est un simple caractère `?` dans un `<span>` rond, pas l'`icon-unknown.svg` de
+`django.contrib.admin` : un glyphe stylé en CSS suit les variables de thème et ne crée pas
+de dépendance à un asset dont Django peut changer le tracé ou le nom.
+
+**Placement : dans le `.flex-container`, après le widget.** Hors du conteneur flex, l'icône
+retombe en bloc sur sa propre ligne, calée sous la colonne des libellés, alors que Django
+alignait son `div.help` sur la colonne des champs (`form .aligned div.help { margin-left:
+160px }` dans `forms.css`, perdu par le renommage en `eb-help`). Après le widget plutôt
+qu'après le `label_tag` : `.aligned label` a une largeur fixe de 160 px, s'insérer avant
+l'`<input>` décalerait la colonne des champs des seules lignes qui portent un `help_text`.
+
+**`forms.css` pose `.form-row { overflow: hidden }`**, qui rogne la bulle — dans les deux
+sens, la marge disponible est d'une dizaine de pixels au-dessus comme au-dessous de l'icône.
+L'override du thème lève le rognage en `form .aligned .form-row` (spécificité 0,2,1, qui
+l'emporte quel que soit l'ordre des feuilles : `change_form.html` rouvre `extrastyle` et
+recharge `forms.css` **après** `block.super`), et remplace par `display: flow-root` le bloc
+de formatage que `overflow: hidden` créait.
+
+**Limite connue : les inlines tabulaires n'ont pas la bulle.** Seul
+`admin/edit_inline/stacked.html` inclut `includes/fieldset.html` ;
+`admin/edit_inline/tabular.html` rend le `help_text` en
+`<img class="help help-tooltip" title="…">`, c'est-à-dire une infobulle native du
+navigateur. Deux `help_text` sont concernés : `DisclosureRequirement.code` et
+`ScenarioVariable.value`, tous deux édités en `TabularInline`. **Accepté**, pas corrigé :
+le texte parvient à l'utilisateur, et un quatrième template Django recopié coûterait plus
+en dette de mise à jour que cet écart de présentation ne coûte en confort.
 
 ### Déclenchement : `:hover` et `:focus-within` sur la ligne, pas sur l'icône
 
@@ -278,6 +304,10 @@ Résolution retenue :
   de tout affichage visuel.
 
 Aucun JavaScript.
+
+Une première implémentation avait déclenché sur `.eb-help:hover`, ce que ce titre exclut
+explicitement. Corrigé : 16 px de cible de survol sont trop peu, et la ligne entière est
+la zone que l'utilisateur vise déjà.
 
 **Masquage : `opacity` + `visibility`, pour l'animation — pas pour l'accessibilité.**
 `display` ne se transitionne pas, c'est là toute la raison du choix.
