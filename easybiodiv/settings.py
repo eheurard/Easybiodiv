@@ -48,14 +48,14 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
+    'dashboard.apps.EasybiodivAdminConfig',  # remplace django.contrib.admin
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'authentication',
-    'dashboard',
+    'dashboard.apps.DashboardConfig',
     'imports',
 ]
 
@@ -123,7 +123,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'fr-fr'
 
 TIME_ZONE = 'UTC'
 

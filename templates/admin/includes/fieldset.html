@@ -1,0 +1,64 @@
+<fieldset class="module aligned {{ fieldset.classes }}"{% if fieldset.name %} aria-labelledby="{{ prefix }}-{{ id_prefix}}-{{ id_suffix }}-heading"{% endif %}>
+    {% if fieldset.name %}
+        {% if fieldset.is_collapsible %}<details><summary>{% endif %}
+        <h{{ heading_level|default:2 }} id="{{ prefix }}-{{ id_prefix}}-{{ id_suffix }}-heading" class="fieldset-heading">{{ fieldset.name }}</h{{ heading_level|default:2 }}>
+        {% if fieldset.is_collapsible %}</summary>{% endif %}
+    {% endif %}
+    {% if fieldset.description %}
+        <div class="description">{{ fieldset.description|safe }}</div>
+    {% endif %}
+    {% for line in fieldset %}
+        <div class="form-row{% if line.fields|length == 1 and line.errors %} errors{% endif %}{% if not line.has_visible_field %} hidden{% endif %}{% for field in line %}{% if field.field.name %} field-{{ field.field.name }}{% endif %}{% endfor %}">
+            {% if line.fields|length == 1 %}{{ line.errors }}{% else %}<div class="flex-container form-multiline">{% endif %}
+            {% for field in line %}
+                {% if field.is_fieldset %}<fieldset{% if field.field.help_text %} aria-describedby="{{ field.field.id_for_label }}_helptext"{% endif %}>{{ field.label_tag }}{% endif %}
+                <div>
+                    {% if not line.fields|length == 1 and not field.is_readonly %}{{ field.errors }}{% endif %}
+                        <div class="flex-container{% if not line.fields|length == 1 %} fieldBox{% if field.field.name %} field-{{ field.field.name }}{% endif %}{% if not field.is_readonly and field.errors %} errors{% endif %}{% if field.field.is_hidden %} hidden{% endif %}{% endif %}{% if field.is_checkbox %} checkbox-row{% endif %}">
+                            {% if field.is_checkbox %}
+                                {{ field.field }}{% if not field.is_fieldset %}{{ field.label_tag }}{% endif %}
+                            {% else %}
+                                {% if not field.is_fieldset %}{{ field.label_tag }}{% endif %}
+                                {% if field.is_readonly %}
+                                    <div class="readonly">{{ field.contents }}</div>
+                                {% else %}
+                                    {{ field.field }}
+                                {% endif %}
+                            {% endif %}
+                            {% comment %}
+                            Bulle explicative, DANS le .flex-container et non apres
+                            lui : hors du conteneur flex, l'icone retombe en bloc sur
+                            sa propre ligne, calee sous la colonne des libelles, alors
+                            que Django alignait son div.help sur la colonne des champs
+                            (form .aligned div.help { margin-left: 160px }). Placee
+                            apres le widget, elle reste collee au champ qu'elle
+                            explique sans decaler la colonne des champs.
+
+                            L'icone est decorative : l'ouverture se fait au survol de
+                            la ligne ET a son focus-within, ce qui evite un arret de
+                            tabulation par champ. Masquage par opacity/visibility,
+                            jamais display:none : display ne se transitionne pas. Ce
+                            qui doit reellement survivre, c'est l'id _helptext
+                            ci-dessous, cible de l'aria-describedby que Django pose
+                            sur le champ.
+
+                            Balise comment, et surtout pas un commentaire
+                            accolade-diese multiligne : le lexer de Django compile
+                            tag_re SANS re.DOTALL, donc un tel commentaire est recopie
+                            tel quel dans le HTML du formulaire.
+                            {% endcomment %}
+                            {% if field.field.help_text %}
+                                <span class="eb-help{% if field.field.is_hidden %} hidden{% endif %}">
+                                    <span class="eb-help__icon" aria-hidden="true">?</span>
+                                    <span class="eb-help__bubble"{% if field.field.id_for_label %} id="{{ field.field.id_for_label }}_helptext"{% endif %}>{{ field.field.help_text|safe }}</span>
+                                </span>
+                            {% endif %}
+                        </div>
+                </div>
+                {% if field.is_fieldset %}</fieldset>{% endif %}
+            {% endfor %}
+            {% if not line.fields|length == 1 %}</div>{% endif %}
+        </div>
+    {% endfor %}
+    {% if fieldset.name and fieldset.is_collapsible %}</details>{% endif %}
+</fieldset>

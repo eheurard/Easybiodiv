@@ -4,7 +4,8 @@ from .models import (
     Asset, Company, Production, Ownership,
     Company_Revenue, Company_Revenue_Sector,
     Policy_Type, Policy_Subcategory, Policy_Level, Company_Policy,
-    DisclosureRequirement, E4Assessment, ESG_data,Carbon_emission,
+    DisclosureRequirement, E4Assessment, ESG_data, Carbon_emission,
+    Currency,
     ImpactMethod, ImpactCategory, CharacterizationFactor,
     SupplyNode, Exchange, Flow, AssetInventory,
     ClimateScenario, ScenarioVariable, SectorCreditProfile,
@@ -252,3 +253,17 @@ class SectorCreditProfileAdmin(admin.ModelAdmin):
     list_display = ('sector', 'pd_baseline', 'ebitda_margin',
                     'ebitda_volatility', 'carbon_pass_through')
     autocomplete_fields = ('sector',)
+
+
+@admin.register(Currency)
+class CurrencyAdmin(admin.ModelAdmin):
+    search_fields = ('code', 'name')
+    list_display = ('code', 'name', 'symbol', 'ratio_USD')
+
+
+@admin.register(ESG_data)
+class ESGDataAdmin(admin.ModelAdmin):
+    search_fields = ('company__name',)
+    list_display = ('company', 'year', 'employees_number')
+    list_filter = ('year',)
+    autocomplete_fields = ('company',)

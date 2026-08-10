@@ -1,0 +1,174 @@
+/* Console de donnees Easybiodiv — surcouche de django.contrib.admin. */
+
+/* ── Theme : redefinition des variables de base.css de Django ─────────────
+   Les 49 variables du bloc :root de admin/css/base.css pilotent tout le
+   chrome. Un simple :root suffit ici parce que base_site.html ne charge pas
+   dark_mode.css — sinon html[data-theme="dark"] l'emporterait.
+   Valeurs reprises de dashboard/static/dashboard/css/style.css. */
+
+:root {
+  --primary: #91452d;
+  --secondary: #91452d;
+  --accent: #af5d43;
+  --primary-fg: #ffffff;
+
+  --body-fg: #1b1c19;
+  --body-bg: #fbf9f4;
+  --body-quiet-color: #54433e;
+  --body-medium-color: #54433e;
+  --body-loud-color: #1b1c19;
+
+  --header-color: #ffffff;
+  --header-branding-color: #ffffff;
+  --header-bg: #91452d;
+  --header-link-color: #ffffff;
+
+  --breadcrumbs-fg: #fffaf9;
+  --breadcrumbs-link-fg: #ffffff;
+  --breadcrumbs-bg: #af5d43;
+
+  --link-fg: #91452d;
+  --link-hover-color: #af5d43;
+  --link-selected-fg: #91452d;
+
+  --hairline-color: #e4e2dd;
+  --border-color: #dac1ba;
+
+  --error-fg: #ba1a1a;
+
+  --darkened-bg: #f0eee9;
+  --selected-bg: #eae8e3;
+  --selected-row: #f5f3ee;
+
+  /* Boutons. Django code son seul bleu en dur ici (hors var(--secondary)) :
+     --button-hover-bg et --default-button-bg valent #205067 dans base.css,
+     jamais autre chose. Sans redefinition, le bouton "Enregistrer" — le CTA
+     le plus visible de chaque formulaire — resterait bleu Django.
+
+     Les quatre valeurs forment une echelle de luminance strictement
+     decroissante, pour que TOUT survol assombrisse, comme le veut la
+     convention d'enfoncement de Django (luminance relative WCAG, contraste
+     avec le blanc entre parentheses) :
+
+       #af5d43  L 0.174 (4.70:1)  bouton ordinaire au repos
+       #865220  L 0.112 (6.48:1)  bouton ordinaire survole
+       #91452d  L 0.105 (6.79:1)  bouton par defaut au repos
+       #784714  L 0.086 (7.75:1)  bouton par defaut survole
+
+     La version precedente inversait la convention : #91452d -> #865220 sur
+     un bouton ordinaire ne changeait pas la luminance (0.105 -> 0.112, un
+     simple decalage de teinte, donc aucun retour de survol percu), et le
+     bouton par defaut passait de #784714 a #91452d, c'est-a-dire s'eclaircissait.
+
+     --default-button-hover-bg doit etre repris explicitement : sa valeur
+     base.css est var(--secondary), qui vaut ici la terre cuite du repos. */
+  --button-bg: #af5d43;
+  --button-hover-bg: #865220;
+  --default-button-bg: #91452d;
+  --default-button-hover-bg: #784714;
+
+  /* Le bouton "Ajouter" en tete de chaque liste : --object-tools-bg vaut
+     var(--close-button-bg) = gris #747474 dans base.css, ce qui en faisait le
+     seul bouton saillant non terre cuite de la console. Meme echelle que le
+     bouton par defaut, dont il joue le role sur les listes. */
+  --object-tools-bg: #91452d;
+  --object-tools-hover-bg: #784714;
+
+  /* Les messages "info" (le fond par defaut de toute la messagelist) restaient
+     au bleu pale #ccefff de Django. #ffdcc1 est le secondary-fixed de
+     design.md : assez sature pour se detacher du fond parchemin, assez clair
+     pour garder le texte --body-fg tres au-dessus de AA.
+     NB : --message-info-icon reste l'icone bleue de Django, un SVG livre en
+     fichier — la retheminer demanderait un asset de plus. */
+  --message-info-bg: #ffdcc1;
+
+  --font-family-primary: 'Inter', system-ui, sans-serif;
+}
+
+/* ── Bulles explicatives (help_text) ──────────────────────────────────── */
+
+/* forms.css pose `.form-row { overflow: hidden }`. La bulle est en
+   position:absolute et son bloc conteneur (.eb-help) est DANS la ligne : un
+   ancetre a overflow != visible la rognerait, dans un sens comme dans l'autre
+   — il y a une dizaine de pixels de marge au-dessus comme au-dessous de
+   l'icone, pour une bulle de trois lignes qui en fait ~70. La retourner vers
+   le bas ne suffirait donc pas ; il faut lever le rognage.
+
+   Specificite : notre feuille est chargee AVANT forms.css (change_form.html
+   rouvre extrastyle et ajoute forms.css apres block.super), donc un
+   `.form-row` nu perdrait a egalite de specificite sur l'ordre des sources.
+   `form .aligned .form-row` (0,2,1) l'emporte quel que soit l'ordre.
+
+   `display: flow-root` remplace le bloc de formatage que `overflow: hidden`
+   creait : sans lui, un `form ul.inline li { float: left }` (choix radio en
+   ligne) ne serait plus contenu par sa ligne. */
+form .aligned .form-row {
+  overflow: visible;
+  display: flow-root;
+}
+
+.eb-help {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-self: center;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.eb-help__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid #87736d;
+  background: #f0eee9;
+  color: #54433e;
+  font: 600 11px/1 'Inter', system-ui, sans-serif;
+  cursor: help;
+}
+
+/* Masquage par opacity/visibility, jamais display:none : display ne se
+   transitionne pas, or l'apparition doit être animée. Ce qui doit réellement
+   survivre, c'est l'id _helptext sur cette bulle : c'est la cible de
+   l'aria-describedby que Django pose sur le champ.
+
+   Ancree a droite : l'icone suit le widget, donc se trouve du cote droit de
+   la colonne des champs. Une bulle ancree a gauche (left: -8px) y deborderait
+   du viewport ; ancree a droite elle s'etale vers le centre de la page.
+   La borne 100vw evite le debordement dans l'autre sens sur petit ecran. */
+.eb-help__bubble {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: -8px;
+  z-index: 20;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 40px));
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid #dac1ba;
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(27, 28, 25, .14);
+  color: #1b1c19;
+  font: 400 12px/1.45 'Inter', system-ui, sans-serif;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .13s ease, visibility .13s ease;
+}
+
+/* Ouverture au survol de la LIGNE — pas de l'icone : 16 px de cible de survol
+   sont trop peu, et la ligne entiere est la zone que l'utilisateur vise deja.
+   Et au focus-within, donc des que le champ lui-meme prend le focus clavier. */
+.form-row:hover .eb-help__bubble,
+.form-row:focus-within .eb-help__bubble {
+  opacity: 1;
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eb-help__bubble { transition: none; }
+}
