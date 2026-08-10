@@ -403,6 +403,11 @@ class Company_Revenue(models.Model):
     )
     year = models.IntegerField(verbose_name='Exercice')
     revenue = models.FloatField(verbose_name="Chiffre d'affaires")
+    evic = models.FloatField(
+        default=0.0, verbose_name='EVIC',
+        help_text="Enterprise Value Including Cash — dénominateur de l'impact financé.",
+    )
+    ebitda = models.FloatField(default=0.0, verbose_name='EBITDA')
     currency = models.CharField(max_length=255, verbose_name='Devise')
 
     class Meta:
@@ -1083,3 +1088,70 @@ class SectorCreditProfile(models.Model):
 
     def __str__(self):
         return f'{self.sector.name} — PD {self.pd_baseline:.2%}'
+
+
+class Portfolio(models.Model):
+    """Portefeuille (fonds) : ensemble d'entreprises pondérées à analyser."""
+    name = models.CharField(max_length=255, verbose_name='Nom du fonds')
+    size = models.FloatField(default=0, verbose_name='Taille du fonds')
+    currency = models.ForeignKey(
+        Currency, on_delete=models.PROTECT, verbose_name='Devise',
+    )
+    benchmark = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='benchmarked_by', verbose_name='Benchmark',
+    )
+    is_benchmark = models.BooleanField(
+        default=False, verbose_name='Utiliser comme benchmark',
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name='Créé par',
+    )
+
+    class Meta:
+        verbose_name = 'Portefeuille'
+        verbose_name_plural = 'Portefeuilles'
+
+    def __str__(self):
+        return self.name
+
+
+class PortfolioHolding(models.Model):
+    """Position d'un portefeuille : une entreprise, un montant, un poids."""
+    class Instrument(models.TextChoices):
+        EQUITY = 'EQUITY', 'Action (Equity)'
+        BOND = 'BOND', 'Obligation (Bond)'
+
+    portfolio = models.ForeignKey(
+        Portfolio, on_delete=models.CASCADE, related_name='holdings',
+        verbose_name='Portefeuille',
+    )
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, verbose_name='Entreprise',
+    )
+    amount = models.FloatField(default=0, verbose_name='Montant investi')
+    weight = models.FloatField(default=0, verbose_name='Poids (%)')
+    instrument_type = models.CharField(
+        max_length=10, choices=Instrument.choices, default=Instrument.EQUITY,
+        verbose_name="Type d'instrument",
+    )
+    maturity_date = models.DateField(
+        null=True, blank=True, verbose_name='Maturité',
+    )
+    coupon_rate = models.FloatField(
+        null=True, blank=True, verbose_name='Taux de coupon (%)',
+    )
+    face_value = models.FloatField(
+        null=True, blank=True, verbose_name='Valeur nominale',
+    )
+
+    class Meta:
+        unique_together = ('portfolio', 'company')
+        verbose_name = 'Position de portefeuille'
+        verbose_name_plural = 'Positions de portefeuille'
+
+    def __str__(self):
+        return f'{self.portfolio.name} — {self.company.name}'

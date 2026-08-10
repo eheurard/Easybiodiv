@@ -2445,3 +2445,782 @@ class AssetConsumptionMigrateHelperTests(TestCase):
         self.assertEqual(
             AssetInventory.objects.get(asset=asset, flow__key='co2').value, 50.0
         )
+
+
+class PortfolioModelTests(TestCase):
+
+    def setUp(self):
+        from .models import Currency
+        self.eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
+        self.company = Company.objects.create(name='PortCorp')
+
+    def test_create_portfolio_with_holding(self):
+        from .models import Portfolio, PortfolioHolding
+        pf = Portfolio.objects.create(name='Fonds A', size=1000.0, currency=self.eur)
+        PortfolioHolding.objects.create(
+            portfolio=pf, company=self.company, amount=500.0, weight=50.0,
+        )
+        self.assertEqual(pf.holdings.count(), 1)
+        holding = pf.holdings.first()
+        self.assertEqual(holding.instrument_type, 'EQUITY')
+        self.assertIsNone(holding.maturity_date)
+
+    def test_holding_unique_per_company(self):
+        from django.db import IntegrityError, transaction
+        from .models import Portfolio, PortfolioHolding
+        pf = Portfolio.objects.create(name='Fonds B', size=0, currency=self.eur)
+        PortfolioHolding.objects.create(portfolio=pf, company=self.company)
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                PortfolioHolding.objects.create(portfolio=pf, company=self.company)
+
+    def test_benchmark_self_reference(self):
+        from .models import Portfolio
+        bench = Portfolio.objects.create(
+            name='Indice', size=0, currency=self.eur, is_benchmark=True,
+        )
+        pf = Portfolio.objects.create(
+            name='Fonds C', size=0, currency=self.eur, benchmark=bench,
+        )
+        self.assertEqual(pf.benchmark, bench)
+        self.assertIn(pf, bench.benchmarked_by.all())
+
+
+class PortfolioFormTests(TestCase):
+
+    def setUp(self):
+        from .models import Currency
+        self.eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
+        self.company = Company.objects.create(name='FormCorp')
+
+    def test_portfolio_form_valid(self):
+        from .forms import PortfolioForm
+        form = PortfolioForm({
+            'name': 'Fonds', 'size': 1000, 'currency': self.eur.pk, 'benchmark': '',
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_portfolio_form_requires_currency(self):
+        from .forms import PortfolioForm
+        form = PortfolioForm({'name': 'Fonds', 'size': 1000})
+        self.assertFalse(form.is_valid())
+        self.assertIn('currency', form.errors)
+
+    def test_holding_form_valid(self):
+        from .forms import PortfolioHoldingForm
+        form = PortfolioHoldingForm({
+            'company': self.company.pk, 'amount': 500, 'weight': 50,
+            'instrument_type': 'EQUITY',
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_holding_form_rejects_weight_over_100(self):
+        from .forms import PortfolioHoldingForm
+        form = PortfolioHoldingForm({
+            'company': self.company.pk, 'amount': 0, 'weight': 150,
+            'instrument_type': 'EQUITY',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('weight', form.errors)
+
+
+class PortfolioSaveViewTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from .models import Currency
+        User = get_user_model()
+        self.user = User.objects.create_user(username='saver', password='pass')
+        self.client.force_login(self.user)
+        self.eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
+        self.company = Company.objects.create(name='SaveCorp')
+        self.url = reverse('dashboard:portfolio_save')
+
+    def _payload(self, **over):
+        data = {
+            'name': 'Fonds', 'size': 1000, 'currency_id': self.eur.pk,
+            'benchmark_id': None, 'is_benchmark': False,
+            'holdings': [{
+                'company_id': self.company.pk, 'amount': 500, 'weight': 50,
+                'instrument_type': 'EQUITY', 'maturity_date': None,
+                'coupon_rate': None, 'face_value': None,
+            }],
+        }
+        data.update(over)
+        return data
+
+    def test_save_creates_portfolio_and_holdings(self):
+        from .models import Portfolio
+        response = self.client.post(
+            self.url, data=json.dumps(self._payload()),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        pf = Portfolio.objects.get(name='Fonds')
+        self.assertEqual(pf.created_by, self.user)
+        self.assertEqual(pf.holdings.count(), 1)
+
+    def test_save_with_bond_fields(self):
+        from .models import Portfolio
+        payload = self._payload(holdings=[{
+            'company_id': self.company.pk, 'amount': 500, 'weight': 50,
+            'instrument_type': 'BOND', 'maturity_date': '2030-01-01',
+            'coupon_rate': 3.5, 'face_value': 1000,
+        }])
+        response = self.client.post(
+            self.url, data=json.dumps(payload), content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        holding = Portfolio.objects.get(name='Fonds').holdings.first()
+        self.assertEqual(holding.instrument_type, 'BOND')
+        self.assertAlmostEqual(holding.coupon_rate, 3.5, places=2)
+
+    def test_save_updates_existing_portfolio(self):
+        from .models import Portfolio
+        first = self.client.post(
+            self.url, data=json.dumps(self._payload()),
+            content_type='application/json',
+        )
+        pid = json.loads(first.content)['id']
+        self.client.post(
+            self.url,
+            data=json.dumps(self._payload(id=pid, name='Renommé', holdings=[])),
+            content_type='application/json',
+        )
+        pf = Portfolio.objects.get(pk=pid)
+        self.assertEqual(pf.name, 'Renommé')
+        self.assertEqual(pf.holdings.count(), 0)
+
+    def test_save_invalid_missing_currency_returns_400(self):
+        from .models import Portfolio
+        response = self.client.post(
+            self.url, data=json.dumps(self._payload(currency_id=None)),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('currency', json.loads(response.content)['errors'])
+        self.assertEqual(Portfolio.objects.count(), 0)
+
+    def test_save_duplicate_company_returns_400(self):
+        from .models import Portfolio
+        row = {
+            'company_id': self.company.pk, 'amount': 0, 'weight': 0,
+            'instrument_type': 'EQUITY', 'maturity_date': None,
+            'coupon_rate': None, 'face_value': None,
+        }
+        response = self.client.post(
+            self.url, data=json.dumps(self._payload(holdings=[row, row])),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Portfolio.objects.count(), 0)
+
+    def test_save_requires_login(self):
+        self.client.logout()
+        response = self.client.post(
+            self.url, data=json.dumps(self._payload()),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 302)
+
+    def test_other_user_cannot_overwrite_portfolio(self):
+        from django.contrib.auth import get_user_model
+        from .models import Portfolio
+        User = get_user_model()
+        # Create portfolio owned by self.user
+        response = self.client.post(
+            self.url, data=json.dumps(self._payload()),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        owner_portfolio_id = json.loads(response.content)['id']
+        # Switch to a second user and attempt to overwrite
+        other = User.objects.create_user(username='other_saver', password='pass')
+        self.client.force_login(other)
+        response2 = self.client.post(
+            self.url,
+            data=json.dumps(self._payload(id=owner_portfolio_id, name='Hacké')),
+            content_type='application/json',
+        )
+        self.assertEqual(response2.status_code, 404)
+        # Original portfolio is unchanged
+        self.assertEqual(Portfolio.objects.get(pk=owner_portfolio_id).name, 'Fonds')
+
+
+class PortfolioDetailViewTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from .models import Currency, Portfolio, PortfolioHolding
+        User = get_user_model()
+        self.user = User.objects.create_user(username='detailer', password='pass')
+        self.client.force_login(self.user)
+        eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
+        self.company = Company.objects.create(name='DetailCorp')
+        self.pf = Portfolio.objects.create(
+            name='Fonds D', size=2000, currency=eur, created_by=self.user,
+        )
+        PortfolioHolding.objects.create(
+            portfolio=self.pf, company=self.company, amount=1000, weight=50,
+            instrument_type='BOND', coupon_rate=2.0,
+        )
+
+    def test_detail_returns_portfolio_json(self):
+        url = reverse('dashboard:portfolio_detail', kwargs={'pk': self.pf.pk})
+        data = json.loads(self.client.get(url).content)
+        self.assertEqual(data['name'], 'Fonds D')
+        self.assertEqual(len(data['holdings']), 1)
+        h = data['holdings'][0]
+        self.assertEqual(h['company_id'], self.company.pk)
+        self.assertEqual(h['company_name'], 'DetailCorp')
+        self.assertEqual(h['instrument_type'], 'BOND')
+
+    def test_detail_404_when_missing(self):
+        url = reverse('dashboard:portfolio_detail', kwargs={'pk': 99999})
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_detail_post_not_allowed(self):
+        url = reverse('dashboard:portfolio_detail', kwargs={'pk': self.pf.pk})
+        self.assertEqual(self.client.post(url).status_code, 405)
+
+    def test_other_user_cannot_read_portfolio(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        other = User.objects.create_user(username='other_detail', password='pass')
+        self.client.force_login(other)
+        url = reverse('dashboard:portfolio_detail', kwargs={'pk': self.pf.pk})
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+
+class PortfolioImpactViewTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from .models import (
+            Company_Revenue, Currency, Portfolio, PortfolioHolding,
+        )
+        User = get_user_model()
+        self.user = User.objects.create_user(username='impacter', password='pass')
+        self.client.force_login(self.user)
+        eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
+
+        country = Country.objects.create(
+            name='France', water_ownership='Public', land_ownership='Private',
+        )
+        commodity = Commodity.objects.create(name='Soja')
+        _make_cf(commodity, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 2.0)
+        _make_cf(commodity, 'impact_endpoint_GBS_terrestrial_static', 3.0)
+        # Company A : production 100 → impact ReCiPe = 200, GBS = 300.
+        # Impact financé = montant × (impact / EVIC) ; EVIC = 1000.
+        self.company_a = Company.objects.create(name='AlphaCorp')
+        asset = Asset.objects.create(
+            name='Site A', latitude=48.0, longitude=2.0, country=country,
+        )
+        Ownership.objects.create(Asset=asset, Company=self.company_a, ownership='100%')
+        Production.objects.create(
+            asset=asset, commodity=commodity, year=2024, production=100.0,
+        )
+        Company_Revenue.objects.create(
+            company=self.company_a, year=2024, revenue=1000.0, evic=1000.0,
+            currency='EUR',
+        )
+        # Company B : aucune production → impact 0.
+        self.company_b = Company.objects.create(name='BetaCorp')
+
+        self.pf = Portfolio.objects.create(
+            name='Fonds I', size=1000, currency=eur, created_by=self.user,
+        )
+        PortfolioHolding.objects.create(
+            portfolio=self.pf, company=self.company_a, amount=500, weight=50,
+        )
+        PortfolioHolding.objects.create(
+            portfolio=self.pf, company=self.company_b, amount=500, weight=50,
+        )
+        self.url = reverse('dashboard:portfolio_impact', kwargs={'pk': self.pf.pk})
+
+    def test_impact_returns_weighted_recipe_totals(self):
+        data = json.loads(self.client.get(self.url).content)
+        recipe = data['metrics']['recipe']
+        self.assertEqual(recipe['unit'], 'PDF.m²')
+        # Seule AlphaCorp contribue : 500 × (200 / 1000) = 100.
+        self.assertAlmostEqual(recipe['total'], 100.0, places=2)
+        alpha = next(c for c in recipe['companies'] if c['name'] == 'AlphaCorp')
+        self.assertAlmostEqual(alpha['impact'], 200.0, places=2)
+        self.assertAlmostEqual(alpha['weighted'], 100.0, places=2)
+        self.assertEqual(alpha['weight'], 50.0)
+
+    def test_impact_gbs_metric_uses_other_field(self):
+        data = json.loads(self.client.get(self.url).content)
+        gbs = data['metrics']['gbs']
+        self.assertEqual(gbs['unit'], 'MSA.km²')
+        # 500 × (300 / 1000) = 150.
+        self.assertAlmostEqual(gbs['total'], 150.0, places=2)
+
+    def test_company_without_production_has_zero_impact(self):
+        data = json.loads(self.client.get(self.url).content)
+        beta = next(
+            c for c in data['metrics']['recipe']['companies'] if c['name'] == 'BetaCorp'
+        )
+        self.assertEqual(beta['impact'], 0)
+        self.assertEqual(beta['weighted'], 0)
+
+    def test_companies_sorted_by_weighted_desc(self):
+        data = json.loads(self.client.get(self.url).content)
+        names = [c['name'] for c in data['metrics']['recipe']['companies']]
+        self.assertEqual(names, ['AlphaCorp', 'BetaCorp'])
+
+    def test_other_user_cannot_read_impact(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        other = User.objects.create_user(username='other_impact', password='pass')
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(self.url).status_code, 404)
+
+    def test_impact_requires_login(self):
+        self.client.logout()
+        self.assertEqual(self.client.get(self.url).status_code, 302)
+
+    def test_impact_post_not_allowed(self):
+        self.assertEqual(self.client.post(self.url).status_code, 405)
+
+
+class PortfolioPhysicalRiskViewTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from .models import Currency, Portfolio, PortfolioHolding
+        User = get_user_model()
+        self.user = User.objects.create_user(username='physer', password='pass')
+        self.client.force_login(self.user)
+        eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
+        country = Country.objects.create(
+            name='France', water_ownership='Public', land_ownership='Private',
+        )
+        commodity = Commodity.objects.create(name='Soja')
+
+        # Company A : 2 assets, drought 0.8 (revenu 300) et 0.2 (revenu 100)
+        # → moyenne pondérée drought = (300*0.8 + 100*0.2) / 400 = 0.65.
+        self.company_a = Company.objects.create(name='AlphaCorp')
+        a1 = Asset.objects.create(
+            name='A1', latitude=48.0, longitude=2.0, country=country,
+            risk_drought=0.8,
+        )
+        a2 = Asset.objects.create(
+            name='A2', latitude=49.0, longitude=3.0, country=country,
+            risk_drought=0.2,
+        )
+        Ownership.objects.create(Asset=a1, Company=self.company_a, ownership='100%')
+        Ownership.objects.create(Asset=a2, Company=self.company_a, ownership='100%')
+        Production.objects.create(
+            asset=a1, commodity=commodity, year=2024, production=10.0,
+            estimated_revenue=300.0,
+        )
+        Production.objects.create(
+            asset=a2, commodity=commodity, year=2024, production=10.0,
+            estimated_revenue=100.0,
+        )
+
+        # Company B : 1 asset, drought 0.4 (revenu 100) → company drought = 0.4.
+        self.company_b = Company.objects.create(name='BetaCorp')
+        b1 = Asset.objects.create(
+            name='B1', latitude=50.0, longitude=4.0, country=country,
+            risk_drought=0.4,
+        )
+        Ownership.objects.create(Asset=b1, Company=self.company_b, ownership='100%')
+        Production.objects.create(
+            asset=b1, commodity=commodity, year=2024, production=10.0,
+            estimated_revenue=100.0,
+        )
+
+        # Company C : asset sans production → repli moyenne simple.
+        self.company_c = Company.objects.create(name='GammaCorp')
+        c1 = Asset.objects.create(
+            name='C1', latitude=51.0, longitude=5.0, country=country,
+            risk_drought=0.6,
+        )
+        Ownership.objects.create(Asset=c1, Company=self.company_c, ownership='100%')
+
+        # Company D : aucun asset → scores 0.
+        self.company_d = Company.objects.create(name='DeltaCorp')
+
+        # Portefeuille : A montant 750, B montant 250
+        # → portfolio drought = (750*0.65 + 250*0.4) / 1000 = 0.5875.
+        self.pf = Portfolio.objects.create(
+            name='Fonds P', size=1000, currency=eur, created_by=self.user,
+        )
+        PortfolioHolding.objects.create(
+            portfolio=self.pf, company=self.company_a, amount=750, weight=75,
+        )
+        PortfolioHolding.objects.create(
+            portfolio=self.pf, company=self.company_b, amount=250, weight=25,
+        )
+        self.url = reverse(
+            'dashboard:portfolio_physical_risk', kwargs={'pk': self.pf.pk},
+        )
+
+    def _drought(self):
+        data = json.loads(self.client.get(self.url).content)
+        keys = [h['key'] for h in data['hazards']]
+        return data, keys.index('drought')
+
+    def test_returns_nine_hazards_in_order(self):
+        data = json.loads(self.client.get(self.url).content)
+        keys = [h['key'] for h in data['hazards']]
+        self.assertEqual(keys, [
+            'water_stress', 'wildfire', 'cyclone', 'drought', 'flood',
+            'coastal_inundation', 'heatwave', 'temperature_variation',
+            'precipitation_variation',
+        ])
+
+    def test_company_revenue_weighted_average(self):
+        data, i = self._drought()
+        alpha = next(c for c in data['companies'] if c['name'] == 'AlphaCorp')
+        self.assertAlmostEqual(alpha['scores'][i], 0.65, places=4)
+
+    def test_portfolio_amount_weighted_aggregate(self):
+        data, i = self._drought()
+        # Pondération par montant investi (750/250), distincte d'une pondération
+        # égale qui donnerait (0.65 + 0.4) / 2 = 0.525.
+        self.assertAlmostEqual(data['portfolio'][i], 0.5875, places=4)
+        self.assertNotAlmostEqual(data['portfolio'][i], 0.525, places=4)
+
+    def test_simple_average_fallback_without_revenue(self):
+        # GammaCorp seule dans un portefeuille : repli moyenne simple = 0.6.
+        from .models import Portfolio, PortfolioHolding, Currency
+        eur = Currency.objects.get(code='EUR')
+        pf2 = Portfolio.objects.create(
+            name='Fonds G', size=100, currency=eur, created_by=self.user,
+        )
+        PortfolioHolding.objects.create(
+            portfolio=pf2, company=self.company_c, amount=100, weight=100,
+        )
+        url = reverse('dashboard:portfolio_physical_risk', kwargs={'pk': pf2.pk})
+        data = json.loads(self.client.get(url).content)
+        i = [h['key'] for h in data['hazards']].index('drought')
+        gamma = next(c for c in data['companies'] if c['name'] == 'GammaCorp')
+        self.assertAlmostEqual(gamma['scores'][i], 0.6, places=4)
+
+    def test_company_without_asset_scores_zero(self):
+        from .models import PortfolioHolding
+        PortfolioHolding.objects.create(
+            portfolio=self.pf, company=self.company_d, amount=0, weight=0,
+        )
+        data = json.loads(self.client.get(self.url).content)
+        delta = next(c for c in data['companies'] if c['name'] == 'DeltaCorp')
+        self.assertTrue(all(s == 0 for s in delta['scores']))
+
+    def test_benchmark_null_without_benchmark(self):
+        data = json.loads(self.client.get(self.url).content)
+        self.assertIsNone(data['benchmark'])
+
+    def test_benchmark_present_returns_nine_scores(self):
+        from .models import Portfolio, PortfolioHolding, Currency
+        eur = Currency.objects.get(code='EUR')
+        bench = Portfolio.objects.create(
+            name='Bench', size=100, currency=eur, is_benchmark=True,
+        )
+        PortfolioHolding.objects.create(
+            portfolio=bench, company=self.company_b, amount=100, weight=100,
+        )
+        self.pf.benchmark = bench
+        self.pf.save()
+        data = json.loads(self.client.get(self.url).content)
+        self.assertIsNotNone(data['benchmark'])
+        self.assertEqual(len(data['benchmark']), 9)
+        i = [h['key'] for h in data['hazards']].index('drought')
+        self.assertAlmostEqual(data['benchmark'][i], 0.4, places=4)
+
+    def test_companies_sorted_by_total_exposure_desc(self):
+        data = json.loads(self.client.get(self.url).content)
+        sums = [sum(c['scores']) for c in data['companies']]
+        self.assertEqual(sums, sorted(sums, reverse=True))
+
+    def test_other_user_cannot_read(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        other = User.objects.create_user(username='other_phys', password='pass')
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(self.url).status_code, 404)
+
+    def test_requires_login(self):
+        self.client.logout()
+        self.assertEqual(self.client.get(self.url).status_code, 302)
+
+    def test_post_not_allowed(self):
+        self.assertEqual(self.client.post(self.url).status_code, 405)
+
+
+class PortfolioAnalysisPageTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from .models import Currency, Portfolio
+        User = get_user_model()
+        self.user = User.objects.create_user(username='pageportf', password='pass')
+        self.client.force_login(self.user)
+        self.eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
+        Company.objects.create(name='PageCorp')
+        Portfolio.objects.create(
+            name='Bench', size=0, currency=self.eur, is_benchmark=True,
+        )
+
+    def test_page_returns_200(self):
+        response = self.client.get(reverse('dashboard:portfolio_analysis'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_page_uses_correct_template(self):
+        response = self.client.get(reverse('dashboard:portfolio_analysis'))
+        self.assertTemplateUsed(response, 'dashboard/portfolio.html')
+
+    def test_context_has_companies_currencies_benchmarks(self):
+        response = self.client.get(reverse('dashboard:portfolio_analysis'))
+        self.assertEqual(len(response.context['companies']), 1)
+        self.assertEqual(len(response.context['currencies']), 1)
+        self.assertEqual(len(response.context['benchmarks']), 1)
+        self.assertEqual(response.context['benchmarks'][0]['name'], 'Bench')
+
+    def test_page_redirects_anonymous(self):
+        self.client.logout()
+        response = self.client.get(reverse('dashboard:portfolio_analysis'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+
+class PortfolioTemplateContentTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='tplportf', password='pass')
+        self.client.force_login(self.user)
+
+    def test_page_has_tabs_and_form_elements(self):
+        response = self.client.get(reverse('dashboard:portfolio_analysis'))
+        for needle in [
+            'id="pf-tabs"', 'data-tab="creation"', 'data-tab="impact"',
+            'data-tab="risque-physique"', 'data-tab="risque-transition"',
+            'data-tab="risque-composite"', 'data-tab="scenario"',
+            'id="pf-name"', 'id="pf-currency"', 'id="pf-benchmark"',
+            'id="pf-holdings-body"', 'id="pf-save-btn"', 'id="pf-dialog"',
+        ]:
+            self.assertContains(response, needle)
+
+    def test_page_loads_portfolio_js_and_urls(self):
+        response = self.client.get(reverse('dashboard:portfolio_analysis'))
+        self.assertContains(response, 'js/portfolio.js')
+        self.assertContains(response, 'PF_SAVE_URL')
+        self.assertContains(response, 'PF_DETAIL_URL')
+
+    def test_page_has_physical_risk_markup(self):
+        response = self.client.get(reverse('dashboard:portfolio_analysis'))
+        for needle in [
+            'id="pf-phys-empty"', 'id="pf-phys-report"',
+            'id="pf-phys-radar"', 'id="pf-phys-heatmap"', 'PF_PHYSICAL_URL',
+        ]:
+            self.assertContains(response, needle)
+
+
+class PortfolioNavTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(username='navportf', password='pass')
+        self.client.force_login(self.user)
+
+    def test_sidebar_links_to_portfolio(self):
+        response = self.client.get(reverse('dashboard:index'))
+        self.assertContains(response, reverse('dashboard:portfolio_analysis'))
+
+
+class PortfolioFinancedDebtHelperTests(TestCase):
+
+    def test_company_ecological_debt_aggregates_by_levels(self):
+        from .views import _company_ecological_debt
+        country = Country.objects.create(
+            name='Brésil', water_ownership='Public', land_ownership='Private',
+            restoration_cost_m2=0, biodiversity_loss_agriculture=2.0,
+        )
+        region = SubnationalRegion.objects.create(
+            name='Mato Grosso', country=country, restoration_cost_m2=3.0,
+            Mean_X=-55.0, Mean_Y=-12.0,
+        )
+        commodity = Commodity.objects.create(
+            name='Soja', biodiversity_loss_class='Agriculture',
+        )
+        _make_cf(commodity, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 5.0)
+        company = Company.objects.create(name='Acme')
+        asset = Asset.objects.create(
+            name='A1', latitude=-15.5, longitude=-47.9,
+            country=country, subnational_region=region,
+        )
+        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Production.objects.create(
+            commodity=commodity, asset=asset, year=2023, production=10.0,
+        )
+        # Lbiodiv = 2.0 (loss) * 3.0 (restoration) * 10.0 (prod) * 5.0 (recipe) = 300.0
+        debt = _company_ecological_debt(company)
+        self.assertEqual(debt['assets'][asset.pk]['comm']['Soja'], 300.0)
+        self.assertEqual(debt['regions'][region.pk]['comm']['Soja'], 300.0)
+        self.assertEqual(debt['countries'][country.pk]['comm']['Soja'], 300.0)
+        self.assertEqual(debt['countries'][country.pk]['n'], 1)
+        self.assertAlmostEqual(debt['countries'][country.pk]['lat_sum'], -15.5)
+
+    def test_company_ecological_debt_empty_without_assets(self):
+        from .views import _company_ecological_debt
+        company = Company.objects.create(name='Vide')
+        debt = _company_ecological_debt(company)
+        self.assertEqual(debt, {'assets': {}, 'regions': {}, 'countries': {}})
+
+    def test_portfolio_financed_debt_weights_by_amount_over_evic(self):
+        from .views import _portfolio_financed_debt
+        country = Country.objects.create(
+            name='Brésil', water_ownership='Public', land_ownership='Private',
+            restoration_cost_m2=0, biodiversity_loss_agriculture=2.0,
+        )
+        region = SubnationalRegion.objects.create(
+            name='Mato Grosso', country=country, restoration_cost_m2=3.0,
+            Mean_X=-55.0, Mean_Y=-12.0,
+        )
+        commodity = Commodity.objects.create(
+            name='Soja', biodiversity_loss_class='Agriculture',
+        )
+        _make_cf(commodity, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 5.0)
+        company = Company.objects.create(name='Acme')
+        asset = Asset.objects.create(
+            name='A1', latitude=-15.5, longitude=-47.9,
+            country=country, subnational_region=region,
+        )
+        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Production.objects.create(
+            commodity=commodity, asset=asset, year=2023, production=10.0,
+        )
+
+        class _H:
+            def __init__(self, company, amount):
+                self.company = company
+                self.company_id = company.pk
+                self.amount = amount
+        holdings = [_H(company, 2000.0)]
+        evic_map = {company.pk: 1000.0}
+
+        # dette brute = 300 ; f = 2000/1000 = 2 ; financé = 600.
+        data = _portfolio_financed_debt(holdings, evic_map)
+        self.assertEqual(data['total_lbiodiv'], 600.0)
+        self.assertEqual(data['company_count'], 1)
+        self.assertEqual(data['assets'][0]['total_lbiodiv'], 600.0)
+        self.assertEqual(data['assets'][0]['commodities'][0]['name'], 'Soja')
+        self.assertEqual(data['countries'][0]['latitude'], -15.5)
+
+    def test_portfolio_financed_debt_zero_when_no_evic(self):
+        from .views import _portfolio_financed_debt
+        country = Country.objects.create(
+            name='Brésil', water_ownership='Public', land_ownership='Private',
+            restoration_cost_m2=0, biodiversity_loss_agriculture=2.0,
+        )
+        region = SubnationalRegion.objects.create(
+            name='MT', country=country, restoration_cost_m2=3.0, Mean_X=0, Mean_Y=0,
+        )
+        commodity = Commodity.objects.create(
+            name='Soja', biodiversity_loss_class='Agriculture',
+        )
+        _make_cf(commodity, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 5.0)
+        company = Company.objects.create(name='Acme')
+        asset = Asset.objects.create(
+            name='A1', latitude=0, longitude=0,
+            country=country, subnational_region=region,
+        )
+        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Production.objects.create(
+            commodity=commodity, asset=asset, year=2023, production=10.0,
+        )
+
+        class _H:
+            def __init__(self, company, amount):
+                self.company = company
+                self.company_id = company.pk
+                self.amount = amount
+        data = _portfolio_financed_debt([_H(company, 2000.0)], {})  # pas d'EVIC
+        self.assertEqual(data['total_lbiodiv'], 0.0)
+        self.assertEqual(data['company_count'], 0)
+
+
+class PortfolioTransitionRiskViewTests(TestCase):
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from .models import Currency, Portfolio, PortfolioHolding
+        User = get_user_model()
+        self.user = User.objects.create_user(username='transer', password='pass')
+        self.client.force_login(self.user)
+        self.eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
+
+        country = Country.objects.create(
+            name='Brésil', water_ownership='Public', land_ownership='Private',
+            restoration_cost_m2=0, biodiversity_loss_agriculture=2.0,
+        )
+        region = SubnationalRegion.objects.create(
+            name='MT', country=country, restoration_cost_m2=3.0,
+            Mean_X=0, Mean_Y=0,
+        )
+        commodity = Commodity.objects.create(
+            name='Soja', biodiversity_loss_class='Agriculture',
+        )
+        _make_cf(commodity, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 5.0)
+        self.company = Company.objects.create(name='Acme')
+        asset = Asset.objects.create(
+            name='A1', latitude=-15.5, longitude=-47.9,
+            country=country, subnational_region=region,
+        )
+        Ownership.objects.create(Asset=asset, Company=self.company, ownership='100%')
+        Production.objects.create(
+            commodity=commodity, asset=asset, year=2023, production=10.0,
+        )
+        Company_Revenue.objects.create(company=self.company, year=2023, evic=1000.0, revenue=0.0)
+
+        self.pf = Portfolio.objects.create(
+            name='Fonds A', size=2000, currency=self.eur, created_by=self.user,
+        )
+        PortfolioHolding.objects.create(
+            portfolio=self.pf, company=self.company, amount=2000.0, weight=100.0,
+        )
+        self.url = reverse(
+            'dashboard:portfolio_transition_risk', kwargs={'pk': self.pf.pk},
+        )
+
+    def test_returns_financed_debt(self):
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data['total_lbiodiv'], 600.0)   # 300 brut * (2000/1000)
+        self.assertEqual(data['company_count'], 1)
+        self.assertIsNone(data['benchmark'])
+        self.assertEqual(len(data['assets']), 1)
+
+    def test_benchmark_total_present_when_set(self):
+        from .models import Portfolio, PortfolioHolding
+        bench = Portfolio.objects.create(
+            name='Bench', size=1000, currency=self.eur, is_benchmark=True,
+        )
+        PortfolioHolding.objects.create(
+            portfolio=bench, company=self.company, amount=1000.0, weight=100.0,
+        )
+        self.pf.benchmark = bench
+        self.pf.save()
+        data = self.client.get(self.url).json()
+        self.assertIsNotNone(data['benchmark'])
+        # f = 1000/1000 = 1 → dette financée benchmark = 300.
+        self.assertEqual(data['benchmark']['total_lbiodiv'], 300.0)
+
+    def test_scoped_to_owner(self):
+        from django.contrib.auth import get_user_model
+        other = get_user_model().objects.create_user(username='other', password='x')
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(self.url).status_code, 404)
+
+    def test_requires_login(self):
+        self.client.logout()
+        self.assertEqual(self.client.get(self.url).status_code, 302)
+
+    def test_post_not_allowed(self):
+        self.assertEqual(self.client.post(self.url).status_code, 405)

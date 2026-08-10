@@ -1,18 +1,20 @@
+import json
 from collections import defaultdict
 
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Max, Prefetch
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 
 from django.db.models import Q
 from .models import (
     Asset, AssetInventory, Carbon_emission, Company, Company_Policy,
-    Company_Revenue, Company_Revenue_Sector, DisclosureRequirement, E4Assessment,
-    Exchange, Ownership, Production,
+    Company_Revenue, Company_Revenue_Sector, Currency, DisclosureRequirement,
+    E4Assessment, Exchange, Ownership, Portfolio, Production,
 )
-from .forms import StressTestForm
+from .forms import StressTestForm, PortfolioForm, PortfolioHoldingForm
 from .services.market import get_market_data, DEFAULT_RANGE
 from .services.impacts import build_cf_index, cf_value, CAT_ECOSYSTEM_DIVERSITY
 from .services.supply import TIER_LABELS, TIER_TO_SCOPE
@@ -1764,3 +1766,568 @@ def climate_stress_test_data(request, pk):
     if not form.is_valid():
         return JsonResponse({'errors': form.errors}, status=400)
     return JsonResponse(get_stress_test_data(company, form.to_params()))
+
+
+# ---------------------------------------------------------------------------
+# Portfolio analysis
+# ---------------------------------------------------------------------------
+
+
+@login_required
+@require_GET
+def portfolio_analysis(request):
+    """Coquille à onglets de la page Portfolio analysis (onglet Création + reports)."""
+    companies = list(Company.objects.order_by('name').values(
+        'id', 'name', 'isin', 'ticker',
+    ))
+    currencies = list(Currency.objects.order_by('code').values('id', 'code', 'symbol'))
+    benchmarks = list(
+        Portfolio.objects.filter(is_benchmark=True).order_by('name').values('id', 'name')
+    )
+    portfolios = list(
+        Portfolio.objects.filter(created_by=request.user).order_by('name')
+        .values('id', 'name')
+    )
+    return render(request, 'dashboard/portfolio.html', {
+        'companies': companies,
+        'currencies': currencies,
+        'benchmarks': benchmarks,
+        'portfolios': portfolios,
+    })
+
+
+@login_required
+@require_POST
+def portfolio_save(request):
+    try:
+        payload = json.loads(request.body)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return JsonResponse({'errors': {'__all__': ['JSON invalide']}}, status=400)
+
+    instance = None
+    if payload.get('id'):
+        instance = get_object_or_404(Portfolio, pk=payload['id'], created_by=request.user)
+
+    form = PortfolioForm({
+        'name': payload.get('name', ''),
+        'size': payload.get('size'),
+        'currency': payload.get('currency_id'),
+        'benchmark': payload.get('benchmark_id'),
+    }, instance=instance)
+
+    rows = payload.get('holdings', [])
+    holding_forms = []
+    holding_errors = []
+    seen_companies = set()
+    duplicate = False
+    for row in rows:
+        company_id = row.get('company_id')
+        if company_id in seen_companies:
+            duplicate = True
+        seen_companies.add(company_id)
+        hf = PortfolioHoldingForm({
+            'company': company_id,
+            'amount': row.get('amount') or 0,
+            'weight': row.get('weight') or 0,
+            'instrument_type': row.get('instrument_type') or 'EQUITY',
+            'maturity_date': row.get('maturity_date') or None,
+            'coupon_rate': row.get('coupon_rate'),
+            'face_value': row.get('face_value'),
+        })
+        holding_forms.append(hf)
+        holding_errors.append({} if hf.is_valid() else hf.errors)
+
+    if not form.is_valid() or any(holding_errors) or duplicate:
+        errors = dict(form.errors)
+        if duplicate:
+            errors['__all__'] = ["Une entreprise ne peut apparaître qu'une fois."]
+        return JsonResponse({'errors': errors, 'holdings': holding_errors}, status=400)
+
+    with transaction.atomic():
+        portfolio = form.save(commit=False)
+        portfolio.is_benchmark = bool(payload.get('is_benchmark'))
+        if portfolio.created_by_id is None:
+            portfolio.created_by = request.user
+        portfolio.save()
+        portfolio.holdings.all().delete()
+        for hf in holding_forms:
+            holding = hf.save(commit=False)
+            holding.portfolio = portfolio
+            holding.save()
+
+    return JsonResponse({'id': portfolio.pk, 'name': portfolio.name})
+
+
+@login_required
+@require_GET
+def portfolio_detail(request, pk):
+    portfolio = get_object_or_404(Portfolio, pk=pk, created_by=request.user)
+    holdings = [{
+        'company_id': h.company_id,
+        'company_name': h.company.name,
+        'amount': h.amount,
+        'weight': h.weight,
+        'instrument_type': h.instrument_type,
+        'maturity_date': h.maturity_date.isoformat() if h.maturity_date else None,
+        'coupon_rate': h.coupon_rate,
+        'face_value': h.face_value,
+    } for h in portfolio.holdings.select_related('company').all()]
+    return JsonResponse({
+        'id': portfolio.pk,
+        'name': portfolio.name,
+        'size': portfolio.size,
+        'currency_id': portfolio.currency_id,
+        'benchmark_id': portfolio.benchmark_id,
+        'is_benchmark': portfolio.is_benchmark,
+        'holdings': holdings,
+    })
+
+
+# Méthodes d'impact endpoint exposées dans l'onglet Impact du portefeuille.
+# (clé, libellé unité, clé de catégorie d'impact = colonne legacy)
+PORTFOLIO_IMPACT_METRICS = [
+    ('recipe', 'PDF.m²', 'impact_endpoint_ReCiPe2016_ecosystem_diversity'),
+    ('gbs', 'MSA.km²', 'impact_endpoint_GBS_terrestrial_static'),
+]
+
+
+def _company_endpoint_impacts(company, category_keys):
+    """Impact endpoint d'une entreprise pour chaque catégorie de `category_keys`.
+
+    Pour chaque asset détenu par l'entreprise (via Ownership), on retient les
+    productions de la dernière année disponible et on somme
+    `production × CF(commodity, catégorie, région/pays)`. Le facteur de
+    caractérisation est résolu via `services.impacts` (région → pays → global).
+    Retourne {category_key: total}.
+    """
+    totals = {k: 0.0 for k in category_keys}
+    assets = list(
+        Asset.objects.filter(ownership__Company=company)
+        .values_list('pk', flat=True).distinct()
+    )
+    if not assets:
+        return totals
+    asset_ids = list(assets)
+
+    latest_years = dict(
+        Production.objects.filter(asset_id__in=asset_ids)
+        .values('asset_id').annotate(max_year=Max('year'))
+        .values_list('asset_id', 'max_year')
+    )
+    if not latest_years:
+        return totals
+
+    productions = [
+        p for p in Production.objects.filter(asset_id__in=asset_ids)
+        .select_related('commodity', 'asset')
+        if latest_years.get(p.asset_id) == p.year
+    ]
+    cf_index = build_cf_index(
+        commodity_ids=[p.commodity_id for p in productions],
+        category_keys=category_keys,
+    )
+    for p in productions:
+        for key in category_keys:
+            totals[key] += p.production * cf_value(
+                cf_index, p.commodity_id, key,
+                p.asset.subnational_region_id, p.asset.country_id,
+            )
+    return totals
+
+
+@login_required
+@require_GET
+def portfolio_impact(request, pk):
+    """Impact financé d'un portefeuille : montant_investi × (impact / EVIC)."""
+    portfolio = get_object_or_404(Portfolio, pk=pk, created_by=request.user)
+    holdings = list(portfolio.holdings.select_related('company').all())
+
+    keys = [key for _, _, key in PORTFOLIO_IMPACT_METRICS]
+    per_company = {
+        h.company_id: _company_endpoint_impacts(h.company, keys) for h in holdings
+    }
+
+    # EVIC le plus récent (> 0) pour chaque entreprise du portefeuille.
+    company_ids = [h.company_id for h in holdings]
+    evic_map = {}
+    for rev in (
+        Company_Revenue.objects
+        .filter(company_id__in=company_ids, evic__gt=0)
+        .order_by('company_id', '-year')
+    ):
+        if rev.company_id not in evic_map:
+            evic_map[rev.company_id] = rev.evic
+
+    metrics = {}
+    for key, unit, cat_key in PORTFOLIO_IMPACT_METRICS:
+        companies = []
+        total = 0.0
+        for h in holdings:
+            impact = per_company[h.company_id][cat_key]
+            evic = evic_map.get(h.company_id, 0.0)
+            amount = h.amount or 0.0
+            weight = h.weight or 0.0
+            weighted = amount * (impact / evic) if evic > 0 else 0.0
+            total += weighted
+            companies.append({
+                'name': h.company.name,
+                'weight': round(weight, 4),
+                'amount': round(amount, 2),
+                'evic': round(evic, 2),
+                'impact': round(impact, 4),
+                'weighted': round(weighted, 4),
+            })
+        companies.sort(key=lambda c: -c['weighted'])
+        metrics[key] = {'unit': unit, 'total': round(total, 4), 'companies': companies}
+
+    return JsonResponse({'id': portfolio.pk, 'name': portfolio.name, 'metrics': metrics})
+
+
+PHYSICAL_HAZARDS = [
+    ('water_stress', 'Stress hydrique', 'risk_water_stress'),
+    ('wildfire', 'Feux de forêt', 'risk_wildfire'),
+    ('cyclone', 'Cyclone', 'risk_cyclone'),
+    ('drought', 'Sécheresse', 'risk_drought'),
+    ('flood', 'Inondation', 'risk_flood'),
+    ('coastal_inundation', 'Submersion côtière', 'risk_coastal_inundation'),
+    ('heatwave', 'Vague de chaleur', 'risk_heatwave'),
+    ('temperature_variation', 'Variation de température', 'risk_temperature_variation'),
+    ('precipitation_variation', 'Variation des précipitations',
+     'risk_precipitation_variation'),
+]
+
+
+def _company_physical_risks(company):
+    """Score de risque physique d'une entreprise par aléa.
+
+    Poids d'un asset = somme des `estimated_revenue` de ses productions de la
+    dernière année. Score d'un aléa = moyenne des `asset.<champ>` pondérée par ces
+    poids ; repli moyenne simple si le revenu total est nul. {hazard_key: score}.
+    """
+    keys = [key for key, _, _ in PHYSICAL_HAZARDS]
+    assets = list(Asset.objects.filter(ownership__Company=company).distinct())
+    if not assets:
+        return {k: 0.0 for k in keys}
+
+    asset_ids = [a.pk for a in assets]
+    latest_years = dict(
+        Production.objects.filter(asset_id__in=asset_ids)
+        .values('asset_id').annotate(max_year=Max('year'))
+        .values_list('asset_id', 'max_year')
+    )
+    weights = {a.pk: 0.0 for a in assets}
+    for p in Production.objects.filter(asset_id__in=asset_ids):
+        if latest_years.get(p.asset_id) == p.year:
+            weights[p.asset_id] += p.estimated_revenue or 0.0
+
+    total_w = sum(weights.values())
+    scores = {}
+    for key, _, field in PHYSICAL_HAZARDS:
+        if total_w > 0:
+            scores[key] = sum(
+                weights[a.pk] * getattr(a, field) for a in assets
+            ) / total_w
+        else:
+            scores[key] = sum(getattr(a, field) for a in assets) / len(assets)
+    return scores
+
+
+def _portfolio_physical_aggregate(holdings, per_company):
+    """Liste des 9 scores agrégés, pondérés par `holding.amount` (4 décimales)."""
+    keys = [key for key, _, _ in PHYSICAL_HAZARDS]
+    total_amount = sum((h.amount or 0.0) for h in holdings)
+    agg = []
+    for key in keys:
+        if total_amount > 0:
+            v = sum(
+                (h.amount or 0.0) * per_company[h.company_id][key] for h in holdings
+            ) / total_amount
+        else:
+            v = 0.0
+        agg.append(round(v, 4))
+    return agg
+
+
+@login_required
+@require_GET
+def portfolio_physical_risk(request, pk):
+    """Profil de risque physique d'un portefeuille (pondéré par montant investi)."""
+    portfolio = get_object_or_404(Portfolio, pk=pk, created_by=request.user)
+    holdings = list(portfolio.holdings.select_related('company').all())
+    keys = [key for key, _, _ in PHYSICAL_HAZARDS]
+
+    per_company = {h.company_id: _company_physical_risks(h.company) for h in holdings}
+
+    companies = []
+    for h in holdings:
+        scores = per_company[h.company_id]
+        companies.append({
+            'name': h.company.name,
+            'amount': round(h.amount or 0.0, 2),
+            'weight': round(h.weight or 0.0, 4),
+            'scores': [round(scores[k], 4) for k in keys],
+        })
+    companies.sort(key=lambda c: -sum(c['scores']))
+
+    benchmark = None
+    if portfolio.benchmark_id:
+        bench_holdings = list(
+            portfolio.benchmark.holdings.select_related('company').all()
+        )
+        bench_per_company = {
+            h.company_id: _company_physical_risks(h.company) for h in bench_holdings
+        }
+        benchmark = _portfolio_physical_aggregate(bench_holdings, bench_per_company)
+
+    return JsonResponse({
+        'id': portfolio.pk,
+        'name': portfolio.name,
+        'hazards': [{'key': k, 'label': label} for k, label, _ in PHYSICAL_HAZARDS],
+        'portfolio': _portfolio_physical_aggregate(holdings, per_company),
+        'benchmark': benchmark,
+        'companies': companies,
+    })
+
+
+def _company_ecological_debt(company):
+    """Dette écologique brute (Lbiodiv) d'une entreprise, ventilée par asset,
+    région subnational et pays, et par commodité.
+
+    Reprend la formule de `_get_dette_ecologique_data` (facteur de caractérisation
+    résolu via `services.impacts`) : pour chaque asset détenu (via Ownership) ayant
+    une `subnational_region`, on retient les productions de la dernière année et on
+    accumule `Lbiodiv` par commodité dans l'asset, sa région et son pays. Les pays
+    accumulent lat/long pour un centroïde calculé en aval.
+    """
+    result = {'assets': {}, 'regions': {}, 'countries': {}}
+
+    assets = list(
+        Asset.objects.filter(ownership__Company=company)
+        .select_related('country', 'subnational_region')
+        .distinct()
+    )
+    assets = [a for a in assets if a.subnational_region_id is not None]
+    if not assets:
+        return result
+
+    asset_ids = [a.pk for a in assets]
+    latest_years = dict(
+        Production.objects.filter(asset_id__in=asset_ids)
+        .values('asset_id').annotate(max_year=Max('year'))
+        .values_list('asset_id', 'max_year')
+    )
+    if not latest_years:
+        return result
+
+    productions = [
+        p for p in Production.objects.filter(asset_id__in=asset_ids)
+        .select_related('commodity', 'asset__country', 'asset__subnational_region')
+        if latest_years.get(p.asset_id) == p.year
+    ]
+
+    cf_index = build_cf_index(
+        commodity_ids=[p.commodity_id for p in productions],
+        category_keys=[CAT_ECOSYSTEM_DIVERSITY],
+    )
+
+    asset_map = {a.pk: a for a in assets}
+    counted_country_assets = set()
+
+    for p in productions:
+        asset = asset_map.get(p.asset_id)
+        if asset is None:
+            continue
+        field = _BIODIV_LOSS_FIELDS.get(
+            p.commodity.biodiversity_loss_class, 'biodiversity_loss_agriculture'
+        )
+        biodiv_loss = getattr(asset.country, field, 0.0)
+        restoration = asset.subnational_region.restoration_cost_m2
+        lbiodiv = (
+            biodiv_loss * restoration * p.production
+            * cf_value(
+                cf_index, p.commodity_id, CAT_ECOSYSTEM_DIVERSITY,
+                asset.subnational_region_id, asset.country_id,
+            )
+        )
+        name = p.commodity.name
+
+        a_entry = result['assets'].setdefault(asset.pk, {
+            'name': asset.name, 'latitude': asset.latitude,
+            'longitude': asset.longitude, 'comm': defaultdict(float),
+        })
+        a_entry['comm'][name] += lbiodiv
+
+        reg = asset.subnational_region
+        r_entry = result['regions'].setdefault(reg.pk, {
+            'name': reg.name, 'latitude': reg.Mean_Y, 'longitude': reg.Mean_X,
+            'comm': defaultdict(float),
+        })
+        r_entry['comm'][name] += lbiodiv
+
+        ctry = asset.country
+        c_entry = result['countries'].setdefault(ctry.pk, {
+            'name': ctry.name, 'lat_sum': 0.0, 'lng_sum': 0.0,
+            'n': 0, 'comm': defaultdict(float),
+        })
+        c_entry['comm'][name] += lbiodiv
+        if asset.pk not in counted_country_assets:
+            c_entry['lat_sum'] += asset.latitude
+            c_entry['lng_sum'] += asset.longitude
+            c_entry['n'] += 1
+            counted_country_assets.add(asset.pk)
+
+    return result
+
+
+def _portfolio_financed_debt(holdings, evic_map):
+    """Dette écologique financée d'un portefeuille, prête à sérialiser.
+
+    Pour chaque holding : f = amount / EVIC (si EVIC > 0, sinon 0). Multiplie la
+    dette brute de l'entreprise (`_company_ecological_debt`) par f, somme à travers
+    toutes les entreprises par (asset|région|pays, commodité). Retourne les trois
+    listes au même format que `_get_dette_ecologique_data` + total et nb d'entreprises.
+    """
+    assets = {}
+    regions = {}
+    countries = {}
+    global_comm = defaultdict(float)
+    company_count = 0
+
+    for h in holdings:
+        evic = evic_map.get(h.company_id, 0.0)
+        amount = h.amount or 0.0
+        f = (amount / evic) if evic > 0 else 0.0
+        if f == 0.0:
+            continue
+        debt = _company_ecological_debt(h.company)
+        contributed = False
+
+        for aid, a in debt['assets'].items():
+            entry = assets.setdefault(aid, {
+                'name': a['name'], 'latitude': a['latitude'],
+                'longitude': a['longitude'], 'comm': defaultdict(float),
+            })
+            for name, val in a['comm'].items():
+                entry['comm'][name] += f * val
+                global_comm[name] += f * val
+                contributed = contributed or (f * val) > 0
+
+        for rid, r in debt['regions'].items():
+            entry = regions.setdefault(rid, {
+                'name': r['name'], 'latitude': r['latitude'],
+                'longitude': r['longitude'], 'comm': defaultdict(float),
+            })
+            for name, val in r['comm'].items():
+                entry['comm'][name] += f * val
+
+        for cid, c in debt['countries'].items():
+            entry = countries.setdefault(cid, {
+                'name': c['name'], 'lat_sum': 0.0, 'lng_sum': 0.0,
+                'n': 0, 'comm': defaultdict(float),
+            })
+            entry['lat_sum'] += c['lat_sum']
+            entry['lng_sum'] += c['lng_sum']
+            entry['n'] += c['n']
+            for name, val in c['comm'].items():
+                entry['comm'][name] += f * val
+
+        if contributed:
+            company_count += 1
+
+    total = sum(global_comm.values())
+
+    def _serialize_point(pid, name, lat, lng, comm):
+        pt_total = sum(comm.values())
+        return {
+            'id': pid, 'name': name,
+            'latitude': lat, 'longitude': lng,
+            'total_lbiodiv': round(pt_total, 4),
+            'pct': round(pt_total / total, 4) if total else 0.0,
+            'commodities': sorted(
+                [{'name': k, 'lbiodiv': round(v, 4),
+                  'pct': round(v / pt_total, 4) if pt_total else 0.0}
+                 for k, v in comm.items()],
+                key=lambda x: -x['lbiodiv'],
+            ),
+        }
+
+    assets_out = [
+        _serialize_point(aid, a['name'], a['latitude'], a['longitude'], a['comm'])
+        for aid, a in assets.items() if sum(a['comm'].values()) > 0
+    ]
+    assets_out.sort(key=lambda x: -x['total_lbiodiv'])
+
+    regions_out = [
+        _serialize_point(rid, r['name'], r['latitude'], r['longitude'], r['comm'])
+        for rid, r in regions.items() if sum(r['comm'].values()) > 0
+    ]
+    regions_out.sort(key=lambda x: -x['total_lbiodiv'])
+
+    countries_out = [
+        _serialize_point(
+            cid, c['name'],
+            c['lat_sum'] / c['n'] if c['n'] else 0.0,
+            c['lng_sum'] / c['n'] if c['n'] else 0.0,
+            c['comm'],
+        )
+        for cid, c in countries.items() if sum(c['comm'].values()) > 0
+    ]
+    countries_out.sort(key=lambda x: -x['total_lbiodiv'])
+
+    commodities = sorted(
+        [{'name': k, 'lbiodiv': round(v, 4),
+          'pct': round(v / total, 4) if total else 0.0}
+         for k, v in global_comm.items() if v > 0],
+        key=lambda x: -x['lbiodiv'],
+    )
+
+    return {
+        'total_lbiodiv': round(total, 4),
+        'company_count': company_count,
+        'commodities': commodities,
+        'assets': assets_out,
+        'regions': regions_out,
+        'countries': countries_out,
+    }
+
+
+@login_required
+@require_GET
+def portfolio_transition_risk(request, pk):
+    """Risque de transition d'un portefeuille : dette écologique financée."""
+    portfolio = get_object_or_404(Portfolio, pk=pk, created_by=request.user)
+    holdings = list(portfolio.holdings.select_related('company').all())
+
+    def _evic_map(hs):
+        company_ids = [h.company_id for h in hs]
+        out = {}
+        for rev in (
+            Company_Revenue.objects
+            .filter(company_id__in=company_ids, evic__gt=0)
+            .order_by('company_id', '-year')
+        ):
+            if rev.company_id not in out:
+                out[rev.company_id] = rev.evic
+        return out
+
+    data = _portfolio_financed_debt(holdings, _evic_map(holdings))
+
+    benchmark = None
+    if portfolio.benchmark_id:
+        bench_holdings = list(
+            portfolio.benchmark.holdings.select_related('company').all()
+        )
+        bench = _portfolio_financed_debt(bench_holdings, _evic_map(bench_holdings))
+        benchmark = {'total_lbiodiv': bench['total_lbiodiv']}
+
+    return JsonResponse({
+        'id': portfolio.pk,
+        'name': portfolio.name,
+        'total_lbiodiv': data['total_lbiodiv'],
+        'company_count': data['company_count'],
+        'commodities': data['commodities'],
+        'assets': data['assets'],
+        'regions': data['regions'],
+        'countries': data['countries'],
+        'benchmark': benchmark,
+    })

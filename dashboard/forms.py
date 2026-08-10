@@ -5,7 +5,7 @@ passe par un formulaire, jamais par une lecture brute de `request.GET`.
 """
 from django import forms
 
-from .models import ClimateScenario
+from .models import ClimateScenario, Portfolio, PortfolioHolding
 from .services.stress_test import HORIZONS, PD_MAX
 
 
@@ -48,3 +48,28 @@ class StressTestForm(forms.Form):
             'ebitda_margin': data.get('ebitda_margin'),
             'pd_baseline': data.get('pd_baseline'),
         }
+
+
+class PortfolioForm(forms.ModelForm):
+    """En-tête d'un portefeuille. `is_benchmark` géré à part côté vue."""
+
+    class Meta:
+        model = Portfolio
+        fields = ['name', 'size', 'currency', 'benchmark']
+
+
+class PortfolioHoldingForm(forms.ModelForm):
+    """Validation d'une ligne de position (bornes du poids, champs obligataires)."""
+
+    class Meta:
+        model = PortfolioHolding
+        fields = [
+            'company', 'amount', 'weight', 'instrument_type',
+            'maturity_date', 'coupon_rate', 'face_value',
+        ]
+
+    def clean_weight(self):
+        weight = self.cleaned_data['weight']
+        if weight < 0 or weight > 100:
+            raise forms.ValidationError('Le poids doit être compris entre 0 et 100.')
+        return weight

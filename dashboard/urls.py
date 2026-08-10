@@ -31,4 +31,13 @@ urlpatterns = [
          name='climate_stress_test'),
     path('api/company/<int:pk>/climate-stress-test/',
          views.climate_stress_test_data, name='climate_stress_test_data'),
+    path('portfolio/', views.portfolio_analysis, name='portfolio_analysis'),
+    path('api/portfolio/save/', views.portfolio_save, name='portfolio_save'),
+    path('api/portfolio/<int:pk>/', views.portfolio_detail, name='portfolio_detail'),
+    path('api/portfolio/<int:pk>/impact/', views.portfolio_impact,
+         name='portfolio_impact'),
+    path('api/portfolio/<int:pk>/physical-risk/', views.portfolio_physical_risk,
+         name='portfolio_physical_risk'),
+    path('api/portfolio/<int:pk>/transition-risk/', views.portfolio_transition_risk,
+         name='portfolio_transition_risk'),
 ]
