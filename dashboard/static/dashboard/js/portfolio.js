@@ -19,6 +19,9 @@
   var rows = [];
   var currentId = null;
   var dialogRowIndex = null;
+  // Un portefeuille commun appartenant à quelqu'un d'autre est en lecture seule :
+  // il se consulte et s'analyse, mais ne se modifie que via une duplication.
+  var canEdit = true;
 
   // ── Impact tab state ─────────────────────────────────────────────
   var IMPACT_DATA = null;        // {metrics: {recipe, gbs}}
@@ -215,6 +218,25 @@
     });
     $('pf-empty').hidden = rows.length > 0;
     updateTotals();
+    applyEditMode();
+  }
+
+  var EDITABLE_FIELDS = [
+    'pf-name', 'pf-size', 'pf-currency', 'pf-benchmark', 'pf-is-benchmark',
+    'pf-is-shared', 'pf-company-search', 'pf-save-btn',
+  ];
+
+  function applyEditMode() {
+    var locked = !canEdit;
+    EDITABLE_FIELDS.forEach(function (id) {
+      var el = $(id);
+      if (el) { el.disabled = locked; }
+    });
+    $('pf-holdings-body').querySelectorAll('input, button').forEach(function (el) {
+      el.disabled = locked;
+    });
+    var dup = $('pf-duplicate-btn');
+    if (dup) { dup.hidden = canEdit || !currentId; }
   }
 
   function updateRowWeight(i) {
@@ -681,6 +703,7 @@
       currency_id: $('pf-currency').value || null,
       benchmark_id: $('pf-benchmark').value || null,
       is_benchmark: $('pf-is-benchmark').checked,
+      is_shared: $('pf-is-shared') ? $('pf-is-shared').checked : false,
       holdings: rows.map(function (r) {
         return {
           company_id: r.companyId,
@@ -728,6 +751,13 @@
         $('pf-currency').value = data.currency_id || '';
         $('pf-benchmark').value = data.benchmark_id || '';
         $('pf-is-benchmark').checked = !!data.is_benchmark;
+        if ($('pf-is-shared')) { $('pf-is-shared').checked = !!data.is_shared; }
+        canEdit = data.can_edit !== false;
+        var status = $('pf-status');
+        status.textContent = canEdit
+          ? ''
+          : 'Portefeuille commun : lecture seule. Dupliquez-le pour le modifier.';
+        status.className = 'pf-status';
         rows = data.holdings.map(function (h) {
           return {
             companyId: h.company_id,
@@ -747,14 +777,49 @@
       });
   }
 
+  function duplicate() {
+    if (!currentId) { return; }
+    fetch(PF_DUPLICATE_URL.replace('/0/', '/' + currentId + '/'), {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+    }).then(function (r) {
+      if (!r.ok) { throw new Error('duplicate failed'); }
+      return r.json();
+    }).then(function (data) {
+      addOwnedOption(data.id, data.name);
+      $('pf-portfolio-select').value = data.id;
+      loadPortfolio(data.id);
+    }).catch(function () {
+      var status = $('pf-status');
+      status.textContent = 'La duplication a échoué.';
+      status.className = 'pf-status pf-status--err';
+    });
+  }
+
+  function addOwnedOption(id, name) {
+    var select = $('pf-portfolio-select');
+    var group = select.querySelector('optgroup[label="Mes portefeuilles"]');
+    if (!group) {
+      group = document.createElement('optgroup');
+      group.label = 'Mes portefeuilles';
+      select.insertBefore(group, select.children[1] || null);
+    }
+    var option = document.createElement('option');
+    option.value = id;
+    option.textContent = name;
+    group.appendChild(option);
+  }
+
   function resetForm() {
     currentId = null;
+    canEdit = true;
     rows = [];
     $('pf-name').value = '';
     $('pf-size').value = 0;
     $('pf-currency').selectedIndex = 0;
     $('pf-benchmark').value = '';
     $('pf-is-benchmark').checked = false;
+    if ($('pf-is-shared')) { $('pf-is-shared').checked = false; }
     $('pf-portfolio-select').value = '';
     $('pf-status').textContent = '';
     clearImpact();
@@ -772,6 +837,7 @@
     initTransitionToggle();
     $('pf-save-btn').addEventListener('click', save);
     $('pf-new-btn').addEventListener('click', resetForm);
+    $('pf-duplicate-btn').addEventListener('click', duplicate);
     $('pf-portfolio-select').addEventListener('change', function (e) {
       if (e.target.value) { loadPortfolio(e.target.value); } else { resetForm(); }
     });

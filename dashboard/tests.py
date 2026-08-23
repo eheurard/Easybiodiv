@@ -2960,8 +2960,11 @@ class PortfolioAnalysisPageTests(TestCase):
         self.client.force_login(self.user)
         self.eur = Currency.objects.create(code='EUR', name='Euro', symbol='€')
         Company.objects.create(name='PageCorp')
+        # Benchmark commun : c'est le partage, pas le statut de benchmark,
+        # qui le rend visible aux autres utilisateurs.
         Portfolio.objects.create(
             name='Bench', size=0, currency=self.eur, is_benchmark=True,
+            is_shared=True,
         )
 
     def test_page_returns_200(self):
@@ -3224,3 +3227,279 @@ class PortfolioTransitionRiskViewTests(TestCase):
 
     def test_post_not_allowed(self):
         self.assertEqual(self.client.post(self.url).status_code, 405)
+
+
+# ---------------------------------------------------------------------------
+# Portefeuilles communs (is_shared) et duplication
+# ---------------------------------------------------------------------------
+
+
+def _make_portfolio_world():
+    """Return (owner, other, staff, currency, company) for sharing tests."""
+    from django.contrib.auth import get_user_model
+    from .models import Currency
+    User = get_user_model()
+    owner = User.objects.create_user(username='pf_owner', password='pass')
+    other = User.objects.create_user(username='pf_other', password='pass')
+    staff = User.objects.create_user(username='pf_staff', password='pass', is_staff=True)
+    currency = Currency.objects.create(code='EUR', name='Euro', symbol='EUR')
+    company = Company.objects.create(name='ShareCorp')
+    return owner, other, staff, currency, company
+
+
+class PortfolioQuerySetTests(TestCase):
+
+    def setUp(self):
+        from .models import Portfolio
+        self.owner, self.other, self.staff, eur, self.company = _make_portfolio_world()
+        self.mine = Portfolio.objects.create(
+            name='Le mien', size=100, currency=eur, created_by=self.other,
+        )
+        self.private_of_owner = Portfolio.objects.create(
+            name='Prive', size=100, currency=eur, created_by=self.owner,
+        )
+        self.shared_of_owner = Portfolio.objects.create(
+            name='Commun', size=100, currency=eur, created_by=self.owner,
+            is_shared=True,
+        )
+
+    def test_visible_to_includes_own_portfolios(self):
+        from .models import Portfolio
+        visible = Portfolio.objects.visible_to(self.other)
+        self.assertIn(self.mine, visible)
+
+    def test_visible_to_includes_shared_portfolios_of_others(self):
+        from .models import Portfolio
+        visible = Portfolio.objects.visible_to(self.other)
+        self.assertIn(self.shared_of_owner, visible)
+
+    def test_visible_to_excludes_private_portfolios_of_others(self):
+        from .models import Portfolio
+        visible = Portfolio.objects.visible_to(self.other)
+        self.assertNotIn(self.private_of_owner, visible)
+
+    def test_editable_by_excludes_shared_portfolio_of_other_user(self):
+        from .models import Portfolio
+        editable = Portfolio.objects.editable_by(self.other)
+        self.assertNotIn(self.shared_of_owner, editable)
+        self.assertIn(self.mine, editable)
+
+    def test_editable_by_includes_everything_for_staff(self):
+        from .models import Portfolio
+        editable = Portfolio.objects.editable_by(self.staff)
+        self.assertIn(self.private_of_owner, editable)
+        self.assertIn(self.shared_of_owner, editable)
+
+
+class PortfolioSharedReadTests(TestCase):
+
+    def setUp(self):
+        from .models import Portfolio, PortfolioHolding
+        self.owner, self.other, self.staff, self.eur, self.company = (
+            _make_portfolio_world()
+        )
+        self.shared = Portfolio.objects.create(
+            name='Fonds commun', size=1000, currency=self.eur,
+            created_by=self.owner, is_shared=True,
+        )
+        PortfolioHolding.objects.create(
+            portfolio=self.shared, company=self.company, amount=1000, weight=100,
+        )
+        self.client.force_login(self.other)
+
+    def test_detail_of_shared_portfolio_is_readable(self):
+        url = reverse('dashboard:portfolio_detail', kwargs={'pk': self.shared.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content)['name'], 'Fonds commun')
+
+    def test_detail_of_shared_portfolio_is_not_editable(self):
+        url = reverse('dashboard:portfolio_detail', kwargs={'pk': self.shared.pk})
+        data = json.loads(self.client.get(url).content)
+        self.assertFalse(data['can_edit'])
+        self.assertTrue(data['is_shared'])
+
+    def test_detail_of_own_portfolio_is_editable(self):
+        self.client.force_login(self.owner)
+        url = reverse('dashboard:portfolio_detail', kwargs={'pk': self.shared.pk})
+        data = json.loads(self.client.get(url).content)
+        self.assertTrue(data['can_edit'])
+
+    def test_impact_of_shared_portfolio_is_readable(self):
+        url = reverse('dashboard:portfolio_impact', kwargs={'pk': self.shared.pk})
+        self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_physical_risk_of_shared_portfolio_is_readable(self):
+        url = reverse('dashboard:portfolio_physical_risk', kwargs={'pk': self.shared.pk})
+        self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_transition_risk_of_shared_portfolio_is_readable(self):
+        url = reverse(
+            'dashboard:portfolio_transition_risk', kwargs={'pk': self.shared.pk}
+        )
+        self.assertEqual(self.client.get(url).status_code, 200)
+
+
+class PortfolioSharedWriteTests(TestCase):
+
+    def setUp(self):
+        from .models import Portfolio
+        self.owner, self.other, self.staff, self.eur, self.company = (
+            _make_portfolio_world()
+        )
+        self.shared = Portfolio.objects.create(
+            name='Fonds commun', size=1000, currency=self.eur,
+            created_by=self.owner, is_shared=True,
+        )
+        self.url = reverse('dashboard:portfolio_save')
+
+    def _payload(self, **kwargs):
+        payload = {
+            'id': None, 'name': 'Fonds', 'size': 1000,
+            'currency_id': self.eur.pk, 'benchmark_id': None,
+            'is_benchmark': False, 'is_shared': False, 'holdings': [],
+        }
+        payload.update(kwargs)
+        return payload
+
+    def _post(self, payload):
+        return self.client.post(
+            self.url, data=json.dumps(payload), content_type='application/json',
+        )
+
+    def test_non_owner_cannot_overwrite_shared_portfolio(self):
+        from .models import Portfolio
+        self.client.force_login(self.other)
+        response = self._post(self._payload(id=self.shared.pk, name='Hacke'))
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(Portfolio.objects.get(pk=self.shared.pk).name, 'Fonds commun')
+
+    def test_owner_can_overwrite_own_shared_portfolio(self):
+        from .models import Portfolio
+        self.client.force_login(self.owner)
+        response = self._post(self._payload(id=self.shared.pk, name='Renomme'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Portfolio.objects.get(pk=self.shared.pk).name, 'Renomme')
+
+    def test_non_staff_cannot_create_shared_portfolio(self):
+        from .models import Portfolio
+        self.client.force_login(self.other)
+        response = self._post(self._payload(name='Tentative', is_shared=True))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Portfolio.objects.get(name='Tentative').is_shared)
+
+    def test_staff_can_create_shared_portfolio(self):
+        from .models import Portfolio
+        self.client.force_login(self.staff)
+        response = self._post(self._payload(name='Officiel', is_shared=True))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Portfolio.objects.get(name='Officiel').is_shared)
+
+    def test_non_staff_owner_cannot_unshare_own_portfolio(self):
+        from .models import Portfolio
+        self.client.force_login(self.owner)
+        response = self._post(self._payload(id=self.shared.pk, is_shared=False))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Portfolio.objects.get(pk=self.shared.pk).is_shared)
+
+
+class PortfolioDuplicateViewTests(TestCase):
+
+    def setUp(self):
+        from .models import Portfolio, PortfolioHolding
+        self.owner, self.other, self.staff, self.eur, self.company = (
+            _make_portfolio_world()
+        )
+        self.shared = Portfolio.objects.create(
+            name='Fonds commun', size=1000, currency=self.eur,
+            created_by=self.owner, is_shared=True, is_benchmark=True,
+        )
+        PortfolioHolding.objects.create(
+            portfolio=self.shared, company=self.company, amount=1000, weight=100,
+            instrument_type='BOND', coupon_rate=2.0,
+        )
+        self.private = Portfolio.objects.create(
+            name='Fonds prive', size=10, currency=self.eur, created_by=self.owner,
+        )
+        self.client.force_login(self.other)
+
+    def _url(self, pk):
+        return reverse('dashboard:portfolio_duplicate', kwargs={'pk': pk})
+
+    def test_duplicate_creates_private_copy_owned_by_requester(self):
+        from .models import Portfolio
+        response = self.client.post(self._url(self.shared.pk))
+        self.assertEqual(response.status_code, 200)
+        copy = Portfolio.objects.get(pk=json.loads(response.content)['id'])
+        self.assertEqual(copy.created_by, self.other)
+        self.assertEqual(copy.name, 'Fonds commun (copie)')
+        self.assertFalse(copy.is_shared)
+        self.assertFalse(copy.is_benchmark)
+
+    def test_duplicate_copies_holdings(self):
+        from .models import Portfolio
+        response = self.client.post(self._url(self.shared.pk))
+        copy = Portfolio.objects.get(pk=json.loads(response.content)['id'])
+        self.assertEqual(copy.holdings.count(), 1)
+        holding = copy.holdings.first()
+        self.assertEqual(holding.company, self.company)
+        self.assertEqual(holding.instrument_type, 'BOND')
+        self.assertAlmostEqual(holding.coupon_rate, 2.0, places=2)
+
+    def test_duplicate_leaves_source_untouched(self):
+        self.client.post(self._url(self.shared.pk))
+        self.shared.refresh_from_db()
+        self.assertEqual(self.shared.name, 'Fonds commun')
+        self.assertEqual(self.shared.holdings.count(), 1)
+
+    def test_duplicate_of_private_portfolio_of_other_user_returns_404(self):
+        self.assertEqual(self.client.post(self._url(self.private.pk)).status_code, 404)
+
+    def test_duplicate_requires_login(self):
+        self.client.logout()
+        self.assertEqual(self.client.post(self._url(self.shared.pk)).status_code, 302)
+
+    def test_duplicate_get_not_allowed(self):
+        self.assertEqual(self.client.get(self._url(self.shared.pk)).status_code, 405)
+
+
+class PortfolioPickerContextTests(TestCase):
+
+    def setUp(self):
+        from .models import Portfolio
+        self.owner, self.other, self.staff, self.eur, self.company = (
+            _make_portfolio_world()
+        )
+        self.mine = Portfolio.objects.create(
+            name='A moi', size=1, currency=self.eur, created_by=self.other,
+        )
+        self.shared = Portfolio.objects.create(
+            name='Commun', size=1, currency=self.eur, created_by=self.owner,
+            is_shared=True, is_benchmark=True,
+        )
+        self.private_of_owner = Portfolio.objects.create(
+            name='Pas pour moi', size=1, currency=self.eur, created_by=self.owner,
+            is_benchmark=True,
+        )
+        self.client.force_login(self.other)
+        self.url = reverse('dashboard:portfolio_analysis')
+
+    def test_own_portfolios_listed_separately(self):
+        names = [p['name'] for p in self.client.get(self.url).context['portfolios']]
+        self.assertEqual(names, ['A moi'])
+
+    def test_shared_portfolios_listed_separately(self):
+        names = [
+            p['name'] for p in self.client.get(self.url).context['shared_portfolios']
+        ]
+        self.assertEqual(names, ['Commun'])
+
+    def test_benchmarks_exclude_private_portfolios_of_others(self):
+        names = [b['name'] for b in self.client.get(self.url).context['benchmarks']]
+        self.assertEqual(names, ['Commun'])
+
+    def test_page_has_duplicate_button(self):
+        self.assertContains(self.client.get(self.url), 'id="pf-duplicate-btn"')
+
+    def test_page_exposes_duplicate_url(self):
+        self.assertContains(self.client.get(self.url), 'PF_DUPLICATE_URL')

@@ -12,7 +12,7 @@ from django.db.models import Q
 from .models import (
     Asset, AssetInventory, Carbon_emission, Company, Company_Policy,
     Company_Revenue, Company_Revenue_Sector, Currency, DisclosureRequirement,
-    E4Assessment, Exchange, Ownership, Portfolio, Production,
+    E4Assessment, Exchange, Ownership, Portfolio, PortfolioHolding, Production,
 )
 from .forms import StressTestForm, PortfolioForm, PortfolioHoldingForm
 from .services.market import get_market_data, DEFAULT_RANGE
@@ -1781,19 +1781,30 @@ def portfolio_analysis(request):
         'id', 'name', 'isin', 'ticker',
     ))
     currencies = list(Currency.objects.order_by('code').values('id', 'code', 'symbol'))
+    visible = Portfolio.objects.visible_to(request.user)
     benchmarks = list(
-        Portfolio.objects.filter(is_benchmark=True).order_by('name').values('id', 'name')
+        visible.filter(is_benchmark=True).order_by('name').values('id', 'name')
     )
     portfolios = list(
-        Portfolio.objects.filter(created_by=request.user).order_by('name')
-        .values('id', 'name')
+        visible.filter(created_by=request.user).order_by('name').values('id', 'name')
+    )
+    shared_portfolios = list(
+        visible.filter(is_shared=True).exclude(created_by=request.user)
+        .order_by('name').values('id', 'name')
     )
     return render(request, 'dashboard/portfolio.html', {
         'companies': companies,
         'currencies': currencies,
         'benchmarks': benchmarks,
         'portfolios': portfolios,
+        'shared_portfolios': shared_portfolios,
+        'can_share': request.user.is_staff,
     })
+
+
+def _visible_portfolio(request, pk):
+    """Portefeuille lisible par l'utilisateur, sinon 404."""
+    return get_object_or_404(Portfolio.objects.visible_to(request.user), pk=pk)
 
 
 @login_required
@@ -1806,7 +1817,12 @@ def portfolio_save(request):
 
     instance = None
     if payload.get('id'):
-        instance = get_object_or_404(Portfolio, pk=payload['id'], created_by=request.user)
+        instance = _visible_portfolio(request, payload['id'])
+        if not instance.can_be_edited_by(request.user):
+            return JsonResponse(
+                {'errors': {'__all__': ['Portefeuille commun : lecture seule.']}},
+                status=403,
+            )
 
     form = PortfolioForm({
         'name': payload.get('name', ''),
@@ -1846,6 +1862,10 @@ def portfolio_save(request):
     with transaction.atomic():
         portfolio = form.save(commit=False)
         portfolio.is_benchmark = bool(payload.get('is_benchmark'))
+        # Le partage est un acte d'administration : un non-staff ne peut ni
+        # rendre un portefeuille commun, ni retirer un partage existant.
+        if request.user.is_staff:
+            portfolio.is_shared = bool(payload.get('is_shared'))
         if portfolio.created_by_id is None:
             portfolio.created_by = request.user
         portfolio.save()
@@ -1861,7 +1881,7 @@ def portfolio_save(request):
 @login_required
 @require_GET
 def portfolio_detail(request, pk):
-    portfolio = get_object_or_404(Portfolio, pk=pk, created_by=request.user)
+    portfolio = _visible_portfolio(request, pk)
     holdings = [{
         'company_id': h.company_id,
         'company_name': h.company.name,
@@ -1879,8 +1899,41 @@ def portfolio_detail(request, pk):
         'currency_id': portfolio.currency_id,
         'benchmark_id': portfolio.benchmark_id,
         'is_benchmark': portfolio.is_benchmark,
+        'is_shared': portfolio.is_shared,
+        'can_edit': portfolio.can_be_edited_by(request.user),
         'holdings': holdings,
     })
+
+
+@login_required
+@require_POST
+def portfolio_duplicate(request, pk):
+    """Copie privée d'un portefeuille lisible, éditable par le demandeur."""
+    source = _visible_portfolio(request, pk)
+    with transaction.atomic():
+        copy = Portfolio.objects.create(
+            name=f'{source.name} (copie)'[:255],
+            size=source.size,
+            currency=source.currency,
+            benchmark=source.benchmark,
+            is_benchmark=False,
+            is_shared=False,
+            created_by=request.user,
+        )
+        PortfolioHolding.objects.bulk_create([
+            PortfolioHolding(
+                portfolio=copy,
+                company_id=h.company_id,
+                amount=h.amount,
+                weight=h.weight,
+                instrument_type=h.instrument_type,
+                maturity_date=h.maturity_date,
+                coupon_rate=h.coupon_rate,
+                face_value=h.face_value,
+            )
+            for h in source.holdings.all()
+        ])
+    return JsonResponse({'id': copy.pk, 'name': copy.name})
 
 
 # Méthodes d'impact endpoint exposées dans l'onglet Impact du portefeuille.
@@ -1939,7 +1992,7 @@ def _company_endpoint_impacts(company, category_keys):
 @require_GET
 def portfolio_impact(request, pk):
     """Impact financé d'un portefeuille : montant_investi × (impact / EVIC)."""
-    portfolio = get_object_or_404(Portfolio, pk=pk, created_by=request.user)
+    portfolio = _visible_portfolio(request, pk)
     holdings = list(portfolio.holdings.select_related('company').all())
 
     keys = [key for _, _, key in PORTFOLIO_IMPACT_METRICS]
@@ -2052,7 +2105,7 @@ def _portfolio_physical_aggregate(holdings, per_company):
 @require_GET
 def portfolio_physical_risk(request, pk):
     """Profil de risque physique d'un portefeuille (pondéré par montant investi)."""
-    portfolio = get_object_or_404(Portfolio, pk=pk, created_by=request.user)
+    portfolio = _visible_portfolio(request, pk)
     holdings = list(portfolio.holdings.select_related('company').all())
     keys = [key for key, _, _ in PHYSICAL_HAZARDS]
 
@@ -2295,7 +2348,7 @@ def _portfolio_financed_debt(holdings, evic_map):
 @require_GET
 def portfolio_transition_risk(request, pk):
     """Risque de transition d'un portefeuille : dette écologique financée."""
-    portfolio = get_object_or_404(Portfolio, pk=pk, created_by=request.user)
+    portfolio = _visible_portfolio(request, pk)
     holdings = list(portfolio.holdings.select_related('company').all())
 
     def _evic_map(hs):

@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page introuvable — Easybiodiv</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --color-background: #fbf9f4;
+      --color-on-surface: #1b1c19;
+      --color-on-surface-variant: #54433e;
+      --color-primary: #91452d;
+      --color-on-primary: #ffffff;
+      --color-outline: #87736d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-background);
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--color-on-surface);
+      text-align: center;
+      padding: 24px;
+    }
+    .error-page {
+      max-width: 420px;
+    }
+    .error-page__logo {
+      margin-bottom: 24px;
+    }
+    .error-page__code {
+      font-size: 72px;
+      font-weight: 700;
+      color: var(--color-primary);
+      line-height: 1;
+      margin: 0;
+    }
+    .error-page__title {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 16px 0 8px;
+    }
+    .error-page__text {
+      font-size: 14px;
+      color: var(--color-on-surface-variant);
+      margin: 0 0 28px;
+      line-height: 1.5;
+    }
+    .error-page__link {
+      display: inline-block;
+      padding: 10px 24px;
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    .error-page__link:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="error-page">
+    <div class="error-page__logo" aria-hidden="true">
+      <svg width="40" height="40" viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="8" fill="#91452d"/>
+        <path d="M16 6C10.477 6 6 10.477 6 16s4.477 10 10 10 10-4.477 10-10S21.523 6 16 6zm0 3a7 7 0 110 14A7 7 0 0116 9zm0 2a5 5 0 100 10A5 5 0 0016 11zm0 2a3 3 0 110 6 3 3 0 010-6z" fill="#fff"/>
+      </svg>
+    </div>
+    <p class="error-page__code">404</p>
+    <h1 class="error-page__title">Page introuvable</h1>
+    <p class="error-page__text">
+      La page que vous recherchez n'existe pas ou a été déplacée.
+      Vérifiez l'adresse ou retournez au tableau de bord.
+    </p>
+    <a href="{% url 'dashboard:index' %}" class="error-page__link">Retour au tableau de bord</a>
+  </div>
+</body>
+</html>

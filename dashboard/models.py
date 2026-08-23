@@ -1090,6 +1090,20 @@ class SectorCreditProfile(models.Model):
         return f'{self.sector.name} — PD {self.pd_baseline:.2%}'
 
 
+class PortfolioQuerySet(models.QuerySet):
+    """Règles de visibilité et d'édition des portefeuilles."""
+
+    def visible_to(self, user):
+        """Portefeuilles de l'utilisateur, plus les portefeuilles communs."""
+        return self.filter(models.Q(created_by=user) | models.Q(is_shared=True))
+
+    def editable_by(self, user):
+        """Portefeuilles que l'utilisateur peut modifier. Le staff peut tout."""
+        if getattr(user, 'is_staff', False):
+            return self
+        return self.filter(created_by=user)
+
+
 class Portfolio(models.Model):
     """Portefeuille (fonds) : ensemble d'entreprises pondérées à analyser."""
     name = models.CharField(max_length=255, verbose_name='Nom du fonds')
@@ -1104,6 +1118,10 @@ class Portfolio(models.Model):
     is_benchmark = models.BooleanField(
         default=False, verbose_name='Utiliser comme benchmark',
     )
+    is_shared = models.BooleanField(
+        default=False, verbose_name='Portefeuille commun',
+        help_text='Visible en lecture par tous les utilisateurs. Réservé au staff.',
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
     created_by = models.ForeignKey(
@@ -1111,12 +1129,20 @@ class Portfolio(models.Model):
         verbose_name='Créé par',
     )
 
+    objects = PortfolioQuerySet.as_manager()
+
     class Meta:
         verbose_name = 'Portefeuille'
         verbose_name_plural = 'Portefeuilles'
 
     def __str__(self):
         return self.name
+
+    def can_be_edited_by(self, user):
+        return bool(
+            getattr(user, 'is_staff', False)
+            or (self.created_by_id and self.created_by_id == getattr(user, 'pk', None))
+        )
 
 
 class PortfolioHolding(models.Model):

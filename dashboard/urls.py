@@ -34,6 +34,8 @@ urlpatterns = [
     path('portfolio/', views.portfolio_analysis, name='portfolio_analysis'),
     path('api/portfolio/save/', views.portfolio_save, name='portfolio_save'),
     path('api/portfolio/<int:pk>/', views.portfolio_detail, name='portfolio_detail'),
+    path('api/portfolio/<int:pk>/duplicate/', views.portfolio_duplicate,
+         name='portfolio_duplicate'),
     path('api/portfolio/<int:pk>/impact/', views.portfolio_impact,
          name='portfolio_impact'),
     path('api/portfolio/<int:pk>/physical-risk/', views.portfolio_physical_risk,

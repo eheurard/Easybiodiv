@@ -10,11 +10,23 @@
   <span class="label-caps">Portefeuille</span>
   <select id="pf-portfolio-select" class="form-input" aria-label="Charger un portefeuille">
     <option value="">— Nouveau —</option>
-    {% for p in portfolios %}
-      <option value="{{ p.id }}">{{ p.name }}</option>
-    {% endfor %}
+    {% if portfolios %}
+      <optgroup label="Mes portefeuilles">
+        {% for p in portfolios %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+        {% endfor %}
+      </optgroup>
+    {% endif %}
+    {% if shared_portfolios %}
+      <optgroup label="Portefeuilles communs">
+        {% for p in shared_portfolios %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+        {% endfor %}
+      </optgroup>
+    {% endif %}
   </select>
   <button type="button" id="pf-new-btn" class="btn btn--ghost">Nouveau portefeuille</button>
+  <button type="button" id="pf-duplicate-btn" class="btn btn--ghost" hidden>Dupliquer</button>
 </div>
 {% endblock header_left %}
 
@@ -62,6 +74,12 @@
           <input type="checkbox" id="pf-is-benchmark">
           <span>Utiliser ce fonds comme benchmark</span>
         </label>
+        {% if can_share %}
+        <label class="pf-field pf-field--check">
+          <input type="checkbox" id="pf-is-shared">
+          <span>Portefeuille commun (visible par tous)</span>
+        </label>
+        {% endif %}
       </div>
     </section>
 
@@ -257,6 +275,7 @@
 <script>
   var PF_SAVE_URL = "{% url 'dashboard:portfolio_save' %}";
   var PF_DETAIL_URL = "{% url 'dashboard:portfolio_detail' pk=0 %}";
+  var PF_DUPLICATE_URL = "{% url 'dashboard:portfolio_duplicate' pk=0 %}";
   var PF_IMPACT_URL = "{% url 'dashboard:portfolio_impact' pk=0 %}";
   var PF_PHYSICAL_URL = "{% url 'dashboard:portfolio_physical_risk' pk=0 %}";
   var PF_TRANSITION_URL = "{% url 'dashboard:portfolio_transition_risk' pk=0 %}";
