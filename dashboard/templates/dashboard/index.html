@@ -74,6 +74,15 @@
         </div>
       </div>
       <div class="country-panel__view" id="asset-view">
+        <div class="asset-list__toolbar" id="asset-list-toolbar" hidden>
+          <select id="asset-type-filter" class="form-input asset-list__filter" aria-label="Filtrer par type d'actif">
+            <option value="">Tous les types</option>
+          </select>
+          <button type="button" id="asset-sort-btn" class="asset-list__sort-btn" aria-pressed="false">
+            <span id="asset-sort-label">Impact décroissant</span>
+            <span class="asset-list__sort-icon" aria-hidden="true">▼</span>
+          </button>
+        </div>
         <div id="asset-list">
           <p class="country-panel__empty">Sélectionnez une entreprise pour afficher l'exposition.</p>
         </div>

@@ -167,6 +167,26 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // Asset list filter (by type) + sort (by impact)
+    const assetTypeFilter = document.getElementById('asset-type-filter');
+    if (assetTypeFilter) {
+      assetTypeFilter.addEventListener('change', () => {
+        _assetTypeFilter = assetTypeFilter.value;
+        renderAssetListBody();
+      });
+    }
+    const assetSortBtn = document.getElementById('asset-sort-btn');
+    if (assetSortBtn) {
+      assetSortBtn.addEventListener('click', () => {
+        _assetSortDir = _assetSortDir === 'desc' ? 'asc' : 'desc';
+        const pressed = _assetSortDir === 'asc';
+        assetSortBtn.setAttribute('aria-pressed', String(pressed));
+        document.getElementById('asset-sort-label').textContent =
+          pressed ? 'Impact croissant' : 'Impact décroissant';
+        renderAssetListBody();
+      });
+    }
+
     // Exposition panel tab switching
     const panelTabs = document.querySelectorAll('.country-panel__tab');
 
@@ -627,19 +647,63 @@ function moveTabIndicator(tab, animate) {
   indicator.style.width = tabRect.width + 'px';
 }
 
+let _assetListData = null;
+let _assetTypeFilter = '';
+let _assetSortDir = 'desc';
+
 function renderAssetList(data) {
-  const el = document.getElementById('asset-list');
-  if (!el) return;
+  _assetListData = data;
+  populateAssetTypeFilter(data);
+  renderAssetListBody();
+}
+
+function populateAssetTypeFilter(data) {
+  const toolbar = document.getElementById('asset-list-toolbar');
+  const select = document.getElementById('asset-type-filter');
+  if (!toolbar || !select) return;
 
   const features = (data.geojson && data.geojson.features) ? data.geojson.features : [];
-
   if (features.length === 0) {
+    toolbar.hidden = true;
+    return;
+  }
+  toolbar.hidden = false;
+
+  const present = new Set(features.map((f) => f.properties.type).filter(Boolean));
+  const orderedTypes = Object.keys(ASSET_TYPE_COLORS).filter((t) => present.has(t));
+  present.forEach((t) => { if (!orderedTypes.includes(t)) orderedTypes.push(t); });
+
+  if (_assetTypeFilter && !present.has(_assetTypeFilter)) _assetTypeFilter = '';
+
+  select.innerHTML = '<option value="">Tous les types</option>' +
+    orderedTypes.map((t) => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
+  select.value = _assetTypeFilter;
+}
+
+function renderAssetListBody() {
+  const el = document.getElementById('asset-list');
+  if (!el || !_assetListData) return;
+
+  const allFeatures = (_assetListData.geojson && _assetListData.geojson.features)
+    ? _assetListData.geojson.features : [];
+
+  if (allFeatures.length === 0) {
     el.innerHTML = '<p class="country-panel__empty">Aucun actif pour cette entreprise.</p>';
     return;
   }
 
+  const features = _assetTypeFilter
+    ? allFeatures.filter((f) => f.properties.type === _assetTypeFilter)
+    : allFeatures;
+
+  if (features.length === 0) {
+    el.innerHTML = '<p class="country-panel__empty">Aucun actif pour ce type.</p>';
+    return;
+  }
+
+  const dir = _assetSortDir === 'asc' ? 1 : -1;
   const sorted = [...features].sort(
-    (a, b) => (b.properties.footprint || 0) - (a.properties.footprint || 0)
+    (a, b) => dir * ((a.properties.footprint || 0) - (b.properties.footprint || 0))
   );
 
   el.innerHTML = sorted.map((f, idx) => {
