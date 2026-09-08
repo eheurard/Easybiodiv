@@ -474,46 +474,6 @@ p {
   transition: width var(--sidebar-transition);
 }
 
-/* Brand */
-.sidebar__brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 16px 16px;
-  border-bottom: var(--border-card);
-  flex-shrink: 0;
-  min-height: 72px;
-  overflow: hidden;
-}
-
-.sidebar__logo {
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-}
-
-.sidebar__brand-text {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  white-space: nowrap;
-  transition: opacity var(--sidebar-transition), width var(--sidebar-transition);
-}
-
-.sidebar__brand-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-primary);
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-}
-
-.sidebar__brand-tagline {
-  font-size: 11px;
-  color: var(--color-on-surface-variant);
-  line-height: 1.3;
-}
-
 /* Toggle button */
 .sidebar__toggle {
   position: absolute;
@@ -664,7 +624,6 @@ p {
   width: var(--sidebar-collapsed-width);
 }
 
-.app-layout.sidebar-collapsed .sidebar__brand-text,
 .app-layout.sidebar-collapsed .sidebar__nav-label,
 .app-layout.sidebar-collapsed .sidebar__footer-link-label {
   opacity: 0;
@@ -3626,7 +3585,7 @@ a.app-header__avatar {
 /* Panneau latéral superposé, repliable vers la droite */
 .ll-panel {
   position: absolute;
-  top: 12px;
+  top: calc(var(--header-height) + 12px);
   right: 12px;
   bottom: 12px;
   width: 320px;
@@ -3674,7 +3633,7 @@ a.app-header__avatar {
 .ll-panel__reopen:hover { background: var(--color-surface-container); }
 .ll-panel__reopen {
   position: absolute;
-  top: 12px;
+  top: calc(var(--header-height) + 12px);
   right: 12px;
   width: 36px;
   height: 36px;
@@ -3966,8 +3925,8 @@ a.app-header__avatar {
 
 /* ── Portfolio analysis ─────────────────────────────────────────── */
 .pf-portfolio-picker { display: flex; align-items: center; gap: .5rem; }
-.pf-tabs { display: flex; gap: .25rem; flex-wrap: wrap; border-bottom: 1px solid var(--color-border, #e2e2e2); margin-bottom: 1.25rem; }
-.pf-tab { background: none; border: none; padding: .6rem 1rem; cursor: pointer; color: var(--color-text-muted, #666); border-bottom: 2px solid transparent; font: inherit; }
+.pf-tabs { display: flex; gap: .25rem; flex-wrap: wrap; border-bottom: 1px solid var(--color-outline-variant); margin-bottom: 1.25rem; }
+.pf-tab { background: none; border: none; padding: .6rem 1rem; cursor: pointer; color: var(--color-on-surface-variant); border-bottom: 2px solid transparent; font: inherit; }
 .pf-tab--active { color: var(--color-primary); border-bottom-color: var(--color-primary); font-weight: 600; }
 .pf-panel { display: none; }
 .pf-panel--active { display: block; }
@@ -3977,7 +3936,7 @@ a.app-header__avatar {
 .pf-field--check { flex-direction: row; align-items: center; gap: .5rem; }
 .pf-composition { margin-top: 1.25rem; }
 .pf-add { position: relative; margin-bottom: 1rem; max-width: 420px; }
-.pf-company-listbox { position: absolute; z-index: 20; left: 0; right: 0; margin: .25rem 0 0; padding: .25rem; list-style: none; background: var(--color-surface-container-lowest); border: 1px solid var(--color-border, #e2e2e2); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.08); max-height: 240px; overflow: auto; }
+.pf-company-listbox { position: absolute; z-index: 20; left: 0; right: 0; margin: .25rem 0 0; padding: .25rem; list-style: none; background: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.08); max-height: 240px; overflow: auto; }
 .pf-company-option { padding: .45rem .6rem; cursor: pointer; border-radius: 4px; }
 .pf-company-option:hover { background: var(--color-surface-container); }
 .pf-holdings { width: 100%; border-collapse: collapse; }
@@ -4087,29 +4046,85 @@ a.app-header__avatar {
   overflow: hidden;
 }
 
-/* ── Sidebar en rail d'icônes ────────────────────────────────────────────
-   Sur une page carte la sidebar est toujours réduite, quel que soit l'état
-   mémorisé dans localStorage (que l'on ne touche pas, pour ne rien reporter
-   sur les pages sans carte). Le bouton de repli devient inutile : les
-   libellés sortent au survol, on le masque plutôt que de le laisser inerte. */
+/* ── Rail d'icônes flottantes ────────────────────────────────────────────
+   Pas de barre : les icônes sont des pastilles rondes posées directement sur
+   la page — sur la carte pour les pages carte, sur le fond sinon. La sidebar
+   est toujours réduite, quel que soit l'état mémorisé dans localStorage (que
+   l'on ne touche pas). Le bouton de repli devient inutile : les libellés
+   sortent au survol, on le masque plutôt que de le laisser inerte. */
 .app-layout .app-sidebar {
+  top: var(--header-height);          /* les ronds passent sous le header */
   width: var(--sidebar-collapsed-width);
   overflow: visible;
+  background: transparent;
+  border-right: none;
+  /* Sans ça, une bande invisible de 64px avalerait les glissers de carte
+     entre deux pastilles. Seuls les elements interactifs redeviennent
+     cliquables, juste en dessous. */
+  pointer-events: none;
 }
+
+.app-layout .sidebar__nav-link,
+.app-layout .sidebar__nav-details > summary,
+.app-layout .sidebar__nav-sub,
+.app-layout .sidebar__footer-link,
+.app-layout .sidebar__footer-icon-link {
+  pointer-events: auto;
+}
+
+/* Le contenu part du bord : la carte passe sous les pastilles. Les pages
+   sans carte reservent la gouttiere dans leur propre padding. */
+.app-layout .app-main,
+.app-layout.sidebar-collapsed .app-main {
+  margin-left: 0;
+}
+
+.app-layout:not(.map-page) .app-content {
+  padding-left: calc(var(--sidebar-collapsed-width) + var(--space-gutter));
+}
+
+/* ── Les pastilles ───────────────────────────────────────────────────────
+   Meme forme pour la navigation, le pied et le logo : un rond de 40px qui
+   se detache de ce qu'il y a derriere. */
+.app-layout .sidebar__nav-link,
+.app-layout .sidebar__nav-details > summary,
+.app-layout .sidebar__footer-link {
+  width: 40px;
+  height: 40px;
+  margin-inline: auto;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.app-layout .sidebar__nav-link,
+.app-layout .sidebar__nav-details > summary {
+  background: var(--scrim-chip);
+  border: 1px solid var(--color-outline-variant);
+}
+
+.app-layout .sidebar__nav-link.active,
+.app-layout .sidebar__nav-details > summary.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.app-layout .sidebar__footer-icon-link {
+  border-radius: 50%;
+  background: var(--scrim-chip);
+  border: 1px solid var(--color-outline-variant);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.app-layout .sidebar__nav-list {
+  gap: 10px;
+}
+
+/* Plus de barre, donc plus de separateur en pied. */
+.app-layout .sidebar__footer { border-top: none; }
 
 .app-layout .sidebar__toggle {
   display: none;
-}
-
-.app-layout .sidebar__brand {
-  justify-content: center;
-  padding-inline: 0;
-}
-
-.app-layout .sidebar__brand-text {
-  opacity: 0;
-  width: 0;
-  pointer-events: none;
 }
 
 /* Le rail ne peut pas être un conteneur de défilement, sinon il rognerait
@@ -4125,10 +4140,9 @@ a.app-header__avatar {
 
 .app-layout .sidebar__nav-link,
 .app-layout .sidebar__nav-details > summary {
-  position: relative;
   justify-content: center;
   gap: 0;
-  padding: 10px;
+  padding: 0;
   overflow: visible;
 }
 
@@ -4180,6 +4194,7 @@ a.app-header__avatar {
 
 .app-layout .sidebar__nav-details > .sidebar__nav-sub {
   display: flex;
+  pointer-events: auto;
   position: absolute;
   top: 0;
   left: 100%;
@@ -4216,7 +4231,7 @@ a.app-header__avatar {
 .app-layout .sidebar__footer-link {
   position: relative;
   justify-content: center;
-  padding: 10px;
+  padding: 0;
   overflow: visible;
 }
 
@@ -4247,8 +4262,65 @@ a.app-header__avatar {
   visibility: visible;
 }
 
+/* Deux pastilles cote a cote ne tiennent pas dans 64px : on les empile. */
 .app-layout .sidebar__footer-actions {
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Header sans barre ──────────────────────────────────────────────────
+   Meme principe que le rail : plus de barre, seulement des pastilles posees
+   sur la page. Le header sort du flux pour que la carte passe dessous. */
+.app-layout .app-main {
+  position: relative;
+}
+
+.app-layout .app-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 150;
+  background-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: none;
+  /* Sans ca, la bande de 60px avalerait les glissers de carte entre les
+     pastilles. Seuls les deux groupes redeviennent cliquables. */
+  pointer-events: none;
+}
+
+.app-layout .app-header > * {
+  pointer-events: auto;
+}
+
+/* Le contenu occupe toute la hauteur : la carte passe sous les pastilles.
+   Les pages sans carte reservent la bande dans leur propre padding. */
+.app-layout:not(.map-page) .app-content {
+  padding-top: calc(var(--header-height) + 32px);
+}
+
+/* Groupe de gauche : selecteur d'entreprise, recherche, ou selecteur de
+   portefeuille selon la page. Meme pastille pour les trois. */
+.app-layout .app-header__search,
+.app-layout .company-combobox,
+.app-layout .pf-portfolio-picker {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  background: var(--scrim-chip);
+  border: 1px solid var(--color-outline-variant);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.app-layout .app-header__icon-btn {
+  background: var(--scrim-chip);
+  border: 1px solid var(--color-outline-variant);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.app-layout .app-header__avatar {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 /* ── La scène ────────────────────────────────────────────────────────────
@@ -4272,10 +4344,11 @@ a.app-header__avatar {
 }
 
 /* ── Emplacements d'overlay ────────────────────────────────────────────── */
+/* Cales a droite du rail de pastilles, qui occupe les 64 premiers pixels. */
 .map-stage__tl,
 .map-stage__bl {
   position: absolute;
-  left: 12px;
+  left: calc(var(--sidebar-collapsed-width) + 12px);
   z-index: 12;
   display: flex;
   flex-direction: column;
@@ -4283,7 +4356,8 @@ a.app-header__avatar {
   gap: 8px;
 }
 
-.map-stage__tl { top: 12px; }
+/* Cale sous la rangee de pastilles du header. */
+.map-stage__tl { top: calc(var(--header-height) + 12px); }
 .map-stage__bl { bottom: 12px; }
 
 /* Quand la page a un tiroir bas, la legende se cale au-dessus de sa poignee. */
@@ -4315,7 +4389,7 @@ a.app-header__avatar {
    généralisés aux autres pages carte. */
 .map-panel {
   position: absolute;
-  top: 12px;
+  top: calc(var(--header-height) + 12px);
   right: 12px;
   bottom: 12px;
   z-index: 14;
@@ -4374,7 +4448,7 @@ a.app-header__avatar {
 
 .map-panel__reopen {
   position: absolute;
-  top: 12px;
+  top: calc(var(--header-height) + 12px);
   right: 12px;
   z-index: 14;
   width: 36px;
@@ -4442,7 +4516,7 @@ a.app-header__avatar {
    Replié par défaut : seule sa poignée est visible au-dessus de la carte. */
 .map-drawer {
   position: absolute;
-  left: 12px;
+  left: calc(var(--sidebar-collapsed-width) + 12px);
   right: calc(var(--map-panel-width) + 24px);
   bottom: 12px;
   z-index: 13;
