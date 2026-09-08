@@ -2,6 +2,19 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+  <script>
+    /* Pose le theme avant le rendu, sinon la page apparait en clair puis
+       bascule. Lit le choix memorise, sinon suit la preference systeme. */
+    (function () {
+      var t;
+      try { t = localStorage.getItem('theme'); } catch (e) { t = null; }
+      if (t !== 'light' && t !== 'dark') {
+        t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Easybiodiv{% endblock %}</title>
@@ -19,10 +32,10 @@
 
   <!-- Écran de chargement : styles critiques inline pour un affichage instantané -->
   <style>
-    #page-loader{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#fbf9f4;transition:opacity .4s ease,visibility .4s ease}
+    #page-loader{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--color-background);transition:opacity .4s ease,visibility .4s ease}
     #page-loader.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
-    #page-loader .pl-ring{width:46px;height:46px;border-radius:50%;border:4px solid #e4e2dd;border-top-color:#91452d;animation:pl-spin .8s linear infinite}
-    #page-loader .pl-text{font:500 13px/1 'Inter',system-ui,sans-serif;color:#54433e;letter-spacing:.03em}
+    #page-loader .pl-ring{width:46px;height:46px;border-radius:50%;border:4px solid var(--color-surface-container-highest);border-top-color:var(--color-primary);animation:pl-spin .8s linear infinite}
+    #page-loader .pl-text{font:500 13px/1 'Inter',system-ui,sans-serif;color:var(--color-on-surface-variant);letter-spacing:.03em}
     @keyframes pl-spin{to{transform:rotate(360deg)}}
     @media (prefers-reduced-motion:reduce){#page-loader .pl-ring{animation-duration:1.8s}}
   </style>
@@ -37,7 +50,7 @@
     <span class="pl-text">Chargement…</span>
   </div>
 
-  <div class="app-layout" id="app-layout">
+  <div class="app-layout {% block layout_class %}{% endblock %}" id="app-layout">
 
     <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
     <aside class="app-sidebar" id="app-sidebar" aria-label="Navigation principale">
@@ -85,7 +98,7 @@
             </a>
           </li>
           <li>
-            <details class="sidebar__nav-details" id="nav-risks-group" {% block nav_risks_open %}{% endblock %}>
+            <details class="sidebar__nav-details" id="nav-risks-group">
               <summary class="sidebar__nav-link" aria-label="Analyse des risques">
                 <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                   <path d="M10 3L18 17H2L10 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
@@ -98,7 +111,7 @@
               </summary>
               <ul class="sidebar__nav-sub" role="list">
                 <li>
-                  <a href="{% url 'dashboard:mesure_empreinte' %}"
+                  <a href="{% url 'dashboard:leap_locate' %}"
                      class="sidebar__nav-sublink {% block nav_mesure_empreinte %}{% endblock %}"
                      aria-label="Mesure d'empreinte">
                     Mesure d'empreinte
@@ -198,12 +211,16 @@
         </a>
 
         <div class="sidebar__footer-actions">
-          <a href="#" class="sidebar__footer-icon-link" aria-label="Paramètres">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <button type="button" class="sidebar__footer-icon-link" id="theme-toggle"
+                  aria-pressed="false" aria-label="Passer en mode nuit" title="Mode jour / nuit">
+            <svg class="theme-icon theme-icon--sun" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <circle cx="9" cy="9" r="2.5" stroke="currentColor" stroke-width="1.4"/>
               <path d="M9 1.5v1.7M9 14.8v1.7M1.5 9h1.7M14.8 9h1.7M3.7 3.7l1.2 1.2M13.1 13.1l1.2 1.2M3.7 14.3l1.2-1.2M13.1 4.9l1.2-1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
             </svg>
-          </a>
+            <svg class="theme-icon theme-icon--moon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path d="M15 10.6A6.5 6.5 0 017.4 3a6.5 6.5 0 107.6 7.6z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+            </svg>
+          </button>
           <a href="#" class="sidebar__footer-icon-link" aria-label="Aide et support">
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <circle cx="9" cy="9" r="7.5" stroke="currentColor" stroke-width="1.4"/>

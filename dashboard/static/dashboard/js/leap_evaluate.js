@@ -180,7 +180,7 @@ function leInitMap() {
 
   const map = new maplibregl.Map({
     container: 'leap-evaluate-map',
-    style: MAP_STYLES.classic,
+    style: mapStyleFor('classic'),
     center: [0, 20],
     zoom: 1.5,
   });
@@ -287,16 +287,24 @@ function leInitStyleToggle() {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.map-layer-btn[data-layer]').forEach((b) => b.classList.remove('map-layer-btn--active'));
       btn.classList.add('map-layer-btn--active');
-      const style = MAP_STYLES[btn.dataset.layer] || MAP_STYLES.classic;
       const map = LE_STATE.map;
       if (!map) return;
-      // « idle » est le seul signal fiable après setStyle (nouveau style + tuiles
-      // prêts) pour reconstruire nos sources/couches custom.
-      map.setStyle(style);
-      map.once('idle', () => {
-        leAddSourceAndLayer(map);
-        leSyncMapData();
-      });
+      leApplyStyle(map, mapStyleFor(btn.dataset.layer));
     });
   });
 }
+
+// « idle » est le seul signal fiable après setStyle (nouveau style + tuiles
+// prêts) pour reconstruire nos sources/couches custom.
+function leApplyStyle(map, style) {
+  map.setStyle(style);
+  map.once('idle', () => {
+    leAddSourceAndLayer(map);
+    leSyncMapData();
+  });
+}
+
+// Le fond suit le theme : meme bouton actif, variante claire ou sombre.
+document.addEventListener('themechange', () => {
+  if (LE_STATE.map) leApplyStyle(LE_STATE.map, mapStyleFor(activeMapStyleName()));
+});

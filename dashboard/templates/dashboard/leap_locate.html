@@ -3,7 +3,8 @@
 
 {% block title %}Locate — Easybiodiv{% endblock %}
 
-{% block nav_risks_open %}open{% endblock %}
+{% block layout_class %}map-page{% endblock %}
+
 {% block nav_mesure_empreinte %}active{% endblock %}
 
 {% block extra_css %}
@@ -31,11 +32,13 @@
 {% endblock header_left %}
 
 {% block content %}
-<div class="leap-page">
-  {% include "dashboard/_leap_tabs.html" with active="locate" %}
+<div class="map-stage ll-map-wrap">
+  <div class="map-stage__canvas" id="leap-locate-map" aria-label="Carte des sites (Locate)"></div>
 
-  <div class="map-card-wrap ll-map-wrap">
-    <div class="map-card map-card--tall" id="leap-locate-map" aria-label="Carte des sites (Locate)"></div>
+  <div class="map-stage__tl">
+    <div class="map-chip">
+      {% include "dashboard/_leap_tabs.html" with active="locate" %}
+    </div>
 
     <div class="map-layer-toggle" role="group" aria-label="Style de carte">
       <button class="map-layer-btn map-layer-btn--active" data-layer="classic">Classique</button>
@@ -46,47 +49,47 @@
     <div class="map-layer-toggle ll-supplier-toggle" role="group" aria-label="Fournisseurs">
       <button type="button" class="map-layer-btn" id="ll-supplier-toggle" aria-pressed="false">Supply chain</button>
     </div>
+  </div>
 
-    <div class="map-legend-stack">
-      <div class="map-legend ll-commodity-legend" id="ll-commodity-legend" aria-label="Légende des commodités" hidden>
-        <p class="map-legend__title">Commodités</p>
-        <ul class="map-legend__list" id="ll-commodity-legend-list"></ul>
-      </div>
-
-      <div class="map-legend" aria-label="Légende">
-        <p class="map-legend__title">Revenu associé</p>
-        <ul class="map-legend__list">
-          <li><span class="map-legend__dot" style="background:#dac1ba"></span>Faible</li>
-          <li><span class="map-legend__dot" style="background:#feb87c"></span>Modéré</li>
-          <li><span class="map-legend__dot" style="background:#af5d43"></span>Élevé</li>
-          <li><span class="map-legend__dot" style="background:#91452d"></span>Très élevé</li>
-        </ul>
-      </div>
+  <div class="map-stage__bl">
+    <div class="map-legend ll-commodity-legend" id="ll-commodity-legend" aria-label="Légende des commodités" hidden>
+      <p class="map-legend__title">Commodités</p>
+      <ul class="map-legend__list" id="ll-commodity-legend-list"></ul>
     </div>
 
-    <aside class="ll-panel" id="ll-panel" aria-label="Sites localisés">
-      <div class="ll-panel__header">
-        <span class="label-caps ll-panel__title">Sites localisés</span>
-        <button type="button" class="ll-panel__toggle" id="ll-panel-toggle" aria-expanded="true"
-          aria-controls="ll-panel" aria-label="Réduire le panneau">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-              stroke-linejoin="round" />
-          </svg>
-        </button>
-      </div>
-      <div id="leap-locate-list" class="ll-list">
-        <p class="ll-empty">Sélectionnez une entreprise.</p>
-      </div>
-    </aside>
-
-    <button type="button" class="ll-panel__reopen" id="ll-panel-reopen" aria-expanded="true" aria-controls="ll-panel"
-      aria-label="Afficher la liste des sites">
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-        <path d="M3 4.5h12M3 9h12M3 13.5h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-      </svg>
-    </button>
+    <div class="map-legend" aria-label="Légende">
+      <p class="map-legend__title">Revenu associé</p>
+      <ul class="map-legend__list">
+        <li><span class="map-legend__dot" style="background:#dac1ba"></span>Faible</li>
+        <li><span class="map-legend__dot" style="background:#feb87c"></span>Modéré</li>
+        <li><span class="map-legend__dot" style="background:#af5d43"></span>Élevé</li>
+        <li><span class="map-legend__dot" style="background:#91452d"></span>Très élevé</li>
+      </ul>
+    </div>
   </div>
+
+  <aside class="ll-panel" id="ll-panel" aria-label="Sites localisés">
+    <div class="ll-panel__header">
+      <span class="label-caps ll-panel__title">Sites localisés</span>
+      <button type="button" class="ll-panel__toggle" id="ll-panel-toggle" aria-expanded="true"
+        aria-controls="ll-panel" aria-label="Réduire le panneau">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+      </button>
+    </div>
+    <div id="leap-locate-list" class="ll-list">
+      <p class="ll-empty">Sélectionnez une entreprise.</p>
+    </div>
+  </aside>
+
+  <button type="button" class="ll-panel__reopen" id="ll-panel-reopen" aria-expanded="true" aria-controls="ll-panel"
+    aria-label="Afficher la liste des sites">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M3 4.5h12M3 9h12M3 13.5h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+    </svg>
+  </button>
 </div>
 {% endblock %}
 

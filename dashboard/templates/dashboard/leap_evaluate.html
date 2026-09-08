@@ -3,7 +3,8 @@
 
 {% block title %}Evaluate — Easybiodiv{% endblock %}
 
-{% block nav_risks_open %}open{% endblock %}
+{% block layout_class %}map-page{% endblock %}
+
 {% block nav_mesure_empreinte %}active{% endblock %}
 
 {% block extra_css %}
@@ -32,38 +33,58 @@
 {% endblock header_left %}
 
 {% block content %}
-<div class="leap-page">
-  {% include "dashboard/_leap_tabs.html" with active="evaluate" %}
+<div class="map-stage">
+  <div class="map-stage__canvas" id="leap-evaluate-map"
+       aria-label="Carte des sites par impact (Evaluate)"></div>
 
-  <div class="pr-mid-row">
-    <div class="map-card-wrap">
-      <div class="map-card map-card--tall" id="leap-evaluate-map"
-           aria-label="Carte des sites par impact (Evaluate)"></div>
-
-      <div class="map-layer-toggle" role="group" aria-label="Style de carte">
-        <button class="map-layer-btn map-layer-btn--active" data-layer="classic">Classique</button>
-        <button class="map-layer-btn" data-layer="grayscale">Gris</button>
-        <button class="map-layer-btn" data-layer="satellite">Satellite</button>
-      </div>
-
-      <div class="map-legend" aria-label="Légende de l'impact">
-        <p class="map-legend__title">Impact sélectionné</p>
-        <ul class="map-legend__list">
-          <li><span class="map-legend__dot" style="background:#dac1ba"></span>Faible</li>
-          <li><span class="map-legend__dot" style="background:#feb87c"></span>Modéré</li>
-          <li><span class="map-legend__dot" style="background:#af5d43"></span>Élevé</li>
-          <li><span class="map-legend__dot" style="background:#91452d"></span>Très élevé</li>
-        </ul>
-      </div>
+  <div class="map-stage__tl">
+    <div class="map-chip">
+      {% include "dashboard/_leap_tabs.html" with active="evaluate" %}
     </div>
 
-    <div class="card pr-ranking-card">
-      <div class="label-caps pr-ranking-card__title">Classement des impacts</div>
+    <div class="map-layer-toggle" role="group" aria-label="Style de carte">
+      <button class="map-layer-btn map-layer-btn--active" data-layer="classic">Classique</button>
+      <button class="map-layer-btn" data-layer="grayscale">Gris</button>
+      <button class="map-layer-btn" data-layer="satellite">Satellite</button>
+    </div>
+  </div>
+
+  <div class="map-stage__bl">
+    <div class="map-legend" aria-label="Légende de l'impact">
+      <p class="map-legend__title">Impact sélectionné</p>
+      <ul class="map-legend__list">
+        <li><span class="map-legend__dot" style="background:#dac1ba"></span>Faible</li>
+        <li><span class="map-legend__dot" style="background:#feb87c"></span>Modéré</li>
+        <li><span class="map-legend__dot" style="background:#af5d43"></span>Élevé</li>
+        <li><span class="map-legend__dot" style="background:#91452d"></span>Très élevé</li>
+      </ul>
+    </div>
+  </div>
+
+  <aside class="map-panel" id="le-panel" aria-label="Classement des impacts">
+    <div class="map-panel__header">
+      <span class="label-caps map-panel__title">Classement des impacts</span>
+      <button type="button" class="map-panel__toggle" aria-expanded="true"
+              aria-controls="le-panel" aria-label="Réduire le panneau">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="map-panel__body">
       <div id="le-ranking" class="pr-ranking-list">
         <p class="pr-empty">Sélectionnez une entreprise.</p>
       </div>
     </div>
-  </div>
+  </aside>
+
+  <button type="button" class="map-panel__reopen" aria-expanded="true" aria-controls="le-panel"
+          aria-label="Afficher le classement des impacts">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M3 4.5h12M3 9h12M3 13.5h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+  </button>
 </div>
 {% endblock %}
 
@@ -72,5 +93,6 @@
 {{ companies|json_script:"companies-data" }}
 {{ initial_data|json_script:"initial-data" }}
 <script>var LEAP_EVALUATE_API_URL = "{% url 'dashboard:leap_evaluate_data' pk=0 %}";</script>
+<script src="{% static 'dashboard/js/map_layout.js' %}" defer></script>
 <script src="{% static 'dashboard/js/leap_evaluate.js' %}" defer></script>
 {% endblock %}

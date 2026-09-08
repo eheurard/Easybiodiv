@@ -2,11 +2,6 @@ from django.db import models
 from django.conf import settings
 from django.core.validators import MaxValueValidator
 
-# Champs dont ni le code metier, ni l'importeur, ni les tests n'etablissent
-# l'unite ou l'echelle. Sur une console dont c'est justement le role
-# d'expliquer, se taire sur ces champs-la reviendrait a les presenter comme
-# evidents, alors qu'une valeur fausse y corrompt les calculs sans erreur
-# visible. Ce texte n'invente aucune definition : il signale le trou.
 UNDOCUMENTED_SCALE_HELP_TEXT = (
     'Échelle et unité non documentées à ce jour — vérifier le glossaire '
     'métier avant de saisir une valeur.'
@@ -16,10 +11,12 @@ UNDOCUMENTED_SCALE_HELP_TEXT = (
 class Country(models.Model):
     name = models.CharField(max_length=255, verbose_name='Nom')
     water_ownership = models.CharField(
-        max_length=255, verbose_name="Régime de propriété de l'eau",
+        max_length=255,
+        choices=[('Public','Public'),('Private','Privée'),('Public Private partnership',"Partenariat public privé")],
+        verbose_name="Régime de propriété de l'eau",
     )
     land_ownership = models.CharField(
-        max_length=255, verbose_name='Régime de propriété foncière',
+        max_length=255, verbose_name='Régime de propriété foncière à définir',
     )
     water_Governance = models.TextField(
         blank=True, verbose_name="Gouvernance de l'eau",
@@ -29,19 +26,24 @@ class Country(models.Model):
     )
     restoration_cost_m2 = models.FloatField(
         default=0, verbose_name='Coût de restauration (par m²)',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text="En € / m² issu des études locales ou des projets de développement du pays",
+    )
+    restoration_cost_source = models.CharField(
+        blank=True,
+        choices=[('Country budget allocation','State'),('Scientific studies','Scientific')],
+        verbose_name='origine de la donnée du cout de restauration'
     )
     biodiversity_loss_agriculture = models.FloatField(
         default=0, verbose_name='Perte de biodiversité — agriculture',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text="En % par rapport à une unité de référence(i.e MSA agricole par rapport à état de référence)",
     )
     biodiversity_loss_urbanization = models.FloatField(
         default=0, verbose_name='Perte de biodiversité — urbanisation',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text="En % par rapport à une unité de référence(i.e zone urbaine dense par rapport à état de référence)",
     )
     biodiversity_loss_mining = models.FloatField(
         default=0, verbose_name='Perte de biodiversité — extraction minière',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text="En % par rapport à une unité de référence(i.e zone minière par rapport à état de référence)",
     )
 
     class Meta:
@@ -54,7 +56,6 @@ class Country(models.Model):
 
 class SubnationalRegion(models.Model):
     name = models.CharField(max_length=255, verbose_name='Nom')
-    description = models.TextField(blank=True, verbose_name='Description')
     country = models.ForeignKey(
         Country, on_delete=models.CASCADE, verbose_name='Pays',
     )
@@ -63,11 +64,11 @@ class SubnationalRegion(models.Model):
     )
     Mean_X = models.FloatField(
         default=0, verbose_name='Coordonnée X moyenne',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text="Coordonnée utilisé pour la projection en carte",
     )
     Mean_Y = models.FloatField(
         default=0, verbose_name='Coordonnée Y moyenne',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='Coordonnée utilisé pour la projection en carte',
     )
 
     class Meta:
@@ -136,7 +137,7 @@ class Commodity (models.Model):
             ('Mining', 'Mining'),
         ],
         default="Agriculture",
-        verbose_name='Classe de perte de biodiversité',
+        verbose_name='Classe de perte de biodiversité pour le calcul de dette biodiversité',
         help_text='Détermine lequel des trois taux de perte du pays s’applique : '
                   'agriculture, urbanisation ou extraction minière.',
     )
@@ -153,7 +154,6 @@ class Sector(models.Model):
     NACE_code = models.CharField(
         max_length=255, blank=True, null=True, verbose_name='Code NACE',
     )
-    description = models.TextField(blank=True, null=True, verbose_name='Description')
 
     class Meta:
         verbose_name = 'Secteur'
@@ -177,7 +177,6 @@ class SubSector(models.Model):
     NACE_code = models.CharField(
         max_length=255, blank=True, null=True, verbose_name='Code NACE',
     )
-    description = models.TextField(blank=True, null=True, verbose_name='Description')
     Water_dependency = models.CharField(
         max_length=2, choices=DEPENDENCY_CHOICES, default='VL',
         verbose_name='Dépendance — approvisionnement en eau',
@@ -217,6 +216,8 @@ class SubSector(models.Model):
         return self.name
 
 class Asset(models.Model):
+
+
     name = models.CharField(max_length=255, verbose_name='Nom')
     description = models.TextField(blank=True, verbose_name='Description')
     latitude = models.FloatField(verbose_name='Latitude')
@@ -248,63 +249,63 @@ class Asset(models.Model):
 
     risk_water = models.FloatField(
         default=0, verbose_name='Risque — approvisionnement en eau',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='Risque eau du WRI de 0 a 5',
     )
     risk_pollination = models.FloatField(
         default=0, verbose_name='Risque — pollinisation',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='A définir',
     )
     risk_soil_quality = models.FloatField(
         default=0, verbose_name='Risque — qualité des sols',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='A définir, check WWF',
     )
     risk_carbon_sequestration = models.FloatField(
         default=0, verbose_name='Risque — séquestration carbone',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='A définir',
     )
     risk_water_purification = models.FloatField(
         default=0, verbose_name="Risque — épuration de l'eau",
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='A définir',
     )
     risk_pest_control = models.FloatField(
         default=0, verbose_name='Risque — contrôle des ravageurs',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='A définir',
     )
     risk_water_stress = models.FloatField(
         default=0, verbose_name='Aléa — stress hydrique',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='WRI water stress score de 0 a 5',
     )
     risk_wildfire = models.FloatField(
         default=0, verbose_name='Aléa — feu de forêt',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='A définir',
     )
     risk_cyclone = models.FloatField(
         default=0, verbose_name='Aléa — cyclone',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='A définir',
     )
     risk_drought = models.FloatField(
         default=0, verbose_name='Aléa — sécheresse',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='WRI drought score de 0 à 5',
     )
     risk_flood = models.FloatField(
         default=0, verbose_name='Aléa — inondation',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='WRI flood score de 0 à 5',
     )
     risk_coastal_inundation = models.FloatField(
         default=0, verbose_name='Aléa — submersion côtière',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='WRI coastal inondation score de 0 à 5',
     )
     risk_heatwave = models.FloatField(
         default=0, verbose_name='Aléa — canicule',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='A définir',
     )
     risk_temperature_variation = models.FloatField(
         default=0, verbose_name='Aléa — variation de température',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='A définir',
     )
     risk_precipitation_variation = models.FloatField(
         default=0, verbose_name='Aléa — variation des précipitations',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
+        help_text='A définir',
     )
 
     class SensitiveZoneType(models.TextChoices):

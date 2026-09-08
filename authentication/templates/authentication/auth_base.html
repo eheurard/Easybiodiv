@@ -2,6 +2,19 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+  <script>
+    /* Meme logique que le dashboard : theme pose avant le rendu, a partir du
+       choix memorise, sinon de la preference systeme. Pas de bascule ici. */
+    (function () {
+      var t;
+      try { t = localStorage.getItem('theme'); } catch (e) { t = null; }
+      if (t !== 'light' && t !== 'dark') {
+        t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Easybiodiv{% endblock %}</title>

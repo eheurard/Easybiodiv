@@ -151,28 +151,38 @@ function llInitStyleToggle() {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.map-layer-btn[data-layer]').forEach((b) => b.classList.remove('map-layer-btn--active'));
       btn.classList.add('map-layer-btn--active');
-      const style = MAP_STYLES[btn.dataset.layer] || MAP_STYLES.classic;
       const map = LL_STATE.map;
       if (!map) return;
+      llApplyStyle(map, mapStyleFor(btn.dataset.layer));
       // isStyleLoaded() n'est pas fiable juste après setStyle : pour un style
       // chargé par URL (classique/gris) il renvoie encore « true » pour
       // l'ANCIEN style, puis le nouveau style se charge et efface nos sources.
       // « idle » est le seul signal fiable (nouveau style + tuiles prêts), mais
       // il ne se déclenche jamais tant que l'animation des flèches tourne : on
       // la stoppe le temps du rechargement, puis on reconstruit et on relance.
-      const wasAnimating = LL_STATE.suppliersVisible;
-      llStopArrowAnim();
-      map.setStyle(style);
-      map.once('idle', () => {
-        llAddSourceAndLayer(map);
-        llSyncMapData();           // repeupler les assets avant les fournisseurs
-        llAddSupplierLayers(map);
-        llSyncSupplierData();
-        if (wasAnimating) llStartArrowAnim();
-      });
     });
   });
 }
+
+// Rejoue un fond de carte puis reconstruit toutes nos couches. Partage entre
+// le selecteur de fond et la bascule jour/nuit.
+function llApplyStyle(map, style) {
+  const wasAnimating = LL_STATE.suppliersVisible;
+  llStopArrowAnim();
+  map.setStyle(style);
+  map.once('idle', () => {
+    llAddSourceAndLayer(map);
+    llSyncMapData();           // repeupler les assets avant les fournisseurs
+    llAddSupplierLayers(map);
+    llSyncSupplierData();
+    if (wasAnimating) llStartArrowAnim();
+  });
+}
+
+// Le fond suit le theme : meme bouton actif, variante claire ou sombre.
+document.addEventListener('themechange', () => {
+  if (LL_STATE.map) llApplyStyle(LL_STATE.map, mapStyleFor(activeMapStyleName()));
+});
 
 function llFeatures() {
   return (LL_STATE.data && LL_STATE.data.geojson) ? LL_STATE.data.geojson.features : [];
@@ -254,7 +264,7 @@ function llInitMap() {
   if (!container || typeof maplibregl === 'undefined') return null;
   const map = new maplibregl.Map({
     container: 'leap-locate-map',
-    style: MAP_STYLES.classic,
+    style: mapStyleFor('classic'),
     center: [0, 20],
     zoom: 1.5,
   });

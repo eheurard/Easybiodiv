@@ -128,6 +128,30 @@ The palette is derived from natural strata and raw pigments.
 
 Background surfaces utilize a very faint, non-tiling watercolor grain (`#F2EEE6`) to provide depth without distracting from the data.
 
+## Dark Mode
+The light scheme is a complete Material 3 tonal palette, so the night palette is derived from it rather than invented: the light `inverse-primary` (`#FFB59E`) becomes the dark `primary`, and the surface ramp is inverted around a warm near-black (`#16140F`) — never a neutral grey, which would break the "Grounded Intelligence" warmth.
+
+- **Mechanism:** `data-theme="light|dark"` on `<html>`, set by an inline script before first paint so the page never flashes the wrong theme. The script reads `localStorage.theme`, falling back to `prefers-color-scheme`. The toggle lives in the sidebar footer (sun / moon) and writes the user's choice; once written, it wins over the system preference.
+- **Scope:** dashboard and authentication pages. The data console (Django admin) stays single-theme by design.
+- **Token discipline:** every chrome colour — surfaces, text, borders, translucent panel fills — must come from a `--color-*`, `--scrim-*` or `--tint-*` token. No literal hex for chrome; that is what makes the theme switchable.
+  - `--scrim-header` / `--scrim-panel` / `--scrim-chip` carry the translucent fills of the sticky header, the floating map panels and the small map chips.
+  - `--tint-*` carry the tinted backgrounds of status pills and status blocks.
+- **Theme-invariant colours:** data-visualisation ramps (risk levels, commodity colours, chart palettes) and accent hues (status border accents, ESRS topic accents) are deliberately identical in both themes. They are mid-to-high saturation and read on either ground; theming them would mean redesigning the data visualisation.
+  - The one exception: where a status *text* colour sits on a `--tint-*` background, the dark theme lightens that text while keeping its hue, since a dark green on a dark green tint is unreadable. These overrides are grouped in one block at the end of `style.css`.
+- **Basemaps follow the theme.** The three basemap buttons keep their labels; only their target changes: Classique `liberty` → `fiord`, Gris `positron` → `dark`, Satellite unchanged (the imagery is already dark). Resolution goes through `mapStyleFor()` in `main.js`; no page reads `MAP_STYLES` directly. A theme change dispatches a `themechange` event on `document`, and each map replays `setStyle` then rebuilds its own sources and layers.
+
+| Role | Light | Dark |
+|---|---|---|
+| background / surface | `#FBF9F4` | `#16140F` |
+| container lowest → highest | `#FFFFFF` → `#E4E2DD` | `#100E0B` → `#38342D` |
+| on-surface | `#1B1C19` | `#EAE2D8` |
+| on-surface-variant | `#54433E` | `#D5C3BA` |
+| outline / outline-variant | `#87736D` / `#DAC1BA` | `#A08D86` / `#52443F` |
+| primary / on-primary | `#91452D` / `#FFFFFF` | `#FFB59E` / `#55190A` |
+| secondary | `#865220` | `#FEB87C` |
+| error | `#BA1A1A` | `#FFB4AB` |
+
+
 ## Typography
 Inter is chosen for its exceptional legibility in data-heavy environments and its modern, neutral tone. 
 - **Hierarchy:** We use tight letter spacing for large headlines to create a sophisticated, editorial feel. 

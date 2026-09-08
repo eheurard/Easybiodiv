@@ -102,6 +102,102 @@
   /* Elevation */
   --shadow-modal: 0px 12px 32px rgba(115, 107, 94, 0.08);
   --border-card:  1px solid #e8e0d5;
+
+  /* Voiles translucides (barres flottantes, panneaux de carte, pastilles).
+     Tokenises pour pouvoir basculer en mode nuit — voir DESIGN.md. */
+  --scrim-header: rgba(251, 249, 244, 0.85);
+  --scrim-panel:  rgba(251, 249, 244, 0.95);
+  --scrim-chip:   rgba(255, 255, 255, 0.92);
+
+  /* Fonds teintes des pastilles et blocs de statut. Les teintes d'accent
+     (textes, lisereaux) restent invariantes ; seuls ces fonds basculent. */
+  --tint-primary:   #fff8f6;
+  --tint-terra:     #f5e6e3;
+  --tint-ochre:     #fef3e6;
+  --tint-warm:      #ffdbc7;
+  --tint-sand:      #e8e0db;
+  --tint-green:     #d3e9dd;
+  --tint-emerald:   #d1fae5;
+  --tint-amber:     #fef3c7;
+  --tint-red:       #fee2e2;
+  --tint-violet:    #ede9fe;
+  --tint-slate:     #f3f4f6;
+  --tint-slate-alt: #e5e7eb;
+  --tint-mint:      #ecfdf5;
+  --tint-cream:     #fffbeb;
+  --tint-peach:     #fdf1e6;
+  --tint-blush:     #fdf6f3;
+}
+
+/* ─── Mode nuit ──────────────────────────────────────────────────────────
+   Le schema clair est un Material 3 complet : les valeurs sombres en sont
+   les contreparties, l'inverse-primary clair (#ffb59e) devenant le primary
+   sombre. Aucune teinte nouvelle n'est introduite hors de cette logique.
+   Applique par [data-theme="dark"] pose sur <html> avant le rendu. */
+:root[data-theme="dark"] {
+  --color-background:              #16140f;
+  --color-surface:                 #16140f;
+  --color-surface-dim:             #16140f;
+  --color-surface-bright:          #3d3831;
+  --color-surface-container-lowest:#100e0b;
+  --color-surface-container-low:   #1e1b17;
+  --color-surface-container:       #22201b;
+  --color-surface-container-high:  #2d2a24;
+  --color-surface-container-highest:#38342d;
+  --color-on-surface:              #eae2d8;
+  --color-on-surface-variant:      #d5c3ba;
+  --color-inverse-surface:         #eae2d8;
+  --color-inverse-on-surface:      #332f29;
+  --color-outline:                 #a08d86;
+  --color-outline-variant:         #52443f;
+  --color-surface-tint:            #ffb59e;
+
+  --color-primary:                 #ffb59e;
+  --color-on-primary:              #55190a;
+  --color-primary-container:       #75301b;
+  --color-on-primary-container:    #ffdbd0;
+  --color-inverse-primary:         #91452d;
+
+  --color-secondary:               #feb87c;
+  --color-on-secondary:            #4a2800;
+  --color-secondary-container:     #683b00;
+  --color-on-secondary-container:  #ffdcbe;
+
+  --color-tertiary:                #cdc4b4;
+  --color-on-tertiary:             #342f21;
+  --color-tertiary-container:      #4b4537;
+  --color-on-tertiary-container:   #e9e0cf;
+
+  --color-error:                   #ffb4ab;
+  --color-on-error:                #690005;
+  --color-error-container:         #93000a;
+  --color-on-error-container:      #ffdad6;
+
+  --color-surface-variant:         #4d453f;
+
+  --shadow-modal: 0px 12px 32px rgba(0, 0, 0, 0.55);
+  --border-card:  1px solid #3a342d;
+
+  --scrim-header: rgba(22, 20, 15, 0.85);
+  --scrim-panel:  rgba(30, 27, 23, 0.95);
+  --scrim-chip:   rgba(34, 32, 27, 0.92);
+
+  --tint-primary:   #2e1a14;
+  --tint-terra:     #3a201a;
+  --tint-ochre:     #3a2a15;
+  --tint-warm:      #4a2a17;
+  --tint-sand:      #332e28;
+  --tint-green:     #16301f;
+  --tint-emerald:   #10301f;
+  --tint-amber:     #3a2c10;
+  --tint-red:       #3d1a17;
+  --tint-violet:    #241d3a;
+  --tint-slate:     #26241f;
+  --tint-slate-alt: #322f29;
+  --tint-mint:      #12291d;
+  --tint-cream:     #322b16;
+  --tint-peach:     #3a2618;
+  --tint-blush:     #2e1d17;
 }
 
 /* ─── Reset ─────────────────────────────────────────────────────────────── */
@@ -278,7 +374,7 @@ p {
 }
 
 .risk-pill--high {
-  background-color: #ffdbc7;
+  background-color: var(--tint-warm);
   color: #7a2800;
 }
 
@@ -330,7 +426,7 @@ p {
   position: sticky;
   top: 0;
   z-index: 100;
-  background-color: rgba(251, 249, 244, 0.80);
+  background-color: var(--scrim-header);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: var(--border-card);
@@ -619,7 +715,7 @@ p {
   justify-content: space-between;
   gap: 16px;
   padding-inline: 24px;
-  background-color: rgba(251, 249, 244, 0.85);
+  background-color: var(--scrim-header);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: var(--border-card);
@@ -913,7 +1009,7 @@ a.app-header__avatar {
   right: 10px;
   display: flex;
   gap: 3px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--scrim-chip);
   backdrop-filter: blur(4px);
   border-radius: var(--radius-md);
   padding: 4px;
@@ -940,7 +1036,7 @@ a.app-header__avatar {
 
 .map-layer-btn--active {
   background: var(--color-primary);
-  color: #ffffff;
+  color: var(--color-on-primary);
 }
 
 .map-layer-btn--active:hover {
@@ -1007,11 +1103,11 @@ a.app-header__avatar {
 }
 
 .country-panel__tab--active {
-  color: #ffffff;
+  color: var(--color-on-primary);
 }
 
 .country-panel__tab--active:hover {
-  color: #ffffff;
+  color: var(--color-on-primary);
 }
 
 .country-panel__view {
@@ -1102,7 +1198,7 @@ a.app-header__avatar {
 }
 
 .country-item__tag--primary {
-  background: #fff8f6;
+  background: var(--tint-primary);
   border-color: var(--color-inverse-primary);
   color: var(--color-primary);
 }
@@ -1278,6 +1374,7 @@ a.app-header__avatar {
 }
 
 .maplibregl-popup-content {
+  background: var(--color-surface-container-lowest) !important;
   padding: 0 !important;
   border-radius: 12px !important;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18) !important;
@@ -1303,7 +1400,7 @@ a.app-header__avatar {
 
 .asset-popup__header {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   padding: 12px 36px 12px 14px;
 }
 
@@ -1325,7 +1422,7 @@ a.app-header__avatar {
 
 .asset-popup__body {
   padding: 12px 14px 14px;
-  background: #fff;
+  background: var(--color-surface-container-lowest);
 }
 
 .asset-popup__section-title {
@@ -1696,7 +1793,7 @@ a.app-header__avatar {
   align-items: center;
   gap: 12px;
   padding: 8px 14px;
-  border-bottom: 1px solid var(--color-border, #e8e0db);
+  border-bottom: 1px solid var(--color-outline-variant);
   flex-wrap: wrap;
 }
 
@@ -1705,7 +1802,7 @@ a.app-header__avatar {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--color-text-muted, #625a4e);
+  color: var(--color-on-surface-variant);
 }
 
 .tr-tree-filter-group .label-caps {
@@ -1715,13 +1812,13 @@ a.app-header__avatar {
 .tr-tree-filter-sep {
   width: 1px;
   height: 18px;
-  background: var(--color-border, #e8e0db);
+  background: var(--color-outline-variant);
   flex-shrink: 0;
 }
 
 .tr-tree-commodity-pill {
-  background: #e8e0db;
-  color: #625a4e;
+  background: var(--tint-sand);
+  color: var(--color-tertiary);
   border: none;
   border-radius: 12px;
   padding: 3px 10px;
@@ -1758,10 +1855,10 @@ a.app-header__avatar {
 .tr-tree-panel {
   width: 180px;
   flex-shrink: 0;
-  border-left: 1px solid var(--color-border, #e8e0db);
+  border-left: 1px solid var(--color-outline-variant);
   padding: 14px 12px;
   font-size: 11px;
-  color: #2d2520;
+  color: var(--color-on-surface);
   position: relative;
 }
 
@@ -1772,21 +1869,21 @@ a.app-header__avatar {
   background: none;
   border: none;
   font-size: 18px;
-  color: #b09e98;
+  color: var(--color-outline);
   cursor: pointer;
   line-height: 1;
   padding: 0;
 }
 
 .tr-tree-panel__close:hover {
-  color: #625a4e;
+  color: var(--color-tertiary);
 }
 
 .tr-tree-panel__title {
   margin: 0 0 4px;
   font-size: 14px;
   font-weight: 700;
-  color: #2d2520;
+  color: var(--color-on-surface);
   padding-right: 20px;
 }
 
@@ -1805,10 +1902,10 @@ a.app-header__avatar {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: #87736d;
+  color: var(--color-outline);
   margin: 10px 0 4px;
   padding-top: 8px;
-  border-top: 1px solid #f0e8e4;
+  border-top: 1px solid var(--color-outline-variant);
 }
 
 .tr-tree-panel__row {
@@ -1816,12 +1913,12 @@ a.app-header__avatar {
   justify-content: space-between;
   align-items: baseline;
   font-size: 11px;
-  color: #625a4e;
+  color: var(--color-tertiary);
   margin-bottom: 3px;
 }
 
 .tr-tree-panel__row b {
-  color: #2d2520;
+  color: var(--color-on-surface);
   font-weight: 600;
 }
 
@@ -2310,8 +2407,8 @@ a.app-header__avatar {
   white-space: nowrap;
 }
 
-.dep-svc-chip--critical { background: #f5e6e3; color: var(--color-primary); }
-.dep-svc-chip--high     { background: #fef3e6; color: var(--color-secondary); }
+.dep-svc-chip--critical { background: var(--tint-terra); color: var(--color-primary); }
+.dep-svc-chip--high     { background: var(--tint-ochre); color: var(--color-secondary); }
 .dep-svc-chip--moderate { background: var(--color-surface-container-high); color: #8a8a70; }
 .dep-svc-chip--low      { background: var(--color-surface-container); color: var(--color-outline); }
 
@@ -2379,7 +2476,7 @@ a.app-header__avatar {
   position: absolute;
   bottom: 28px;
   left: 10px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--scrim-chip);
   border-radius: var(--radius-md);
   padding: 8px 12px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
@@ -2565,8 +2662,8 @@ a.app-header__avatar {
   right: 0;
   top: calc(100% + 4px);
   z-index: 20;
-  background: var(--color-surface-container, #f4f4f4);
-  border: 1px solid var(--color-outline-variant, #ccc);
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 12px;
@@ -2620,7 +2717,7 @@ a.app-header__avatar {
   justify-content: flex-end;
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid var(--color-outline-variant, #ccc);
+  border-top: 1px solid var(--color-outline-variant);
   font-weight: 700;
   font-size: 12px;
 }
@@ -2651,8 +2748,8 @@ a.app-header__avatar {
   z-index: 20;
   margin-top: 6px;
   padding: 10px 12px;
-  background: var(--color-surface-container, #f4f4f4);
-  border: 1px solid var(--color-outline-variant, #ccc);
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, .12);
   min-width: 200px;
@@ -2731,7 +2828,7 @@ a.app-header__avatar {
   position: absolute;
   bottom: 24px;
   right: 12px;
-  background: rgba(251, 249, 244, 0.96);
+  background: var(--scrim-panel);
   border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-md);
   padding: 10px 12px;
@@ -3249,20 +3346,20 @@ a.app-header__avatar {
 /* Verrou de matérialité */
 .comp-gate {
   border-radius: 12px; padding: 16px 20px;
-  border-left: 5px solid #9ca3af; background: #f3f4f6;
+  border-left: 5px solid #9ca3af; background: var(--tint-slate);
 }
 .comp-gate__main { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
 .comp-gate__status { font-size: 1.15rem; font-weight: 700; }
-.comp-gate__version { font-size: .8rem; color: #6b7280; margin-left: auto; }
-.comp-gate__justif { margin: 8px 0 0; font-size: .9rem; color: #374151; }
-.comp-gate--material { background: #ecfdf5; border-left-color: #059669; }
-.comp-gate--not_material { background: #fffbeb; border-left-color: #d97706; }
-.comp-gate--not_assessed { background: #f3f4f6; border-left-color: #9ca3af; }
+.comp-gate__version { font-size: .8rem; color: var(--color-on-surface-variant); margin-left: auto; }
+.comp-gate__justif { margin: 8px 0 0; font-size: .9rem; color: var(--color-on-surface); }
+.comp-gate--material { background: var(--tint-mint); border-left-color: #059669; }
+.comp-gate--not_material { background: var(--tint-cream); border-left-color: #d97706; }
+.comp-gate--not_assessed { background: var(--tint-slate); border-left-color: #9ca3af; }
 
 /* Frise LEAP */
 .comp-leap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .comp-leap__item {
-  border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px;
+  border: var(--border-card); border-radius: 10px; padding: 12px;
   border-top: 4px solid #9ca3af;
 }
 .comp-leap__item--done { border-top-color: #059669; }
@@ -3270,28 +3367,28 @@ a.app-header__avatar {
 .comp-leap__item--todo { border-top-color: #9ca3af; }
 .comp-leap__head { display: flex; justify-content: space-between; align-items: center; }
 .comp-leap__phase { font-weight: 700; }
-.comp-leap__status { font-size: .75rem; text-transform: uppercase; color: #6b7280; }
-.comp-leap__summary { margin: 8px 0 0; font-size: .85rem; color: #374151; }
-.comp-leap__notes { margin: 6px 0 0; font-size: .8rem; color: #6b7280; font-style: italic; }
+.comp-leap__status { font-size: .75rem; text-transform: uppercase; color: var(--color-on-surface-variant); }
+.comp-leap__summary { margin: 8px 0 0; font-size: .85rem; color: var(--color-on-surface); }
+.comp-leap__notes { margin: 6px 0 0; font-size: .8rem; color: var(--color-on-surface-variant); font-style: italic; }
 
 /* Cartes DR */
 .comp-drs { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 .comp-dr {
-  background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+  background: var(--color-surface-container-lowest); border: var(--border-card); border-radius: 12px;
   padding: 16px; display: flex; flex-direction: column; gap: 6px;
 }
 .comp-dr__head { display: flex; align-items: center; gap: 8px; }
 .comp-dr__code { font-weight: 700; font-size: .9rem; }
 .comp-dr__cond {
   font-size: .7rem; text-transform: uppercase; letter-spacing: .03em;
-  background: #ede9fe; color: #6d28d9; padding: 2px 7px; border-radius: 999px;
+  background: var(--tint-violet); color: #6d28d9; padding: 2px 7px; border-radius: 999px;
 }
 .comp-dr__title { font-size: 1rem; margin: 4px 0 0; }
-.comp-dr__desc { font-size: .85rem; color: #4b5563; margin: 0; }
+.comp-dr__desc { font-size: .85rem; color: var(--color-on-surface-variant); margin: 0; }
 .comp-dr__ref { font-size: .75rem; color: #9ca3af; margin: 0; }
-.comp-dr__justif { font-size: .85rem; color: #374151; margin: 6px 0 0; }
+.comp-dr__justif { font-size: .85rem; color: var(--color-on-surface); margin: 6px 0 0; }
 .comp-dr__suggestion {
-  font-size: .78rem; color: #92400e; background: #fef3c7;
+  font-size: .78rem; color: #92400e; background: var(--tint-amber);
   padding: 4px 8px; border-radius: 6px; margin: 4px 0 0;
 }
 
@@ -3300,11 +3397,11 @@ a.app-header__avatar {
   font-size: .72rem; font-weight: 600; padding: 3px 9px; border-radius: 999px;
   margin-left: auto; white-space: nowrap;
 }
-.comp-badge--compliant { background: #d1fae5; color: #065f46; }
-.comp-badge--partial { background: #fef3c7; color: #92400e; }
-.comp-badge--non_compliant { background: #fee2e2; color: #991b1b; }
-.comp-badge--not_started { background: #f3f4f6; color: #6b7280; }
-.comp-badge--not_applicable { background: #e5e7eb; color: #4b5563; }
+.comp-badge--compliant { background: var(--tint-emerald); color: #065f46; }
+.comp-badge--partial { background: var(--tint-amber); color: #92400e; }
+.comp-badge--non_compliant { background: var(--tint-red); color: #991b1b; }
+.comp-badge--not_started { background: var(--tint-slate); color: var(--color-on-surface-variant); }
+.comp-badge--not_applicable { background: var(--tint-slate-alt); color: var(--color-on-surface-variant); }
 
 @media (max-width: 720px) {
   .comp-leap { grid-template-columns: 1fr; }
@@ -3397,17 +3494,17 @@ a.app-header__avatar {
 .esg-chart__dot { fill: var(--color-primary); }
 .esg-chart__scope-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--color-outline); border-radius: 6px; background: transparent; color: var(--color-on-surface-variant); font-size: 12px; font-family: var(--font-family); cursor: pointer; transition: background .15s, color .15s, border-color .15s; white-space: nowrap; }
 .esg-chart__scope-btn:hover { background: var(--color-surface-variant); }
-.esg-chart__scope-btn[aria-pressed="true"] { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+.esg-chart__scope-btn[aria-pressed="true"] { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
 .esg-chart__bar { cursor: default; }
 .esg-chart__tooltip[hidden] { display: none; }
-.esg-chart__tooltip { position: absolute; pointer-events: none; z-index: 10; background: var(--color-surface-container, #f4f4f4); border: 1px solid var(--color-outline-variant, #ccc); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--color-on-surface); box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 180px; white-space: nowrap; }
+.esg-chart__tooltip { position: absolute; pointer-events: none; z-index: 10; background: var(--color-surface-container); border: 1px solid var(--color-outline-variant); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--color-on-surface); box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 180px; white-space: nowrap; }
 .esg-chart__tooltip-year { font-weight: 600; margin-bottom: 6px; font-size: 14px; }
 .esg-chart__tooltip-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
 .esg-chart__tooltip-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .esg-chart__tooltip-name { flex: 1; }
 .esg-chart__tooltip-val { font-variant-numeric: tabular-nums; }
 .esg-chart__tooltip-pct { color: var(--color-on-surface-variant); min-width: 42px; text-align: right; }
-.esg-chart__tooltip-sep { border: none; border-top: 1px solid var(--color-outline-variant, #ccc); margin: 6px 0; }
+.esg-chart__tooltip-sep { border: none; border-top: 1px solid var(--color-outline-variant); margin: 6px 0; }
 .esg-chart__tooltip-total { display: flex; gap: 8px; font-weight: 600; }
 .esg-chart__legend-dot { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
 
@@ -3536,7 +3633,7 @@ a.app-header__avatar {
   max-width: calc(100% - 24px);
   display: flex;
   flex-direction: column;
-  background: rgba(251, 249, 244, 0.95);
+  background: var(--scrim-panel);
   backdrop-filter: blur(6px);
   border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-lg);
@@ -3582,7 +3679,7 @@ a.app-header__avatar {
   width: 36px;
   height: 36px;
   z-index: 9;
-  background: rgba(251, 249, 244, 0.92);
+  background: var(--scrim-chip);
   backdrop-filter: blur(4px);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   display: none;
@@ -3632,7 +3729,7 @@ a.app-header__avatar {
   font-size: 13px;
   color: var(--color-on-surface-variant);
 }
-.ll-popup__meta { font-size: 12px; color: #54433e; margin: 2px 0; }
+.ll-popup__meta { font-size: 12px; color: var(--color-on-surface-variant); margin: 2px 0; }
 .ll-popup__row { font-size: 12px; margin: 2px 0; }
 .ll-popup__prods { margin: 4px 0; display: flex; flex-direction: column; gap: 2px; }
 .ll-popup__prods .ll-prod { font-size: 12px; }
@@ -3743,7 +3840,7 @@ a.app-header__avatar {
   padding: 1px 7px;
   margin-left: 6px;
 }
-.lp-pill--good { background: #d3e9dd; color: #2d6a4f; }
+.lp-pill--good { background: var(--tint-green); color: #2d6a4f; }
 .lp-pill--bad  { background: var(--color-error-container); color: var(--color-on-error-container); }
 
 .lp-total {
@@ -3794,8 +3891,8 @@ a.app-header__avatar {
 
 .cst-warnings {
   margin: 0; padding: 10px 14px; border-radius: 8px;
-  background: #fdf1e6; color: #7a4324; font-size: 13px;
-  border: 1px solid #f0d3bb;
+  background: var(--tint-peach); color: #7a4324; font-size: 13px;
+  border: 1px solid var(--color-outline-variant);
 }
 
 .cst-section-title { margin: 0 0 12px; display: flex; align-items: center; gap: 6px; }
@@ -3807,45 +3904,45 @@ a.app-header__avatar {
 
 .cst-scenario {
   display: flex; flex-direction: column; gap: 3px; padding: 12px;
-  border: 1.5px solid var(--color-border, #e4e2dd); border-radius: 10px;
-  background: #fff; cursor: pointer; text-align: left; font: inherit;
+  border: 1.5px solid var(--color-outline-variant); border-radius: 10px;
+  background: var(--color-surface-container-lowest); cursor: pointer; text-align: left; font: inherit;
   transition: border-color .15s ease, background .15s ease;
 }
-.cst-scenario:hover { border-color: #c9a99f; }
-.cst-scenario:focus-visible { outline: 2px solid #91452d; outline-offset: 2px; }
-.cst-scenario.is-active { border-color: #91452d; background: #fdf6f3; }
+.cst-scenario:hover { border-color: var(--color-outline); }
+.cst-scenario:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.cst-scenario.is-active { border-color: var(--color-primary); background: var(--tint-blush); }
 
-.cst-scenario__name { font-weight: 600; font-size: 14px; color: #2f2622; }
-.cst-scenario__family { font-size: 12px; color: #7c6a63; }
-.cst-scenario__warming { font-size: 12px; color: #91452d; font-weight: 600; }
+.cst-scenario__name { font-weight: 600; font-size: 14px; color: var(--color-on-surface); }
+.cst-scenario__family { font-size: 12px; color: var(--color-on-surface-variant); }
+.cst-scenario__warming { font-size: 12px; color: var(--color-primary); font-weight: 600; }
 
 .cst-assumptions__head {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
 .cst-reset {
-  border: 1px solid #e4e2dd; background: #fff; border-radius: 6px;
-  padding: 5px 10px; font-size: 12px; color: #54433e; cursor: pointer;
+  border: var(--border-card); background: var(--color-surface-container-lowest); border-radius: 6px;
+  padding: 5px 10px; font-size: 12px; color: var(--color-on-surface-variant); cursor: pointer;
 }
-.cst-reset:hover { background: #faf7f4; }
+.cst-reset:hover { background: var(--color-surface-container-low); }
 
 .cst-fields {
   display: grid; gap: 14px; margin-top: 12px;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 .cst-field { display: flex; flex-direction: column; gap: 5px; }
-.cst-field__label { font-size: 12px; color: #54433e; font-weight: 500; }
+.cst-field__label { font-size: 12px; color: var(--color-on-surface-variant); font-weight: 500; }
 .cst-field--check { flex-direction: row; align-items: flex-start; gap: 8px; }
-.cst-hint { display: block; font-size: 11px; color: #6e615b; }
+.cst-hint { display: block; font-size: 11px; color: var(--color-on-surface-variant); }
 
 .cst-segmented { display: inline-flex; gap: 4px; }
 .cst-segmented__btn {
-  border: 1px solid #e4e2dd; background: #fff; border-radius: 6px;
-  padding: 5px 12px; font-size: 13px; cursor: pointer; color: #54433e;
+  border: var(--border-card); background: var(--color-surface-container-lowest); border-radius: 6px;
+  padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--color-on-surface-variant);
 }
 .cst-segmented__btn.is-active {
-  background: #91452d; border-color: #91452d; color: #fff;
+  background: var(--color-primary); border-color: var(--color-primary); color: var(--color-on-primary);
 }
-.cst-segmented__btn:focus-visible { outline: 2px solid #91452d; outline-offset: 2px; }
+.cst-segmented__btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
 .cst-charts {
   display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -3858,20 +3955,20 @@ a.app-header__avatar {
 
 .cst-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .cst-table th, .cst-table td {
-  padding: 7px 8px; text-align: left; border-bottom: 1px solid #f0ede8;
+  padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--color-outline-variant);
 }
-.cst-table thead th { font-size: 11px; text-transform: uppercase; color: #6e615b; }
+.cst-table thead th { font-size: 11px; text-transform: uppercase; color: var(--color-on-surface-variant); }
 .cst-table td.data-tabular { text-align: right; font-variant-numeric: tabular-nums; }
-.cst-source { color: #6e615b; font-size: 11px; }
+.cst-source { color: var(--color-on-surface-variant); font-size: 11px; }
 
-.cst-tooltip { cursor: help; color: #6e615b; font-size: 13px; }
-.cst-tooltip:focus-visible { outline: 2px solid #91452d; outline-offset: 2px; }
+.cst-tooltip { cursor: help; color: var(--color-on-surface-variant); font-size: 13px; }
+.cst-tooltip:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
 /* ── Portfolio analysis ─────────────────────────────────────────── */
 .pf-portfolio-picker { display: flex; align-items: center; gap: .5rem; }
 .pf-tabs { display: flex; gap: .25rem; flex-wrap: wrap; border-bottom: 1px solid var(--color-border, #e2e2e2); margin-bottom: 1.25rem; }
 .pf-tab { background: none; border: none; padding: .6rem 1rem; cursor: pointer; color: var(--color-text-muted, #666); border-bottom: 2px solid transparent; font: inherit; }
-.pf-tab--active { color: var(--color-primary, #2c7); border-bottom-color: var(--color-primary, #2c7); font-weight: 600; }
+.pf-tab--active { color: var(--color-primary); border-bottom-color: var(--color-primary); font-weight: 600; }
 .pf-panel { display: none; }
 .pf-panel--active { display: block; }
 .pf-section-title { margin: 0 0 1rem; }
@@ -3880,17 +3977,17 @@ a.app-header__avatar {
 .pf-field--check { flex-direction: row; align-items: center; gap: .5rem; }
 .pf-composition { margin-top: 1.25rem; }
 .pf-add { position: relative; margin-bottom: 1rem; max-width: 420px; }
-.pf-company-listbox { position: absolute; z-index: 20; left: 0; right: 0; margin: .25rem 0 0; padding: .25rem; list-style: none; background: #fff; border: 1px solid var(--color-border, #e2e2e2); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.08); max-height: 240px; overflow: auto; }
+.pf-company-listbox { position: absolute; z-index: 20; left: 0; right: 0; margin: .25rem 0 0; padding: .25rem; list-style: none; background: var(--color-surface-container-lowest); border: 1px solid var(--color-border, #e2e2e2); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.08); max-height: 240px; overflow: auto; }
 .pf-company-option { padding: .45rem .6rem; cursor: pointer; border-radius: 4px; }
-.pf-company-option:hover { background: var(--color-surface-hover, #f3f3f3); }
+.pf-company-option:hover { background: var(--color-surface-container); }
 .pf-holdings { width: 100%; border-collapse: collapse; }
 .pf-holdings th, .pf-holdings td { padding: .5rem; text-align: left; border-bottom: 1px solid var(--color-border, #eee); }
 .pf-holdings input { width: 100%; max-width: 140px; }
 .pf-gear, .pf-del { background: none; border: none; cursor: pointer; font-size: 1.1rem; }
-.pf-gear--filled { color: var(--color-primary, #2c7); }
+.pf-gear--filled { color: var(--color-primary); }
 .pf-total--ok { color: #2a9d4a; font-weight: 600; }
 .pf-total--warn { color: #c98a00; font-weight: 600; }
-.pf-empty { color: var(--color-text-muted, #888); padding: 1rem 0; }
+.pf-empty { color: var(--color-on-surface-variant); padding: 1rem 0; }
 .pf-actions { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1rem; }
 .pf-status--ok { color: #2a9d4a; }
 .pf-status--err { color: #c0392b; }
@@ -3946,3 +4043,608 @@ a.app-header__avatar {
 }
 .pf-trans-delta--worse { color: #b3261e; }
 .pf-trans-delta--better { color: #1a7a4c; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MODE CARTE PLEIN ÉCRAN — .map-page
+   ──────────────────────────────────────────────────────────────────────────
+   Utilisé par les pages entièrement cartographiques (Vue d'ensemble, Risque
+   physique, Dette écologique, LEAP Locate, LEAP Evaluate). La carte occupe
+   toute la zone sous le header ; tout le reste flotte au-dessus d'elle.
+
+   Le bloc « sidebar en rail » ci-dessous s'applique à TOUTES les pages : la
+   barre de navigation est identique partout. Le reste (scène plein écran,
+   overlays) reste réservé aux pages carte, via le préfixe
+   `.app-layout.map-page` ou une classe (.map-stage, .map-panel, .map-drawer,
+   .map-chip) absente des templates sans carte.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Shell : la page ne défile plus, la scène occupe la hauteur restante ── */
+.app-layout.map-page {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-layout.map-page .app-main {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* La sidebar est un rail fixe sur toutes les pages : la zone principale garde
+   toujours la même marge, que le repli mémorisé soit actif ou non. */
+.app-layout .app-main,
+.app-layout.sidebar-collapsed .app-main {
+  margin-left: var(--sidebar-collapsed-width);
+}
+
+.app-layout.map-page .app-content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ── Sidebar en rail d'icônes ────────────────────────────────────────────
+   Sur une page carte la sidebar est toujours réduite, quel que soit l'état
+   mémorisé dans localStorage (que l'on ne touche pas, pour ne rien reporter
+   sur les pages sans carte). Le bouton de repli devient inutile : les
+   libellés sortent au survol, on le masque plutôt que de le laisser inerte. */
+.app-layout .app-sidebar {
+  width: var(--sidebar-collapsed-width);
+  overflow: visible;
+}
+
+.app-layout .sidebar__toggle {
+  display: none;
+}
+
+.app-layout .sidebar__brand {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.app-layout .sidebar__brand-text {
+  opacity: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+/* Le rail ne peut pas être un conteneur de défilement, sinon il rognerait
+   les libellés en flyout. */
+.app-layout .sidebar__nav {
+  overflow: visible;
+  min-height: 0;
+}
+
+.app-layout .sidebar__nav-list > li {
+  position: relative;
+}
+
+.app-layout .sidebar__nav-link,
+.app-layout .sidebar__nav-details > summary {
+  position: relative;
+  justify-content: center;
+  gap: 0;
+  padding: 10px;
+  overflow: visible;
+}
+
+.app-layout .sidebar__nav-chevron {
+  display: none;
+}
+
+/* Flyout : nom de la page au survol de l'icône. Collé au rail (left: 100%)
+   pour qu'il n'y ait pas de zone morte entre l'icône et le libellé. */
+.app-layout .sidebar__nav-label {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%);
+  z-index: 300;
+  padding: 7px 12px;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-lowest);
+  color: var(--color-on-surface);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease, visibility 0.12s ease;
+}
+
+.app-layout .sidebar__nav-link:hover > .sidebar__nav-label,
+.app-layout .sidebar__nav-link:focus-visible > .sidebar__nav-label,
+.app-layout .sidebar__nav-details > summary:hover > .sidebar__nav-label,
+.app-layout .sidebar__nav-details > summary:focus-visible > .sidebar__nav-label {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Groupe « Analyse des risques » : le sous-menu devient lui aussi un flyout,
+   sinon ses pages (dont deux pages carte) ne seraient plus atteignables.
+   `display: flex` force l'affichage même quand <details> n'est pas [open]. */
+/* Chrome rend le contenu d'un <details> ferme via ::details-content en
+   content-visibility: hidden : `display` ne suffit pas a le reafficher.
+   Regle isolee, un selecteur inconnu n'invaliderait qu'elle. */
+.app-layout .sidebar__nav-details::details-content {
+  content-visibility: visible;
+  block-size: auto;
+}
+
+.app-layout .sidebar__nav-details > .sidebar__nav-sub {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 100%;
+  z-index: 300;
+  min-width: 200px;
+  padding: 6px;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-lowest);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease, visibility 0.12s ease;
+}
+
+.app-layout .sidebar__nav-details:hover > .sidebar__nav-sub,
+.app-layout .sidebar__nav-details:focus-within > .sidebar__nav-sub {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Le libellé du groupe se superpose au flyout du sous-menu : on le masque
+   dès que le sous-menu est ouvert, le sous-menu porte déjà le contexte. */
+.app-layout .sidebar__nav-details:hover > summary > .sidebar__nav-label,
+.app-layout .sidebar__nav-details:focus-within > summary > .sidebar__nav-label {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.app-layout .sidebar__footer {
+  overflow: visible;
+}
+
+.app-layout .sidebar__footer-link {
+  position: relative;
+  justify-content: center;
+  padding: 10px;
+  overflow: visible;
+}
+
+.app-layout .sidebar__footer-link-label {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%);
+  z-index: 300;
+  padding: 7px 12px;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-lowest);
+  color: var(--color-on-surface);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease, visibility 0.12s ease;
+}
+
+.app-layout .sidebar__footer-link:hover > .sidebar__footer-link-label,
+.app-layout .sidebar__footer-link:focus-visible > .sidebar__footer-link-label {
+  opacity: 1;
+  visibility: visible;
+}
+
+.app-layout .sidebar__footer-actions {
+  justify-content: center;
+}
+
+/* ── La scène ────────────────────────────────────────────────────────────
+   Conteneur unique par page carte : la carte en fond, les overlays dessus. */
+.map-stage {
+  --map-panel-width: 320px;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* La carte remplit la scène : ni bordure, ni rayon, ni hauteur fixe. */
+.map-stage .map-stage__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+}
+
+/* ── Emplacements d'overlay ────────────────────────────────────────────── */
+.map-stage__tl,
+.map-stage__bl {
+  position: absolute;
+  left: 12px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.map-stage__tl { top: 12px; }
+.map-stage__bl { bottom: 12px; }
+
+/* Quand la page a un tiroir bas, la legende se cale au-dessus de sa poignee. */
+.map-stage:has(.map-drawer:not([hidden])) .map-stage__bl {
+  bottom: 64px;
+}
+
+/* Tiroir deploye : il recouvrirait la legende. On l'efface plutot que de la
+   laisser coupee en deux ; elle revient a la fermeture. */
+.map-stage:has(.map-drawer.is-open) .map-stage__bl {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* Les blocs déplacés dans un emplacement étaient positionnés en absolu par
+   leurs propres règles : on les remet dans le flux du conteneur. */
+.map-stage .map-stage__tl > *,
+.map-stage .map-stage__bl > * {
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+}
+
+/* ── Panneau latéral droit ──────────────────────────────────────────────
+   Même matière et même comportement que « Sites localisés » (.ll-panel),
+   généralisés aux autres pages carte. */
+.map-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 14;
+  width: var(--map-panel-width);
+  max-width: calc(100% - 24px);
+  display: flex;
+  flex-direction: column;
+  background: var(--scrim-panel);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.map-stage.is-panel-collapsed .map-panel {
+  transform: translateX(calc(100% + 24px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-outline-variant);
+  flex-shrink: 0;
+}
+
+.map-panel__title {
+  color: var(--color-on-surface-variant);
+}
+
+.map-panel__toggle,
+.map-panel__reopen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-on-surface-variant);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.map-panel__toggle:hover,
+.map-panel__reopen:hover {
+  background: var(--color-surface-container);
+}
+
+.map-panel__reopen {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 14;
+  width: 36px;
+  height: 36px;
+  display: none;
+  background: var(--scrim-chip);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.map-stage.is-panel-collapsed .map-panel__reopen {
+  display: inline-flex;
+}
+
+.map-panel__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 14px;
+}
+
+/* KPI compacts en tête de panneau (Risque physique, Dette écologique). */
+.map-panel .kpi-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.map-panel .kpi-card {
+  padding: 10px 12px;
+}
+
+.map-panel .kpi-card__value {
+  font-size: 20px;
+  margin-bottom: 2px;
+}
+
+.map-panel .kpi-card__label {
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+/* Blocs de contenu réinsérés dans le panneau : ils y perdent leur cadre de
+   carte, le panneau en fait déjà office. */
+.map-panel .card,
+.map-panel .pr-ranking-card,
+.map-panel .country-panel {
+  max-height: none;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  overflow: visible;
+  flex: none;
+}
+
+.map-panel .de-toggle-row {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Tiroir bas ─────────────────────────────────────────────────────────
+   Replié par défaut : seule sa poignée est visible au-dessus de la carte. */
+.map-drawer {
+  position: absolute;
+  left: 12px;
+  right: calc(var(--map-panel-width) + 24px);
+  bottom: 12px;
+  z-index: 13;
+  display: flex;
+  flex-direction: column;
+  max-height: 60%;
+  background: var(--scrim-panel);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  transition: right 0.25s ease;
+}
+
+/* Panneau replié : le tiroir récupère toute la largeur. */
+.map-stage.is-panel-collapsed .map-drawer {
+  right: 12px;
+}
+
+.map-drawer__handle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: var(--color-on-surface-variant);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.map-drawer__handle:hover {
+  background: var(--color-surface-container);
+}
+
+.map-drawer__chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.map-drawer.is-open .map-drawer__chevron {
+  transform: rotate(180deg);
+}
+
+.map-drawer__body {
+  display: none;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 14px;
+  border-top: 1px solid var(--color-outline-variant);
+}
+
+.map-drawer.is-open .map-drawer__body {
+  display: block;
+}
+
+/* Le tiroir peut être masqué par le JS de page (ex. #policy-section quand
+   l'entreprise n'a aucune politique) : display:flex battrait [hidden]. */
+.map-drawer[hidden] {
+  display: none;
+}
+
+/* Blocs réinsérés dans le tiroir : le tiroir porte déjà le cadre. */
+.map-drawer .card {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/* ── Pastilles flottantes (sélecteur de fond, onglets LEAP) ─────────────── */
+.map-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border-radius: var(--radius-md);
+  background: var(--scrim-chip);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Onglets LEAP en pastille : version compacte sur une ligne. La barre
+   d'onglets partagée reste inchangée sur Assess et Prepare, qui n'ont pas
+   de carte et ne portent donc pas .map-stage. */
+.map-stage .leap-tabs {
+  margin-bottom: 0;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.map-stage .leap-tab {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 12px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border-color: transparent;
+}
+
+.map-stage .leap-tab__letter {
+  font-size: 13px;
+}
+
+/* L'onglet actif garde sa pastille pleine : la regle .leap-tab--active est
+   moins specifique que .map-stage .leap-tab, il faut la rejouer ici. */
+.map-stage .leap-tab--active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+/* ── Ajustements des overlays existants dans la scène ───────────────────── */
+.map-stage .map-legend {
+  pointer-events: auto;
+}
+
+.map-stage .ll-commodity-legend .map-legend__list,
+.map-stage #asset-type-legend .map-legend__list {
+  max-height: 30vh;
+}
+
+/* Onglets du panneau « Exposition » (Vue d'ensemble) : ils doivent rester
+   visibles pendant que la liste défile. */
+.map-panel .country-panel__tabs {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+}
+
+/* C'est .map-panel__body qui defile : les vues internes ne doivent pas
+   creer un second conteneur de defilement. */
+.map-panel .country-panel__view {
+  overflow: visible;
+}
+
+/* Les libelles complets ne tiennent pas sur une ligne dans un panneau de
+   320px : on les laisse passer a la ligne plutot que de les raccourcir. */
+.map-panel .country-panel__tab {
+  white-space: normal;
+  padding: 6px 8px;
+  letter-spacing: 0.02em;
+}
+
+/* Le tableau « Détail par actif » défile horizontalement dans le tiroir. */
+.map-drawer .pr-table-wrap {
+  overflow-x: auto;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MODE NUIT — teintes semantiques
+   ──────────────────────────────────────────────────────────────────────────
+   Les fonds teintes des pastilles de statut basculent via les tokens
+   --tint-* ; leurs textes, eux, sont des verts/ambres/rouges sombres choisis
+   pour un fond clair. On les eclaircit ici, en gardant la meme teinte.
+   Les accents non poses sur un fond teinte (lisereaux .comp-gate, accents
+   ESG, couleurs de data-viz) restent identiques dans les deux themes.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root[data-theme="dark"] .comp-badge--compliant     { color: #6ee7b7; }
+:root[data-theme="dark"] .comp-badge--partial       { color: #fcd34d; }
+:root[data-theme="dark"] .comp-badge--non_compliant { color: #fca5a5; }
+:root[data-theme="dark"] .comp-dr__cond             { color: #c4b5fd; }
+:root[data-theme="dark"] .comp-dr__suggestion       { color: #fcd34d; }
+:root[data-theme="dark"] .risk-pill--high           { color: #ffcaa8; }
+:root[data-theme="dark"] .lp-pill--good             { color: #86efac; }
+:root[data-theme="dark"] .cst-warnings              { color: #f5c9a4; }
+
+:root[data-theme="dark"] .asset-popup__metric--risk .asset-popup__metric-value { color: #fcd34d; }
+
+:root[data-theme="dark"] .esg-chart__kpi-value--good,
+:root[data-theme="dark"] .esg-market__change--up,
+:root[data-theme="dark"] .lp-total__delta--good,
+:root[data-theme="dark"] .pf-trans-delta--better,
+:root[data-theme="dark"] .pf-total--ok,
+:root[data-theme="dark"] .pf-status--ok             { color: #6ee7b7; }
+
+:root[data-theme="dark"] .pf-status--err,
+:root[data-theme="dark"] .pf-trans-delta--worse     { color: #fca5a5; }
+
+
+/* ── Bascule jour / nuit ─────────────────────────────────────────────────
+   Le bouton porte les deux icones ; le theme decide laquelle est peinte,
+   ce qui evite un echange d'icone en JS. */
+button.sidebar__footer-icon-link {
+  border: none;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.theme-icon--moon { display: none; }
+:root[data-theme="dark"] .theme-icon--sun  { display: none; }
+:root[data-theme="dark"] .theme-icon--moon { display: block; }

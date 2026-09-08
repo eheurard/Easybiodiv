@@ -3,7 +3,8 @@
 
 {% block title %}Risque physique — Easybiodiv{% endblock %}
 
-{% block nav_risks_open %}open{% endblock %}
+{% block layout_class %}map-page{% endblock %}
+
 {% block nav_physical_risk %}active{% endblock %}
 
 {% block extra_css %}
@@ -32,72 +33,93 @@
 {% endblock header_left %}
 
 {% block content %}
-<div class="pr-page">
+<div class="map-stage">
+  <div class="map-stage__canvas" id="pr-map" aria-label="Carte des actifs par risque physique"></div>
 
-  <!-- KPI band -->
-  <div class="kpi-row">
-    <div class="kpi-card">
-      <div class="kpi-card__value data-tabular" id="pr-high-risk">—</div>
-      <div class="kpi-card__label label-caps">Actifs à risque élevé</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-card__value data-tabular" id="pr-avg-vuln">—</div>
-      <div class="kpi-card__label label-caps">Vulnérabilité moyenne</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-card__value data-tabular" id="pr-annual-loss">—</div>
-      <div class="kpi-card__label label-caps">Perte projetée</div>
-      <div class="pr-horizon" role="group" aria-label="Horizon de projection">
-        <button type="button" class="pr-horizon__btn active" data-years="5" aria-pressed="true">5 ans</button>
-        <button type="button" class="pr-horizon__btn" data-years="10" aria-pressed="false">10 ans</button>
-      </div>
+  <div class="map-stage__bl">
+    <div class="map-legend" aria-label="Légende des niveaux de risque">
+      <p class="map-legend__title">Risque physique</p>
+      <ul class="map-legend__list">
+        <li><span class="map-legend__dot" style="background:#dac1ba"></span>Faible</li>
+        <li><span class="map-legend__dot" style="background:#feb87c"></span>Modéré</li>
+        <li><span class="map-legend__dot" style="background:#af5d43"></span>Élevé</li>
+        <li><span class="map-legend__dot" style="background:#91452d"></span>Critique</li>
+      </ul>
     </div>
   </div>
 
-  <!-- Map + ranking -->
-  <div class="pr-mid-row">
-    <div class="map-card-wrap">
-      <div class="map-card" id="pr-map" aria-label="Carte des actifs par risque physique"></div>
-      <div class="map-legend" aria-label="Légende des niveaux de risque">
-        <p class="map-legend__title">Risque physique</p>
-        <ul class="map-legend__list">
-          <li><span class="map-legend__dot" style="background:#dac1ba"></span>Faible</li>
-          <li><span class="map-legend__dot" style="background:#feb87c"></span>Modéré</li>
-          <li><span class="map-legend__dot" style="background:#af5d43"></span>Élevé</li>
-          <li><span class="map-legend__dot" style="background:#91452d"></span>Critique</li>
-        </ul>
-      </div>
+  <aside class="map-panel" id="pr-panel" aria-label="Synthèse du risque physique">
+    <div class="map-panel__header">
+      <span class="label-caps map-panel__title">Classement des risques</span>
+      <button type="button" class="map-panel__toggle" aria-expanded="true"
+              aria-controls="pr-panel" aria-label="Réduire le panneau">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </div>
-    <div class="card pr-ranking-card">
-      <div class="label-caps pr-ranking-card__title">Classement des risques</div>
+    <div class="map-panel__body">
+
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-card__value data-tabular" id="pr-high-risk">—</div>
+          <div class="kpi-card__label label-caps">Actifs à risque élevé</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card__value data-tabular" id="pr-avg-vuln">—</div>
+          <div class="kpi-card__label label-caps">Vulnérabilité moyenne</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card__value data-tabular" id="pr-annual-loss">—</div>
+          <div class="kpi-card__label label-caps">Perte projetée</div>
+          <div class="pr-horizon" role="group" aria-label="Horizon de projection">
+            <button type="button" class="pr-horizon__btn active" data-years="5" aria-pressed="true">5 ans</button>
+            <button type="button" class="pr-horizon__btn" data-years="10" aria-pressed="false">10 ans</button>
+          </div>
+        </div>
+      </div>
+
       <div id="pr-ranking" class="pr-ranking-list">
         <p class="pr-empty">Sélectionnez une entreprise.</p>
       </div>
-    </div>
-  </div>
 
-  <!-- Detail table -->
-  <div class="card pr-table-card">
-    <div class="pr-table-card__head">
-      <span class="label-caps pr-table-card__title">Détail par actif</span>
+    </div>
+  </aside>
+
+  <button type="button" class="map-panel__reopen" aria-expanded="true" aria-controls="pr-panel"
+          aria-label="Afficher le classement des risques">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M3 4.5h12M3 9h12M3 13.5h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <section class="map-drawer" aria-label="Détail par actif">
+    <button type="button" class="map-drawer__handle" aria-expanded="false" aria-controls="pr-drawer-body">
+      <span class="label-caps">Détail par actif</span>
       <span class="pr-table-card__hazard" id="pr-selected-hazard">—</span>
+      <svg class="map-drawer__chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M4 10l4-4 4 4" stroke="currentColor" stroke-width="1.6"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="map-drawer__body" id="pr-drawer-body">
+      <div class="pr-table-wrap">
+        <table class="pr-table">
+          <thead>
+            <tr>
+              <th>Actif</th>
+              <th>Hazard (%)</th>
+              <th>Exposition</th>
+              <th>Vulnérabilité (%)</th>
+              <th>Risk</th>
+            </tr>
+          </thead>
+          <tbody id="pr-table-body"></tbody>
+        </table>
+      </div>
     </div>
-    <div class="pr-table-wrap">
-      <table class="pr-table">
-        <thead>
-          <tr>
-            <th>Actif</th>
-            <th>Hazard (%)</th>
-            <th>Exposition</th>
-            <th>Vulnérabilité (%)</th>
-            <th>Risk</th>
-          </tr>
-        </thead>
-        <tbody id="pr-table-body"></tbody>
-      </table>
-    </div>
-  </div>
-
+  </section>
 </div>
 {% endblock %}
 
@@ -106,5 +128,6 @@
 {{ companies|json_script:"companies-data" }}
 {{ initial_data|json_script:"initial-data" }}
 <script>var PHYSICAL_RISK_API_URL = "{% url 'dashboard:physical_risk_data' pk=0 %}";</script>
+<script src="{% static 'dashboard/js/map_layout.js' %}" defer></script>
 <script src="{% static 'dashboard/js/physical_risk.js' %}" defer></script>
 {% endblock %}

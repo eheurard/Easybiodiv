@@ -18,10 +18,37 @@
   --color-outline:       #dac1ba;
   --color-error:         #ba1a1a;
   --color-white:         #ffffff;
+  --color-error-bg:      #ffdad6;
+  --color-error-border:  #ffb4ab;
+  --color-error-strong:  #93000a;
+  --color-error-soft:    #ffdbd0;
 
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 12px;
+}
+
+/* ── Mode nuit ─────────────────────────────────────────────────────────
+   Les pages d'auth n'ont pas de bouton de bascule : elles suivent le choix
+   memorise par le dashboard, sinon la preference systeme. Le theme est pose
+   par le script inline de auth_base.html avant le rendu. */
+:root[data-theme="dark"] {
+  --color-primary:       #ffb59e;
+  --color-primary-dark:  #ffd2c4;
+  --color-surface:       #16140f;
+  --color-surface-low:   #1e1b17;
+  --color-surface-mid:   #22201b;
+  --color-on-surface:    #eae2d8;
+  --color-on-variant:    #d5c3ba;
+  --color-muted:         #a08d86;
+  --color-outline:       #52443f;
+  --color-error:         #ffb4ab;
+  --color-white:         #100e0b;
+
+  --color-error-bg:      #3d1a17;
+  --color-error-border:  #93000a;
+  --color-error-strong:  #ffb4ab;
+  --color-error-soft:    #4a1f19;
 }
 
 body {
@@ -154,8 +181,8 @@ body {
 
 /* Messages d'erreur non-field (ex: login incorrect) */
 .auth-form__global-errors {
-  background: #ffdad6;
-  border: 1px solid #ffb4ab;
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
   border-radius: var(--radius-md);
   padding: 10px 14px;
   margin-bottom: 20px;
@@ -164,7 +191,7 @@ body {
 
 .auth-form__global-error {
   font-size: 13px;
-  color: #93000a;
+  color: var(--color-error-strong);
 }
 
 /* ── Forgot password link ─────────────────────────────────────────────── */
@@ -270,7 +297,7 @@ body {
   justify-content: center;
   width: 52px;
   height: 52px;
-  background: #ffdbd0;
+  background: var(--color-error-soft);
   border-radius: 50%;
   margin: 0 auto 20px;
 }

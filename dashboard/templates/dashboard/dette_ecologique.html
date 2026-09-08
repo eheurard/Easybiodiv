@@ -3,7 +3,8 @@
 
 {% block title %}Dette écologique — Easybiodiv{% endblock %}
 
-{% block nav_risks_open %}open{% endblock %}
+{% block layout_class %}map-page{% endblock %}
+
 {% block nav_dette_ecologique %}active{% endblock %}
 
 {% block extra_css %}
@@ -32,46 +33,69 @@
 {% endblock header_left %}
 
 {% block content %}
-<div class="de-page">
+<div class="map-stage">
+  <div id="de-map" class="de-map map-stage__canvas" aria-label="Carte de la dette écologique"></div>
 
-  <div class="kpi-row">
-    <div class="kpi-card">
-      <div class="kpi-card__value data-tabular" id="de-total-lbiodiv">—</div>
-      <div class="kpi-card__label label-caps">Lbiodiv total</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-card__value data-tabular" id="de-year">—</div>
-      <div class="kpi-card__label label-caps">Année de référence</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-card__value data-tabular" id="de-point-count">—</div>
-      <div class="kpi-card__label label-caps" id="de-point-count-label">Assets</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-card__value data-tabular" id="de-top-commodity">—</div>
-      <div class="kpi-card__label label-caps">Top commodité</div>
-    </div>
-  </div>
-
-  <div class="de-toggle-row">
-    <span class="label-caps de-toggle-label">Regrouper par :</span>
-    <div class="de-toggle" role="group" aria-label="Mode d'affichage">
-      <button class="de-toggle__btn de-toggle__btn--active"
-              data-mode="asset" aria-pressed="true">Par asset</button>
-      <button class="de-toggle__btn"
-              data-mode="region" aria-pressed="false">Par région subnational</button>
-    </div>
-  </div>
-
-  <div class="card de-map-card">
-    <div id="de-map" class="de-map"></div>
+  <div class="map-stage__bl">
     <div class="de-legend" id="de-legend" aria-label="Légende commodités">
       <div class="de-legend__title label-caps">Commodités</div>
       <ul class="de-legend__list" id="de-legend-list"></ul>
     </div>
-    <div class="de-tooltip" id="de-tooltip" hidden></div>
   </div>
 
+  <aside class="map-panel" id="de-panel" aria-label="Dette écologique">
+    <div class="map-panel__header">
+      <span class="label-caps map-panel__title">Dette écologique</span>
+      <button type="button" class="map-panel__toggle" aria-expanded="true"
+              aria-controls="de-panel" aria-label="Réduire le panneau">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="map-panel__body">
+
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-card__value data-tabular" id="de-total-lbiodiv">—</div>
+          <div class="kpi-card__label label-caps">Lbiodiv total</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card__value data-tabular" id="de-year">—</div>
+          <div class="kpi-card__label label-caps">Année de référence</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card__value data-tabular" id="de-point-count">—</div>
+          <div class="kpi-card__label label-caps" id="de-point-count-label">Assets</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card__value data-tabular" id="de-top-commodity">—</div>
+          <div class="kpi-card__label label-caps">Top commodité</div>
+        </div>
+      </div>
+
+      <div class="de-toggle-row">
+        <span class="label-caps de-toggle-label">Regrouper par :</span>
+        <div class="de-toggle" role="group" aria-label="Mode d'affichage">
+          <button class="de-toggle__btn de-toggle__btn--active"
+                  data-mode="asset" aria-pressed="true">Par asset</button>
+          <button class="de-toggle__btn"
+                  data-mode="region" aria-pressed="false">Par région subnational</button>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <button type="button" class="map-panel__reopen" aria-expanded="true" aria-controls="de-panel"
+          aria-label="Afficher le panneau de la dette écologique">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M3 4.5h12M3 9h12M3 13.5h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <div class="de-tooltip" id="de-tooltip" hidden></div>
 </div>
 {% endblock %}
 
@@ -80,5 +104,6 @@
 {{ companies|json_script:"de-companies" }}
 <script>var DE_API_URL = "{% url 'dashboard:dette_ecologique_data' pk=0 %}";</script>
 <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js" defer></script>
+<script src="{% static 'dashboard/js/map_layout.js' %}" defer></script>
 <script src="{% static 'dashboard/js/dette_ecologique.js' %}" defer></script>
 {% endblock %}

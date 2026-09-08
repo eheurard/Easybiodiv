@@ -18,22 +18,51 @@
 
 const SELECTED_COMPANY_KEY = 'selected-company-id';
 
-const MAP_STYLES = {
-  classic: 'https://tiles.openfreemap.org/styles/liberty',
-  grayscale: 'https://tiles.openfreemap.org/styles/positron',
-  satellite: {
-    version: 8,
-    sources: {
-      satellite: {
-        type: 'raster',
-        tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-        tileSize: 256,
-        attribution: 'Tiles © Esri',
-      },
+const SATELLITE_STYLE = {
+  version: 8,
+  sources: {
+    satellite: {
+      type: 'raster',
+      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+      tileSize: 256,
+      attribution: 'Tiles © Esri',
     },
-    layers: [{ id: 'satellite-bg', type: 'raster', source: 'satellite' }],
   },
+  layers: [{ id: 'satellite-bg', type: 'raster', source: 'satellite' }],
 };
+
+// Chaque fond a une variante par theme. « fiord » est le pendant sombre de
+// « liberty » (style detaille), « dark » celui de « positron » (style gris).
+// Le satellite ne change pas : l'imagerie est deja sombre.
+const MAP_STYLES = {
+  classic: {
+    light: 'https://tiles.openfreemap.org/styles/liberty',
+    dark: 'https://tiles.openfreemap.org/styles/fiord',
+  },
+  grayscale: {
+    light: 'https://tiles.openfreemap.org/styles/positron',
+    dark: 'https://tiles.openfreemap.org/styles/dark',
+  },
+  satellite: { light: SATELLITE_STYLE, dark: SATELLITE_STYLE },
+};
+
+function currentTheme() {
+  return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+}
+
+// Resout un nom de fond vers l'URL (ou l'objet) correspondant au theme actif.
+// C'est le seul point d'entree : aucune page ne doit lire MAP_STYLES en direct.
+function mapStyleFor(name) {
+  const entry = MAP_STYLES[name] || MAP_STYLES.classic;
+  return entry[currentTheme()];
+}
+
+// Nom du fond actuellement selectionne sur la page (bouton actif), ou
+// « classic » quand la page n'expose pas de selecteur.
+function activeMapStyleName() {
+  const btn = document.querySelector('.map-layer-btn--active');
+  return (btn && btn.dataset.layer) || 'classic';
+}
 
 let _countryCoords = {};
 
@@ -69,6 +98,28 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (!animate) requestAnimationFrame(() => { layout.style.transition = ''; });
     }
+  }
+
+  // ── Bascule jour / nuit ─────────────────────────────────────────────────
+  // Le theme est deja pose par le script inline du <head> ; ici on ne gere
+  // que le clic, la memorisation, et la diffusion aux cartes.
+  const themeBtn = document.getElementById('theme-toggle');
+  if (themeBtn) {
+    const syncBtn = () => {
+      const dark = currentTheme() === 'dark';
+      themeBtn.setAttribute('aria-pressed', String(dark));
+      themeBtn.setAttribute('aria-label', dark ? 'Passer en mode jour' : 'Passer en mode nuit');
+    };
+    syncBtn();
+
+    themeBtn.addEventListener('click', () => {
+      const next = currentTheme() === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('theme', next); } catch (e) { /* stockage indisponible */ }
+      syncBtn();
+      // Les cartes ecoutent cet evenement pour rejouer leur fond.
+      document.dispatchEvent(new CustomEvent('themechange', { detail: { theme: next } }));
+    });
   }
 
   // ── Legacy test button ──────────────────────────────────────────────────
@@ -388,8 +439,14 @@ function addAssetsLayer(map) {
   map.on('mouseleave', 'assets-layer', () => { map.getCanvas().style.cursor = ''; });
 }
 
+// Rejoue le fond de la carte de la Vue d'ensemble quand le theme change.
+document.addEventListener('themechange', () => {
+  const map = window._overviewMap;
+  if (map) switchMapStyle(map, activeMapStyleName());
+});
+
 function switchMapStyle(map, styleName) {
-  const style = MAP_STYLES[styleName] || MAP_STYLES.classic;
+  const style = mapStyleFor(styleName);
   const currentData = map._assetsGeojson || { type: 'FeatureCollection', features: [] };
   map.setStyle(style);
   map.once('styledata', () => {
@@ -405,10 +462,12 @@ function initMap() {
 
   const map = new maplibregl.Map({
     container: 'overview-map',
-    style: MAP_STYLES.classic,
+    style: mapStyleFor('classic'),
     center: [0, 20],
     zoom: 1.5,
   });
+
+  window._overviewMap = map;
 
   map.on('load', () => {
     map.addSource('assets', {

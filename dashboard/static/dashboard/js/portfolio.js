@@ -548,7 +548,7 @@
     if (TRANS_MAP || typeof maplibregl === 'undefined') { return; }
     TRANS_MAP = new maplibregl.Map({
       container: 'pf-trans-map',
-      style: 'https://tiles.openfreemap.org/styles/liberty',
+      style: mapStyleFor('classic'),
       center: [0, 20],
       zoom: 1.5,
     });

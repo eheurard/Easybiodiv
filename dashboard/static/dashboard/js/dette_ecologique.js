@@ -46,11 +46,18 @@ document.addEventListener('DOMContentLoaded', () => {
 function deInitMap() {
   return new maplibregl.Map({
     container: 'de-map',
-    style: 'https://tiles.openfreemap.org/styles/liberty',
+    style: mapStyleFor('classic'),
     center: [0, 20],
     zoom: 1.5,
   });
 }
+
+
+// Les points sont des marqueurs DOM (maplibregl.Marker) : ils survivent a un
+// setStyle, il suffit donc de rejouer le fond.
+document.addEventListener('themechange', () => {
+  if (DE_STATE.map) DE_STATE.map.setStyle(mapStyleFor('classic'));
+});
 
 
 function deInitToggle() {

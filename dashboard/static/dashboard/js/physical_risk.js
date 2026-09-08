@@ -277,28 +277,13 @@ function prInitMap() {
 
   const map = new maplibregl.Map({
     container: 'pr-map',
-    style: 'https://tiles.openfreemap.org/styles/liberty',
+    style: mapStyleFor('classic'),
     center: [0, 20],
     zoom: 1.5,
   });
 
   map.on('load', () => {
-    map.addSource('pr-assets', {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] },
-    });
-    map.addLayer({
-      id: 'pr-assets-layer',
-      type: 'circle',
-      source: 'pr-assets',
-      paint: {
-        'circle-radius': ['get', 'radius'],
-        'circle-color': ['get', 'color'],
-        'circle-opacity': 0.75,
-        'circle-stroke-width': 1.5,
-        'circle-stroke-color': '#ffffff',
-      },
-    });
+    prAddSourceAndLayer(map);
 
     map.on('click', 'pr-assets-layer', (e) => {
       const p = e.features[0].properties;
@@ -323,6 +308,47 @@ function prInitMap() {
 
   return map;
 }
+
+
+// Source et couche des actifs. Idempotent : appele au chargement, puis apres
+// chaque setStyle, qui les detruit. Les ecouteurs de clic/survol sont poses
+// une seule fois dans prInitMap et survivent au changement de style.
+function prAddSourceAndLayer(map) {
+  if (!map.getSource('pr-assets')) {
+    map.addSource('pr-assets', { type: 'geojson', data: prBuildGeojson() });
+  }
+  if (!map.getLayer('pr-assets-layer')) {
+    map.addLayer({
+      id: 'pr-assets-layer',
+      type: 'circle',
+      source: 'pr-assets',
+      paint: {
+        'circle-radius': ['get', 'radius'],
+        'circle-color': ['get', 'color'],
+        'circle-opacity': 0.75,
+        'circle-stroke-width': 1.5,
+        'circle-stroke-color': '#ffffff',
+      },
+    });
+  }
+}
+
+
+// Le fond suit le theme. « idle » est le seul signal fiable apres setStyle
+// pour reconstruire la source et la couche, puis y repousser les donnees.
+document.addEventListener('themechange', () => {
+  const map = PR_STATE.map;
+  if (!map) return;
+  map.setStyle(mapStyleFor('classic'));
+  map.once('idle', () => {
+    prAddSourceAndLayer(map);
+    // Repousser explicitement : au « idle » qui suit un setStyle, map.loaded()
+    // peut encore etre faux, et prSyncMapData mettrait les donnees en attente
+    // dans _prPendingGeojson sans que rien ne les reprenne.
+    const src = map.getSource('pr-assets');
+    if (src) src.setData(prBuildGeojson());
+  });
+});
 
 function prBuildGeojson() {
   const data = PR_STATE.data;
