@@ -3576,3 +3576,32 @@ class OverviewModesPageTests(TestCase):
             self.assertIn('"%s"' % reverse(name, kwargs={'pk': 0}), html)
         for script in ('locate_view.js', 'overview.js'):
             self.assertIn(f'dashboard/js/{script}', html)
+
+    def test_risque_open_and_dette_locked_for_anonymous(self):
+        html = self._html()
+        self.assertFalse(self._disabled(self._button(html, 'data-mode="risque"')))
+        dette = self._button(html, 'data-mode="dette"')
+        self.assertTrue(self._disabled(dette))
+        self.assertIn('title="Connexion requise"', dette)
+
+    def test_dette_enabled_when_authenticated(self):
+        self._login()
+        self.assertFalse(self._disabled(self._button(self._html(), 'data-mode="dette"')))
+
+    def test_includes_shared_fragments(self):
+        response = self.client.get(self.url)
+        for template in ('dashboard/_pr_panel.html', 'dashboard/_pr_detail_drawer.html',
+                         'dashboard/_de_kpis.html'):
+            self.assertTemplateUsed(response, template)
+        html = response.content.decode()
+        self.assertRegex(html, r'<section[^>]*id="pr-detail-section"[^>]*\shidden')
+        for element_id in ('pr-ranking', 'pr-table-body', 'de-total-lbiodiv',
+                           'ov-dette-list', 'de-tooltip'):
+            self.assertIn(f'id="{element_id}"', html)
+
+    def test_exposes_risque_and_dette_api_and_modules(self):
+        html = self._html()
+        for name in ('dashboard:physical_risk_data', 'dashboard:dette_ecologique_data'):
+            self.assertIn('"%s"' % reverse(name, kwargs={'pk': 0}), html)
+        for script in ('pie_markers.js', 'physical_risk_view.js', 'dette_view.js'):
+            self.assertIn(f'dashboard/js/{script}', html)

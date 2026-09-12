@@ -39,6 +39,10 @@ const OV = {
   countryCoords: {},   // pays → somme des coordonnées de ses actifs (zoom)
   assetFilter: '',     // mode asset : type d'actif filtré ('' = tous)
   assetSortDir: 'desc',
+  prHazard: null,      // mode risque : aléa sélectionné (premier par défaut)
+  prHorizon: 5,        // mode risque : horizon de la perte projetée (années)
+  pies: [],            // mode dette : marqueurs camembert
+  colors: new Map(),   // commodité → couleur, stable pour l'entreprise courante
 };
 
 // Registre des modes. source : clé de OVERVIEW_API ; drawer : tiroir bas
@@ -61,6 +65,25 @@ const OV_MODES = {
     mapFeatures: ovAssetFeatures,
     legendHtml: () => LocateView.legendHtml(),
     popupHtml: (p) => LocateView.popupHtml(p),
+  },
+  risque: {
+    title: 'Classement des risques',
+    source: 'risque',
+    drawer: 'risque',
+    renderPanel: ovRenderRisquePanel,
+    mapFeatures: ovRisqueFeatures,
+    legendHtml: () => PhysicalRiskView.legendHtml(),
+    popupHtml: (p) => PhysicalRiskView.popupHtml(p),
+  },
+  dette: {
+    title: 'Dette écologique',
+    source: 'dette',
+    drawer: 'policy',
+    pies: true,          // camemberts (marqueurs DOM) au lieu des cercles
+    renderPanel: ovRenderDettePanel,
+    mapFeatures: () => [],
+    legendHtml: ovDetteLegendHtml,
+    popupHtml: null,
   },
 };
 
@@ -243,6 +266,12 @@ function ovInitControls() {
       ovRenderAssetList();
     });
   }
+
+  // Mode risque : horizon 5 / 10 ans de la perte projetée.
+  PhysicalRiskView.bindHorizon(document.querySelector('[data-view="risque"] .pr-horizon'), (years) => {
+    OV.prHorizon = years;
+    PhysicalRiskView.renderLoss(OV.cache.risque, OV.prHorizon);
+  });
 }
 
 
@@ -303,6 +332,7 @@ function ovApplyMode(mode, data) {
   ovShowView(mode);
   cfg.renderPanel(data);
   ovSetMapFeatures(cfg.mapFeatures(data));
+  if (cfg.pies) ovRenderPies(data); else ovClearPies();
   ovSetLegend(cfg.legendHtml(data));
   ovSetDrawer(cfg.drawer);
 }
@@ -310,6 +340,7 @@ function ovApplyMode(mode, data) {
 // Vide la carte, la légende et les tiroirs le temps d'un chargement.
 function ovClearModeDisplay() {
   ovSetMapFeatures([]);
+  ovClearPies();
   ovSetLegend('');
   ovSetDrawer(null);
 }
@@ -356,6 +387,7 @@ function ovSelectCompany(id, initialData) {
   OV.cache = initialData ? { company: initialData } : {};
   OV.pending = {};
   OV.companyReady = null;
+  OV.prHazard = null;  // l'horizon, lui, est conservé (comme sur la page Risque physique)
   ovRenderMode();
 }
 
@@ -421,6 +453,15 @@ function ovApplyCompany(data) {
     OV.countryCoords[country].sumLng += lng;
     OV.countryCoords[country].n += 1;
   });
+
+  // Couleurs des commodités : d'abord celles de l'entreprise, par ordre
+  // alphabétique ; les commodités propres aux flux fournisseurs viendront à la
+  // suite, sans jamais décaler celles déjà attribuées.
+  OV.colors = new Map();
+  const names = new Set();
+  (data.countries || []).forEach((c) => c.commodities.forEach((cm) => names.add(cm.name)));
+  [...names].sort((a, b) => a.localeCompare(b)).forEach(ovColor);
+
   ovRenderPolicies(data);
 }
 
@@ -601,6 +642,97 @@ function ovRenderAssetList() {
     (a, b) => dir * ((a.properties.revenue_total || 0) - (b.properties.revenue_total || 0))
   );
   el.innerHTML = LocateView.listHtml(sorted);
+}
+
+
+// ── Mode « Risque physique » ───────────────────────────────────────────────
+
+// Aléa sélectionné : conservé entre les modes, réinitialisé au changement
+// d'entreprise (premier du classement par défaut).
+function ovCurrentHazard(data) {
+  if (!PhysicalRiskView.hazard(data, OV.prHazard)) {
+    OV.prHazard = data.hazards && data.hazards.length ? data.hazards[0].key : null;
+  }
+  return OV.prHazard;
+}
+
+function ovRenderRisquePanel(data) {
+  const key = ovCurrentHazard(data);
+  PhysicalRiskView.renderKpis(data, OV.prHorizon);
+  PhysicalRiskView.renderRanking(data, key, ovSelectHazard);
+  PhysicalRiskView.renderTable(data, key);
+}
+
+function ovRisqueFeatures(data) {
+  return PhysicalRiskView.buildGeojson(data, ovCurrentHazard(data)).features
+    .map((f) => ovStyled(f, { opacity: 0.75, stroke: 1.5 }));
+}
+
+// Le classement sert de sélecteur : points et tableau suivent l'aléa choisi.
+function ovSelectHazard(key) {
+  const data = OV.cache.risque;
+  if (!data) return;
+  OV.prHazard = key;
+  PhysicalRiskView.markSelected(key);
+  ovSetMapFeatures(ovRisqueFeatures(data));
+  PhysicalRiskView.renderTable(data, key);
+}
+
+
+// ── Mode « Dette écologique » ──────────────────────────────────────────────
+
+// Couleur stable d'une commodité pour l'entreprise courante : attribuée à la
+// première demande, dans l'ordre de la palette, puis jamais modifiée. Partagée
+// par les camemberts et les flèches de la supply chain.
+function ovColor(name) {
+  if (!OV.colors.has(name)) {
+    const palette = PieMarkers.PALETTE;
+    OV.colors.set(name, palette[OV.colors.size % palette.length]);
+  }
+  return OV.colors.get(name);
+}
+
+function ovColorMap(names) {
+  const colors = {};
+  names.forEach((n) => { colors[n] = ovColor(n); });
+  return colors;
+}
+
+function ovDetteColors(data) {
+  return ovColorMap(data.commodities.map((c) => c.name));
+}
+
+function ovRenderDettePanel(data) {
+  DetteView.renderKpis(data, 'asset');
+  const list = document.getElementById('ov-dette-list');
+  if (!list) return;
+  list.innerHTML = data.assets.length
+    ? DetteView.assetListHtml(data.assets, ovDetteColors(data))
+    : '<p class="ll-empty">Aucun asset avec une dette calculable.</p>';
+}
+
+function ovDetteLegendHtml(data) {
+  if (!data.commodities.length) return '';
+  return '<p class="map-legend__title">Commodités</p>' +
+    `<ul class="map-legend__list">${DetteView.legendItemsHtml(data.commodities, ovDetteColors(data))}</ul>`;
+}
+
+// Camemberts : marqueurs DOM, ils survivent aux setStyle et passent au-dessus
+// de toutes les couches (supply chain comprise).
+function ovRenderPies(data) {
+  ovClearPies();
+  const colors = ovDetteColors(data);
+  const handlers = DetteView.tooltipHandlers(
+    document.getElementById('de-tooltip'), document.getElementById('overview-map'), colors
+  );
+  OV.pies = PieMarkers.render(OV.map, data.assets, colors, handlers);
+}
+
+function ovClearPies() {
+  OV.pies.forEach((m) => m.remove());
+  OV.pies = [];
+  const tip = document.getElementById('de-tooltip');
+  if (tip) tip.hidden = true;
 }
 
 

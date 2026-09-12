@@ -70,6 +70,16 @@
         </svg>
         {% endif %}
       </button>
+      <button type="button" class="ov-mode-btn" data-mode="risque" aria-pressed="false">Risque physique</button>
+      <button type="button" class="ov-mode-btn" data-mode="dette" aria-pressed="false"{% if not user.is_authenticated %} disabled title="Connexion requise"{% endif %}>
+        Dette écologique
+        {% if not user.is_authenticated %}
+        <svg class="ov-mode-btn__lock" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <rect x="2.5" y="5.5" width="7" height="5" rx="1" stroke="currentColor" stroke-width="1.2" />
+          <path d="M4 5.5V4a2 2 0 014 0v1.5" stroke="currentColor" stroke-width="1.2" />
+        </svg>
+        {% endif %}
+      </button>
     </div>
 
     <div class="map-panel__body">
@@ -96,6 +106,13 @@
           </div>
           <div class="ov-list" id="ov-asset-list"></div>
         </div>
+        <div class="country-panel__view" data-view="risque">
+          {% include "dashboard/_pr_panel.html" %}
+        </div>
+        <div class="country-panel__view" data-view="dette">
+          {% include "dashboard/_de_kpis.html" %}
+          <div class="ov-list" id="ov-dette-list"></div>
+        </div>
       </div>
     </div>
   </aside>
@@ -119,6 +136,10 @@
       <div class="policy-types-row" id="policy-types-row"></div>
     </div>
   </section>
+
+  {% include "dashboard/_pr_detail_drawer.html" with section_id="pr-detail-section" start_hidden=True %}
+
+  <div class="de-tooltip" id="de-tooltip" hidden></div>
 </div>
 {% endblock %}
 
@@ -129,10 +150,15 @@
 <script>
   var OVERVIEW_API = {
     company: "{% url 'dashboard:company_data' pk=0 %}",
-    locate: "{% url 'dashboard:leap_locate_data' pk=0 %}"
+    locate: "{% url 'dashboard:leap_locate_data' pk=0 %}",
+    risque: "{% url 'dashboard:physical_risk_data' pk=0 %}",
+    dette: "{% url 'dashboard:dette_ecologique_data' pk=0 %}"
   };
 </script>
 <script src="{% static 'dashboard/js/map_layout.js' %}" defer></script>
+<script src="{% static 'dashboard/js/pie_markers.js' %}" defer></script>
 <script src="{% static 'dashboard/js/locate_view.js' %}" defer></script>
+<script src="{% static 'dashboard/js/physical_risk_view.js' %}" defer></script>
+<script src="{% static 'dashboard/js/dette_view.js' %}" defer></script>
 <script src="{% static 'dashboard/js/overview.js' %}" defer></script>
 {% endblock %}
