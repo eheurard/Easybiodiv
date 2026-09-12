@@ -80,8 +80,9 @@ Précisions :
   comme la palette `ASSET_TYPE_COLORS` ; il filtre la **liste seulement**, comme
   aujourd'hui. Libellés du tri : « Revenu décroissant » / « Revenu croissant ».
 - Mode risque : l'aléa sélectionné par défaut est le premier du classement ;
-  horizon 5 ans par défaut. Aléa et horizon sont conservés quand on change de mode,
-  et réinitialisés quand on change d'entreprise (comme sur la page de référence).
+  horizon 5 ans par défaut. Aléa et horizon sont conservés quand on change de mode.
+  Au changement d'entreprise, l'aléa revient au premier du classement et l'horizon
+  est conservé (comme sur la page de référence).
 - Mode dette : seuls les assets ayant une dette calculable apparaissent (les assets
   sans région subnationale sont exclus, comme sur la page Dette). Liste vide :
   « Aucun asset avec une dette calculable. »
@@ -135,10 +136,10 @@ dépendance autre que les utilitaires globaux de `main.js` (`escHtml`, `fmtNum`,
 
 | Fichier | Espace de noms | Contenu | Utilisé par |
 |---|---|---|---|
-| `locate_view.js` | `LocateView` | `REVENUE_COLORS`, `revenueBand`, `styleFeatures(features)` (couleur/rayon par revenu), `prodLine`, `listHtml(features)` (cartes `.ll-item` avec `data-lng`/`data-lat`), `popupHtml(props)` | Locate, Vue d'ensemble |
-| `supply_chain.js` | `SupplyChain` | `SupplyChain.create(map, opts)` → instance à état encapsulé : `setData(locateData)`, `addLayers(beforeLayerId)`, `setVisible(bool)`, `isVisible()`, `stop()` / `resume()` de l'animation, `renderLegend(box, list)`, `colors()`. `opts.colorFor(commodity)` optionnel ; à défaut, table alphabétique sur la palette Locate actuelle. Liaison des évènements (popup fournisseur, curseur) une seule fois par instance. | Locate, Vue d'ensemble |
-| `physical_risk_view.js` | `PhysicalRiskView` | `BAND_COLORS`, `band`, `fmtEuro`, `buildGeojson(data, hazardKey)`, `renderKpis(data, horizon)`, `renderRanking(data, selectedKey, onSelect)`, `renderTable(data, hazardKey)`, `popupHtml(props)` — ciblent les identifiants des fragments partagés (§ 3.3) | Risque physique, Vue d'ensemble |
-| `dette_view.js` | `DetteView` | `fmtLbiodiv`, `renderKpis(data, mode)`, `renderLegend(listEl, commodities, colors)`, `showTooltip` / `moveTooltip` / `hideTooltip(tipEl, mapEl, …)`, `assetListHtml(assets, colors)` (nouveau, format Locate) | Dette, Vue d'ensemble |
+| `locate_view.js` | `LocateView` | `REVENUE_COLORS`, `revenueBand`, `styleFeatures(features)` (couleur/rayon par revenu), `prodLine`, `listHtml(features)` (cartes `.ll-item` avec `data-lng`/`data-lat`), `popupHtml(props)`, `legendHtml()` | Locate, Vue d'ensemble |
+| `supply_chain.js` | `SupplyChain` | `SupplyChain.create(map, opts)` → instance à état encapsulé : `addLayers(beforeLayerId)` (sources, couches, évènements, données — idempotent), `setData(locateData)`, `setVisible(bool)`, `isVisible()`, `stop()` / `resume()` de l'animation, `colors()`. Options : `colorFor(commodity)` (à défaut, table alphabétique sur la palette Locate actuelle) et `legend: { box, list }` (légende rendue par l'instance à chaque changement de données ou de visibilité). Évènements (popup fournisseur, curseur) liés une seule fois par instance. | Locate, Vue d'ensemble |
+| `physical_risk_view.js` | `PhysicalRiskView` | `BAND_COLORS`, `band`, `hazard(data, key)`, `buildGeojson(data, hazardKey)`, `renderKpis(data, horizon)`, `renderLoss(data, horizon)`, `bindHorizon(group, onChange)`, `renderRanking(data, selectedKey, onSelect)`, `markSelected(key)`, `renderTable(data, hazardKey)`, `popupHtml(props)`, `legendHtml()` — ciblent les identifiants des fragments partagés (§ 3.3) | Risque physique, Vue d'ensemble |
+| `dette_view.js` | `DetteView` | `fmtLbiodiv`, `renderKpis(data, mode)`, `renderPointCount(data, mode)`, `legendItemsHtml(commodities, colors)`, `tooltipHandlers(tipEl, mapEl, colors)` (gestionnaires de survol pour `PieMarkers.render`), `assetListHtml(assets, colors)` (nouveau, format Locate) | Dette, Vue d'ensemble |
 | `pie_markers.js` (existant) | `PieMarkers` | inchangé | Dette (**nouveau**), portfolio, Vue d'ensemble |
 
 Les pages de référence deviennent des amorces qui appellent ces modules :
@@ -205,6 +206,12 @@ conserver que la modification de `dashboard/golden/leap_locate.json` (ajout de
 `type` uniquement) ; les autres fichiers golden doivent rester identiques.
 
 Aucune vue, URL ni règle d'authentification ne change. `index` reste public.
+
+**Prérequis constaté le 2026-09-12** : la commande `populate_acme` échoue depuis la
+migration 0048 (elle passe encore `description` à `SubnationalRegion`, `Sector` et
+`SubSector`, champs supprimés), ce qui fait tomber 35 tests dont le golden. Elle est
+corrigée en premier (commit séparé) pour que le golden puisse valider l'ajout de
+`type`.
 
 ### 3.5 CSS (`style.css`)
 
