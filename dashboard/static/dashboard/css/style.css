@@ -1011,64 +1011,6 @@ a.app-header__avatar {
   overflow: hidden;
 }
 
-.country-panel__tabs {
-  position: relative;
-  display: flex;
-  gap: 0;
-  margin-bottom: 14px;
-  flex-shrink: 0;
-  background: var(--color-surface-container-high);
-  border-radius: var(--radius-full);
-  padding: 3px;
-}
-
-.country-panel__tab-indicator {
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  width: 0;
-  background: var(--color-primary);
-  border-radius: var(--radius-full);
-  box-shadow: 0 2px 8px rgba(145, 69, 45, 0.35);
-  transition: left 0.34s cubic-bezier(0.4, 0, 0.2, 1),
-              width 0.34s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 0;
-  pointer-events: none;
-}
-
-.country-panel__tab {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  text-align: center;
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
-  font-size: var(--text-label-caps-size);
-  font-weight: var(--text-label-caps-weight);
-  letter-spacing: var(--text-label-caps-ls);
-  text-transform: uppercase;
-  border: none;
-  background: transparent;
-  color: var(--color-on-surface-variant);
-  cursor: pointer;
-  transition: color 0.25s;
-  white-space: nowrap;
-  line-height: 1.4;
-}
-
-.country-panel__tab:hover {
-  color: var(--color-on-surface);
-}
-
-.country-panel__tab--active {
-  color: var(--color-on-primary);
-}
-
-.country-panel__tab--active:hover {
-  color: var(--color-on-primary);
-}
-
 .country-panel__view {
   display: none;
   flex: 1;
@@ -1245,86 +1187,6 @@ a.app-header__avatar {
 
 .asset-list__sort-btn[aria-pressed="true"] .asset-list__sort-icon {
   transform: rotate(180deg);
-}
-
-/* ─── Asset exposure cards ───────────────────────────────────────────────── */
-.asset-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  border: var(--border-card);
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
-  margin-bottom: 8px;
-  background: var(--color-surface-container-lowest);
-}
-
-.asset-card__rank {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-outline);
-  min-width: 22px;
-  padding-top: 2px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.asset-card__body {
-  flex: 1;
-  min-width: 0;
-}
-
-.asset-card__top {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.asset-card__name {
-  font-size: var(--text-body-sm-size);
-  font-weight: 600;
-  color: var(--color-on-surface);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.asset-card__footprint {
-  font-size: var(--text-body-sm-size);
-  font-weight: 700;
-  color: var(--color-primary);
-  white-space: nowrap;
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.asset-card__commodities {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.asset-card__comm-tag {
-  display: inline-flex;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  font-size: 11px;
-  font-weight: 500;
-  background: var(--color-surface-container-low);
-  border: var(--border-card);
-  color: var(--color-on-surface-variant);
-}
-
-.asset-card--clickable {
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.asset-card--clickable:hover {
-  background: var(--color-surface-container-low);
-  border-color: var(--color-primary);
 }
 
 /* ─── Map asset popup ────────────────────────────────────────────────────── */
@@ -2462,7 +2324,8 @@ a.app-header__avatar {
 
 /* Liste potentiellement longue : limiter la hauteur et défiler. */
 .ll-commodity-legend .map-legend__list,
-#asset-type-legend .map-legend__list {
+#ov-mode-legend .map-legend__list,
+#ov-supply-legend .map-legend__list {
   max-height: 180px;
   overflow-y: auto;
   pointer-events: auto;
@@ -4646,15 +4509,9 @@ a.app-header__avatar {
 }
 
 .map-stage .ll-commodity-legend .map-legend__list,
-.map-stage #asset-type-legend .map-legend__list {
+.map-stage #ov-mode-legend .map-legend__list,
+.map-stage #ov-supply-legend .map-legend__list {
   max-height: 30vh;
-}
-
-/* Onglets du panneau « Exposition » (Vue d'ensemble) : ils doivent rester
-   visibles pendant que la liste défile. */
-.map-panel .country-panel__tabs {
-  flex-shrink: 0;
-  margin-bottom: 12px;
 }
 
 /* C'est .map-panel__body qui defile : les vues internes ne doivent pas
@@ -4663,17 +4520,83 @@ a.app-header__avatar {
   overflow: visible;
 }
 
-/* Les libelles complets ne tiennent pas sur une ligne dans un panneau de
-   320px : on les laisse passer a la ligne plutot que de les raccourcir. */
-.map-panel .country-panel__tab {
-  white-space: normal;
-  padding: 6px 8px;
-  letter-spacing: 0.02em;
-}
-
 /* Le tableau « Détail par actif » défile horizontalement dans le tiroir. */
 .map-drawer .pr-table-wrap {
   overflow-x: auto;
+}
+
+/* ── Modes de la Vue d'ensemble ────────────────────────────────────────────
+   Grille 2×2 fixe entre l'en-tête du panneau et son contenu défilant. */
+.ov-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-outline-variant);
+  flex-shrink: 0;
+}
+
+.ov-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-lowest);
+  color: var(--color-on-surface-variant);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.ov-mode-btn:hover:not(:disabled) {
+  border-color: var(--color-outline);
+  background: var(--color-surface-container-low);
+  color: var(--color-on-surface);
+}
+
+.ov-mode-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* L'état actif l'emporte sur le survol (même spécificité, déclaré après). */
+.ov-mode-btn.ov-mode-btn--active,
+.ov-mode-btn.ov-mode-btn--active:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.ov-mode-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ov-mode-btn__lock {
+  flex-shrink: 0;
+}
+
+/* Listes de sites du panneau : c'est .map-panel__body qui défile. */
+.ov-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Bascule verrouillée (supply chain sans connexion). */
+.map-layer-btn:disabled,
+.map-layer-btn:disabled:hover {
+  background: transparent;
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 

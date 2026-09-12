@@ -44,12 +44,12 @@
   </div>
 
   <div class="map-stage__bl">
-    <div class="map-legend" id="asset-type-legend" hidden aria-label="Légende des types d'actifs"></div>
+    <div class="map-legend" id="ov-mode-legend" hidden aria-label="Légende de la carte"></div>
   </div>
 
-  <aside class="map-panel" id="overview-panel" aria-label="Exposition">
+  <aside class="map-panel" id="overview-panel" aria-label="Panneau de la carte">
     <div class="map-panel__header">
-      <span class="label-caps map-panel__title">Exposition</span>
+      <span class="label-caps map-panel__title" id="ov-panel-title">Exposition par pays</span>
       <button type="button" class="map-panel__toggle" aria-expanded="true"
               aria-controls="overview-panel" aria-label="Réduire le panneau">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -58,25 +58,35 @@
         </svg>
       </button>
     </div>
+
+    <div class="ov-modes" role="group" aria-label="Mode d'affichage de la carte">
+      <button type="button" class="ov-mode-btn ov-mode-btn--active" data-mode="pays" aria-pressed="true">Exposition pays</button>
+      <button type="button" class="ov-mode-btn" data-mode="asset" aria-pressed="false"{% if not user.is_authenticated %} disabled title="Connexion requise"{% endif %}>
+        Exposition asset
+        {% if not user.is_authenticated %}
+        <svg class="ov-mode-btn__lock" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <rect x="2.5" y="5.5" width="7" height="5" rx="1" stroke="currentColor" stroke-width="1.2" />
+          <path d="M4 5.5V4a2 2 0 014 0v1.5" stroke="currentColor" stroke-width="1.2" />
+        </svg>
+        {% endif %}
+      </button>
+    </div>
+
     <div class="map-panel__body">
+      <p class="country-panel__empty" id="ov-status" role="status" hidden></p>
       <div class="country-panel">
-        <div class="country-panel__tabs">
-          <span class="country-panel__tab-indicator" aria-hidden="true"></span>
-          <button class="country-panel__tab country-panel__tab--active" data-tab="pays" aria-pressed="true">Exposition par pays</button>
-          <button class="country-panel__tab" data-tab="asset" aria-pressed="false">Exposition par asset</button>
-        </div>
-        <div class="country-panel__view country-panel__view--active" id="country-view">
+        <div class="country-panel__view country-panel__view--active" data-view="pays">
           <div class="country-panel__list" id="country-list">
             <p class="country-panel__empty">Sélectionnez une entreprise pour afficher l'exposition.</p>
           </div>
         </div>
-        <div class="country-panel__view" id="asset-view">
+        <div class="country-panel__view" data-view="asset">
           <div class="asset-list__toolbar" id="asset-list-toolbar" hidden>
             <select id="asset-type-filter" class="form-input asset-list__filter" aria-label="Filtrer par type d'actif">
               <option value="">Tous les types</option>
             </select>
             <button type="button" id="asset-sort-btn" class="asset-list__sort-btn" aria-pressed="false">
-              <span id="asset-sort-label">Impact décroissant</span>
+              <span id="asset-sort-label">Revenu décroissant</span>
               <svg class="asset-list__sort-icon" width="10" height="10" viewBox="0 0 14 14" fill="none"
                 aria-hidden="true">
                 <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
@@ -84,16 +94,14 @@
               </svg>
             </button>
           </div>
-          <div id="asset-list">
-            <p class="country-panel__empty">Sélectionnez une entreprise pour afficher l'exposition.</p>
-          </div>
+          <div class="ov-list" id="ov-asset-list"></div>
         </div>
       </div>
     </div>
   </aside>
 
   <button type="button" class="map-panel__reopen" aria-expanded="true" aria-controls="overview-panel"
-          aria-label="Afficher le panneau d'exposition">
+          aria-label="Afficher le panneau de la carte">
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
       <path d="M3 4.5h12M3 9h12M3 13.5h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
     </svg>
@@ -118,6 +126,13 @@
 <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js" defer></script>
 {{ companies|json_script:"companies-data" }}
 {{ initial_data|json_script:"initial-data" }}
-<script>var COMPANY_API_URL = "{% url 'dashboard:company_data' pk=0 %}".replace('0/', '');</script>
+<script>
+  var OVERVIEW_API = {
+    company: "{% url 'dashboard:company_data' pk=0 %}",
+    locate: "{% url 'dashboard:leap_locate_data' pk=0 %}"
+  };
+</script>
 <script src="{% static 'dashboard/js/map_layout.js' %}" defer></script>
+<script src="{% static 'dashboard/js/locate_view.js' %}" defer></script>
+<script src="{% static 'dashboard/js/overview.js' %}" defer></script>
 {% endblock %}

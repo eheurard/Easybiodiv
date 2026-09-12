@@ -1,4 +1,5 @@
 import json
+import re
 from unittest import mock
 from django.db import IntegrityError, transaction
 from django.test import TestCase, TransactionTestCase
@@ -3529,3 +3530,49 @@ class PortfolioPickerContextTests(TestCase):
 
     def test_page_exposes_duplicate_url(self):
         self.assertContains(self.client.get(self.url), 'PF_DUPLICATE_URL')
+
+
+class OverviewModesPageTests(TestCase):
+    """Vue d'ensemble : boutons de mode, verrouillage sans connexion, modules."""
+
+    def setUp(self):
+        self.company, *_ = _make_world()
+        self.url = reverse('dashboard:index')
+
+    def _login(self):
+        user = get_user_model().objects.create_user(username='ovuser', password='pass')
+        self.client.force_login(user)
+
+    def _html(self):
+        return self.client.get(self.url).content.decode()
+
+    def _button(self, html, marker):
+        """Balise ouvrante du <button> qui contient `marker` (ex. 'data-mode="asset"')."""
+        match = re.search(r'<button\b[^>]*%s[^>]*>' % re.escape(marker), html)
+        self.assertIsNotNone(match, f'bouton {marker} absent')
+        return match.group(0)
+
+    @staticmethod
+    def _disabled(tag):
+        return re.search(r'\sdisabled(?=[\s>=])', tag) is not None
+
+    def test_page_stays_public(self):
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+
+    def test_pays_open_and_asset_locked_for_anonymous(self):
+        html = self._html()
+        self.assertFalse(self._disabled(self._button(html, 'data-mode="pays"')))
+        asset = self._button(html, 'data-mode="asset"')
+        self.assertTrue(self._disabled(asset))
+        self.assertIn('title="Connexion requise"', asset)
+
+    def test_asset_enabled_when_authenticated(self):
+        self._login()
+        self.assertFalse(self._disabled(self._button(self._html(), 'data-mode="asset"')))
+
+    def test_exposes_api_urls_and_modules(self):
+        html = self._html()
+        for name in ('dashboard:company_data', 'dashboard:leap_locate_data'):
+            self.assertIn('"%s"' % reverse(name, kwargs={'pk': 0}), html)
+        for script in ('locate_view.js', 'overview.js'):
+            self.assertIn(f'dashboard/js/{script}', html)
