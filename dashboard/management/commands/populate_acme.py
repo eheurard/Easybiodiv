@@ -69,7 +69,6 @@ class Command(BaseCommand):
             name="Bretagne",
             country=france,
             defaults={
-                "description": "Région nord-ouest, industrie agroalimentaire dense",
                 "restoration_cost_m2": 50.0,
                 "Mean_X": -2.80,
                 "Mean_Y": 48.10,
@@ -80,7 +79,6 @@ class Command(BaseCommand):
             name="Occitanie",
             country=france,
             defaults={
-                "description": "Région sud, grandes cultures céréalières",
                 "restoration_cost_m2": 42.0,
                 "Mean_X": 2.35,
                 "Mean_Y": 43.60,
@@ -91,7 +89,6 @@ class Command(BaseCommand):
             name="Mato Grosso",
             country=brazil,
             defaults={
-                "description": "État de la frontière agricole du soja, Cerrado",
                 "restoration_cost_m2": 30.0,
                 "Mean_X": -55.00,
                 "Mean_Y": -12.50,
@@ -102,7 +99,6 @@ class Command(BaseCommand):
             name="Pará",
             country=brazil,
             defaults={
-                "description": "État amazonien à fort risque de déforestation",
                 "restoration_cost_m2": 35.0,
                 "Mean_X": -51.00,
                 "Mean_Y": -3.80,
@@ -113,7 +109,6 @@ class Command(BaseCommand):
             name="Sumatra",
             country=indonesia,
             defaults={
-                "description": "Île principale de la production d'huile de palme",
                 "restoration_cost_m2": 25.0,
                 "Mean_X": 102.00,
                 "Mean_Y": 0.50,
@@ -124,12 +119,12 @@ class Command(BaseCommand):
 
         sector_agri, _ = Sector.objects.get_or_create(
             name="Agriculture",
-            defaults={"NACE_code": "A01", "description": "Production végétale et animale"},
+            defaults={"NACE_code": "A01"},
         )
 
         sector_food, _ = Sector.objects.get_or_create(
             name="Industrie alimentaire",
-            defaults={"NACE_code": "C10", "description": "Transformation des produits alimentaires"},
+            defaults={"NACE_code": "C10"},
         )
 
         ss_cereales, _ = SubSector.objects.get_or_create(
@@ -137,7 +132,6 @@ class Command(BaseCommand):
             defaults={
                 "sector": sector_agri,
                 "NACE_code": "A01.1",
-                "description": "Blé, maïs, colza",
                 "Water_dependency": "H",
                 "Pollination_dependency": "M",
                 "Soil_quality_dependency": "VH",
@@ -152,7 +146,6 @@ class Command(BaseCommand):
             defaults={
                 "sector": sector_agri,
                 "NACE_code": "A01.2",
-                "description": "Soja, palmier à huile",
                 "Water_dependency": "VH",
                 "Pollination_dependency": "H",
                 "Soil_quality_dependency": "VH",
@@ -167,7 +160,6 @@ class Command(BaseCommand):
             defaults={
                 "sector": sector_food,
                 "NACE_code": "C10.4",
-                "description": "Raffinage et conditionnement d'huiles",
                 "Water_dependency": "M",
                 "Pollination_dependency": "VL",
                 "Soil_quality_dependency": "L",
