@@ -56,24 +56,7 @@
     </div>
     <div class="map-panel__body">
 
-      <div class="kpi-row">
-        <div class="kpi-card">
-          <div class="kpi-card__value data-tabular" id="de-total-lbiodiv">—</div>
-          <div class="kpi-card__label label-caps">Lbiodiv total</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-card__value data-tabular" id="de-year">—</div>
-          <div class="kpi-card__label label-caps">Année de référence</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-card__value data-tabular" id="de-point-count">—</div>
-          <div class="kpi-card__label label-caps" id="de-point-count-label">Assets</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-card__value data-tabular" id="de-top-commodity">—</div>
-          <div class="kpi-card__label label-caps">Top commodité</div>
-        </div>
-      </div>
+      {% include "dashboard/_de_kpis.html" %}
 
       <div class="de-toggle-row">
         <span class="label-caps de-toggle-label">Regrouper par :</span>
@@ -105,5 +88,7 @@
 <script>var DE_API_URL = "{% url 'dashboard:dette_ecologique_data' pk=0 %}";</script>
 <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js" defer></script>
 <script src="{% static 'dashboard/js/map_layout.js' %}" defer></script>
+<script src="{% static 'dashboard/js/pie_markers.js' %}" defer></script>
+<script src="{% static 'dashboard/js/dette_view.js' %}" defer></script>
 <script src="{% static 'dashboard/js/dette_ecologique.js' %}" defer></script>
 {% endblock %}

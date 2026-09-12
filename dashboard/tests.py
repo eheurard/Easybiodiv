@@ -1229,6 +1229,14 @@ class DetteEcologiqueViewTests(TestCase):
         response = self.client.get(reverse('dashboard:dette_ecologique'))
         self.assertEqual(response.status_code, 200)
 
+    def test_dette_page_uses_kpi_fragment_and_modules(self):
+        response = self.client.get(reverse('dashboard:dette_ecologique'))
+        self.assertTemplateUsed(response, 'dashboard/_de_kpis.html')
+        html = response.content.decode()
+        self.assertIn('id="de-total-lbiodiv"', html)
+        self.assertIn('dashboard/js/pie_markers.js', html)
+        self.assertIn('dashboard/js/dette_view.js', html)
+
 
 class E4ModelTests(TestCase):
 
