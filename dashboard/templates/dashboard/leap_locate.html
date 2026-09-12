@@ -98,5 +98,6 @@
 {{ companies|json_script:"companies-data" }}
 {{ initial_data|json_script:"initial-data" }}
 <script>var LEAP_LOCATE_API_URL = "{% url 'dashboard:leap_locate_data' pk=0 %}";</script>
+<script src="{% static 'dashboard/js/locate_view.js' %}" defer></script>
 <script src="{% static 'dashboard/js/leap_locate.js' %}" defer></script>
 {% endblock %}

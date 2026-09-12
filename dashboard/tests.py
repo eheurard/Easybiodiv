@@ -1908,6 +1908,10 @@ class LeapPagesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'dashboard/leap_locate.html')
 
+    def test_locate_page_loads_locate_view_module(self):
+        response = self.client.get(reverse('dashboard:leap_locate'))
+        self.assertContains(response, 'dashboard/js/locate_view.js')
+
     def test_evaluate_page_200(self):
         response = self.client.get(reverse('dashboard:leap_evaluate'))
         self.assertEqual(response.status_code, 200)
