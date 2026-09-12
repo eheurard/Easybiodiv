@@ -859,6 +859,15 @@ class PhysicalRiskPageViewTests(TestCase):
         response = self.client.post(url)
         self.assertEqual(response.status_code, 405)
 
+    def test_page_uses_shared_fragments_and_module(self):
+        response = self.client.get(reverse('dashboard:physical_risk'))
+        self.assertTemplateUsed(response, 'dashboard/_pr_panel.html')
+        self.assertTemplateUsed(response, 'dashboard/_pr_detail_drawer.html')
+        html = response.content.decode()
+        for element_id in ('pr-ranking', 'pr-table-body', 'pr-annual-loss'):
+            self.assertIn(f'id="{element_id}"', html)
+        self.assertIn('dashboard/js/physical_risk_view.js', html)
+
 
 class LeapEvaluateDataTests(TestCase):
 

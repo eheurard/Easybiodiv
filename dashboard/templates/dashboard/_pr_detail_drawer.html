@@ -1,0 +1,32 @@
+{% comment %}
+Tiroir « Détail par actif » du risque physique, piloté par
+physical_risk_view.js. Paramètres d'inclusion optionnels : section_id
+(identifiant de la section) et start_hidden (masqué au chargement, pour la
+Vue d'ensemble hors mode risque).
+{% endcomment %}
+<section class="map-drawer"{% if section_id %} id="{{ section_id }}"{% endif %}{% if start_hidden %} hidden{% endif %} aria-label="Détail par actif">
+  <button type="button" class="map-drawer__handle" aria-expanded="false" aria-controls="pr-drawer-body">
+    <span class="label-caps">Détail par actif</span>
+    <span class="pr-table-card__hazard" id="pr-selected-hazard">—</span>
+    <svg class="map-drawer__chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M4 10l4-4 4 4" stroke="currentColor" stroke-width="1.6"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+  <div class="map-drawer__body" id="pr-drawer-body">
+    <div class="pr-table-wrap">
+      <table class="pr-table">
+        <thead>
+          <tr>
+            <th>Actif</th>
+            <th>Hazard (%)</th>
+            <th>Exposition</th>
+            <th>Vulnérabilité (%)</th>
+            <th>Risk</th>
+          </tr>
+        </thead>
+        <tbody id="pr-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</section>

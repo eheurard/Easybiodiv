@@ -7,27 +7,9 @@ const PR_STATE = {
   map: null,
 };
 
-const PR_BAND_COLORS = {
-  Low:      '#dac1ba',
-  Moderate: '#feb87c',
-  High:     '#af5d43',
-  Critical: '#91452d',
-};
-
-function prBand(score) {
-  if (score >= 0.7) return 'Critical';
-  if (score >= 0.5) return 'High';
-  if (score >= 0.2) return 'Moderate';
-  return 'Low';
-}
-
-function prFmtEuro(v) {
-  return Math.round(v).toLocaleString('fr-FR') + ' €';
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   const companiesEl = document.getElementById('companies-data');
-  if (!companiesEl) return;
+  if (!companiesEl || !document.getElementById('pr-map')) return;
 
   const companies = JSON.parse(companiesEl.textContent);
   const initialDataEl = document.getElementById('initial-data');
@@ -109,164 +91,31 @@ function prInitCombobox(companies, initialData) {
 
 // ── Horizon toggle (5 / 10 years) ──────────────────────────────────────────
 function prInitHorizon() {
-  const group = document.querySelector('.pr-horizon');
-  if (!group) return;
-  group.addEventListener('click', (e) => {
-    const btn = e.target.closest('.pr-horizon__btn');
-    if (!btn) return;
-    PR_STATE.horizon = parseInt(btn.dataset.years, 10);
-    group.querySelectorAll('.pr-horizon__btn').forEach(b => {
-      const active = b === btn;
-      b.classList.toggle('active', active);
-      b.setAttribute('aria-pressed', String(active));
-    });
-    prRenderLoss();
+  PhysicalRiskView.bindHorizon(document.querySelector('.pr-horizon'), (years) => {
+    PR_STATE.horizon = years;
+    PhysicalRiskView.renderLoss(PR_STATE.data, PR_STATE.horizon);
   });
 }
 
 
 // ── Top-level render ───────────────────────────────────────────────────────
+// KPI, classement, tableau, geojson et popup vivent dans physical_risk_view.js,
+// partagé avec la Vue d'ensemble.
 function prRender(data) {
   PR_STATE.data = data;
   PR_STATE.selectedKey = data.hazards && data.hazards.length ? data.hazards[0].key : null;
-  prRenderKpis(data);
-  prRenderRanking(data);
+  PhysicalRiskView.renderKpis(data, PR_STATE.horizon);
+  PhysicalRiskView.renderRanking(data, PR_STATE.selectedKey, prSelectHazard);
   prSyncMapData();
-  prRenderTable();
+  PhysicalRiskView.renderTable(data, PR_STATE.selectedKey);
 }
 
-function prRenderKpis(data) {
-  const highRisk = document.getElementById('pr-high-risk');
-  if (highRisk) highRisk.textContent = data.kpis.assets_high_risk;
-  const avgVuln = document.getElementById('pr-avg-vuln');
-  if (avgVuln) {
-    const av = data.kpis.avg_vulnerability;
-    avgVuln.textContent = av != null ? (av * 100).toFixed(1) + '%' : '—';
-  }
-  prRenderLoss();
-}
-
-function prRenderLoss() {
-  const el = document.getElementById('pr-annual-loss');
-  if (!el || !PR_STATE.data) return;
-  const loss = PR_STATE.data.kpis.annual_loss;
-  el.textContent = loss != null ? prFmtEuro(loss * PR_STATE.horizon) : '—';
-}
-
-
-// ── Ranking (doubles as hazard selector) ───────────────────────────────────
-function prRenderRanking(data) {
-  const container = document.getElementById('pr-ranking');
-  if (!container) return;
-  if (!data.hazards || data.hazards.length === 0) {
-    container.innerHTML = '<p class="pr-empty">Aucune donnée disponible.</p>';
-    return;
-  }
-  const maxRisk = data.hazards.reduce((m, h) => h.avg_risk > m ? h.avg_risk : m, 0) || 1;
-  container.innerHTML = data.hazards.map(h => {
-    const pct = (h.avg_risk / maxRisk) * 100;
-    const isSel = h.key === PR_STATE.selectedKey;
-    const sel = isSel ? ' pr-rank-row--selected' : '';
-    return `
-      <button type="button"
-        class="pr-rank-row${sel}"
-        data-key="${h.key}"
-        aria-pressed="${isSel}">
-        <span class="pr-rank-row__name">${escHtml(h.name)}</span>
-        <span class="pr-rank-row__track">
-          <span class="pr-rank-row__fill" style="width:${pct.toFixed(1)}%"></span>
-        </span>
-        <span class="pr-rank-row__val data-tabular">${prFmtEuro(h.avg_risk)}</span>
-      </button>`;
-  }).join('');
-
-  container.querySelectorAll('.pr-rank-row').forEach(row => {
-    row.addEventListener('click', () => prSelectHazard(row.dataset.key));
-  });
-}
-
+// Le classement sert de sélecteur d'aléa : carte et tableau suivent.
 function prSelectHazard(key) {
   PR_STATE.selectedKey = key;
-  const container = document.getElementById('pr-ranking');
-  if (container) {
-    container.querySelectorAll('.pr-rank-row').forEach(row => {
-      const active = row.dataset.key === key;
-      row.classList.toggle('pr-rank-row--selected', active);
-      row.setAttribute('aria-pressed', String(active));
-    });
-  }
+  PhysicalRiskView.markSelected(key);
   prSyncMapData();
-  prRenderTable();
-}
-
-function prCurrentHazard() {
-  if (!PR_STATE.data || !PR_STATE.selectedKey) return null;
-  return PR_STATE.data.hazards.find(h => h.key === PR_STATE.selectedKey) || null;
-}
-
-
-// ── Table (reactive to selected hazard) ────────────────────────────────────
-function prRenderTable() {
-  const body = document.getElementById('pr-table-body');
-  const hazardLabel = document.getElementById('pr-selected-hazard');
-  if (!body) return;
-
-  const hazard = prCurrentHazard();
-  if (hazardLabel) hazardLabel.textContent = hazard ? hazard.name : '—';
-
-  const data = PR_STATE.data;
-  if (!data || !hazard || data.assets.length === 0) {
-    body.innerHTML = '<tr><td colspan="5" class="pr-empty">Aucun actif.</td></tr>';
-    return;
-  }
-
-  const key = hazard.key;
-  const vuln = hazard.vulnerability != null ? hazard.vulnerability : 0;
-  const rows = data.assets.map(a => {
-    const hz = a.risk[key] || 0;
-    const risk = hz * a.exposition * vuln;
-    return { name: a.name, hz: hz, expo: a.exposition, risk: risk,
-             inventory: a.inventory || [] };
-  }).sort((x, y) => y.risk - x.risk);
-
-  const detail = hazard.vulnerability_detail || [];
-  const detailRows = detail.length
-    ? detail.map(d =>
-        `<span class="pr-vuln-tooltip__row">
-          <span class="pr-vuln-tooltip__policy">${escHtml(d.policy)}</span>
-          <span class="pr-vuln-tooltip__val">${(d.value * 100).toFixed(1)}%</span>
-        </span>`
-      ).join('')
-    : '<span class="pr-vuln-tooltip__note">Aucune politique renseignée</span>';
-
-  body.innerHTML = rows.map(r => {
-    const tooltip = `
-      <span class="pr-vuln-tooltip" role="tooltip">
-        <span class="pr-vuln-tooltip__title">Détail de la vulnérabilité</span>
-        ${detailRows}
-        <span class="pr-vuln-tooltip__result">Moyenne : ${(vuln * 100).toFixed(1)}%</span>
-      </span>`;
-    const invRows = r.inventory.map(e =>
-      `<span class="pr-vuln-tooltip__row">
-        <span class="pr-vuln-tooltip__policy">${escHtml(e.name)}</span>
-        <span class="pr-vuln-tooltip__val">${e.value.toLocaleString('fr-FR')} ${escHtml(e.unit)}</span>
-      </span>`).join('');
-    const nameCell = r.inventory.length
-      ? `<td class="pr-table__asset pr-table__asset--has-inv">${escHtml(r.name)}
-          <span class="pr-inv-tooltip" role="tooltip">
-            <span class="pr-vuln-tooltip__title">Inventaire mesuré</span>
-            ${invRows}
-          </span></td>`
-      : `<td>${escHtml(r.name)}</td>`;
-    return `
-    <tr>
-      ${nameCell}
-      <td class="data-tabular">${(r.hz * 100).toFixed(1)}%</td>
-      <td class="data-tabular">${prFmtEuro(r.expo)}</td>
-      <td class="data-tabular pr-table__vuln">${(vuln * 100).toFixed(1)}%${tooltip}</td>
-      <td class="data-tabular pr-table__risk">${prFmtEuro(r.risk)}</td>
-    </tr>`;
-  }).join('');
+  PhysicalRiskView.renderTable(PR_STATE.data, key);
 }
 
 
@@ -286,15 +135,9 @@ function prInitMap() {
     prAddSourceAndLayer(map);
 
     map.on('click', 'pr-assets-layer', (e) => {
-      const p = e.features[0].properties;
       new maplibregl.Popup()
         .setLngLat(e.lngLat)
-        .setHTML(
-          `<strong>${escHtml(p.name)}</strong><br>` +
-          `${escHtml(p.hazardName)} : ${(Number(p.hazard) * 100).toFixed(1)}%<br>` +
-          `Exposition : ${prFmtEuro(Number(p.exposition))}<br>` +
-          `Risk : ${prFmtEuro(Number(p.risk))}`
-        )
+        .setHTML(PhysicalRiskView.popupHtml(e.features[0].properties))
         .addTo(map);
     });
     map.on('mouseenter', 'pr-assets-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
@@ -351,34 +194,7 @@ document.addEventListener('themechange', () => {
 });
 
 function prBuildGeojson() {
-  const data = PR_STATE.data;
-  const hazard = prCurrentHazard();
-  if (!data || !hazard) return { type: 'FeatureCollection', features: [] };
-
-  const key = hazard.key;
-  const vuln = hazard.vulnerability;
-  const risks = data.assets.map(a => (a.risk[key] || 0) * a.exposition * vuln);
-  const maxRisk = risks.reduce((m, v) => v > m ? v : m, 0) || 1;
-
-  const features = data.assets.map((a, i) => {
-    const hz = a.risk[key] || 0;
-    const risk = risks[i];
-    const radius = 6 + 18 * (risk / maxRisk);
-    return {
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [a.longitude, a.latitude] },
-      properties: {
-        name: a.name,
-        hazardName: hazard.name,
-        hazard: hz,
-        exposition: a.exposition,
-        risk: risk,
-        radius: radius,
-        color: PR_BAND_COLORS[prBand(hz)],
-      },
-    };
-  });
-  return { type: 'FeatureCollection', features: features };
+  return PhysicalRiskView.buildGeojson(PR_STATE.data, PR_STATE.selectedKey);
 }
 
 function prSyncMapData() {

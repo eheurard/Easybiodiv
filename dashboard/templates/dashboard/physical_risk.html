@@ -60,30 +60,7 @@
       </button>
     </div>
     <div class="map-panel__body">
-
-      <div class="kpi-row">
-        <div class="kpi-card">
-          <div class="kpi-card__value data-tabular" id="pr-high-risk">—</div>
-          <div class="kpi-card__label label-caps">Actifs à risque élevé</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-card__value data-tabular" id="pr-avg-vuln">—</div>
-          <div class="kpi-card__label label-caps">Vulnérabilité moyenne</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-card__value data-tabular" id="pr-annual-loss">—</div>
-          <div class="kpi-card__label label-caps">Perte projetée</div>
-          <div class="pr-horizon" role="group" aria-label="Horizon de projection">
-            <button type="button" class="pr-horizon__btn active" data-years="5" aria-pressed="true">5 ans</button>
-            <button type="button" class="pr-horizon__btn" data-years="10" aria-pressed="false">10 ans</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="pr-ranking" class="pr-ranking-list">
-        <p class="pr-empty">Sélectionnez une entreprise.</p>
-      </div>
-
+      {% include "dashboard/_pr_panel.html" %}
     </div>
   </aside>
 
@@ -94,32 +71,7 @@
     </svg>
   </button>
 
-  <section class="map-drawer" aria-label="Détail par actif">
-    <button type="button" class="map-drawer__handle" aria-expanded="false" aria-controls="pr-drawer-body">
-      <span class="label-caps">Détail par actif</span>
-      <span class="pr-table-card__hazard" id="pr-selected-hazard">—</span>
-      <svg class="map-drawer__chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M4 10l4-4 4 4" stroke="currentColor" stroke-width="1.6"
-              stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-    <div class="map-drawer__body" id="pr-drawer-body">
-      <div class="pr-table-wrap">
-        <table class="pr-table">
-          <thead>
-            <tr>
-              <th>Actif</th>
-              <th>Hazard (%)</th>
-              <th>Exposition</th>
-              <th>Vulnérabilité (%)</th>
-              <th>Risk</th>
-            </tr>
-          </thead>
-          <tbody id="pr-table-body"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
+  {% include "dashboard/_pr_detail_drawer.html" %}
 </div>
 {% endblock %}
 
@@ -129,5 +81,6 @@
 {{ initial_data|json_script:"initial-data" }}
 <script>var PHYSICAL_RISK_API_URL = "{% url 'dashboard:physical_risk_data' pk=0 %}";</script>
 <script src="{% static 'dashboard/js/map_layout.js' %}" defer></script>
+<script src="{% static 'dashboard/js/physical_risk_view.js' %}" defer></script>
 <script src="{% static 'dashboard/js/physical_risk.js' %}" defer></script>
 {% endblock %}
