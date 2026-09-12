@@ -3,34 +3,9 @@ const LL_COMPANY_KEY = 'selected-company-id'; // partagé entre pages risques
 const LL_STATE = {
   data: null,
   map: null,
-  suppliersVisible: false, // état de la bascule "Fournisseurs"
-  supplierLinks: [],       // courbes de Bézier mises en cache pour l'animation
-  animFrame: null,         // id requestAnimationFrame de l'animation des flèches
-  bound: false,            // évènements fournisseurs déjà liés à la carte ?
+  supply: null,        // instance SupplyChain (courbes, flèches, fournisseurs)
+  assetsBound: false,  // évènements de la couche assets déjà liés ?
 };
-
-const LL_SUPPLIER_COLOR = '#1f6f5c'; // teal, couleur par défaut / repli
-
-// Palette catégorielle pour distinguer les commodités sur les flèches/courbes.
-const LL_COMMODITY_PALETTE = [
-  '#1f6f5c', '#c2603f', '#e0a83c', '#4f7cac', '#8a5a9e',
-  '#6b8f3d', '#cf5d8a', '#3d9fa3', '#b5793b', '#7a6cc4',
-];
-
-// Nom d'image MapLibre déterministe pour une couleur donnée.
-function llArrowImageName(color) { return 'll-arrow-' + color.replace('#', ''); }
-
-// Construit la table commodité -> couleur (ordre alphabétique = stable).
-function llBuildCommodityColors() {
-  const links = (LL_STATE.data && LL_STATE.data.supplier_links
-    && LL_STATE.data.supplier_links.features) || [];
-  const names = Array.from(
-    new Set(links.map(f => f.properties && f.properties.commodity).filter(Boolean))
-  ).sort();
-  const map = {};
-  names.forEach((n, i) => { map[n] = LL_COMMODITY_PALETTE[i % LL_COMMODITY_PALETTE.length]; });
-  return map;
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   const companiesEl = document.getElementById('companies-data');
@@ -137,28 +112,28 @@ function llInitStyleToggle() {
       const map = LL_STATE.map;
       if (!map) return;
       llApplyStyle(map, mapStyleFor(btn.dataset.layer));
-      // isStyleLoaded() n'est pas fiable juste après setStyle : pour un style
-      // chargé par URL (classique/gris) il renvoie encore « true » pour
-      // l'ANCIEN style, puis le nouveau style se charge et efface nos sources.
-      // « idle » est le seul signal fiable (nouveau style + tuiles prêts), mais
-      // il ne se déclenche jamais tant que l'animation des flèches tourne : on
-      // la stoppe le temps du rechargement, puis on reconstruit et on relance.
     });
   });
 }
 
 // Rejoue un fond de carte puis reconstruit toutes nos couches. Partage entre
 // le selecteur de fond et la bascule jour/nuit.
+// isStyleLoaded() n'est pas fiable juste après setStyle : pour un style chargé
+// par URL (classique/gris) il renvoie encore « true » pour l'ANCIEN style.
+// « idle » est le seul signal fiable (nouveau style + tuiles prêts), mais il ne
+// se déclenche jamais tant que l'animation des flèches tourne : on la stoppe le
+// temps du rechargement, puis on reconstruit et on relance.
 function llApplyStyle(map, style) {
-  const wasAnimating = LL_STATE.suppliersVisible;
-  llStopArrowAnim();
+  const supply = LL_STATE.supply;
+  if (supply) supply.stop();
   map.setStyle(style);
   map.once('idle', () => {
     llAddSourceAndLayer(map);
     llSyncMapData();           // repeupler les assets avant les fournisseurs
-    llAddSupplierLayers(map);
-    llSyncSupplierData();
-    if (wasAnimating) llStartArrowAnim();
+    if (supply) {
+      supply.addLayers('ll-assets-layer');
+      supply.resume();
+    }
   });
 }
 
@@ -218,13 +193,17 @@ function llInitMap() {
     center: [0, 20],
     zoom: 1.5,
   });
+  LL_STATE.supply = SupplyChain.create(map, {
+    legend: {
+      box: document.getElementById('ll-commodity-legend'),
+      list: document.getElementById('ll-commodity-legend-list'),
+    },
+  });
   map.on('load', () => {
     llAddSourceAndLayer(map);
-    llAddSupplierLayers(map);
-    llBindSupplierEvents(map);
+    LL_STATE.supply.addLayers('ll-assets-layer');
     if (window._llPending) { map.getSource('ll-assets').setData(window._llPending); window._llPending = null; }
-    llSyncSupplierData();
-    if (LL_STATE.suppliersVisible) llStartArrowAnim();
+    LL_STATE.supply.resume();
   });
   return map;
 }
@@ -247,7 +226,7 @@ function llSyncMapData() {
 function llRender(data) {
   LL_STATE.data = data;
   llSyncMapData();
-  llSyncSupplierData();
+  if (LL_STATE.supply) LL_STATE.supply.setData(data);
   llRenderList();
 }
 
@@ -272,280 +251,17 @@ function llRenderList() {
   });
 }
 
-/* ───────────────────────── Fournisseurs ──────────────────────────────────
- * Chaque lien fournisseur → asset est dessiné comme une courbe de Bézier
- * quadratique. De petites flèches glissent le long de la courbe (du
- * fournisseur vers l'asset) via une boucle requestAnimationFrame qui met à
- * jour une source GeoJSON de points orientés.
- * ------------------------------------------------------------------------ */
-
-const LL_ARROWS_PER_LINK = 4; // nombre de flèches simultanées sur chaque courbe
-const LL_ARROW_SPEED = 0.006; // progression de la phase par frame (boucle 0→1)
-const LL_CURVE_BOW = 0.18;    // amplitude de la courbure (0 = ligne droite)
-const LL_CURVE_SAMPLES = 48;  // points échantillonnés pour tracer la courbe
-
-// Point de contrôle : milieu décalé perpendiculairement au segment.
-function llControl(p0, p1) {
-  const mx = (p0[0] + p1[0]) / 2;
-  const my = (p0[1] + p1[1]) / 2;
-  const dx = p1[0] - p0[0];
-  const dy = p1[1] - p0[1];
-  // Vecteur perpendiculaire (-dy, dx) → courbure constante du même côté.
-  return [mx - dy * LL_CURVE_BOW, my + dx * LL_CURVE_BOW];
-}
-
-function llBez(p0, c, p1, t) {
-  const u = 1 - t;
-  return [
-    u * u * p0[0] + 2 * u * t * c[0] + t * t * p1[0],
-    u * u * p0[1] + 2 * u * t * c[1] + t * t * p1[1],
-  ];
-}
-
-function llBezTangent(p0, c, p1, t) {
-  const u = 1 - t;
-  return [
-    2 * u * (c[0] - p0[0]) + 2 * t * (p1[0] - c[0]),
-    2 * u * (c[1] - p0[1]) + 2 * t * (p1[1] - c[1]),
-  ];
-}
-
-// Cap (degrés, sens horaire depuis le nord) pour orienter l'icône flèche.
-function llBearing(tan, lat) {
-  const dx = tan[0] * Math.cos(lat * Math.PI / 180); // compression des longitudes
-  const dy = tan[1];
-  return Math.atan2(dx, dy) * 180 / Math.PI;
-}
-
-// Icône flèche dessinée sur un canvas, pointant vers le haut (= nord).
-function llArrowImage(color) {
-  const size = 18;
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = color || LL_SUPPLIER_COLOR;
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-  ctx.lineWidth = 1.3;
-  ctx.beginPath();
-  ctx.moveTo(size / 2, 2);          // pointe (haut)
-  ctx.lineTo(size - 3, size - 4);   // aile droite
-  ctx.lineTo(size / 2, size - 7);   // encoche
-  ctx.lineTo(3, size - 4);          // aile gauche
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  return ctx.getImageData(0, 0, size, size);
-}
-
-// (Ré)enregistre une icône flèche par couleur de commodité + l'icône par défaut.
-function llEnsureArrowImages(map, colorMap) {
-  const colors = new Set(Object.values(colorMap || {}));
-  colors.add(LL_SUPPLIER_COLOR);
-  colors.forEach((col) => {
-    const name = llArrowImageName(col);
-    if (!map.hasImage(name)) map.addImage(name, llArrowImage(col));
-  });
-}
-
-function llAddSupplierLayers(map) {
-  if (!map.hasImage('ll-arrow')) map.addImage('ll-arrow', llArrowImage(LL_SUPPLIER_COLOR));
-  llEnsureArrowImages(map, LL_STATE.commodityColors);
-  const vis = LL_STATE.suppliersVisible ? 'visible' : 'none';
-  const empty = { type: 'FeatureCollection', features: [] };
-
-  if (!map.getSource('ll-supplier-lines')) {
-    map.addSource('ll-supplier-lines', { type: 'geojson', data: empty });
-  }
-  if (!map.getSource('ll-supplier-arrows')) {
-    map.addSource('ll-supplier-arrows', { type: 'geojson', data: empty });
-  }
-  if (!map.getSource('ll-suppliers')) {
-    map.addSource('ll-suppliers', { type: 'geojson', data: empty });
-  }
-
-  // Les courbes passent sous les marqueurs d'assets ; flèches et points au-dessus.
-  const belowAssets = map.getLayer('ll-assets-layer') ? 'll-assets-layer' : undefined;
-  if (!map.getLayer('ll-supplier-lines-layer')) {
-    map.addLayer({
-      id: 'll-supplier-lines-layer',
-      type: 'line',
-      source: 'll-supplier-lines',
-      layout: { 'line-cap': 'round', 'line-join': 'round', visibility: vis },
-      paint: {
-        'line-color': ['coalesce', ['get', 'color'], LL_SUPPLIER_COLOR],
-        'line-width': 1.6,
-        'line-opacity': 0.4,
-        'line-dasharray': [2, 2],
-      },
-    }, belowAssets);
-  }
-  if (!map.getLayer('ll-supplier-arrows-layer')) {
-    map.addLayer({
-      id: 'll-supplier-arrows-layer',
-      type: 'symbol',
-      source: 'll-supplier-arrows',
-      layout: {
-        'icon-image': ['coalesce', ['get', 'icon'], 'll-arrow'],
-        'icon-size': 0.85,
-        'icon-rotate': ['get', 'bearing'],
-        'icon-rotation-alignment': 'map',
-        'icon-allow-overlap': true,
-        'icon-ignore-placement': true,
-        visibility: vis,
-      },
-    });
-  }
-  if (!map.getLayer('ll-suppliers-layer')) {
-    map.addLayer({
-      id: 'll-suppliers-layer',
-      type: 'circle',
-      source: 'll-suppliers',
-      layout: { visibility: vis },
-      paint: {
-        'circle-radius': 5.5,
-        'circle-color': LL_SUPPLIER_COLOR,
-        'circle-opacity': 0.9,
-        'circle-stroke-width': 1.5,
-        'circle-stroke-color': '#ffffff',
-      },
-    });
-  }
-}
-
-function llBindSupplierEvents(map) {
-  if (LL_STATE.bound) return;
-  LL_STATE.bound = true;
-  map.on('click', 'll-suppliers-layer', (e) => {
-    const p = e.features[0].properties;
-    let comms = p.commodities;
-    if (typeof comms === 'string') { try { comms = JSON.parse(comms); } catch (_) { comms = []; } }
-    comms = comms || [];
-    const list = comms.length
-      ? `<div class="ll-popup__prods">${comms.map(c =>
-          `<span class="ll-prod"><span class="ll-prod__name">${escHtml(c)}</span></span>`).join('')}</div>`
-      : '';
-    new maplibregl.Popup({ maxWidth: '260px' })
-      .setLngLat(e.lngLat)
-      .setHTML(
-        `<div class="ll-popup"><strong>${escHtml(p.name)}</strong>` +
-        `<div class="ll-popup__meta">${escHtml(p.country || '')}</div>` +
-        `<div class="ll-popup__row">Fournisseur</div>${list}</div>`
-      )
-      .addTo(map);
-  });
-  map.on('mouseenter', 'll-suppliers-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
-  map.on('mouseleave', 'll-suppliers-layer', () => { map.getCanvas().style.cursor = ''; });
-}
-
-// Recalcule courbes + points fournisseurs depuis LL_STATE.data.
-function llSyncSupplierData() {
-  const map = LL_STATE.map;
-  const data = LL_STATE.data;
-  if (!map) return;
-
-  LL_STATE.commodityColors = llBuildCommodityColors();
-  llEnsureArrowImages(map, LL_STATE.commodityColors);
-
-  const linkFeats = (data && data.supplier_links && data.supplier_links.features) || [];
-  const links = [];
-  const lineFeats = [];
-  linkFeats.forEach(f => {
-    const [p0, p1] = f.geometry.coordinates;
-    const c = llControl(p0, p1);
-    const commodity = f.properties && f.properties.commodity;
-    const color = LL_STATE.commodityColors[commodity] || LL_SUPPLIER_COLOR;
-    links.push({ p0: p0, c: c, p1: p1, icon: llArrowImageName(color) });
-    const pts = [];
-    for (let i = 0; i <= LL_CURVE_SAMPLES; i++) pts.push(llBez(p0, c, p1, i / LL_CURVE_SAMPLES));
-    lineFeats.push({
-      type: 'Feature',
-      geometry: { type: 'LineString', coordinates: pts },
-      properties: { color: color },
-    });
-  });
-  LL_STATE.supplierLinks = links;
-  llRenderCommodityLegend();
-
-  if (map.getSource('ll-supplier-lines')) {
-    map.getSource('ll-supplier-lines').setData({ type: 'FeatureCollection', features: lineFeats });
-  }
-  const supFeats = (data && data.suppliers && data.suppliers.features) || [];
-  if (map.getSource('ll-suppliers')) {
-    map.getSource('ll-suppliers').setData({ type: 'FeatureCollection', features: supFeats });
-  }
-  // Si l'animation tourne mais qu'il n'y a plus de lien, la source se vide.
-  if (LL_STATE.suppliersVisible) llUpdateArrows(LL_STATE.animPhase || 0);
-}
-
-function llUpdateArrows(phase) {
-  const map = LL_STATE.map;
-  if (!map) return;
-  const src = map.getSource('ll-supplier-arrows');
-  if (!src) return;
-  const feats = [];
-  LL_STATE.supplierLinks.forEach(l => {
-    for (let k = 0; k < LL_ARROWS_PER_LINK; k++) {
-      const t = (phase + k / LL_ARROWS_PER_LINK) % 1;
-      const pos = llBez(l.p0, l.c, l.p1, t);
-      const tan = llBezTangent(l.p0, l.c, l.p1, t);
-      feats.push({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: pos },
-        properties: { bearing: llBearing(tan, pos[1]), icon: l.icon },
-      });
-    }
-  });
-  src.setData({ type: 'FeatureCollection', features: feats });
-}
-
-function llStartArrowAnim() {
-  if (LL_STATE.animFrame) return;
-  const step = () => {
-    LL_STATE.animPhase = ((LL_STATE.animPhase || 0) + LL_ARROW_SPEED) % 1;
-    llUpdateArrows(LL_STATE.animPhase);
-    LL_STATE.animFrame = requestAnimationFrame(step);
-  };
-  LL_STATE.animFrame = requestAnimationFrame(step);
-}
-
-function llStopArrowAnim() {
-  if (LL_STATE.animFrame) cancelAnimationFrame(LL_STATE.animFrame);
-  LL_STATE.animFrame = null;
-}
-
-function llSetSuppliersVisible(visible) {
-  LL_STATE.suppliersVisible = visible;
-  const btn = document.getElementById('ll-supplier-toggle');
-  if (btn) {
-    btn.classList.toggle('map-layer-btn--active', visible);
-    btn.setAttribute('aria-pressed', String(visible));
-  }
-  const map = LL_STATE.map;
-  if (!map) return;
-  const vis = visible ? 'visible' : 'none';
-  ['ll-supplier-lines-layer', 'll-supplier-arrows-layer', 'll-suppliers-layer'].forEach(id => {
-    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
-  });
-  llRenderCommodityLegend();
-  if (visible) llStartArrowAnim(); else llStopArrowAnim();
-}
-
-// Légende des couleurs de commodités, visible uniquement avec les fournisseurs.
-function llRenderCommodityLegend() {
-  const box  = document.getElementById('ll-commodity-legend');
-  const list = document.getElementById('ll-commodity-legend-list');
-  if (!box || !list) return;
-  const colors = LL_STATE.commodityColors || {};
-  const names = Object.keys(colors);
-  if (!names.length) { box.hidden = true; list.innerHTML = ''; return; }
-  list.innerHTML = names.map(n =>
-    `<li><span class="map-legend__dot" style="background:${colors[n]}"></span>${escHtml(n)}</li>`
-  ).join('');
-  box.hidden = !LL_STATE.suppliersVisible;
-}
-
+// Bascule « Supply chain » : l'état du bouton est géré ici, les couches et la
+// légende par l'instance SupplyChain.
 function llInitSupplierToggle() {
   const btn = document.getElementById('ll-supplier-toggle');
   if (!btn) return;
-  btn.addEventListener('click', () => llSetSuppliersVisible(!LL_STATE.suppliersVisible));
+  btn.addEventListener('click', () => {
+    const supply = LL_STATE.supply;
+    if (!supply) return;
+    const visible = !supply.isVisible();
+    supply.setVisible(visible);
+    btn.classList.toggle('map-layer-btn--active', visible);
+    btn.setAttribute('aria-pressed', String(visible));
+  });
 }

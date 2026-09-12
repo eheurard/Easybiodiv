@@ -1912,6 +1912,10 @@ class LeapPagesTests(TestCase):
         response = self.client.get(reverse('dashboard:leap_locate'))
         self.assertContains(response, 'dashboard/js/locate_view.js')
 
+    def test_locate_page_loads_supply_chain_module(self):
+        response = self.client.get(reverse('dashboard:leap_locate'))
+        self.assertContains(response, 'dashboard/js/supply_chain.js')
+
     def test_evaluate_page_200(self):
         response = self.client.get(reverse('dashboard:leap_evaluate'))
         self.assertEqual(response.status_code, 200)
