@@ -3605,3 +3605,15 @@ class OverviewModesPageTests(TestCase):
             self.assertIn('"%s"' % reverse(name, kwargs={'pk': 0}), html)
         for script in ('pie_markers.js', 'physical_risk_view.js', 'dette_view.js'):
             self.assertIn(f'dashboard/js/{script}', html)
+
+    def test_supply_toggle_locked_for_anonymous(self):
+        tag = self._button(self._html(), 'id="ov-supply-toggle"')
+        self.assertTrue(self._disabled(tag))
+        self.assertIn('title="Connexion requise"', tag)
+
+    def test_supply_toggle_enabled_when_authenticated(self):
+        self._login()
+        html = self._html()
+        self.assertFalse(self._disabled(self._button(html, 'id="ov-supply-toggle"')))
+        self.assertIn('id="ov-supply-legend"', html)
+        self.assertIn('dashboard/js/supply_chain.js', html)

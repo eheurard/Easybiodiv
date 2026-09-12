@@ -43,6 +43,7 @@ const OV = {
   prHorizon: 5,        // mode risque : horizon de la perte projetée (années)
   pies: [],            // mode dette : marqueurs camembert
   colors: new Map(),   // commodité → couleur, stable pour l'entreprise courante
+  supply: null,        // instance SupplyChain, disponible dans tous les modes
 };
 
 // Registre des modes. source : clé de OVERVIEW_API ; drawer : tiroir bas
@@ -129,9 +130,19 @@ function ovInitMap() {
     zoom: 1.5,
   });
   OV.map = map;
+  // Flèches et camemberts partagent la table de couleurs de l'entreprise.
+  OV.supply = SupplyChain.create(map, {
+    colorFor: ovColor,
+    legend: {
+      box: document.getElementById('ov-supply-legend'),
+      list: document.getElementById('ov-supply-legend-list'),
+    },
+  });
 
   map.on('load', () => {
     ovAddAssetsLayer();
+    OV.supply.addLayers('ov-assets-layer');
+    OV.supply.resume();
     // Écouteurs délégués à la couche : posés une fois, ils survivent aux setStyle.
     map.on('click', 'ov-assets-layer', (e) => {
       const popupHtml = OV_MODES[OV.mode].popupHtml;
@@ -184,9 +195,13 @@ function ovSetMapFeatures(features) {
 function ovApplyStyle(styleName) {
   const map = OV.map;
   if (!map) return;
+  // « idle » ne se déclenche pas tant que l'animation des flèches tourne.
+  OV.supply.stop();
   map.setStyle(mapStyleFor(styleName));
   map.once('idle', () => {
     ovAddAssetsLayer();
+    OV.supply.addLayers('ov-assets-layer');
+    OV.supply.resume();
   });
 }
 
@@ -272,6 +287,16 @@ function ovInitControls() {
     OV.prHorizon = years;
     PhysicalRiskView.renderLoss(OV.cache.risque, OV.prHorizon);
   });
+
+  // Supply chain : disponible dans tous les modes (connexion requise).
+  const supplyBtn = document.getElementById('ov-supply-toggle');
+  if (supplyBtn && !supplyBtn.disabled) {
+    supplyBtn.addEventListener('click', () => {
+      const visible = !OV.supply.isVisible();
+      ovSetSupplyVisible(visible);
+      if (visible) ovLoadSupply();
+    });
+  }
 }
 
 
@@ -388,6 +413,9 @@ function ovSelectCompany(id, initialData) {
   OV.pending = {};
   OV.companyReady = null;
   OV.prHazard = null;  // l'horizon, lui, est conservé (comme sur la page Risque physique)
+  // Les flux de l'entreprise précédente disparaissent tout de suite.
+  OV.supply.setData(null);
+  if (OV.supply.isVisible()) ovLoadSupply();
   ovRenderMode();
 }
 
@@ -733,6 +761,31 @@ function ovClearPies() {
   OV.pies = [];
   const tip = document.getElementById('de-tooltip');
   if (tip) tip.hidden = true;
+}
+
+
+// ── Supply chain (tous modes) ──────────────────────────────────────────────
+
+function ovSetSupplyVisible(visible) {
+  const btn = document.getElementById('ov-supply-toggle');
+  if (btn) {
+    btn.classList.toggle('map-layer-btn--active', visible);
+    btn.setAttribute('aria-pressed', String(visible));
+  }
+  OV.supply.setVisible(visible);
+}
+
+// Données Locate (partagées avec le mode asset) poussées dans la supply chain,
+// après les données entreprise pour que leurs couleurs gardent la priorité.
+function ovLoadSupply() {
+  if (OV.companyId == null) return;
+  Promise.all([ovCompanyReady(), ovLoad('locate')])
+    .then(([, data]) => OV.supply.setData(data))
+    .catch((err) => {
+      if (err && err.kind === 'stale') return;
+      console.error('overview : chargement de la supply chain impossible', err);
+      ovSetSupplyVisible(false);
+    });
 }
 
 
