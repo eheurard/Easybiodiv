@@ -583,6 +583,7 @@ def _get_leap_locate_data(company):
                 'name': a.name,
                 'country': a.country.name,
                 'region': a.subnational_region.name if a.subnational_region else '',
+                'type': a.type,
                 'asset_type': ', '.join(asset_types),
                 'ownership': ownership_map.get(a.pk, ''),
                 'productions': productions,

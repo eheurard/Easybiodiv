@@ -1808,6 +1808,7 @@ class LeapLocateDataTests(TestCase):
         props = feats[0]['properties']
         self.assertEqual(props['name'], 'Site Paris')
         self.assertEqual(props['asset_type'], 'Agriculture')
+        self.assertEqual(props['type'], 'Factory')  # Asset.type (défaut du modèle)
         self.assertEqual(props['ownership'], '100%')
         self.assertEqual(props['revenue_total'], 50000.0)
         self.assertEqual(len(props['productions']), 1)

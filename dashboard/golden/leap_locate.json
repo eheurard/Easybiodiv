@@ -25,7 +25,8 @@
             }
           ],
           "region": "Bretagne",
-          "revenue_total": 72000000.0
+          "revenue_total": 72000000.0,
+          "type": "Factory"
         },
         "type": "Feature"
       },
@@ -57,7 +58,8 @@
             }
           ],
           "region": "Occitanie",
-          "revenue_total": 14400000.0
+          "revenue_total": 14400000.0,
+          "type": "Factory"
         },
         "type": "Feature"
       },
@@ -83,7 +85,8 @@
             }
           ],
           "region": "Mato Grosso",
-          "revenue_total": 117000000.0
+          "revenue_total": 117000000.0,
+          "type": "Factory"
         },
         "type": "Feature"
       },
@@ -109,7 +112,8 @@
             }
           ],
           "region": "Pará",
-          "revenue_total": 61200000.0
+          "revenue_total": 61200000.0,
+          "type": "Factory"
         },
         "type": "Feature"
       },
@@ -135,7 +139,8 @@
             }
           ],
           "region": "Sumatra",
-          "revenue_total": 188000000.0
+          "revenue_total": 188000000.0,
+          "type": "Factory"
         },
         "type": "Feature"
       }
