@@ -294,11 +294,10 @@ function leInitStyleToggle() {
   });
 }
 
-// « idle » est le seul signal fiable après setStyle (nouveau style + tuiles
-// prêts) pour reconstruire nos sources/couches custom.
+// Rejoue un fond puis reconstruit nos sources/couches custom sur le nouveau
+// style (replayMapStyle, main.js).
 function leApplyStyle(map, style) {
-  map.setStyle(style);
-  map.once('idle', () => {
+  replayMapStyle(map, style, () => {
     leAddSourceAndLayer(map);
     leSyncMapData();
   });
