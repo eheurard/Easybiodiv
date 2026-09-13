@@ -869,6 +869,11 @@ class PhysicalRiskPageViewTests(TestCase):
             self.assertIn(f'id="{element_id}"', html)
         self.assertIn('dashboard/js/physical_risk_view.js', html)
 
+    def test_detail_drawer_visible_on_reference_page(self):
+        # Le fragment n'est masqué que dans la Vue d'ensemble (start_hidden).
+        html = self.client.get(reverse('dashboard:physical_risk')).content.decode()
+        self.assertNotRegex(html, r'<section class="map-drawer"[^>]*\shidden')
+
 
 class LeapEvaluateDataTests(TestCase):
 
@@ -3617,3 +3622,11 @@ class OverviewModesPageTests(TestCase):
         self.assertFalse(self._disabled(self._button(html, 'id="ov-supply-toggle"')))
         self.assertIn('id="ov-supply-legend"', html)
         self.assertIn('dashboard/js/supply_chain.js', html)
+
+    def test_protected_apis_stay_login_required(self):
+        # La Vue d'ensemble (publique) publie ces URL : elles doivent rester protégées.
+        login_url = reverse('authentication:login')
+        for name in ('dashboard:leap_locate_data', 'dashboard:dette_ecologique_data'):
+            response = self.client.get(reverse(name, kwargs={'pk': self.company.pk}))
+            self.assertEqual(response.status_code, 302, name)
+            self.assertTrue(response['Location'].startswith(login_url), name)
