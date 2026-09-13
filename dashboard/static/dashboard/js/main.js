@@ -63,6 +63,18 @@ function activeMapStyleName() {
   return (btn && btn.dataset.layer) || 'classic';
 }
 
+// Rejoue un fond sur une carte, puis appelle onReady une fois le NOUVEAU
+// style en place (pour y reposer sources et couches). Avec un style chargé par
+// URL, l'ancien style reste affiché et « chargé » pendant le téléchargement du
+// nouveau : un « idle » peut alors survenir sur l'ancien (au moindre rendu), la
+// reconstruction s'y fait trop tôt et le style qui arrive l'efface. On remplace
+// donc le style d'un bloc (sans diff) et on attend « style.load », qui ne
+// concerne que le nouveau style.
+function replayMapStyle(map, style, onReady) {
+  map.setStyle(style, { diff: false });
+  map.once('style.load', onReady);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
   // ── Sidebar toggle ──────────────────────────────────────────────────────

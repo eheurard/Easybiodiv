@@ -190,15 +190,14 @@ function ovSetMapFeatures(features) {
   if (src) src.setData({ type: 'FeatureCollection', features: features });
 }
 
-// Rejoue un fond (sélecteur ou bascule jour/nuit) puis reconstruit nos couches.
-// « idle » est le seul signal fiable après setStyle (voir leap_locate.js).
+// Rejoue un fond (sélecteur ou bascule jour/nuit) puis reconstruit nos couches
+// sur le nouveau style (replayMapStyle, main.js). L'animation des flèches est
+// suspendue le temps du chargement.
 function ovApplyStyle(styleName) {
   const map = OV.map;
   if (!map) return;
-  // « idle » ne se déclenche pas tant que l'animation des flèches tourne.
   OV.supply.stop();
-  map.setStyle(mapStyleFor(styleName));
-  map.once('idle', () => {
+  replayMapStyle(map, mapStyleFor(styleName), () => {
     ovAddAssetsLayer();
     OV.supply.addLayers('ov-assets-layer');
     OV.supply.resume();

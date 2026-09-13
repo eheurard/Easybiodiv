@@ -177,17 +177,16 @@ function prAddSourceAndLayer(map) {
 }
 
 
-// Le fond suit le theme. « idle » est le seul signal fiable apres setStyle
-// pour reconstruire la source et la couche, puis y repousser les donnees.
+// Le fond suit le theme : on reconstruit la source et la couche sur le nouveau
+// style (replayMapStyle, main.js), puis on y repousse les donnees.
 document.addEventListener('themechange', () => {
   const map = PR_STATE.map;
   if (!map) return;
-  map.setStyle(mapStyleFor('classic'));
-  map.once('idle', () => {
+  replayMapStyle(map, mapStyleFor('classic'), () => {
     prAddSourceAndLayer(map);
-    // Repousser explicitement : au « idle » qui suit un setStyle, map.loaded()
-    // peut encore etre faux, et prSyncMapData mettrait les donnees en attente
-    // dans _prPendingGeojson sans que rien ne les reprenne.
+    // Repousser explicitement : juste apres un changement de style,
+    // map.loaded() peut encore etre faux et prSyncMapData mettrait les donnees
+    // en attente dans _prPendingGeojson sans que rien ne les reprenne.
     const src = map.getSource('pr-assets');
     if (src) src.setData(prBuildGeojson());
   });

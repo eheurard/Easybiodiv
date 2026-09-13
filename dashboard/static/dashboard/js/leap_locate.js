@@ -116,18 +116,14 @@ function llInitStyleToggle() {
   });
 }
 
-// Rejoue un fond de carte puis reconstruit toutes nos couches. Partage entre
-// le selecteur de fond et la bascule jour/nuit.
-// isStyleLoaded() n'est pas fiable juste après setStyle : pour un style chargé
-// par URL (classique/gris) il renvoie encore « true » pour l'ANCIEN style.
-// « idle » est le seul signal fiable (nouveau style + tuiles prêts), mais il ne
-// se déclenche jamais tant que l'animation des flèches tourne : on la stoppe le
-// temps du rechargement, puis on reconstruit et on relance.
+// Rejoue un fond de carte puis reconstruit toutes nos couches sur le nouveau
+// style (replayMapStyle, main.js). Partagé entre le sélecteur de fond et la
+// bascule jour/nuit. L'animation des flèches est suspendue le temps du
+// chargement.
 function llApplyStyle(map, style) {
   const supply = LL_STATE.supply;
   if (supply) supply.stop();
-  map.setStyle(style);
-  map.once('idle', () => {
+  replayMapStyle(map, style, () => {
     llAddSourceAndLayer(map);
     llSyncMapData();           // repeupler les assets avant les fournisseurs
     if (supply) {
