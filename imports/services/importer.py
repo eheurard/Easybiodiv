@@ -104,7 +104,6 @@ def _import_subnational_region(rows, lookup):
             continue
         obj = SubnationalRegion.objects.create(
             name=d['name'],
-            description=_s(d.get('description')),
             country=country,
             restoration_cost_m2=_f(d.get('restoration_cost_m2')),
             Mean_X=_f(d.get('Mean_X')),
@@ -481,7 +480,6 @@ def _import_sector(rows, lookup):
         obj = Sector.objects.create(
             name=d['name'],
             NACE_code=_s(d.get('NACE_code')),
-            description=_s(d.get('description')),
         )
         lookup['sector'][d['name'].lower()] = obj
         created += 1
@@ -499,7 +497,6 @@ def _import_subsector(rows, lookup):
             name=d['name'],
             sector=sector,
             NACE_code=_s(d.get('NACE_code')),
-            description=_s(d.get('description')),
             Water_dependency=d.get('Water_dependency') or 'VL',
             Pollination_dependency=d.get('Pollination_dependency') or 'VL',
             Soil_quality_dependency=d.get('Soil_quality_dependency') or 'VL',

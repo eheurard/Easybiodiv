@@ -4,6 +4,7 @@
 Excel reste stable ; ces tests garantissent qu'elles ne divergent pas du modèle
 et que les tables restent mutuellement cohérentes.
 """
+from django.apps import apps
 from django.test import SimpleTestCase, TestCase
 
 from dashboard.models import Asset, ClimateScenario, Exchange, ScenarioVariable
@@ -43,6 +44,32 @@ class ChoiceFieldsMatchModelTest(SimpleTestCase):
         self.assertEqual(
             CHOICE_FIELDS['ScenarioVariable']['key'],
             _model_choice_values(ScenarioVariable, 'key'))
+
+
+class SheetColumnsMatchModelTest(SimpleTestCase):
+    """Une colonne sans champ correspondant fait planter l'import au premier
+    objects.create() : c'est ce qui est arrivé quand la migration 0048 a retiré
+    `description` de SubnationalRegion, Sector et SubSector."""
+
+    # Colonnes volontairement sans champ : node_ref relie SupplyNode et Exchange
+    # à l'intérieur d'un même classeur.
+    FILE_LOCAL_COLUMNS = {'SupplyNode': {'node_ref'}}
+
+    def test_every_column_maps_to_a_model_field(self):
+        for sheet_name, columns in SHEET_COLUMNS.items():
+            model = apps.get_model('dashboard', sheet_name)
+            # Comparaison sans la casse : la colonne water_governance alimente
+            # le champ water_Governance.
+            fields = {f.name.lower() for f in model._meta.get_fields()}
+            skipped = (
+                set(FK_FIELDS.get(sheet_name, {}))
+                | self.FILE_LOCAL_COLUMNS.get(sheet_name, set())
+            )
+            for column in columns:
+                if column in skipped:
+                    continue
+                with self.subTest(sheet=sheet_name, column=column):
+                    self.assertIn(column.lower(), fields)
 
 
 class TablesAreConsistentTest(SimpleTestCase):

@@ -15,7 +15,7 @@ SHEET_COLUMNS = {
         'biodiversity_loss_agriculture', 'biodiversity_loss_urbanization', 'biodiversity_loss_mining',
     ],
     'SubnationalRegion': [
-        'name', 'description', 'country_name', 'restoration_cost_m2', 'Mean_X', 'Mean_Y',
+        'name', 'country_name', 'restoration_cost_m2', 'Mean_X', 'Mean_Y',
     ],
     'Commodity': [
         'name', 'description', 'unit', 'biodiversity_loss_class',
@@ -44,9 +44,9 @@ SHEET_COLUMNS = {
 
     # ── Secteurs et devises ───────────────────────────────────────────────────
     'Currency': ['code', 'name', 'symbol', 'ratio_USD'],
-    'Sector': ['name', 'NACE_code', 'description'],
+    'Sector': ['name', 'NACE_code'],
     'SubSector': [
-        'name', 'sector_name', 'NACE_code', 'description',
+        'name', 'sector_name', 'NACE_code',
         'Water_dependency', 'Pollination_dependency', 'Soil_quality_dependency',
         'Carbon_Sequestration', 'Water_purification_dependency', 'Pest_control_dependency',
     ],

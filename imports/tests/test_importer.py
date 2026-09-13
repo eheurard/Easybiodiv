@@ -48,7 +48,7 @@ class ImporterCountryTest(TestCase):
                      'land_ownership': 'priv', 'water_governance': '', 'land_governance': ''}),
             ],
             'SubnationalRegion': [
-                _ok({'name': 'Bretagne', 'description': '', 'country_name': 'France',
+                _ok({'name': 'Bretagne', 'country_name': 'France',
                      'Mean_X': '-2.9', 'Mean_Y': '48.2'}),
             ],
         })
@@ -335,7 +335,7 @@ class ImporterClimateStressTest(TestCase):
 class ImporterSectorCreditProfileTest(TestCase):
     def test_creates_profile(self):
         counts = save_import({
-            'Sector': [_ok({'name': 'Agriculture', 'NACE_code': 'A', 'description': ''})],
+            'Sector': [_ok({'name': 'Agriculture', 'NACE_code': 'A'})],
             'SectorCreditProfile': [
                 _ok({'sector_name': 'Agriculture', 'pd_baseline': '0.03',
                      'ebitda_margin': '0.18', 'ebitda_volatility': '0.4',
