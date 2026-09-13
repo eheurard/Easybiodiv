@@ -198,10 +198,31 @@ window.PhysicalRiskView = (function () {
   }
 
   function popupHtml(p) {
-    return `<strong>${escHtml(p.name)}</strong><br>` +
-      `${escHtml(p.hazardName)} : ${(Number(p.hazard) * 100).toFixed(1)}%<br>` +
-      `Exposition : ${euro(Number(p.exposition))}<br>` +
-      `Risk : ${euro(Number(p.risk))}`;
+    return `
+      <div class="asset-popup">
+        <div class="asset-popup__header">
+          <div class="asset-popup__name">${escHtml(p.name)}</div>
+        </div>
+        <div class="asset-popup__body">
+          <div class="asset-popup__rows">
+            <div class="asset-popup__row">
+              <span class="asset-popup__row-label">${escHtml(p.hazardName)}</span>
+              <span class="asset-popup__row-value">${(Number(p.hazard) * 100).toFixed(1)}%</span>
+            </div>
+            <div class="asset-popup__row">
+              <span class="asset-popup__row-label">Exposition</span>
+              <span class="asset-popup__row-value">${euro(Number(p.exposition))}</span>
+            </div>
+          </div>
+          <div class="asset-popup__divider"></div>
+          <div class="asset-popup__metrics">
+            <div class="asset-popup__metric asset-popup__metric--risk">
+              <div class="asset-popup__metric-value">${euro(Number(p.risk))}</div>
+              <div class="asset-popup__metric-label">Risque</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
   }
 
   function legendHtml() {

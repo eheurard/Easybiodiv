@@ -82,14 +82,42 @@ window.LocateView = (function () {
   function popupHtml(p) {
     const prods = parseList(p.productions);
     const meta = [p.country, p.region].filter(Boolean).map(escHtml).join(' · ');
-    const type = p.asset_type ? `<div class="ll-popup__row">Type : ${escHtml(p.asset_type)}</div>` : '';
-    const own  = p.ownership ? `<div class="ll-popup__row">Détention : ${escHtml(p.ownership)}</div>` : '';
+    const type = p.asset_type
+      ? `<span class="asset-popup__badge">${escHtml(p.asset_type)}</span>` : '';
+    const own = p.ownership
+      ? `<div class="asset-popup__rows"><div class="asset-popup__row">
+          <span class="asset-popup__row-label">Détention</span>
+          <span class="asset-popup__row-value">${escHtml(p.ownership)}</span>
+        </div></div>`
+      : '';
     const prodHtml = prods.length
-      ? `<div class="ll-popup__prods">${prods.map(prodLine).join('')}</div>`
-      : '<div class="ll-popup__row">Aucune production</div>';
-    return `<div class="ll-popup"><strong>${escHtml(p.name)}</strong>` +
-      `<div class="ll-popup__meta">${meta}</div>${type}${own}${prodHtml}` +
-      `<div class="ll-popup__revenue">Revenu associé : ${euro(p.revenue_total)}</div></div>`;
+      ? prods.map(prod =>
+          `<div class="asset-popup__prod-row">
+            <span class="asset-popup__prod-dot"></span>
+            <span class="asset-popup__prod-name">${escHtml(prod.commodity)}</span>
+            <span class="asset-popup__prod-qty">${fmtNum(prod.quantity)}&nbsp;${escHtml(prod.unit)}</span>
+          </div>`).join('')
+      : '<p class="asset-popup__no-data">Aucune production</p>';
+    return `
+      <div class="asset-popup">
+        <div class="asset-popup__header">
+          <div class="asset-popup__name">${escHtml(p.name)}</div>
+          <div class="asset-popup__meta">${meta}</div>
+          ${type}
+        </div>
+        <div class="asset-popup__body">
+          ${own}
+          <div class="asset-popup__section-title">Productions</div>
+          ${prodHtml}
+          <div class="asset-popup__divider"></div>
+          <div class="asset-popup__metrics">
+            <div class="asset-popup__metric">
+              <div class="asset-popup__metric-value">${euro(p.revenue_total)}</div>
+              <div class="asset-popup__metric-label">Revenu associé</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
   }
 
   function legendHtml() {

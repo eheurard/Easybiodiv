@@ -109,6 +109,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ── Menu mobile (tiroir) ────────────────────────────────────────────────
+  // Sous 768px, le rail d'icônes est remplacé par un tiroir ouvert depuis le
+  // bouton ☰ du header. Le point de rupture doit rester aligné sur le CSS.
+  const navOpenBtn = document.getElementById('nav-open-btn');
+  const navCloseBtn = document.getElementById('nav-close-btn');
+  const navBackdrop = document.getElementById('nav-backdrop');
+
+  if (layout && navOpenBtn && navCloseBtn && navBackdrop) {
+    const mobileQuery = window.matchMedia('(max-width: 768px)');
+
+    function setNavOpen(open, restoreFocus) {
+      // Dans le tiroir, le sous-menu « Analyse des risques » est toujours
+      // déplié : sur les navigateurs sans ::details-content, un <details>
+      // fermé masquerait ses liens quel que soit le CSS.
+      if (open) document.querySelectorAll('.sidebar__nav-details').forEach(d => { d.open = true; });
+      layout.classList.toggle('is-nav-open', open);
+      navOpenBtn.setAttribute('aria-expanded', String(open));
+      navBackdrop.hidden = !open;
+      if (open) navCloseBtn.focus();
+      else if (restoreFocus) navOpenBtn.focus();
+    }
+
+    navOpenBtn.addEventListener('click', () => setNavOpen(true));
+    navCloseBtn.addEventListener('click', () => setNavOpen(false, true));
+    navBackdrop.addEventListener('click', () => setNavOpen(false, true));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && layout.classList.contains('is-nav-open')) setNavOpen(false, true);
+    });
+    // Passage en largeur desktop (rotation, redimensionnement) : on referme.
+    mobileQuery.addEventListener('change', (e) => {
+      if (!e.matches) setNavOpen(false, false);
+    });
+    // Retour arrière via le bfcache : la page revient avec le tiroir ouvert.
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) setNavOpen(false, false);
+    });
+  }
+
   // ── Bascule jour / nuit ─────────────────────────────────────────────────
   // Le theme est deja pose par le script inline du <head> ; ici on ne gere
   // que le clic, la memorisation, et la diffusion aux cartes.

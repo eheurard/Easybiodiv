@@ -96,6 +96,16 @@
     <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
     <aside class="app-sidebar" id="app-sidebar" aria-label="Navigation principale">
 
+      <!-- En-tête du tiroir, visible uniquement sur mobile -->
+      <div class="sidebar__mobile-head">
+        <span class="sidebar__mobile-title">Easybiodiv</span>
+        <button type="button" class="sidebar__mobile-close" id="nav-close-btn" aria-label="Fermer le menu">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M4.5 4.5l9 9M13.5 4.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+
       <button class="sidebar__toggle" id="sidebar-toggle" aria-label="Réduire le menu" aria-expanded="true"
         aria-controls="app-sidebar">
         <svg class="toggle-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -282,11 +292,22 @@
     </aside>
     <!-- ── /Sidebar ────────────────────────────────────────────────────── -->
 
+    <!-- Voile derrière le tiroir de navigation mobile (clic = fermeture) -->
+    <div class="app-nav-backdrop" id="nav-backdrop" hidden></div>
+
     <!-- ── Main area ─────────────────────────────────────────────────── -->
     <div class="app-main">
 
       <!-- Header -->
       <header class="app-header" role="banner">
+        <!-- Bouton du menu, visible uniquement sur mobile -->
+        <button type="button" class="app-header__menu-btn" id="nav-open-btn" aria-label="Ouvrir le menu"
+          aria-expanded="false" aria-controls="app-sidebar">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+        </button>
+
         {% block header_left %}
         <div class="app-header__search">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">

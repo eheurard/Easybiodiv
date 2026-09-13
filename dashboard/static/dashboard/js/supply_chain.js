@@ -149,17 +149,27 @@ window.SupplyChain = (function () {
         let comms = p.commodities;
         if (typeof comms === 'string') { try { comms = JSON.parse(comms); } catch (_) { comms = []; } }
         comms = comms || [];
+        // Le point reprend la couleur de la commodité dans la légende.
         const list = comms.length
-          ? `<div class="ll-popup__prods">${comms.map(c =>
-              `<span class="ll-prod"><span class="ll-prod__name">${escHtml(c)}</span></span>`).join('')}</div>`
+          ? `<div class="asset-popup__body">${comms.map(c => {
+              const dot = state.colors[c] ? ` style="background:${state.colors[c]}"` : '';
+              return `<div class="asset-popup__prod-row">
+                <span class="asset-popup__prod-dot"${dot}></span>
+                <span class="asset-popup__prod-name">${escHtml(c)}</span>
+              </div>`;
+            }).join('')}</div>`
           : '';
         new maplibregl.Popup({ maxWidth: '260px' })
           .setLngLat(e.lngLat)
-          .setHTML(
-            `<div class="ll-popup"><strong>${escHtml(p.name)}</strong>` +
-            `<div class="ll-popup__meta">${escHtml(p.country || '')}</div>` +
-            `<div class="ll-popup__row">Fournisseur</div>${list}</div>`
-          )
+          .setHTML(`
+            <div class="asset-popup">
+              <div class="asset-popup__header">
+                <div class="asset-popup__name">${escHtml(p.name)}</div>
+                <div class="asset-popup__meta">${escHtml(p.country || '')}</div>
+                <span class="asset-popup__badge">Fournisseur</span>
+              </div>
+              ${list}
+            </div>`)
           .addTo(map);
       });
       map.on('mouseenter', 'll-suppliers-layer', () => { map.getCanvas().style.cursor = 'pointer'; });

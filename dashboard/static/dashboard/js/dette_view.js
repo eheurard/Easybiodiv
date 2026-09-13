@@ -59,14 +59,29 @@ window.DetteView = (function () {
     return {
       onEnter(point, e) {
         if (!tipEl) return;
-        const top3 = point.commodities.slice(0, 3);
-        tipEl.innerHTML =
-          '<strong>' + escHtml(point.name) + '</strong><br>' +
-          'Lbiodiv : ' + fmtLbiodiv(point.total_lbiodiv) + '<br>' +
-          top3.map(c =>
-            '<span class="de-tooltip__swatch" style="background:' + (colors[c.name] || '#ccc') + '"></span>' +
-            escHtml(c.name) + ' : ' + fmtPct(c.pct)
-          ).join('<br>');
+        const top3 = point.commodities.slice(0, 3).map(c =>
+          `<div class="asset-popup__prod-row">
+            <span class="asset-popup__prod-dot" style="background:${colors[c.name] || '#ccc'}"></span>
+            <span class="asset-popup__prod-name">${escHtml(c.name)}</span>
+            <span class="asset-popup__prod-qty">${fmtPct(c.pct)}</span>
+          </div>`).join('');
+        tipEl.innerHTML = `
+          <div class="asset-popup">
+            <div class="asset-popup__header">
+              <div class="asset-popup__name">${escHtml(point.name)}</div>
+            </div>
+            <div class="asset-popup__body">
+              <div class="asset-popup__section-title">Principales commodités</div>
+              ${top3}
+              <div class="asset-popup__divider"></div>
+              <div class="asset-popup__metrics">
+                <div class="asset-popup__metric asset-popup__metric--risk">
+                  <div class="asset-popup__metric-value">${fmtLbiodiv(point.total_lbiodiv)}</div>
+                  <div class="asset-popup__metric-label">Lbiodiv</div>
+                </div>
+              </div>
+            </div>
+          </div>`;
         tipEl.hidden = false;
         move(e);
       },

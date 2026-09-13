@@ -219,17 +219,35 @@ function leAddSourceAndLayer(map) {
     const sensitive = (String(p.near_sensitive_zone) === 'true')
       ? `Oui${p.sensitive_zone_type ? ' — ' + escHtml(p.sensitive_zone_type) : ''}`
       : 'Non';
+    const row = (label, value) =>
+      `<div class="asset-popup__row">
+        <span class="asset-popup__row-label">${label}</span>
+        <span class="asset-popup__row-value">${value}</span>
+      </div>`;
     new maplibregl.Popup({ maxWidth: '280px' })
       .setLngLat(e.lngLat)
-      .setHTML(
-        `<div class="ll-popup"><strong>${escHtml(p.name)}</strong>` +
-        `<div class="ll-popup__meta">${escHtml(p.country || '')}</div>` +
-        `<div class="ll-popup__row">Consommation eau : ${leFmt(p.water_consumption)}</div>` +
-        `<div class="ll-popup__row">Émissions CO₂ : ${leFmt(p.co2_emissions)}</div>` +
-        `<div class="ll-popup__row">Déchets générés : ${leFmt(p.waste_generated)}</div>` +
-        `<div class="ll-popup__row">Zone sensible : ${sensitive}</div>` +
-        `<div class="ll-popup__revenue">${escHtml(p.impactName)} : ${leFmt(p.impactValue)}</div></div>`
-      )
+      .setHTML(`
+        <div class="asset-popup">
+          <div class="asset-popup__header">
+            <div class="asset-popup__name">${escHtml(p.name)}</div>
+            <div class="asset-popup__meta">${escHtml(p.country || '')}</div>
+          </div>
+          <div class="asset-popup__body">
+            <div class="asset-popup__rows">
+              ${row('Consommation eau', leFmt(p.water_consumption))}
+              ${row('Émissions CO₂', leFmt(p.co2_emissions))}
+              ${row('Déchets générés', leFmt(p.waste_generated))}
+              ${row('Zone sensible', sensitive)}
+            </div>
+            <div class="asset-popup__divider"></div>
+            <div class="asset-popup__metrics">
+              <div class="asset-popup__metric">
+                <div class="asset-popup__metric-value">${leFmt(p.impactValue)}</div>
+                <div class="asset-popup__metric-label">${escHtml(p.impactName)}</div>
+              </div>
+            </div>
+          </div>
+        </div>`)
       .addTo(map);
   });
   map.on('mouseenter', 'le-assets-layer', () => { map.getCanvas().style.cursor = 'pointer'; });

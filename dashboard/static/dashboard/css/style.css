@@ -289,6 +289,11 @@ p {
   transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
+/* display: inline-flex battrait l'attribut hidden (ex. « Dupliquer »). */
+.btn[hidden] {
+  display: none;
+}
+
 .btn--primary {
   background-color: var(--color-primary);
   color: var(--color-on-primary);
@@ -652,6 +657,9 @@ p {
 /* ─── Main area ──────────────────────────────────────────────────────────── */
 .app-main {
   flex: 1;
+  /* Sans ça, l'élément flex s'élargit jusqu'à son contenu le plus large
+     (SVG, tableaux) au lieu de laisser ce contenu défiler dans son cadre. */
+  min-width: 0;
   margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
@@ -1325,6 +1333,48 @@ a.app-header__avatar {
   padding: 4px 0;
 }
 
+/* Étiquette dans l'en-tête (type d'actif, rôle du point). */
+.asset-popup__badge {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* Ligne libellé / valeur. */
+.asset-popup__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.asset-popup__row:last-child {
+  border-bottom: 0;
+}
+
+.asset-popup__row-label {
+  color: var(--color-on-surface-variant);
+}
+
+.asset-popup__row-value {
+  color: var(--color-on-surface);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.asset-popup__rows + .asset-popup__section-title {
+  margin-top: 10px;
+}
+
 /* ─── Policy section ─────────────────────────────────────────────────────── */
 .policy-section {
   margin-top: 28px;
@@ -1845,8 +1895,10 @@ a.app-header__avatar {
 }
 
 @media (max-width: 900px) {
+  /* Empilées, les deux cartes doivent reprendre toute la largeur. */
   .dep-main-row {
     flex-direction: column;
+    align-items: stretch;
   }
 }
 
@@ -2704,6 +2756,21 @@ a.app-header__avatar {
   box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
+/* Infobulle au format asset-popup : l'en-tête et le corps gèrent l'espacement. */
+.de-tooltip--card {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  line-height: normal;
+  min-width: 200px;
+  max-width: 260px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+}
+
+.de-tooltip--card .asset-popup__header {
+  padding-right: 14px;
+}
+
 .de-tooltip__swatch {
   display: inline-block;
   width: 8px;
@@ -3183,7 +3250,7 @@ a.app-header__avatar {
 .comp-leap__notes { margin: 6px 0 0; font-size: .8rem; color: var(--color-on-surface-variant); font-style: italic; }
 
 /* Cartes DR */
-.comp-drs { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.comp-drs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 16px; }
 .comp-dr {
   background: var(--color-surface-container-lowest); border: var(--border-card); border-radius: 12px;
   padding: 16px; display: flex; flex-direction: column; gap: 6px;
@@ -3540,11 +3607,6 @@ a.app-header__avatar {
   font-size: 13px;
   color: var(--color-on-surface-variant);
 }
-.ll-popup__meta { font-size: 12px; color: var(--color-on-surface-variant); margin: 2px 0; }
-.ll-popup__row { font-size: 12px; margin: 2px 0; }
-.ll-popup__prods { margin: 4px 0; display: flex; flex-direction: column; gap: 2px; }
-.ll-popup__prods .ll-prod { font-size: 12px; }
-.ll-popup__revenue { font-size: 12px; font-weight: 600; margin-top: 4px; }
 
 /* ── LEAP stub ────────────────────────────────────────────────────────── */
 .leap-stub {
@@ -3756,12 +3818,12 @@ a.app-header__avatar {
 .cst-segmented__btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
 .cst-charts {
-  display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
 }
 .cst-chart-card { padding: 16px; }
 
 .cst-bottom {
-  display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
 }
 
 .cst-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -3871,14 +3933,18 @@ a.app-header__avatar {
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Shell : la page ne défile plus, la scène occupe la hauteur restante ── */
+/* 100dvh suit la barre d'adresse des navigateurs mobiles, qui masquerait
+   sinon le bas de la carte ; 100vh reste en repli pour les anciens moteurs. */
 .app-layout.map-page {
   height: 100vh;
+  height: 100dvh;
   min-height: 0;
   overflow: hidden;
 }
 
 .app-layout.map-page .app-main {
   height: 100vh;
+  height: 100dvh;
   min-height: 0;
   overflow: hidden;
 }
@@ -4641,3 +4707,664 @@ button.sidebar__footer-icon-link {
 .theme-icon--moon { display: none; }
 :root[data-theme="dark"] .theme-icon--sun  { display: none; }
 :root[data-theme="dark"] .theme-icon--moon { display: block; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE — ≤ 768px
+   ──────────────────────────────────────────────────────────────────────────
+   Le rail de pastilles (64px + gouttière) mange un quart d'un écran de
+   téléphone, déborde en hauteur, et ses libellés n'apparaissent qu'au
+   survol. Sous 768px il devient un tiroir ouvert par le bouton ☰ du header
+   (piloté par main.js, même point de rupture). Sur les pages carte, le
+   panneau latéral devient une feuille en bas d'écran pour laisser la carte
+   visible au-dessus.
+   Ce bloc est volontairement en fin de fichier : il rejoue les sélecteurs
+   du rail et des overlays à spécificité égale pour les surcharger.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Éléments propres au mobile, absents du rendu desktop. */
+.sidebar__mobile-head,
+.app-header__menu-btn,
+.app-nav-backdrop {
+  display: none;
+}
+
+/* Sans survol, le bouton de retrait n'apparaîtrait jamais. */
+@media (hover: none) {
+  .compare-block__remove { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --space-gutter: 16px;
+    --text-headline-lg-size: 24px;
+    --text-headline-lg-lh: 32px;
+  }
+
+  /* Filet de sécurité : un élément trop large ne fait plus défiler toute la
+     page de côté (clip ne crée pas de conteneur de défilement). */
+  .app-layout .app-main {
+    overflow-x: clip;
+  }
+
+  /* Sous 16px, iOS zoome sur le champ au focus et ne dézoome pas. */
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+
+  /* ── Header ──────────────────────────────────────────────────────────── */
+  .app-layout .app-header {
+    justify-content: flex-start;
+    gap: 8px;
+    padding-inline: 12px;
+  }
+
+  .app-layout .app-header__menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--color-outline-variant);
+    border-radius: 50%;
+    background: var(--scrim-chip);
+    color: var(--color-on-surface);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+  }
+
+  .app-header__menu-btn:focus-visible,
+  .sidebar__mobile-close:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .app-layout .app-header__actions {
+    margin-left: auto;
+  }
+
+  /* Le sélecteur de la page prend la place restante et peut rétrécir. */
+  .app-layout .app-header__search,
+  .app-layout .company-combobox,
+  .app-layout .pf-portfolio-picker,
+  .app-layout .comp-company-picker {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+  }
+
+  /* Libellés « Entreprise » / « Portefeuille » : les champs portent déjà
+     un aria-label, la place manque. */
+  .company-combobox__label,
+  .pf-portfolio-picker > .label-caps,
+  .comp-company-picker > .label-caps {
+    display: none;
+  }
+
+  .app-layout .company-combobox {
+    padding: 4px;
+  }
+
+  .company-combobox__input-wrap,
+  .comp-company-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Sélecteur + deux boutons : trop large, la pastille défile de côté. */
+  .app-layout .pf-portfolio-picker {
+    padding: 4px 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .pf-portfolio-picker select {
+    flex: 1 0 120px;
+  }
+
+  .pf-portfolio-picker .btn {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  /* ── Tiroir de navigation ────────────────────────────────────────────── */
+  .app-layout .app-sidebar,
+  .app-layout.sidebar-collapsed .app-sidebar {
+    top: 0;
+    bottom: 0;
+    z-index: 400;
+    width: min(300px, 85vw);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--color-surface-container-low);
+    border-right: var(--border-card);
+    box-shadow: var(--shadow-modal);
+    pointer-events: auto;
+    transform: translateX(-100%);
+    visibility: hidden;
+    /* visibility attend la fin du glissement avant de masquer. */
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
+  }
+
+  .app-layout.is-nav-open .app-sidebar {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.25s ease, visibility 0s;
+  }
+
+  .app-nav-backdrop:not([hidden]) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 390;
+    background: rgba(27, 28, 25, 0.45);
+  }
+
+  .app-layout .sidebar__mobile-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 12px 12px 12px 20px;
+    border-bottom: var(--border-card);
+  }
+
+  .sidebar__mobile-title {
+    font-size: var(--text-body-md-size);
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .sidebar__mobile-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-on-surface-variant);
+    cursor: pointer;
+  }
+
+  .sidebar__mobile-close:hover {
+    background: var(--color-surface-container);
+  }
+
+  .app-layout .sidebar__nav {
+    flex: 1 0 auto;
+    padding: 12px;
+  }
+
+  .app-layout .sidebar__nav-list {
+    gap: 2px;
+  }
+
+  /* Les pastilles rondes redeviennent des lignes pleine largeur, hautes de
+     44px minimum (cible tactile). */
+  .app-layout .sidebar__nav-link,
+  .app-layout .sidebar__nav-details > summary,
+  .app-layout .sidebar__footer-link,
+  .app-layout.sidebar-collapsed .sidebar__footer-link {
+    width: auto;
+    height: auto;
+    min-height: 44px;
+    margin-inline: 0;
+    padding: 10px 12px;
+    justify-content: flex-start;
+    gap: 12px;
+    border-radius: var(--radius-md);
+    box-shadow: none;
+  }
+
+  .app-layout .sidebar__nav-link,
+  .app-layout .sidebar__nav-details > summary {
+    background: transparent;
+    border: 1px solid transparent;
+  }
+
+  .app-layout .sidebar__nav-link:not(.active):hover {
+    background: var(--color-surface-container);
+  }
+
+  /* Le groupe « Analyse des risques » est un simple intitulé : son
+     sous-menu reste déplié (main.js ouvre le <details>). */
+  .app-layout .sidebar__nav-details > summary {
+    pointer-events: none;
+  }
+
+  /* Les libellés en flyout reprennent leur place dans la ligne. */
+  .app-layout .sidebar__nav-label,
+  .app-layout.sidebar-collapsed .sidebar__nav-label,
+  .app-layout .sidebar__footer-link-label,
+  .app-layout.sidebar-collapsed .sidebar__footer-link-label {
+    position: static;
+    z-index: auto;
+    width: auto;
+    padding: 0;
+    border: none;
+    background: none;
+    box-shadow: none;
+    color: inherit;
+    font-size: var(--text-body-sm-size);
+    transform: none;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .app-layout .sidebar__nav-details:hover > summary > .sidebar__nav-label,
+  .app-layout .sidebar__nav-details:focus-within > summary > .sidebar__nav-label {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .app-layout .sidebar__nav-details > .sidebar__nav-sub {
+    position: static;
+    min-width: 0;
+    padding: 2px 0 6px 44px;
+    border: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .app-layout .sidebar__nav-sublink {
+    min-height: 40px;
+    padding: 10px 12px;
+    font-size: var(--text-body-sm-size);
+  }
+
+  .app-layout .sidebar__footer {
+    gap: 6px;
+    padding: 12px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-top: var(--border-card);
+  }
+
+  .app-layout .sidebar__footer-actions,
+  .app-layout.sidebar-collapsed .sidebar__footer-actions {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 8px;
+    padding-inline: 0;
+  }
+
+  .app-layout .sidebar__footer-icon-link {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* ── Contenu des pages sans carte ────────────────────────────────────── */
+  .app-layout:not(.map-page) .app-content {
+    padding: calc(var(--header-height) + 16px) 16px 32px;
+  }
+
+  .compare-page {
+    padding: 0;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .kpi-card {
+    min-width: 0;
+    padding: 14px 16px;
+  }
+
+  /* Nombre impair de KPI : la dernière prend toute la ligne. */
+  .kpi-row > .kpi-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .kpi-card__value {
+    font-size: 24px;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  /* En-têtes titre + contrôles : les contrôles passent à la ligne. */
+  .esg-chart__head,
+  .esg-market__head,
+  .lp-chart-card__head,
+  .lp-area-card__head,
+  .lp-levers__head,
+  .dep-section-header,
+  .pr-table-card__head,
+  .cst-assumptions__head {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+
+  /* Barres d'onglets : une seule ligne qui défile plutôt que trois lignes. */
+  .pf-tabs,
+  .esg-theme-tabs {
+    flex-wrap: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .pf-tab,
+  .esg-theme-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .esg-theme-tab {
+    padding: 8px 16px;
+  }
+
+  /* Onglets LEAP (Assess, Prepare) : quatre colonnes égales. */
+  .leap-tabs {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .leap-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 8px 4px;
+  }
+
+  .leap-tab__letter {
+    font-size: 20px;
+  }
+
+  .leap-tab__name {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    text-overflow: ellipsis;
+  }
+
+  /* Arbre de Mesure d'empreinte : le panneau de détail passe sous l'arbre. */
+  .tr-tree-body {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tr-tree-panel {
+    width: auto;
+    border-left: none;
+    border-top: 1px solid var(--color-outline-variant);
+  }
+
+  /* Dépendances */
+  .dep-service-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dep-exposure-service-name {
+    flex-basis: 110px;
+  }
+
+  /* Ligne de segment : icône, nom, montant et bouton en haut ; barre et
+     niveau d'exposition dessous, alignés sur le nom. */
+  .dep-revenue-row {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .dep-revenue-amount { order: 1; }
+  .dep-toggle-btn     { order: 2; }
+
+  .dep-revenue-bar-wrap {
+    order: 3;
+    flex: 1 1 calc(100% - 136px);
+    margin-left: 34px;
+  }
+
+  .dep-exposure-badge { order: 4; }
+
+  .dep-segment-detail {
+    padding-left: 12px;
+  }
+
+  .dep-subsector-row {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .dep-subsector-meta {
+    flex-basis: 100%;
+  }
+
+  .dep-subsector-revenue {
+    flex: none;
+    text-align: left;
+  }
+
+  .dep-subsector-atrisk {
+    flex: none;
+    margin-left: auto;
+  }
+
+  /* Comparaison : les deux sélecteurs s'empilent, les valeurs A / B
+     restent côte à côte (c'est l'objet de la page). */
+  .compare-cols {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .compare-block__header {
+    padding: 8px 40px 8px 10px;
+  }
+
+  .compare-metric-trigger {
+    max-width: 100%;
+  }
+
+  .compare-metric-trigger__label {
+    max-width: none;
+  }
+
+  .compare-block__val {
+    min-width: 0;
+    padding: 12px 14px;
+  }
+
+  .compare-block__val-number {
+    font-size: 20px;
+    overflow-wrap: anywhere;
+  }
+
+  /* ESG */
+  .esg-chart__kpis {
+    flex-wrap: wrap;
+    gap: 12px 24px;
+  }
+
+  .esg-chart__canvas {
+    height: 240px;
+  }
+
+  /* LEAP Prepare */
+  .lp-levers {
+    min-width: 0;
+  }
+
+  /* Stress test climatique */
+  .cst-scenario-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .cst-segmented {
+    flex-wrap: wrap;
+  }
+
+  /* Tableaux larges : ils défilent dans leur cadre. */
+  .pf-holdings,
+  .cst-table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  /* Portfolio */
+  .pf-add {
+    max-width: none;
+  }
+
+  .pf-actions {
+    flex-wrap: wrap;
+  }
+
+  .pf-impact__total {
+    font-size: 2rem;
+  }
+
+  .pf-impact__chart-wrap,
+  .pf-phys__radar-wrap {
+    height: 300px;
+  }
+
+  .policy-accordion-header {
+    padding: 12px 14px;
+  }
+
+  .policy-accordion-body {
+    padding: 0 14px 14px;
+  }
+
+  /* Petits boutons à bascule : cibles tactiles agrandies. */
+  .map-layer-btn {
+    padding: 8px 10px;
+  }
+
+  .ov-mode-btn {
+    min-height: 40px;
+  }
+
+  .pr-horizon__btn,
+  .de-toggle__btn {
+    padding: 7px 12px;
+  }
+
+  /* ── Pages carte ─────────────────────────────────────────────────────── */
+  .map-stage {
+    --map-sheet-height: 45%;
+  }
+
+  /* Plus de rail à gauche : les overlays reviennent au bord. */
+  .map-stage__tl,
+  .map-stage__bl {
+    left: 8px;
+    max-width: calc(100% - 16px);
+  }
+
+  /* Onglets LEAP en pastille : seule la phase active garde son nom, les
+     autres ne montrent que leur lettre (nom conservé pour les lecteurs
+     d'écran). */
+  .map-stage .leap-tab {
+    flex: none;
+    padding: 6px 10px;
+  }
+
+  .map-stage .leap-tab:not(.leap-tab--active) .leap-tab__name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* Panneau latéral → feuille en bas d'écran. */
+  .map-panel,
+  .ll-map-wrap .ll-panel {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    max-width: none;
+    height: var(--map-sheet-height);
+  }
+
+  .map-stage.is-panel-collapsed .map-panel,
+  .ll-map-wrap.ll-collapsed .ll-panel {
+    transform: translateY(calc(100% + 16px));
+  }
+
+  /* Le chevron de repli pointe vers le bas, sens du glissement. */
+  .map-panel__toggle svg,
+  .ll-panel__toggle svg {
+    transform: rotate(90deg);
+  }
+
+  .map-panel__toggle,
+  .ll-panel__toggle {
+    width: 36px;
+    height: 36px;
+  }
+
+  .map-panel__reopen,
+  .ll-map-wrap .ll-panel__reopen {
+    top: auto;
+    bottom: 8px;
+    right: 8px;
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Tiroir bas : posé au-dessus de la feuille, pleine largeur. */
+  .map-drawer {
+    left: 8px;
+    right: 8px;
+    bottom: calc(var(--map-sheet-height) + 16px);
+    max-height: calc(100% - var(--map-sheet-height) - var(--header-height) - 32px);
+  }
+
+  /* Feuille repliée : le tiroir descend et laisse la place au bouton de
+     réouverture à droite. */
+  .map-stage.is-panel-collapsed .map-drawer {
+    right: 60px;
+    bottom: 8px;
+    max-height: calc(100% - var(--header-height) - 24px);
+  }
+
+  /* Légendes : au-dessus de la feuille, et du tiroir s'il y en a un. */
+  .map-stage__bl {
+    bottom: calc(var(--map-sheet-height) + 16px);
+  }
+
+  .map-stage:has(.map-drawer:not([hidden])) .map-stage__bl {
+    bottom: calc(var(--map-sheet-height) + 68px);
+  }
+
+  .map-stage.is-panel-collapsed .map-stage__bl,
+  .ll-map-wrap.ll-collapsed .map-stage__bl {
+    bottom: 8px;
+  }
+
+  .map-stage.is-panel-collapsed:has(.map-drawer:not([hidden])) .map-stage__bl {
+    bottom: 60px;
+  }
+
+  .map-stage .map-legend {
+    padding: 6px 10px;
+  }
+
+  .map-stage .ll-commodity-legend .map-legend__list,
+  .map-stage #ov-mode-legend .map-legend__list,
+  .map-stage #ov-supply-legend .map-legend__list {
+    max-height: 18vh;
+  }
+}
