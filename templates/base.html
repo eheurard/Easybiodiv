@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
   <script>
     /* Pose le theme avant le rendu, sinon la page apparait en clair puis
@@ -32,16 +33,56 @@
 
   <!-- Écran de chargement : styles critiques inline pour un affichage instantané -->
   <style>
-    #page-loader{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--color-background);transition:opacity .4s ease,visibility .4s ease}
-    #page-loader.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
-    #page-loader .pl-ring{width:46px;height:46px;border-radius:50%;border:4px solid var(--color-surface-container-highest);border-top-color:var(--color-primary);animation:pl-spin .8s linear infinite}
-    #page-loader .pl-text{font:500 13px/1 'Inter',system-ui,sans-serif;color:var(--color-on-surface-variant);letter-spacing:.03em}
-    @keyframes pl-spin{to{transform:rotate(360deg)}}
-    @media (prefers-reduced-motion:reduce){#page-loader .pl-ring{animation-duration:1.8s}}
+    #page-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: var(--color-background);
+      transition: opacity .4s ease, visibility .4s ease
+    }
+
+    #page-loader.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none
+    }
+
+    #page-loader .pl-ring {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 4px solid var(--color-surface-container-highest);
+      border-top-color: var(--color-primary);
+      animation: pl-spin .8s linear infinite
+    }
+
+    #page-loader .pl-text {
+      font: 500 13px/1 'Inter', system-ui, sans-serif;
+      color: var(--color-on-surface-variant);
+      letter-spacing: .03em
+    }
+
+    @keyframes pl-spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    @media (prefers-reduced-motion:reduce) {
+      #page-loader .pl-ring {
+        animation-duration: 1.8s
+      }
+    }
   </style>
 
   {% block extra_css %}{% endblock %}
 </head>
+
 <body>
 
   <!-- Écran de chargement (masqué au chargement complet par main.js) -->
@@ -55,31 +96,35 @@
     <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
     <aside class="app-sidebar" id="app-sidebar" aria-label="Navigation principale">
 
-      <button class="sidebar__toggle" id="sidebar-toggle" aria-label="Réduire le menu" aria-expanded="true" aria-controls="app-sidebar">
+      <button class="sidebar__toggle" id="sidebar-toggle" aria-label="Réduire le menu" aria-expanded="true"
+        aria-controls="app-sidebar">
         <svg class="toggle-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <path d="M13 15l-5-5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M13 15l-5-5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+            stroke-linejoin="round" />
         </svg>
       </button>
 
       <nav class="sidebar__nav" aria-label="Menu principal">
         <ul class="sidebar__nav-list" role="list">
           <li>
-            <a href="{% url 'dashboard:index' %}" class="sidebar__nav-link {% block nav_overview %}{% endblock %}" aria-label="Vue d'ensemble">
+            <a href="{% url 'dashboard:index' %}" class="sidebar__nav-link {% block nav_overview %}{% endblock %}"
+              aria-label="Vue d'ensemble">
               <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
-                <rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
-                <rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
-                <rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                <rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5" />
+                <rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5" />
+                <rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5" />
+                <rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5" />
               </svg>
               <span class="sidebar__nav-label">Vue d'ensemble</span>
             </a>
           </li>
           <li>
-            <a href="{% url 'dashboard:esg' %}" class="sidebar__nav-link {% block nav_esg %}{% endblock %}" aria-label="Données ESG">
+            <a href="{% url 'dashboard:esg' %}" class="sidebar__nav-link {% block nav_esg %}{% endblock %}"
+              aria-label="Données ESG">
               <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <path d="M3 17V3M3 17h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                <rect x="6" y="10" width="2.5" height="4" stroke="currentColor" stroke-width="1.3"/>
-                <rect x="11" y="6" width="2.5" height="8" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M3 17V3M3 17h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                <rect x="6" y="10" width="2.5" height="4" stroke="currentColor" stroke-width="1.3" />
+                <rect x="11" y="6" width="2.5" height="8" stroke="currentColor" stroke-width="1.3" />
               </svg>
               <span class="sidebar__nav-label">Données ESG</span>
             </a>
@@ -87,41 +132,44 @@
           <li>
             <details class="sidebar__nav-details" id="nav-risks-group">
               <summary class="sidebar__nav-link" aria-label="Analyse des risques">
-                <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                  <path d="M10 3L18 17H2L10 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                  <path d="M10 8v4M10 13.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none"
+                  aria-hidden="true">
+                  <path d="M10 3L18 17H2L10 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                  <path d="M10 8v4M10 13.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                 </svg>
                 <span class="sidebar__nav-label">Analyse des risques</span>
-                <svg class="sidebar__nav-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                  <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <svg class="sidebar__nav-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"
+                  aria-hidden="true">
+                  <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
                 </svg>
               </summary>
               <ul class="sidebar__nav-sub" role="list">
                 <li>
                   <a href="{% url 'dashboard:leap_locate' %}"
-                     class="sidebar__nav-sublink {% block nav_mesure_empreinte %}{% endblock %}"
-                     aria-label="Mesure d'empreinte">
+                    class="sidebar__nav-sublink {% block nav_mesure_empreinte %}{% endblock %}"
+                    aria-label="Mesure d'empreinte">
                     Mesure d'empreinte
                   </a>
                 </li>
                 <li>
                   <a href="{% url 'dashboard:physical_risk' %}"
-                     class="sidebar__nav-sublink {% block nav_physical_risk %}{% endblock %}"
-                     aria-label="Risque physique">
+                    class="sidebar__nav-sublink {% block nav_physical_risk %}{% endblock %}"
+                    aria-label="Risque physique">
                     Risque physique
                   </a>
                 </li>
                 <li>
                   <a href="{% url 'dashboard:dette_ecologique' %}"
-                     class="sidebar__nav-sublink {% block nav_dette_ecologique %}{% endblock %}"
-                     aria-label="Dette écologique">
+                    class="sidebar__nav-sublink {% block nav_dette_ecologique %}{% endblock %}"
+                    aria-label="Dette écologique">
                     Dette écologique
                   </a>
                 </li>
                 <li>
                   <a href="{% url 'dashboard:climate_stress_test' %}"
-                     class="sidebar__nav-sublink {% block nav_climate_stress_test %}{% endblock %}"
-                     aria-label="Stress test climatique">
+                    class="sidebar__nav-sublink {% block nav_climate_stress_test %}{% endblock %}"
+                    aria-label="Stress test climatique">
                     Stress test climatique
                   </a>
                 </li>
@@ -129,41 +177,46 @@
             </details>
           </li>
           <li>
-            <a href="{% url 'dashboard:dependencies' %}" class="sidebar__nav-link {% block nav_dependencies %}{% endblock %}" aria-label="Dépendances">
+            <a href="{% url 'dashboard:dependencies' %}"
+              class="sidebar__nav-link {% block nav_dependencies %}{% endblock %}" aria-label="Dépendances">
               <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/>
-                <circle cx="3.5" cy="5" r="1.5" stroke="currentColor" stroke-width="1.5"/>
-                <circle cx="16.5" cy="5" r="1.5" stroke="currentColor" stroke-width="1.5"/>
-                <circle cx="3.5" cy="15" r="1.5" stroke="currentColor" stroke-width="1.5"/>
-                <circle cx="16.5" cy="15" r="1.5" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M5 5.5L8 8.5M15 5.5L12 8.5M5 14.5L8 11.5M15 14.5L12 11.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5" />
+                <circle cx="3.5" cy="5" r="1.5" stroke="currentColor" stroke-width="1.5" />
+                <circle cx="16.5" cy="5" r="1.5" stroke="currentColor" stroke-width="1.5" />
+                <circle cx="3.5" cy="15" r="1.5" stroke="currentColor" stroke-width="1.5" />
+                <circle cx="16.5" cy="15" r="1.5" stroke="currentColor" stroke-width="1.5" />
+                <path d="M5 5.5L8 8.5M15 5.5L12 8.5M5 14.5L8 11.5M15 14.5L12 11.5" stroke="currentColor"
+                  stroke-width="1.2" stroke-linecap="round" />
               </svg>
               <span class="sidebar__nav-label">Dépendances</span>
             </a>
           </li>
           <li>
-            <a href="{% url 'dashboard:compare' %}" class="sidebar__nav-link {% block nav_compare %}{% endblock %}" aria-label="Comparaison">
+            <a href="{% url 'dashboard:compare' %}" class="sidebar__nav-link {% block nav_compare %}{% endblock %}"
+              aria-label="Comparaison">
               <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <path d="M4 4h5v12H4zM11 4h5v12h-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M4 4h5v12H4zM11 4h5v12h-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
               </svg>
               <span class="sidebar__nav-label">Comparaison</span>
             </a>
           </li>
           <li>
-            <a href="{% url 'dashboard:portfolio_analysis' %}" class="sidebar__nav-link {% block nav_portfolio %}{% endblock %}" aria-label="Portfolio analysis">
+            <a href="{% url 'dashboard:portfolio_analysis' %}"
+              class="sidebar__nav-link {% block nav_portfolio %}{% endblock %}" aria-label="Portfolio analysis">
               <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <rect x="2.5" y="4" width="15" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M7 4V3a1.5 1.5 0 011.5-1.5h3A1.5 1.5 0 0113 3v1" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M2.5 9h15" stroke="currentColor" stroke-width="1.3"/>
+                <rect x="2.5" y="4" width="15" height="12" rx="2" stroke="currentColor" stroke-width="1.5" />
+                <path d="M7 4V3a1.5 1.5 0 011.5-1.5h3A1.5 1.5 0 0113 3v1" stroke="currentColor" stroke-width="1.5" />
+                <path d="M2.5 9h15" stroke="currentColor" stroke-width="1.3" />
               </svg>
               <span class="sidebar__nav-label">Portfolio analysis</span>
             </a>
           </li>
           <li>
-            <a href="{% url 'dashboard:compliance' %}" class="sidebar__nav-link {% block nav_compliance %}{% endblock %}" aria-label="Conformité CSRD">
+            <a href="{% url 'dashboard:compliance' %}"
+              class="sidebar__nav-link {% block nav_compliance %}{% endblock %}" aria-label="Conformité CSRD">
               <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <rect x="4" y="2" width="12" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                <rect x="4" y="2" width="12" height="16" rx="2" stroke="currentColor" stroke-width="1.5" />
+                <path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
               </svg>
               <span class="sidebar__nav-label">Conformité CSRD</span>
             </a>
@@ -175,7 +228,8 @@
         {% if user.is_authenticated and user.role == 'CREATOR' %}
         <a href="{% url 'imports:index' %}" class="sidebar__footer-link" aria-label="Import Excel">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M8 14V6M5 9l3-3 3 3M3 14h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 14V6M5 9l3-3 3 3M3 14h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+              stroke-linejoin="round" />
           </svg>
           <span class="sidebar__footer-link-label">Import Excel</span>
         </a>
@@ -183,35 +237,43 @@
         {% if user.is_superuser %}
         <a href="{% url 'admin:index' %}" class="sidebar__footer-link" aria-label="Console de données">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <ellipse cx="8" cy="3.5" rx="5" ry="2" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M3 3.5v9c0 1.1 2.24 2 5 2s5-.9 5-2v-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            <path d="M3 8c0 1.1 2.24 2 5 2s5-.9 5-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <ellipse cx="8" cy="3.5" rx="5" ry="2" stroke="currentColor" stroke-width="1.5" />
+            <path d="M3 3.5v9c0 1.1 2.24 2 5 2s5-.9 5-2v-9" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" />
+            <path d="M3 8c0 1.1 2.24 2 5 2s5-.9 5-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
           <span class="sidebar__footer-link-label">Console de données</span>
         </a>
         {% endif %}
         <a href="#" class="sidebar__footer-link" aria-label="Exporter un rapport">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M8 2v8M5 7l3 3 3-3M3 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 2v8M5 7l3 3 3-3M3 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+              stroke-linejoin="round" />
           </svg>
           <span class="sidebar__footer-link-label">Exporter rapport</span>
         </a>
 
         <div class="sidebar__footer-actions">
-          <button type="button" class="sidebar__footer-icon-link" id="theme-toggle"
-                  aria-pressed="false" aria-label="Passer en mode nuit" title="Mode jour / nuit">
-            <svg class="theme-icon theme-icon--sun" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-              <circle cx="9" cy="9" r="2.5" stroke="currentColor" stroke-width="1.4"/>
-              <path d="M9 1.5v1.7M9 14.8v1.7M1.5 9h1.7M14.8 9h1.7M3.7 3.7l1.2 1.2M13.1 13.1l1.2 1.2M3.7 14.3l1.2-1.2M13.1 4.9l1.2-1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <button type="button" class="sidebar__footer-icon-link" id="theme-toggle" aria-pressed="false"
+            aria-label="Passer en mode nuit" title="Mode jour / nuit">
+            <svg class="theme-icon theme-icon--sun" width="18" height="18" viewBox="0 0 18 18" fill="none"
+              aria-hidden="true">
+              <circle cx="9" cy="9" r="2.5" stroke="currentColor" stroke-width="1.4" />
+              <path
+                d="M9 1.5v1.7M9 14.8v1.7M1.5 9h1.7M14.8 9h1.7M3.7 3.7l1.2 1.2M13.1 13.1l1.2 1.2M3.7 14.3l1.2-1.2M13.1 4.9l1.2-1.2"
+                stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
             </svg>
-            <svg class="theme-icon theme-icon--moon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-              <path d="M15 10.6A6.5 6.5 0 017.4 3a6.5 6.5 0 107.6 7.6z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+            <svg class="theme-icon theme-icon--moon" width="18" height="18" viewBox="0 0 18 18" fill="none"
+              aria-hidden="true">
+              <path d="M15 10.6A6.5 6.5 0 017.4 3a6.5 6.5 0 107.6 7.6z" stroke="currentColor" stroke-width="1.4"
+                stroke-linejoin="round" />
             </svg>
           </button>
           <a href="#" class="sidebar__footer-icon-link" aria-label="Aide et support">
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-              <circle cx="9" cy="9" r="7.5" stroke="currentColor" stroke-width="1.4"/>
-              <path d="M6.5 6.5a2.5 2.5 0 015 0c0 1.5-1.5 2-2.5 3M9 13v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <circle cx="9" cy="9" r="7.5" stroke="currentColor" stroke-width="1.4" />
+              <path d="M6.5 6.5a2.5 2.5 0 015 0c0 1.5-1.5 2-2.5 3M9 13v.5" stroke="currentColor" stroke-width="1.4"
+                stroke-linecap="round" />
             </svg>
           </a>
         </div>
@@ -228,42 +290,38 @@
         {% block header_left %}
         <div class="app-header__search">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M13 13l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" />
+            <path d="M13 13l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
-          <input type="search" class="app-header__search-input form-input" placeholder="Rechercher sites, entreprises..." aria-label="Rechercher">
+          <input type="search" class="app-header__search-input form-input"
+            placeholder="Rechercher sites, entreprises..." aria-label="Rechercher">
         </div>
         {% endblock header_left %}
 
         <div class="app-header__actions">
-          <button class="app-header__icon-btn" aria-label="Notifications" title="Notifications">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path d="M10 2a6 6 0 00-6 6v3l-1.5 2.5h15L16 11V8a6 6 0 00-6-6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-              <path d="M8.5 16.5a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-            <span class="app-header__notif-badge" aria-label="3 notifications"></span>
-          </button>
 
           {% if user.is_authenticated %}
-            <div class="app-header__user-menu">
-              <button class="app-header__avatar" aria-label="Menu utilisateur" aria-haspopup="true" aria-expanded="false" id="user-menu-btn">
-                <span class="app-header__avatar-initials">{{ user.username|first|upper }}</span>
-              </button>
-              <div class="app-header__user-dropdown" id="user-dropdown" hidden>
-                <span class="app-header__user-name">{{ user.username }}</span>
-                <form method="post" action="{% url 'authentication:logout' %}">
-                  {% csrf_token %}
-                  <button type="submit" class="app-header__logout-btn">Se déconnecter</button>
-                </form>
-              </div>
+          <div class="app-header__user-menu">
+            <button class="app-header__avatar" aria-label="Menu utilisateur" aria-haspopup="true" aria-expanded="false"
+              id="user-menu-btn">
+              <span class="app-header__avatar-initials">{{ user.username|first|upper }}</span>
+            </button>
+            <div class="app-header__user-dropdown" id="user-dropdown" hidden>
+              <span class="app-header__user-name">{{ user.username }}</span>
+              <form method="post" action="{% url 'authentication:logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="app-header__logout-btn">Se déconnecter</button>
+              </form>
             </div>
+          </div>
           {% else %}
-            <a href="{% url 'authentication:login' %}" class="app-header__avatar" aria-label="Se connecter">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-            </a>
+          <a href="{% url 'authentication:login' %}" class="app-header__avatar" aria-label="Se connecter">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5" />
+              <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" />
+            </svg>
+          </a>
           {% endif %}
         </div>
       </header>
@@ -282,4 +340,5 @@
   <script src="{% static 'dashboard/js/main.js' %}" defer></script>
   {% block extra_js %}{% endblock %}
 </body>
+
 </html>
