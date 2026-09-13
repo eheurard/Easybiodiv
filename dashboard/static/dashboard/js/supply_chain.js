@@ -99,6 +99,7 @@ window.SupplyChain = (function () {
       animFrame: null,  // id requestAnimationFrame de l'animation des flèches
       animPhase: 0,
       bound: false,     // évènements déjà liés à la carte ?
+      arrowsEmpty: false, // dernier setData déjà vidé : inutile de le répéter
     };
 
     function linkFeatures() {
@@ -168,6 +169,13 @@ window.SupplyChain = (function () {
     function updateArrows(phase) {
       const src = map.getSource('ll-supplier-arrows');
       if (!src) return;
+      // Sans lien, un seul setData vide suffit : inutile de le rejouer à chaque frame.
+      if (!state.links.length) {
+        if (state.arrowsEmpty) return;
+        state.arrowsEmpty = true;
+      } else {
+        state.arrowsEmpty = false;
+      }
       const feats = [];
       state.links.forEach(l => {
         for (let k = 0; k < ARROWS_PER_LINK; k++) {

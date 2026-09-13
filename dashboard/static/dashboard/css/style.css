@@ -4581,6 +4581,12 @@ a.app-header__avatar {
   gap: 10px;
 }
 
+/* Région role="status" : reste dans le DOM, ne prend de la place que si elle
+   a du texte (chargement ou erreur). */
+.ov-status { margin: 0 0 12px; }
+.ov-status:empty { margin: 0; }
+.ov-status--error { color: var(--color-error); font-style: normal; }
+
 /* Bascule verrouillée (supply chain sans connexion). */
 .map-layer-btn:disabled,
 .map-layer-btn:disabled:hover {

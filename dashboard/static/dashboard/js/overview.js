@@ -44,6 +44,7 @@ const OV = {
   pies: [],            // mode dette : marqueurs camembert
   colors: new Map(),   // commodité → couleur, stable pour l'entreprise courante
   supply: null,        // instance SupplyChain, disponible dans tous les modes
+  popup: null,         // popup d'asset ouvert (fermé au changement de mode ou d'entreprise)
 };
 
 // Registre des modes. source : clé de OVERVIEW_API ; drawer : tiroir bas
@@ -147,7 +148,7 @@ function ovInitMap() {
     map.on('click', 'ov-assets-layer', (e) => {
       const popupHtml = OV_MODES[OV.mode].popupHtml;
       if (!popupHtml) return;
-      new maplibregl.Popup({ maxWidth: '300px' })
+      OV.popup = new maplibregl.Popup({ maxWidth: '300px' })
         .setLngLat(e.lngLat)
         .setHTML(popupHtml(e.features[0].properties))
         .addTo(map);
@@ -190,6 +191,12 @@ function ovSetMapFeatures(features) {
   if (src) src.setData({ type: 'FeatureCollection', features: features });
 }
 
+// Ferme le popup d'asset ouvert : ses données ne suivent pas le changement
+// de mode ou d'entreprise, il deviendrait périmé s'il restait affiché.
+function ovClosePopup() {
+  if (OV.popup) { OV.popup.remove(); OV.popup = null; }
+}
+
 // Rejoue un fond (sélecteur ou bascule jour/nuit) puis reconstruit nos couches
 // sur le nouveau style (replayMapStyle, main.js). L'animation des flèches est
 // suspendue le temps du chargement.
@@ -218,7 +225,7 @@ function ovInitControls() {
       if (btn.disabled) return;
       // Un clic sur le mode déjà actif ne relance le chargement qu'après une erreur.
       const status = document.getElementById('ov-status');
-      if (btn.dataset.mode === OV.mode && status && status.hidden) return;
+      if (btn.dataset.mode === OV.mode && status && !status.textContent) return;
       ovSetMode(btn.dataset.mode);
     });
   });
@@ -346,12 +353,13 @@ function ovRenderMode() {
       if (OV.mode !== mode) return;
       ovShowStatus(err && err.kind === 'session'
         ? 'Session expirée — reconnectez-vous.'
-        : 'Impossible de charger les données.');
+        : 'Impossible de charger les données.', true);
     });
 }
 
 function ovApplyMode(mode, data) {
   const cfg = OV_MODES[mode];
+  ovClosePopup();
   ovShowStatus('');
   ovShowView(mode);
   cfg.renderPanel(data);
@@ -363,17 +371,20 @@ function ovApplyMode(mode, data) {
 
 // Vide la carte, la légende et les tiroirs le temps d'un chargement.
 function ovClearModeDisplay() {
+  ovClosePopup();
   ovSetMapFeatures([]);
   ovClearPies();
   ovSetLegend('');
   ovSetDrawer(null);
 }
 
-function ovShowStatus(message) {
+// La région role="status" reste dans le DOM : seul son texte change, pour que
+// les lecteurs d'écran annoncent chaque message.
+function ovShowStatus(message, isError) {
   const el = document.getElementById('ov-status');
   if (!el) return;
   el.textContent = message;
-  el.hidden = !message;
+  el.classList.toggle('ov-status--error', !!isError);
   if (message) {
     document.querySelectorAll('[data-view]')
       .forEach((v) => v.classList.remove('country-panel__view--active'));
