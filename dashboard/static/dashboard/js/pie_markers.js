@@ -1,7 +1,7 @@
 'use strict';
 
 // Marqueurs camembert réutilisables pour une carte MapLibre.
-// Partagé entre la page Dette écologique et l'onglet Risque de transition.
+// Partagé entre la page Dette écologique, le portfolio et la Vue d'ensemble (mode dette).
 window.PieMarkers = (function () {
   var PALETTE = [
     '#2d6a4f', '#74c69d', '#d4a373', '#e76f51',

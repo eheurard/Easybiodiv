@@ -1023,20 +1023,9 @@ a.app-header__avatar {
   animation: panelEnter 0.28s ease forwards;
 }
 
-.country-panel__view--leaving {
-  display: block;
-  animation: panelLeave 0.2s ease forwards;
-  pointer-events: none;
-}
-
 @keyframes panelEnter {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0);   }
-}
-
-@keyframes panelLeave {
-  from { opacity: 1; transform: translateY(0);    }
-  to   { opacity: 0; transform: translateY(-6px); }
 }
 
 .country-panel__empty {

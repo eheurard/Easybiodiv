@@ -221,7 +221,7 @@ corrigée en premier (commit séparé) pour que le golden puisse valider l'ajout
 - Suppression des styles devenus morts, utilisés seulement par l'ancienne Vue
   d'ensemble : `.country-panel__tabs`, `.country-panel__tab-indicator`,
   `.country-panel__tab*` (et leurs surcharges `.map-panel …`), `.asset-card*`.
-  `.country-panel`, `.country-panel__view*`, `.country-panel__empty`,
+  `.country-panel`, `.country-panel__view` et `--active`, `.country-panel__empty`,
   `.country-item*` et `.asset-list__*` restent utilisés.
 - La règle `max-height: 30vh` des listes de légende vise les nouveaux conteneurs
   de légende.
@@ -256,11 +256,12 @@ Changement de mode→ données en cache ? rendu immédiat : requête puis rendu
 - Un seul écouteur de clic sur `ov-assets-layer` affiche le popup du mode actif.
 - Supply chain : `supply.addLayers('ov-assets-layer')` place les courbes sous les
   points.
-- Changement de fond ou de thème : arrêt de l'animation → `setStyle(mapStyleFor(…))`
-  → `once('idle')` → recréer source et couche, repousser les données du mode,
-  `supply.addLayers` + données, relancer l'animation si active. (Remplace le
-  `styledata` actuel de la Vue d'ensemble ; « idle » ne se déclenche pas tant que
-  l'animation tourne, d'où l'arrêt préalable — schéma éprouvé sur Locate.) Les
+- Changement de fond ou de thème : `replayMapStyle(map, style, onReady)` (`main.js`)
+  = `setStyle(style, { diff: false })` puis `once('style.load')` → recréer source
+  et couche, `supply.addLayers` + données, relancer l'animation si active. Motif :
+  en mode diff, l'ancien style reste « chargé » pendant le téléchargement du
+  nouveau et un « idle » peut survenir dessus (course démontrée, commit 10cd051).
+  Contrepartie : fond brièvement vide pendant le chargement du nouveau style. Les
   camemberts, marqueurs DOM, survivent au `setStyle`.
 
 ### 4.3 Erreurs
