@@ -4228,9 +4228,10 @@ a.app-header__avatar {
   bottom: 64px;
 }
 
-/* Tiroir deploye : il recouvrirait la legende. On l'efface plutot que de la
-   laisser coupee en deux ; elle revient a la fermeture. */
-.map-stage:has(.map-drawer.is-open) .map-stage__bl {
+/* Tiroir deploye (et visible) : il recouvrirait la legende. On l'efface
+   plutot que de la laisser coupee en deux ; elle revient a la fermeture.
+   Le :not([hidden]) exclut un tiroir masque qui garderait is-open. */
+.map-stage:has(.map-drawer.is-open:not([hidden])) .map-stage__bl {
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.2s ease, visibility 0.2s ease;

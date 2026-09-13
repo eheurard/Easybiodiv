@@ -394,13 +394,22 @@ function ovSetLegend(html) {
 }
 
 // Tiroir bas : « Politiques » (si l'entreprise en a) ou « Détail par actif ».
+// Un tiroir masqué est aussi refermé : resté « ouvert », il masquerait la
+// légende et réapparaîtrait déplié.
 function ovSetDrawer(kind) {
-  const policy = document.getElementById('policy-section');
-  const detail = document.getElementById('pr-detail-section');
   const company = OV.cache.company;
   const hasPolicies = !!(company && company.policies && company.policies.length);
-  if (policy) policy.hidden = !(kind === 'policy' && hasPolicies);
-  if (detail) detail.hidden = kind !== 'risque';
+  ovShowDrawer(document.getElementById('policy-section'), kind === 'policy' && hasPolicies);
+  ovShowDrawer(document.getElementById('pr-detail-section'), kind === 'risque');
+}
+
+function ovShowDrawer(drawer, visible) {
+  if (!drawer) return;
+  drawer.hidden = !visible;
+  if (visible) return;
+  drawer.classList.remove('is-open');
+  const handle = drawer.querySelector('.map-drawer__handle');
+  if (handle) handle.setAttribute('aria-expanded', 'false');
 }
 
 
