@@ -547,6 +547,19 @@ p {
   color: var(--color-on-primary);
 }
 
+/* Lien réservé aux utilisateurs connectés (ex. Portfolio analysis). */
+.sidebar__nav-link.sidebar__nav-link--disabled,
+.app-layout .sidebar__nav-link.sidebar__nav-link--disabled:not(.active):hover {
+  background: transparent;
+  color: var(--color-on-surface-variant);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sidebar__nav-link--disabled > .sidebar__nav-label {
+  text-decoration: line-through;
+}
+
 .sidebar__nav-icon {
   flex-shrink: 0;
   width: 20px;
@@ -4725,7 +4738,8 @@ button.sidebar__footer-icon-link {
 /* Éléments propres au mobile, absents du rendu desktop. */
 .sidebar__mobile-head,
 .app-header__menu-btn,
-.app-nav-backdrop {
+.app-nav-backdrop,
+.map-layer-toggle__trigger {
   display: none;
 }
 
@@ -5356,6 +5370,33 @@ button.sidebar__footer-icon-link {
 
   .map-stage.is-panel-collapsed:has(.map-drawer:not([hidden])) .map-stage__bl {
     bottom: 60px;
+  }
+
+  /* Fond de carte : replié derrière l'icône de calque (main.js), les
+     options se déploient à l'horizontale à droite de l'icône. */
+  .map-layer-toggle.has-trigger {
+    align-items: center;
+  }
+
+  .map-layer-toggle.has-trigger .map-layer-toggle__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: calc(var(--radius-md) - 2px);
+    background: transparent;
+    color: var(--color-on-surface);
+    cursor: pointer;
+  }
+
+  .map-layer-toggle.has-trigger.is-open .map-layer-toggle__trigger {
+    color: var(--color-primary);
+  }
+
+  .map-layer-toggle.has-trigger:not(.is-open) .map-layer-btn[data-layer] {
+    display: none;
   }
 
   .map-stage .map-legend {

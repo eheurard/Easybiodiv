@@ -1530,7 +1530,6 @@ def company_data(request, pk):
     return JsonResponse(_get_company_data(company))
 
 
-@login_required
 @require_GET
 def esg(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
@@ -1544,14 +1543,12 @@ def esg(request):
     })
 
 
-@login_required
 @require_GET
 def esg_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_esg_data(company))
 
 
-@login_required
 @require_GET
 def esg_market(request, pk):
     company = get_object_or_404(Company, pk=pk)
@@ -1564,7 +1561,6 @@ def esg_market(request, pk):
     })
 
 
-@login_required
 @require_GET
 def mesure_empreinte(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
@@ -1578,14 +1574,12 @@ def mesure_empreinte(request):
     })
 
 
-@login_required
 @require_GET
 def mesure_empreinte_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_mesure_empreinte_data(company))
 
 
-@login_required
 @require_GET
 def leap_locate(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
@@ -1599,14 +1593,12 @@ def leap_locate(request):
     })
 
 
-@login_required
 @require_GET
 def leap_locate_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_leap_locate_data(company))
 
 
-@login_required
 @require_GET
 def leap_evaluate(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
@@ -1620,14 +1612,12 @@ def leap_evaluate(request):
     })
 
 
-@login_required
 @require_GET
 def leap_evaluate_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_leap_evaluate_data(company))
 
 
-@login_required
 @require_GET
 def leap_prepare(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
@@ -1641,14 +1631,12 @@ def leap_prepare(request):
     })
 
 
-@login_required
 @require_GET
 def leap_prepare_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_leap_prepare_data(company))
 
 
-@login_required
 @require_GET
 def dependencies(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
@@ -1662,7 +1650,6 @@ def dependencies(request):
     })
 
 
-@login_required
 @require_GET
 def dependencies_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
@@ -1688,7 +1675,6 @@ def physical_risk_data(request, pk):
     return JsonResponse(_get_physical_risk_data(company))
 
 
-@login_required
 @require_GET
 def dette_ecologique(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
@@ -1702,7 +1688,6 @@ def dette_ecologique(request):
     })
 
 
-@login_required
 @require_GET
 def dette_ecologique_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
@@ -1724,7 +1709,6 @@ def compare_data(request, pk):
     return JsonResponse(_get_comparison_data(company))
 
 
-@login_required
 @require_GET
 def compliance(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
@@ -1738,14 +1722,12 @@ def compliance(request):
     })
 
 
-@login_required
 @require_GET
 def compliance_data(request, pk):
     company = get_object_or_404(Company, pk=pk)
     return JsonResponse(_get_compliance_data(company))
 
 
-@login_required
 @require_GET
 def climate_stress_test(request):
     companies = list(Company.objects.order_by('name').values('id', 'name'))
@@ -1759,7 +1741,6 @@ def climate_stress_test(request):
     })
 
 
-@login_required
 @require_GET
 def climate_stress_test_data(request, pk):
     company = get_object_or_404(Company, pk=pk)

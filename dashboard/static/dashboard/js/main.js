@@ -147,6 +147,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ── Sélecteur de fond de carte replié (mobile) ──────────────────────────
+  // Sur mobile, le groupe Classique / Gris / Satellite se replie derrière une
+  // icône de calque et se déploie à l'horizontale au tap. Le CSS masque le
+  // déclencheur sur desktop. Il ne porte pas .map-layer-btn : les scripts de
+  // page ne le voient donc pas.
+  const LAYER_ICON =
+    '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">' +
+    '<path d="M9 2.5L16 6.25 9 10 2 6.25 9 2.5z" stroke="currentColor" stroke-width="1.4" ' +
+    'stroke-linejoin="round"/>' +
+    '<path d="M2 9.25L9 13l7-3.75M2 12.25L9 16l7-3.75" stroke="currentColor" ' +
+    'stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  document.querySelectorAll('.map-layer-toggle').forEach((group) => {
+    if (!group.querySelector('.map-layer-btn[data-layer]')) return;
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'map-layer-toggle__trigger';
+    trigger.setAttribute('aria-label', 'Choisir le fond de carte');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.innerHTML = LAYER_ICON;
+    group.prepend(trigger);
+    group.classList.add('has-trigger');
+
+    const setOpen = (open) => {
+      group.classList.toggle('is-open', open);
+      trigger.setAttribute('aria-expanded', String(open));
+    };
+
+    trigger.addEventListener('click', () => setOpen(!group.classList.contains('is-open')));
+    // Un fond choisi : on replie (le script de page a déjà traité le clic).
+    group.addEventListener('click', (e) => {
+      if (e.target.closest('.map-layer-btn[data-layer]')) setOpen(false);
+    });
+    document.addEventListener('click', (e) => {
+      if (!group.contains(e.target)) setOpen(false);
+    });
+  });
+
   // ── Bascule jour / nuit ─────────────────────────────────────────────────
   // Le theme est deja pose par le script inline du <head> ; ici on ne gere
   // que le clic, la memorisation, et la diffusion aux cartes.

@@ -42,7 +42,7 @@
       <button class="map-layer-btn" data-layer="satellite">Satellite</button>
     </div>
     <div class="map-layer-toggle" role="group" aria-label="Fournisseurs">
-      <button type="button" class="map-layer-btn" id="ov-supply-toggle" aria-pressed="false"{% if not user.is_authenticated %} disabled title="Connexion requise"{% endif %}>Supply chain</button>
+      <button type="button" class="map-layer-btn" id="ov-supply-toggle" aria-pressed="false">Supply chain</button>
     </div>
   </div>
 
@@ -68,25 +68,9 @@
 
     <div class="ov-modes" role="group" aria-label="Mode d'affichage de la carte">
       <button type="button" class="ov-mode-btn ov-mode-btn--active" data-mode="pays" aria-pressed="true">Exposition pays</button>
-      <button type="button" class="ov-mode-btn" data-mode="asset" aria-pressed="false"{% if not user.is_authenticated %} disabled title="Connexion requise"{% endif %}>
-        Exposition asset
-        {% if not user.is_authenticated %}
-        <svg class="ov-mode-btn__lock" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-          <rect x="2.5" y="5.5" width="7" height="5" rx="1" stroke="currentColor" stroke-width="1.2" />
-          <path d="M4 5.5V4a2 2 0 014 0v1.5" stroke="currentColor" stroke-width="1.2" />
-        </svg>
-        {% endif %}
-      </button>
+      <button type="button" class="ov-mode-btn" data-mode="asset" aria-pressed="false">Exposition asset</button>
       <button type="button" class="ov-mode-btn" data-mode="risque" aria-pressed="false">Risque physique</button>
-      <button type="button" class="ov-mode-btn" data-mode="dette" aria-pressed="false"{% if not user.is_authenticated %} disabled title="Connexion requise"{% endif %}>
-        Dette écologique
-        {% if not user.is_authenticated %}
-        <svg class="ov-mode-btn__lock" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-          <rect x="2.5" y="5.5" width="7" height="5" rx="1" stroke="currentColor" stroke-width="1.2" />
-          <path d="M4 5.5V4a2 2 0 014 0v1.5" stroke="currentColor" stroke-width="1.2" />
-        </svg>
-        {% endif %}
-      </button>
+      <button type="button" class="ov-mode-btn" data-mode="dette" aria-pressed="false">Dette écologique</button>
     </div>
 
     <div class="map-panel__body">
