@@ -1,0 +1,26 @@
+# Couverture du code metier (cf. CLAUDE.md §6, cible >= 70 %).
+# Lancer avec : pytest --cov
+
+[run]
+source =
+    authentication
+    dashboard
+    imports
+    easybiodiv
+branch = True
+omit =
+    */migrations/*
+    */tests/*
+    */tests.py
+    */tests_*.py
+    */test_*.py
+    */apps.py
+    easybiodiv/asgi.py
+    easybiodiv/wsgi.py
+    manage.py
+    passenger_wsgi.py
+
+[report]
+show_missing = True
+skip_covered = True
+precision = 1

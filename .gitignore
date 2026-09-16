@@ -48,3 +48,7 @@ Thumbs.db
 
 #other
 django.txt
+# Couverture de tests
+.coverage
+.coverage.*
+htmlcov/

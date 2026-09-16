@@ -8,3 +8,12 @@ et-xmlfile==2.0.0
 whitenoise==6.12.0
 python-dotenv==1.2.2
 psycopg[binary]==3.3.4
+
+# Tests (cf. CLAUDE.md §6). Non requis a l'execution en prod, mais necessaires
+# pour lancer `pytest` sur un clone neuf ou en CI.
+pytest==9.0.3
+pytest-django==4.12.0
+pytest-cov==7.1.0
+coverage==7.16.1
+factory_boy==3.3.3
+Faker==40.39.0
