@@ -41,7 +41,7 @@ risques biodiversité.
 | Hébergement cible  | **cPanel** (Passenger / WSGI Python)                                  |
 | Dev local          | venv + `runserver`                                                    |
 | Tests              | **Django TestCase + pytest-django**                                   |
-| Gestion deps       | `requirements.txt` (séparer `base.txt`, `dev.txt`, `prod.txt`)         |
+| Gestion deps       | un seul `requirements.txt` à la racine (runtime + tests)               |
 
 ### Contraintes fortes
 - **Pas de framework frontend externe**. Toute solution proposée doit s'appuyer sur
@@ -60,60 +60,112 @@ risques biodiversité.
 ```
 easybiodiv/
 ├── manage.py
-├── requirements/
-│   ├── base.txt
-│   ├── dev.txt
-│   └── prod.txt
-├── config/                  # projet Django (settings, urls, wsgi)
-│   ├── settings/
-│   │   ├── base.py
-│   │   ├── dev.py
-│   │   └── prod.py
+├── passenger_wsgi.py        # point d'entrée WSGI cPanel
+├── requirements.txt         # dépendances runtime + tests
+├── pytest.ini               # DJANGO_SETTINGS_MODULE + motifs de collecte
+├── CLAUDE.md                # ce fichier
+├── DESIGN.md                # charte UI/UX
+├── easybiodiv/              # projet Django (settings, urls, wsgi)
+│   ├── settings.py          # module unique (pas de split base/dev/prod)
+│   ├── db.py                # aiguillage SQLite ↔ PostgreSQL
 │   ├── urls.py
-│   └── wsgi.py
-├── apps/
-│   ├── core/                # utils transverses, mixins, base templates
-│   ├── accounts/            # User custom, rôles, profils, login/logout
-│   ├── companies/           # Entreprises (Company) + Sites (Site) géolocalisés
-│   ├── biodiversity/        # Pressions, impacts, dépendances, indicateurs E4
-│   ├── risks/               # Évaluations TNFD/LEAP, scoring, risque financier
-│   ├── imports/             # Upload CSV/Excel, parsing, validation, mapping
-│   └── dashboard/           # Vues agrégées, graphiques, KPI
-├── static/
-│   ├── css/
-│   ├── js/
-│   └── img/
-├── templates/               # Templates globaux + base.html
+│   ├── asgi.py / wsgi.py
+│   └── test_db.py
+├── authentication/          # User custom, rôles, login/logout
+│   ├── migrations/ static/ templates/
+│   └── tests/               # test_models.py, test_forms.py, test_views.py
+├── dashboard/               # cœur métier : modèles, vues agrégées, LEAP, Portfolio
+│   ├── services/            # logique métier extraite (market, stress_test…)
+│   ├── management/ migrations/ golden/ static/ templates/
+│   ├── tests.py             # gros fichier de tests historique
+│   ├── tests_admin_console.py
+│   └── tests_stress_test.py
+├── imports/                 # Upload Excel, parsing, validation, mapping
+│   ├── services/ templates/
+│   └── tests/
+├── templates/               # templates globaux : base.html, admin/, dashboard/
 ├── media/                   # uploads utilisateur (gitignored)
-├── tests/                   # tests transverses / d'intégration
 └── docs/
-    ├── CLAUDE.md            # ce fichier
-    └── design.md            # charte UI/UX
+    ├── agents/              # config des agent skills (issue tracker, triage, domain)
+    └── superpowers/
 ```
 
+**Cette arborescence est plate, pas en `apps/`.** Les trois applications Django sont
+`authentication`, `dashboard` et `imports`, à la racine. Il n'y a ni paquet `apps/`,
+ni paquet `config/`, ni dossier `static/` ou `tests/` racine : le statique et les
+tests vivent dans chaque app.
+
 Chaque app suit le squelette Django standard : `models.py`, `views.py`, `urls.py`,
-`forms.py`, `admin.py`, `templates/<app>/`, `tests/`.
+`forms.py`, `admin.py`, `templates/<app>/`, et ses tests (`tests/` pour
+`authentication` et `imports`, fichiers `tests*.py` pour `dashboard`).
 
 l'environnement python est ./venv/scripts/activate.ps1
 ---
 
 ## 4. Modèle de données — principes
 
-- `accounts.User` : User custom (hérite `AbstractUser`) **dès le départ**, même si
-  on n'ajoute rien tout de suite. Champ `role` avec choices `ADMIN` / `USER`.
-- `companies.Company` : entreprise cliente (nom, secteur NACE, SIREN…).
-- `companies.Site` : site d'exploitation rattaché à une `Company`.
-  - Coordonnées : `latitude` / `longitude` en `FloatField` côté SQLite.
-  - **Préparer** un champ `geom` (PointField PostGIS) injecté conditionnellement
-    en prod via un mixin ou une migration séparée.
-- `biodiversity.Pressure` / `Impact` / `Dependency` : reliés à un `Site`.
-- `biodiversity.ESRSIndicator` : indicateurs E4 (catalogue + valeurs).
-- `risks.LEAPAssessment` : workflow Locate → Evaluate → Assess → Prepare,
-  une évaluation par `Site` (ou `Company`), avec statut et étapes.
-- `imports.ImportJob` : trace chaque upload (utilisateur, fichier, statut, erreurs).
+Tous les modèles métier vivent dans **`dashboard/models.py`** (~33 modèles).
+`authentication` ne porte que `User` ; **`imports` n'a aucun modèle** (parsing et
+vues uniquement, sans trace d'import persistée).
 
-Toujours ajouter `created_at`, `updated_at`, `created_by` (FK User) sur les modèles
-métier. Préférer `models.TextChoices` aux constantes brutes.
+### Identité et périmètre
+
+- `authentication.User` : User custom (hérite `AbstractUser`), avec `profile_photo`
+  et `role` — choices **`CREATOR` / `SUBSCRIBER`** (et non `ADMIN` / `USER`).
+- `Company` : entreprise analysée. Volontairement minimale — `name`, `description`,
+  `isin`, `ticker`. Pas de SIREN ni de code NACE porté directement ; le rattachement
+  sectoriel passe par `Company_Revenue_Sector` → `SubSector` → `Sector`.
+- `Asset` : **l'entité géolocalisée** (c'est elle, et non une « Site »), avec
+  `latitude` / `longitude` en `FloatField`, rattachée à `Country` et
+  `SubnationalRegion`. Le lien Asset ↔ Company passe par `Ownership`.
+- `Country`, `SubnationalRegion`, `Commodity`, `Sector`, `SubSector`, `Currency` :
+  tables de référence.
+
+### Activité et finance
+
+- `Production` : production d'une `Commodity` par un `Asset`, pour une `Company`,
+  localisée (`country`, `subnational_region`).
+- `Company_Revenue` / `Company_Revenue_Sector` : chiffre d'affaires, global et
+  ventilé par `SubSector`.
+- `Policy_Type` → `Policy_Subcategory` → `Policy_Level`, appliqués via
+  `Company_Policy` : cadre réglementaire (EUDR, CSRD/ESRS E4, taxe biodiversité…).
+- `ESG_data`, `Carbon_emission` : indicateurs extra-financiers par entreprise.
+
+### Impacts (chaîne ACV)
+
+- `ImpactMethod` → `ImpactCategory` → `CharacterizationFactor` : facteurs de
+  caractérisation régionalisés (impact par unité de `Commodity`).
+- `Flow` + `AssetInventory` : flux physiques mesurés à l'échelle asset
+  (eau, énergie, CO₂, déchets, surface).
+- `SupplyNode` + `Exchange` : graphe d'approvisionnement dirigé
+  (fournisseur → consommateur), à résolution variable asset/région/pays.
+
+### Conformité et risque
+
+- `E4Assessment` + `DisclosureRequirement` : dossier de conformité **ESRS E4**
+  (verrou de matérialité + workflow LEAP). C'est ici que vit le LEAP, pas dans une
+  app `risks`.
+- `ClimateScenario` + `ScenarioVariable` : scénarios climatiques NGFS Phase V
+  (prix carbone, multiplicateurs d'aléa), consommés par le stress test.
+- `SectorCreditProfile` : paramètres de crédit et de marge par secteur (OneToOne).
+- `Portfolio` + `PortfolioHolding` : portefeuilles pondérés d'entreprises.
+  `PortfolioQuerySet` porte les règles de visibilité et d'édition. **Seule zone de
+  l'application restée derrière `@login_required`.**
+
+### Conventions
+
+- `created_at` / `updated_at` ne sont présents que sur les modèles récents
+  (`E4Assessment`, `CharacterizationFactor`, `SupplyNode`, `Exchange`,
+  `ClimateScenario`, `SectorCreditProfile`, `Portfolio`) ; `created_by` sur
+  `E4Assessment`, `Exchange` et `Portfolio`. Les tables de référence historiques
+  n'en ont pas — les ajouter sur **tout nouveau modèle métier**, sans rétrofit
+  massif de l'existant.
+- Aucun champ `geom` PostGIS n'existe aujourd'hui : la géo passe par
+  `latitude` / `longitude` sur `Asset`.
+- Nommage historique inconsistant (`Company_Revenue`, `ESG_data`, `Ownership.Asset`
+  en capitale). Ne pas propager ce style : **nouveau code en `snake_case`** pour les
+  champs et `CamelCase` sans underscore pour les classes.
+- Préférer `models.TextChoices` aux constantes brutes.
 
 ---
 
@@ -151,20 +203,26 @@ métier. Préférer `models.TextChoices` aux constantes brutes.
 
 - Framework : **pytest-django** (préféré) avec `Django TestCase` pour les cas
   nécessitant des transactions complexes.
-- Organisation : un dossier `tests/` par app, miroir de la structure
-  (`test_models.py`, `test_views.py`, `test_forms.py`, `test_imports.py`).
-- **Fixtures** : `pytest` fixtures + `factory_boy` (à introduire dès qu'on a >2 modèles).
-- Couverture cible : **≥ 70 %** sur le code métier (`apps/`).
+- Organisation : un dossier `tests/` par app pour `authentication` et `imports`
+  (`test_models.py`, `test_views.py`, `test_forms.py`…). `dashboard` utilise encore
+  des fichiers plats à la racine de l'app (`tests.py`, `tests_admin_console.py`,
+  `tests_stress_test.py`) — d'où le `python_files` élargi dans `pytest.ini`.
+- La config de collecte vit dans `pytest.ini`. Elle exclut volontairement le motif
+  `*_test.py`, qui ramasserait `dashboard/services/stress_test.py` (code de production).
+- **Fixtures** : `pytest` fixtures + `factory_boy` (installé ; aucune factory écrite
+  pour l'instant — en ajouter au fil des nouveaux tests plutôt qu'en masse).
+- Couverture cible : **≥ 70 %** sur le code métier. Périmètre et exclusions
+  (migrations, tests, wsgi/asgi) dans `.coveragerc`.
 - Exécution :
   ```bash
-  pytest                       # tous les tests
-  pytest apps/companies/tests  # tests d'une app
-  pytest -k "site"             # filtrage par nom
+  pytest                       # tous les tests (~570, ~4 min)
+  pytest dashboard             # tests d'une app
+  pytest -k "leap"             # filtrage par nom
+  pytest --cov                 # avec rapport de couverture
   ```
 - Tout nouveau modèle / vue / formulaire doit s'accompagner d'au moins **un test**
   (création nominale + un cas d'erreur).
-- Tests d'import CSV/Excel : utiliser des fichiers fixtures dans
-  `apps/imports/tests/fixtures/`.
+- Tests d'import Excel : fichiers fixtures dans `imports/tests/fixtures/`.
 
 ---
 
