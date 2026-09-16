@@ -137,7 +137,13 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# NB : le réglage `STATICFILES_STORAGE` a été supprimé par Django 5.1. Laissé ici,
+# il était silencieusement ignoré : WhiteNoise ne compressait ni ne versionnait
+# plus rien en production. Le stockage se configure désormais via `STORAGES`,
+# activé uniquement hors DEBUG (voir le bloc de durcissement plus bas), car le
+# stockage « manifest » exige un `collectstatic` préalable — lancé au déploiement
+# par .cpanel.yml, mais absent en dev et pendant les tests.
 
 # Auth redirects
 LOGIN_REDIRECT_URL = 'dashboard:index'
@@ -168,3 +174,13 @@ if not DEBUG:
     CSRF_TRUSTED_ORIGINS = [
         f'https://{host.strip()}' for host in ALLOWED_HOSTS if host.strip()
     ]
+    # Statiques compressés et versionnés (cache-busting) via WhiteNoise.
+    # Exige `collectstatic` : assuré par .cpanel.yml à chaque déploiement.
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
