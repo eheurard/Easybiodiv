@@ -199,3 +199,22 @@ Ne **jamais** :
 Toute décision visuelle (couleurs, typographie, espacement, composants) est
 **centralisée dans `design.md`**. Ne pas introduire d'autres palettes ou polices
 sans mise à jour de ce fichier.
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Les issues vivent dans GitHub Issues (`eheurard/Easybiodiv`), pilotées via la CLI `gh`.
+Voir `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Vocabulaire canonique par défaut : `needs-triage`, `needs-info`, `ready-for-agent`,
+`ready-for-human`, `wontfix`. Voir `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Repo mono-contexte : un `CONTEXT.md` + `docs/adr/` à la racine.
+Voir `docs/agents/domain.md`.
