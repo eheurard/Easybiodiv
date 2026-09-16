@@ -725,13 +725,13 @@ class ClimateStressTestViewTests(TestCase):
             'dashboard:climate_stress_test_data', kwargs={'pk': self.acme.pk}
         )
 
-    def test_page_requires_login(self):
+    def test_page_stays_public_for_anonymous(self):
         response = self.client.get(self.page_url)
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
-    def test_api_requires_login(self):
+    def test_api_stays_public_for_anonymous(self):
         response = self.client.get(self.api_url)
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
     def test_page_renders_with_companies_and_initial_data(self):
         self.client.force_login(self.user)

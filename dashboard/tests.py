@@ -610,11 +610,10 @@ class DependenciesPageViewTests(TestCase):
         self.user = User.objects.create_user(username='deppage', password='testpass')
         self.client.force_login(self.user)
 
-    def test_redirects_anonymous(self):
+    def test_stays_public_for_anonymous(self):
         self.client.logout()
         response = self.client.get('/dependencies/')
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('/login', response['Location'])
+        self.assertEqual(response.status_code, 200)
 
     def test_returns_200_authenticated(self):
         response = self.client.get('/dependencies/')
@@ -973,10 +972,10 @@ class LeapEvaluateDataTests(TestCase):
         response = self.client.get(reverse('dashboard:leap_evaluate'))
         self.assertTemplateUsed(response, 'dashboard/leap_evaluate.html')
 
-    def test_page_redirects_anonymous(self):
+    def test_page_stays_public_for_anonymous(self):
         self.client.logout()
         response = self.client.get(reverse('dashboard:leap_evaluate'))
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
     def test_api_returns_200(self):
         url = reverse('dashboard:leap_evaluate_data', kwargs={'pk': self.company.pk})
@@ -1071,10 +1070,10 @@ class LeapPrepareDataTests(TestCase):
         response = self.client.get(reverse('dashboard:leap_prepare'))
         self.assertTemplateUsed(response, 'dashboard/leap_prepare.html')
 
-    def test_page_redirects_anonymous(self):
+    def test_page_stays_public_for_anonymous(self):
         self.client.logout()
         response = self.client.get(reverse('dashboard:leap_prepare'))
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
     def test_page_initial_data_present(self):
         response = self.client.get(reverse('dashboard:leap_prepare'))
@@ -1525,10 +1524,10 @@ class CompliancePageViewTests(TestCase):
         response = self.client.post(url)
         self.assertEqual(response.status_code, 405)
 
-    def test_page_redirects_anonymous(self):
+    def test_page_stays_public_for_anonymous(self):
         self.client.logout()
         response = self.client.get(reverse('dashboard:compliance'))
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
 
 class E4AdminTests(TestCase):
@@ -1689,10 +1688,9 @@ class EsgViewTests(TestCase):
         self.user = User.objects.create_user(username='vuser', password='pass')
         self.company = Company.objects.create(name='ViewCorp')
 
-    def test_page_requires_login(self):
+    def test_page_stays_public_for_anonymous(self):
         response = self.client.get(reverse('dashboard:esg'))
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('/login', response['Location'])
+        self.assertEqual(response.status_code, 200)
 
     def test_page_200_when_logged_in(self):
         self.client.force_login(self.user)
@@ -1800,10 +1798,10 @@ class MarketEndpointTests(TestCase):
         self.assertIn('change_pct', payload)
         self.assertTrue(payload['is_demo'])
 
-    def test_endpoint_requires_login(self):
+    def test_endpoint_stays_public_for_anonymous(self):
         url = reverse('dashboard:esg_market', kwargs={'pk': self.company.pk})
         resp = self.client.get(url)
-        self.assertIn(resp.status_code, (302, 401, 403))
+        self.assertEqual(resp.status_code, 200)
 
 
 class LeapLocateDataTests(TestCase):
@@ -1947,11 +1945,11 @@ class LeapPagesTests(TestCase):
         response = self.client.get(reverse('dashboard:leap_prepare'))
         self.assertEqual(response.status_code, 200)
 
-    def test_redirects_anonymous(self):
+    def test_stays_public_for_anonymous(self):
         from django.test import Client
         c = Client()
         response = c.get(reverse('dashboard:leap_locate'))
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
 
 class ComparisonDataCfTests(TestCase):
@@ -3564,12 +3562,12 @@ class OverviewModesPageTests(TestCase):
     def test_page_stays_public(self):
         self.assertEqual(self.client.get(self.url).status_code, 200)
 
-    def test_pays_open_and_asset_locked_for_anonymous(self):
+    def test_all_modes_open_for_anonymous(self):
         html = self._html()
-        self.assertFalse(self._disabled(self._button(html, 'data-mode="pays"')))
-        asset = self._button(html, 'data-mode="asset"')
-        self.assertTrue(self._disabled(asset))
-        self.assertIn('title="Connexion requise"', asset)
+        for mode in ('pays', 'asset', 'risque', 'dette'):
+            tag = self._button(html, 'data-mode="%s"' % mode)
+            self.assertFalse(self._disabled(tag), mode)
+            self.assertNotIn('title="Connexion requise"', tag, mode)
 
     def test_asset_enabled_when_authenticated(self):
         self._login()
@@ -3581,13 +3579,6 @@ class OverviewModesPageTests(TestCase):
             self.assertIn('"%s"' % reverse(name, kwargs={'pk': 0}), html)
         for script in ('locate_view.js', 'overview.js'):
             self.assertIn(f'dashboard/js/{script}', html)
-
-    def test_risque_open_and_dette_locked_for_anonymous(self):
-        html = self._html()
-        self.assertFalse(self._disabled(self._button(html, 'data-mode="risque"')))
-        dette = self._button(html, 'data-mode="dette"')
-        self.assertTrue(self._disabled(dette))
-        self.assertIn('title="Connexion requise"', dette)
 
     def test_dette_enabled_when_authenticated(self):
         self._login()
@@ -3611,10 +3602,10 @@ class OverviewModesPageTests(TestCase):
         for script in ('pie_markers.js', 'physical_risk_view.js', 'dette_view.js'):
             self.assertIn(f'dashboard/js/{script}', html)
 
-    def test_supply_toggle_locked_for_anonymous(self):
+    def test_supply_toggle_open_for_anonymous(self):
         tag = self._button(self._html(), 'id="ov-supply-toggle"')
-        self.assertTrue(self._disabled(tag))
-        self.assertIn('title="Connexion requise"', tag)
+        self.assertFalse(self._disabled(tag))
+        self.assertNotIn('title="Connexion requise"', tag)
 
     def test_supply_toggle_enabled_when_authenticated(self):
         self._login()
@@ -3623,10 +3614,17 @@ class OverviewModesPageTests(TestCase):
         self.assertIn('id="ov-supply-legend"', html)
         self.assertIn('dashboard/js/supply_chain.js', html)
 
-    def test_protected_apis_stay_login_required(self):
-        # La Vue d'ensemble (publique) publie ces URL : elles doivent rester protégées.
-        login_url = reverse('authentication:login')
+    def test_apis_published_by_the_page_are_public(self):
+        # Depuis ea5f247, la Vue d'ensemble et les URL qu'elle publie sont ouvertes à tous.
         for name in ('dashboard:leap_locate_data', 'dashboard:dette_ecologique_data'):
+            response = self.client.get(reverse(name, kwargs={'pk': self.company.pk}))
+            self.assertEqual(response.status_code, 200, name)
+
+    def test_portfolio_apis_stay_login_required(self):
+        # Le Portfolio est la seule zone restée privée : cette frontière doit tenir.
+        login_url = reverse('authentication:login')
+        for name in ('dashboard:portfolio_impact', 'dashboard:portfolio_physical_risk',
+                     'dashboard:portfolio_transition_risk'):
             response = self.client.get(reverse(name, kwargs={'pk': self.company.pk}))
             self.assertEqual(response.status_code, 302, name)
             self.assertTrue(response['Location'].startswith(login_url), name)
