@@ -67,10 +67,6 @@ SHEET_COLUMNS = {
         'near_sensitive_zone', 'sensitive_zone_type', 'sensitive_zone_name',
         'sensitive_zone_area_ha',
     ],
-    # Inventaire mesuré à l'échelle asset : une ligne par (asset, flux, année).
-    'AssetInventory': [
-        'asset_name', 'flow_key', 'year', 'value', 'source', 'reference',
-    ],
     'Production': [
         'asset_name', 'commodity_name', 'company_name', 'subnational_region_name', 'country_name',
         'tier', 'year', 'production', 'estimated_revenue',
@@ -119,7 +115,6 @@ FK_FIELDS = {
     'SubSector': {'sector_name': 'sector'},
     'SectorCreditProfile': {'sector_name': 'sector'},
     'Asset': {'country_name': 'country', 'subnational_region_name': 'subnational_region'},
-    'AssetInventory': {'asset_name': 'asset', 'flow_key': 'flow'},
     'Production': {
         'asset_name': 'asset', 'commodity_name': 'commodity', 'company_name': 'company',
         'subnational_region_name': 'subnational_region', 'country_name': 'country',
@@ -160,7 +155,6 @@ REQUIRED_FIELDS = {
     'SectorCreditProfile': ['sector_name'],
     'Company': ['name'],
     'Asset': ['name', 'latitude', 'longitude', 'country_name'],
-    'AssetInventory': ['asset_name', 'flow_key', 'year', 'value'],
     'Production': ['asset_name', 'commodity_name', 'year', 'production'],
     'SupplyNode': ['node_ref'],
     'Exchange': ['supplier_ref', 'consumer_ref', 'commodity_name', 'quantity', 'year'],
@@ -193,7 +187,6 @@ DUPLICATE_CRITERIA = {
     'SectorCreditProfile': ['sector_name'],
     'Company': ['name'],
     'Asset': ['name', 'country_name'],
-    'AssetInventory': ['asset_name', 'flow_key', 'year'],
     'Production': ['asset_name', 'commodity_name', 'year'],
     'SupplyNode': ['node_ref'],
     'Exchange': ['supplier_ref', 'consumer_ref', 'commodity_name', 'year'],
@@ -239,7 +232,7 @@ IMPORT_ORDER = [
     'Country', 'SubnationalRegion', 'Commodity', 'CharacterizationFactor',
     'Policy_Type', 'Policy_Subcategory', 'Policy_Level',
     'Currency', 'Sector', 'SubSector', 'SectorCreditProfile',
-    'Company', 'Asset', 'AssetInventory', 'Production',
+    'Company', 'Asset', 'Production',
     'SupplyNode', 'Exchange',
     'Ownership', 'Company_Revenue', 'Company_Revenue_Sector', 'Company_Policy',
     'ESG_data', 'Carbon_emission',
@@ -262,7 +255,6 @@ MODEL_KEY_TO_SOURCE = {
     'company': ('Company', 'name'),
     'asset': ('Asset', 'name'),
     'impact_category': (None, 'key'),
-    'flow': (None, 'key'),
     'climate_scenario': ('ClimateScenario', 'key'),
     # node_ref n'a pas d'équivalent stable en base : résolution intra-fichier.
     'supply_node': ('SupplyNode', 'node_ref'),

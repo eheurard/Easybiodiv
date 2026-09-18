@@ -7,7 +7,7 @@ from .models import (
     DisclosureRequirement, E4Assessment, ESG_data, Carbon_emission,
     Currency,
     ImpactMethod, ImpactCategory, CharacterizationFactor,
-    SupplyNode, Exchange, Flow, AssetInventory,
+    SupplyNode, Exchange, Flow,
     ClimateScenario, ScenarioVariable, SectorCreditProfile,
 )
 
@@ -215,19 +215,54 @@ class CharacterizationFactorAdmin(admin.ModelAdmin):
     autocomplete_fields = ('category', 'commodity', 'region', 'country')
 
 
+def _endpoint_label(flow, side):
+    """Libellé d'une extrémité : lieu ou entreprise, « Milieu », ou « — » si vide."""
+    if getattr(flow, f'{side}_environment'):
+        return 'Milieu'
+    for suffix in ('asset', 'region', 'country', 'company'):
+        target = getattr(flow, f'{side}_{suffix}')
+        if target is not None:
+            return str(target)
+    return '—'
+
+
 @admin.register(Flow)
 class FlowAdmin(admin.ModelAdmin):
-    search_fields = ('key', 'name')
-    list_display = ('key', 'name', 'unit', 'theme')
-    list_filter = ('theme',)
+    search_fields = (
+        'what__name', 'from_asset__name', 'from_company__name',
+        'to_asset__name', 'to_company__name',
+    )
+    list_display = ('kind', 'what', 'scope', 'origin', 'destination', 'year', 'quantity')
+    list_filter = ('kind', 'scope', 'year', 'tier')
+    autocomplete_fields = (
+        'what', 'from_asset', 'from_region', 'from_country', 'from_company',
+        'to_asset', 'to_region', 'to_country', 'to_company',
+    )
+    fieldsets = (
+        (None, {'fields': (
+            'kind', 'what', 'scope', 'year', 'quantity', 'tier', 'estimated_revenue',
+            'source', 'reference',
+        )}),
+        ('Origine', {'fields': (
+            'from_asset', 'from_region', 'from_country', 'from_company', 'from_environment',
+        )}),
+        ('Destination', {'fields': (
+            'to_asset', 'to_region', 'to_country', 'to_company', 'to_environment',
+        )}),
+    )
 
+    @admin.display(description='Origine')
+    def origin(self, obj):
+        return _endpoint_label(obj, 'from')
 
-@admin.register(AssetInventory)
-class AssetInventoryAdmin(admin.ModelAdmin):
-    search_fields = ('asset__name', 'flow__key')
-    list_display = ('asset', 'flow', 'year', 'value')
-    list_filter = ('flow', 'year')
-    autocomplete_fields = ('asset', 'flow')
+    @admin.display(description='Destination')
+    def destination(self, obj):
+        return _endpoint_label(obj, 'to')
+
+    def save_model(self, request, obj, form, change):
+        if not change and obj.created_by_id is None:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 class ScenarioVariableInline(admin.TabularInline):

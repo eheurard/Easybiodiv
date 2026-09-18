@@ -77,17 +77,14 @@ def legacy_cf_rows(values):
 
 
 def measured_vs_modeled(asset, theme, year):
-    """Apparie, pour un asset/thème/année : la mesure terrain (AssetInventory
-    dont le flow porte ce theme) et l'impact ACV modélisé (production × CF des
-    catégories portant ce theme). Renvoie {'measured': float, 'modeled': float}.
+    """Apparie, pour un asset/thème/année : la mesure terrain (lignes d'inventaire
+    de Flow dont la commodité porte ce theme) et l'impact ACV modélisé
+    (production × CF des catégories portant ce theme). Renvoie
+    {'measured': float, 'modeled': float}.
     """
-    from dashboard.models import AssetInventory, ImpactCategory, Production
-    measured = sum(
-        inv.value
-        for inv in AssetInventory.objects.filter(
-            asset=asset, year=year, flow__theme=theme
-        )
-    )
+    from dashboard.models import ImpactCategory, Production
+    from dashboard.services.flows import inventory_total
+    measured = inventory_total(asset, theme, year)
     cat_keys = list(
         ImpactCategory.objects.filter(theme=theme).values_list('key', flat=True)
     )

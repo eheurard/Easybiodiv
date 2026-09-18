@@ -23,10 +23,9 @@ GROUPS = [
         m.Company, m.Asset, m.Ownership, m.Company_Revenue,
         m.Company_Revenue_Sector, m.ESG_data, m.Carbon_emission,
     ]),
-    ("Chaîne d'approvisionnement", [m.Production, m.SupplyNode, m.Exchange]),
+    ('Flux', [m.Flow, m.Production, m.SupplyNode, m.Exchange]),
     ('Impacts & inventaire (ACV)', [
         m.ImpactMethod, m.ImpactCategory, m.CharacterizationFactor,
-        m.Flow, m.AssetInventory,
     ]),
     ('Politiques & vulnérabilité', [
         m.Policy_Type, m.Policy_Subcategory, m.Policy_Level, m.Company_Policy,

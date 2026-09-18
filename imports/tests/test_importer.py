@@ -1,6 +1,6 @@
 from django.test import TestCase
 from dashboard.models import (
-    Asset, AssetInventory, CharacterizationFactor, ClimateScenario, Commodity,
+    Asset, CharacterizationFactor, ClimateScenario, Commodity,
     Company, Company_Policy, Country, Exchange, Policy_Level, Policy_Subcategory,
     Policy_Type, Production, ScenarioVariable, Sector, SectorCreditProfile,
     SubnationalRegion, SupplyNode,
@@ -162,32 +162,6 @@ class ImporterCharacterizationFactorTest(TestCase):
         commodity = Commodity.objects.get(name='Wheat')
         self.assertEqual(
             CharacterizationFactor.objects.filter(commodity=commodity).count(), 0)
-
-
-class ImporterAssetInventoryTest(TestCase):
-    def setUp(self):
-        country = Country.objects.create(
-            name='France', water_ownership='pub', land_ownership='priv')
-        self.asset = Asset.objects.create(
-            name='Usine A', latitude=48.85, longitude=2.35, country=country)
-
-    def test_creates_inventory_row(self):
-        counts = save_import({'AssetInventory': [
-            _ok({'asset_name': 'Usine A', 'flow_key': 'water', 'year': '2024',
-                 'value': '100', 'source': 'relevé', 'reference': 'R-1'}),
-        ]})
-        self.assertEqual(counts['AssetInventory'], 1)
-        inventory = AssetInventory.objects.get(
-            asset=self.asset, flow__key='water', year=2024)
-        self.assertAlmostEqual(inventory.value, 100.0)
-        self.assertEqual(inventory.source, 'relevé')
-
-    def test_unknown_flow_key_is_skipped(self):
-        counts = save_import({'AssetInventory': [
-            _ok({'asset_name': 'Usine A', 'flow_key': 'nope', 'year': '2024',
-                 'value': '100'}),
-        ]})
-        self.assertEqual(counts['AssetInventory'], 0)
 
 
 class ImporterProductionTest(TestCase):

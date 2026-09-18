@@ -1,4 +1,7 @@
+import operator
+from collections import namedtuple
 from decimal import Decimal, InvalidOperation
+from functools import reduce
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -753,6 +756,245 @@ class Ownership(models.Model):
         return f'{(Decimal(self.share) * 100).normalize():f}%'
 
 
+# ── Flux : table Flow unique (spec 2026-09-18) ────────────────────────────────
+
+ENDPOINT_ASSET = 'asset'
+ENDPOINT_REGION = 'region'
+ENDPOINT_COUNTRY = 'country'
+ENDPOINT_COMPANY = 'company'
+ENDPOINT_ENVIRONMENT = 'environment'
+# Extrémités « lieu ou entreprise ». None désigne un côté vide (inconnu).
+LOCATED_ENDPOINTS = (ENDPOINT_ASSET, ENDPOINT_REGION, ENDPOINT_COUNTRY, ENDPOINT_COMPANY)
+ALL_ENDPOINTS = LOCATED_ENDPOINTS + (ENDPOINT_ENVIRONMENT, None)
+
+
+class FlowKind(models.TextChoices):
+    PRODUCTION = 'PRODUCTION', 'Production'
+    SUPPLY = 'SUPPLY', 'Approvisionnement'
+    CONSUMPTION = 'CONSUMPTION', 'Consommation'
+    EMISSION = 'EMISSION', 'Émission'
+    WASTE = 'WASTE', 'Déchet'
+
+
+class FlowScope(models.TextChoices):
+    SCOPE_1 = 'Scope 1', 'Scope 1'
+    SCOPE_2 = 'Scope 2', 'Scope 2'
+    SCOPE_3 = 'Scope 3', 'Scope 3'
+    SCOPE_1_2 = 'Scope 1+2', 'Scope 1+2'
+    SCOPE_1_2_3 = 'Scope 1+2+3', 'Scope 1+2+3'
+    UNDEFINED = 'undefined', 'Non défini'
+
+
+FlowRule = namedtuple('FlowRule', ['origins', 'destinations', 'message'])
+
+# Types d'extrémité autorisés par nature de flux (spec §3.4). Source unique des
+# contraintes en base et des messages d'erreur de l'import Excel.
+FLOW_RULES = {
+    FlowKind.PRODUCTION.value: FlowRule(
+        (ENDPOINT_ASSET, ENDPOINT_COMPANY), (None,),
+        "Une production part d'un actif ou d'une entreprise, sans destination.",
+    ),
+    FlowKind.SUPPLY.value: FlowRule(
+        LOCATED_ENDPOINTS, LOCATED_ENDPOINTS,
+        'Un approvisionnement va d’un actif, d’une région, d’un pays ou d’une '
+        'entreprise vers un autre actif, région, pays ou entreprise.',
+    ),
+    FlowKind.CONSUMPTION.value: FlowRule(
+        (ENDPOINT_ENVIRONMENT, None), (ENDPOINT_ASSET, ENDPOINT_COMPANY),
+        'Une consommation vient du milieu ou d’une origine inconnue et va vers un '
+        'actif ou une entreprise.',
+    ),
+    FlowKind.EMISSION.value: FlowRule(
+        (ENDPOINT_ASSET, ENDPOINT_COMPANY), (ENDPOINT_ENVIRONMENT,),
+        "Une émission part d'un actif ou d'une entreprise et va vers le milieu.",
+    ),
+    FlowKind.WASTE.value: FlowRule(
+        (ENDPOINT_ASSET, ENDPOINT_COMPANY), (ENDPOINT_ENVIRONMENT, None, ENDPOINT_ASSET),
+        "Un déchet part d'un actif ou d'une entreprise et va vers le milieu, un actif "
+        '(site de traitement) ou une destination inconnue.',
+    ),
+}
+
+SUPPLY_SELF_LOOP_MESSAGE = 'Un approvisionnement ne peut pas relier un lieu à lui-même.'
+REVENUE_PRODUCTION_ONLY_MESSAGE = 'Seule une production porte un revenu estimé.'
+
+# Suffixe du champ clé étrangère de chaque type d'extrémité : from_<suffixe>.
+_ENDPOINT_FIELD_SUFFIX = {
+    ENDPOINT_ASSET: 'asset',
+    ENDPOINT_REGION: 'region',
+    ENDPOINT_COUNTRY: 'country',
+    ENDPOINT_COMPANY: 'company',
+}
+
+
+def endpoint_q(side, endpoint):
+    """Q vrai quand le côté `side` ('from' ou 'to') vaut exactement `endpoint`."""
+    condition = Q(**{f'{side}_environment': endpoint == ENDPOINT_ENVIRONMENT})
+    for candidate, suffix in _ENDPOINT_FIELD_SUFFIX.items():
+        condition &= Q(**{f'{side}_{suffix}__isnull': candidate != endpoint})
+    return condition
+
+
+def _endpoints_q(side, endpoints):
+    return reduce(operator.or_, (endpoint_q(side, endpoint) for endpoint in endpoints))
+
+
+def _flow_constraints():
+    """Contraintes de Flow (spec §3.3 et §3.4), générées depuis FLOW_RULES."""
+    distinct_ends = reduce(operator.and_, (
+        ~Q(**{f'from_{suffix}': F(f'to_{suffix}')})
+        for suffix in _ENDPOINT_FIELD_SUFFIX.values()
+    ))
+    constraints = [
+        models.CheckConstraint(
+            name='flow_single_origin',
+            condition=_endpoints_q('from', ALL_ENDPOINTS),
+            violation_error_message='Un flux a au plus une origine.',
+        ),
+        models.CheckConstraint(
+            name='flow_single_destination',
+            condition=_endpoints_q('to', ALL_ENDPOINTS),
+            violation_error_message='Un flux a au plus une destination.',
+        ),
+        models.CheckConstraint(
+            name='flow_located_end',
+            condition=(
+                _endpoints_q('from', LOCATED_ENDPOINTS) | _endpoints_q('to', LOCATED_ENDPOINTS)
+            ),
+            violation_error_message=(
+                "L'origine ou la destination doit être un actif, une région, un pays ou "
+                'une entreprise.'
+            ),
+        ),
+        models.CheckConstraint(
+            name='flow_environment_one_end',
+            condition=~Q(from_environment=True, to_environment=True),
+            violation_error_message=(
+                'Le milieu ne peut pas être à la fois origine et destination.'
+            ),
+        ),
+        models.CheckConstraint(
+            name='flow_revenue_production_only',
+            condition=Q(estimated_revenue__isnull=True) | Q(kind=FlowKind.PRODUCTION.value),
+            violation_error_message=REVENUE_PRODUCTION_ONLY_MESSAGE,
+        ),
+        models.CheckConstraint(
+            name='flow_supply_distinct_ends',
+            condition=~Q(kind=FlowKind.SUPPLY.value) | distinct_ends,
+            violation_error_message=SUPPLY_SELF_LOOP_MESSAGE,
+        ),
+    ]
+    for kind, rule in FLOW_RULES.items():
+        constraints.append(models.CheckConstraint(
+            name=f'flow_rule_{kind.lower()}',
+            condition=~Q(kind=kind) | (
+                _endpoints_q('from', rule.origins) & _endpoints_q('to', rule.destinations)
+            ),
+            violation_error_message=rule.message,
+        ))
+    return constraints
+
+
+FLOW_ENDPOINT_HELP_TEXT = (
+    'Au plus un champ renseigné par côté (actif, région, pays, entreprise ou milieu). '
+    'Tout vide = inconnu (acheteur ou origine non renseignés).'
+)
+
+
+def _flow_endpoint(model, side, label):
+    """Clé étrangère d'extrémité d'un Flow (from_* ou to_*)."""
+    return models.ForeignKey(
+        model, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='flows_out' if side == 'from' else 'flows_in',
+        verbose_name=f"{'Origine' if side == 'from' else 'Destination'} — {label}",
+        help_text=FLOW_ENDPOINT_HELP_TEXT,
+    )
+
+
+class Flow(models.Model):
+    """Quantité d'une commodité, une année, d'une origine vers une destination
+    (spec 2026-09-18). Remplace Production, AssetInventory, SupplyNode, Exchange
+    et Carbon_emission."""
+
+    Kind = FlowKind
+    Scope = FlowScope
+
+    kind = models.CharField(
+        max_length=12, choices=FlowKind.choices, verbose_name='Nature du flux',
+    )
+    what = models.ForeignKey(
+        Commodity, on_delete=models.PROTECT, related_name='flows',
+        verbose_name='Commodité',
+    )
+    scope = models.CharField(
+        max_length=12, choices=FlowScope.choices, default=FlowScope.UNDEFINED,
+        verbose_name='Scope GES',
+    )
+
+    from_asset = _flow_endpoint(Asset, 'from', 'actif')
+    from_region = _flow_endpoint(SubnationalRegion, 'from', 'région')
+    from_country = _flow_endpoint(Country, 'from', 'pays')
+    from_company = _flow_endpoint(Company, 'from', 'entreprise')
+    from_environment = models.BooleanField(
+        default=False, verbose_name='Origine — milieu',
+        help_text='Prélevé dans le milieu naturel, à proximité de la destination.',
+    )
+
+    to_asset = _flow_endpoint(Asset, 'to', 'actif')
+    to_region = _flow_endpoint(SubnationalRegion, 'to', 'région')
+    to_country = _flow_endpoint(Country, 'to', 'pays')
+    to_company = _flow_endpoint(Company, 'to', 'entreprise')
+    to_environment = models.BooleanField(
+        default=False, verbose_name='Destination — milieu',
+        help_text='Rejeté dans le milieu naturel, à proximité de l’origine.',
+    )
+
+    year = models.IntegerField(verbose_name='Année')
+    quantity = models.FloatField(
+        verbose_name='Quantité', help_text="Exprimée dans l'unité de la commodité.",
+    )
+    tier = models.PositiveSmallIntegerField(
+        default=0, validators=[MaxValueValidator(3)], verbose_name='Tier',
+        help_text=TIER_HELP_TEXT,
+    )
+    estimated_revenue = models.FloatField(
+        null=True, blank=True, verbose_name='Revenu estimé',
+        help_text='Production uniquement. ' + UNDOCUMENTED_SCALE_HELP_TEXT,
+    )
+    source = models.CharField(max_length=255, blank=True, verbose_name='Source')
+    reference = models.CharField(max_length=255, blank=True, verbose_name='Référence')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name='Créé par',
+    )
+
+    class Meta:
+        verbose_name = 'Flux'
+        verbose_name_plural = 'Flux'
+        constraints = _flow_constraints()
+
+    def __str__(self):
+        return f'{self.get_kind_display()} — {self.what.name} ({self.year})'
+
+    def _endpoint_type(self, side):
+        if getattr(self, f'{side}_environment'):
+            return ENDPOINT_ENVIRONMENT
+        for endpoint, suffix in _ENDPOINT_FIELD_SUFFIX.items():
+            if getattr(self, f'{side}_{suffix}_id') is not None:
+                return endpoint
+        return None
+
+    @property
+    def origin_type(self):
+        return self._endpoint_type('from')
+
+    @property
+    def destination_type(self):
+        return self._endpoint_type('to')
+
+
 class E4Assessment(models.Model):
     """Dossier de conformité ESRS E4 d'une entreprise (verrou de matérialité + LEAP)."""
 
@@ -1113,50 +1355,6 @@ class Exchange(models.Model):
 
     def __str__(self):
         return f'{self.supplier} → {self.consumer} ({self.commodity.name}, {self.year})'
-
-
-class Flow(models.Model):
-    """Flux physique mesuré (inventaire) ; `theme` l'apparie aux ImpactCategory."""
-    key = models.CharField(
-        max_length=50, unique=True, verbose_name='Clé technique',
-        help_text=KEY_HELP_TEXT,
-    )
-    name = models.CharField(max_length=255, verbose_name='Nom')
-    unit = models.CharField(max_length=50, blank=True, verbose_name='Unité')
-    theme = models.CharField(
-        max_length=30, blank=True, verbose_name='Thème', help_text=THEME_HELP_TEXT,
-    )
-
-    class Meta:
-        verbose_name = 'Flux'
-        verbose_name_plural = 'Flux'
-
-    def __str__(self):
-        return self.key
-
-
-class AssetInventory(models.Model):
-    """Inventaire mesuré à l'échelle asset (flux water/energy/co2/waste/surface_area)."""
-    asset = models.ForeignKey(
-        Asset, on_delete=models.CASCADE, related_name='inventory',
-        verbose_name='Actif',
-    )
-    flow = models.ForeignKey(Flow, on_delete=models.CASCADE, verbose_name='Flux')
-    year = models.IntegerField(verbose_name='Année')
-    value = models.FloatField(
-        default=0.0, verbose_name='Valeur mesurée',
-        help_text='Valeur relevée sur le terrain, dans l’unité du flux sélectionné.',
-    )
-    source = models.CharField(max_length=255, blank=True, verbose_name='Source')
-    reference = models.CharField(max_length=255, blank=True, verbose_name='Référence')
-
-    class Meta:
-        unique_together = ('asset', 'flow', 'year')
-        verbose_name = "Inventaire d'actif"
-        verbose_name_plural = "Inventaires d'actifs"
-
-    def __str__(self):
-        return f'{self.asset.name} — {self.flow.key} {self.year}'
 
 
 class ClimateScenario(models.Model):

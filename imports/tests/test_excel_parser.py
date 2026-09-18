@@ -143,8 +143,8 @@ class ParserFKTest(TestCase):
 
 
 class ParserKeyBasedFKTest(TestCase):
-    """Les catalogues (ImpactCategory, Flow, ClimateScenario) se référencent par
-    `key` et non par `name`."""
+    """Les catalogues (ImpactCategory, ClimateScenario) se référencent par `key`
+    et non par `name`."""
 
     def setUp(self):
         self.country = Country.objects.create(
@@ -152,21 +152,6 @@ class ParserKeyBasedFKTest(TestCase):
         self.asset = Asset.objects.create(
             name='Usine A', latitude=48.85, longitude=2.35, country=self.country)
         Commodity.objects.create(name='Soy')
-
-    def test_known_flow_key_is_ok(self):
-        buf = _make_xlsx({'AssetInventory': _sheet('AssetInventory', {
-            'asset_name': 'Usine A', 'flow_key': 'water',
-            'year': '2024', 'value': '100'})})
-        result = parse_file(buf)
-        self.assertEqual(result['AssetInventory'][0]['status'], 'ok')
-
-    def test_unknown_flow_key_is_error(self):
-        buf = _make_xlsx({'AssetInventory': _sheet('AssetInventory', {
-            'asset_name': 'Usine A', 'flow_key': 'nope',
-            'year': '2024', 'value': '100'})})
-        result = parse_file(buf)
-        self.assertEqual(result['AssetInventory'][0]['status'], 'error')
-        self.assertIn('flow_key', result['AssetInventory'][0]['message'])
 
     def test_known_impact_category_key_is_ok(self):
         buf = _make_xlsx({'CharacterizationFactor': _sheet('CharacterizationFactor', {

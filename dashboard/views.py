@@ -10,7 +10,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from django.db.models import Q
 from .models import (
-    Asset, AssetInventory, Carbon_emission, Company, Company_Policy,
+    Asset, Carbon_emission, Company, Company_Policy,
     Company_Revenue, Company_Revenue_Sector, Currency, DisclosureRequirement,
     E4Assessment, Exchange, Ownership, Portfolio, PortfolioHolding, Production,
 )
@@ -20,6 +20,7 @@ from .services.impacts import build_cf_index, cf_value, CAT_ECOSYSTEM_DIVERSITY
 from .services.supply import TIER_LABELS, TIER_TO_SCOPE
 from .services.hazards import PHYSICAL_RISKS
 from .services.stress_test import get_stress_test_data
+from .services import flows as flow_service
 
 from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
 
@@ -699,16 +700,11 @@ def _get_leap_evaluate_data(company):
     asset_ids = [a.pk for a in assets]
 
     # Consommation mesurée : année d'inventaire la plus récente de chaque asset.
-    latest_inv_years = dict(
-        AssetInventory.objects.filter(asset_id__in=asset_ids)
-        .values('asset_id').annotate(m=Max('year')).values_list('asset_id', 'm')
-    )
-    consumption = defaultdict(lambda: {'water': 0.0, 'co2': 0.0, 'waste': 0.0})
-    for inv in AssetInventory.objects.filter(
-        asset_id__in=asset_ids, flow__key__in=('water', 'co2', 'waste')
-    ).select_related('flow'):
-        if latest_inv_years.get(inv.asset_id) == inv.year:
-            consumption[inv.asset_id][inv.flow.key] += inv.value
+    inventory = flow_service.latest_inventory(asset_ids, ('water', 'co2', 'waste'))
+    consumption = {
+        asset_id: {key: entry['value'] for key, entry in entries.items()}
+        for asset_id, entries in inventory.items()
+    }
 
     # Productions de l'année la plus récente de chaque asset.
     latest_years = dict(
@@ -741,7 +737,7 @@ def _get_leap_evaluate_data(company):
 
     assets_out = []
     for a in assets:
-        cons = consumption.get(a.pk, {'water': 0.0, 'co2': 0.0, 'waste': 0.0})
+        cons = consumption.get(a.pk, {})
         ai = asset_impacts.get(a.pk, {f: 0.0 for f, _ in _EVALUATE_IMPACT_FIELDS})
         assets_out.append({
             'id': a.pk,
@@ -749,9 +745,9 @@ def _get_leap_evaluate_data(company):
             'latitude': a.latitude,
             'longitude': a.longitude,
             'country': a.country.name,
-            'water_consumption': round(cons['water'], 2),
-            'co2_emissions': round(cons['co2'], 2),
-            'waste_generated': round(cons['waste'], 2),
+            'water_consumption': round(cons.get('water', 0.0), 2),
+            'co2_emissions': round(cons.get('co2', 0.0), 2),
+            'waste_generated': round(cons.get('waste', 0.0), 2),
             'near_sensitive_zone': a.near_sensitive_zone,
             'sensitive_zone_type': (
                 a.get_sensitive_zone_type_display() if a.sensitive_zone_type else ''
@@ -1017,25 +1013,19 @@ def _get_physical_risk_data(company):
 
     # Inventaire mesuré (informatif) : flux du sous-ensemble, année d'inventaire la
     # plus récente de l'asset, valeurs non nulles. N'entre PAS dans la perte.
-    latest_inv_years = dict(
-        AssetInventory.objects.filter(
-            asset_id__in=asset_ids, flow__key__in=_RISK_INVENTORY_KEYS
-        ).values('asset_id').annotate(m=Max('year')).values_list('asset_id', 'm')
-    )
-    inv_by_asset = defaultdict(dict)
-    for inv in AssetInventory.objects.filter(
-        asset_id__in=asset_ids, flow__key__in=_RISK_INVENTORY_KEYS
-    ).select_related('flow'):
-        if inv.value and latest_inv_years.get(inv.asset_id) == inv.year:
-            inv_by_asset[inv.asset_id][inv.flow.key] = {
-                'name': _RISK_INVENTORY_LABELS[inv.flow.key],
-                'value': round(inv.value, 2),
-                'unit': inv.flow.unit,
-            }
+    inventory = flow_service.latest_inventory(asset_ids, _RISK_INVENTORY_KEYS)
 
     def _inventory_for(asset_id):
-        entries = inv_by_asset.get(asset_id, {})
-        return [entries[k] for k in _RISK_INVENTORY_KEYS if k in entries]
+        entries = inventory.get(asset_id, {})
+        return [
+            {
+                'name': _RISK_INVENTORY_LABELS[key],
+                'value': round(entries[key]['value'], 2),
+                'unit': entries[key]['unit'],
+            }
+            for key in _RISK_INVENTORY_KEYS
+            if key in entries and entries[key]['value']
+        ]
 
     latest_years = dict(
         Production.objects.filter(asset_id__in=asset_ids)

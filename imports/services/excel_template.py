@@ -3,7 +3,7 @@ import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
 
 from dashboard.models import (
-    Asset, ClimateScenario, Commodity, Company, Country, Currency, Flow,
+    Asset, ClimateScenario, Commodity, Company, Country, Currency,
     ImpactCategory, Policy_Level, Policy_Subcategory, Policy_Type, Sector,
     SubnationalRegion, SubSector,
 )
@@ -71,7 +71,6 @@ def _build_reference_sheet(wb):
         ('Commodities', Commodity.objects.values_list('name', flat=True)),
         ('ImpactCategories (category_key)',
          ImpactCategory.objects.values_list('key', flat=True)),
-        ('Flows (flow_key)', Flow.objects.values_list('key', flat=True)),
         ('Policy_Types', Policy_Type.objects.values_list('name', flat=True)),
         ('Policy_Subcategories', Policy_Subcategory.objects.values_list('name', flat=True)),
         ('Policy_Levels', Policy_Level.objects.values_list('name', flat=True)),

@@ -2,9 +2,9 @@ from datetime import date
 
 from django.db import transaction
 from dashboard.models import (
-    Asset, AssetInventory, Carbon_emission, CharacterizationFactor, ClimateScenario,
+    Asset, Carbon_emission, CharacterizationFactor, ClimateScenario,
     Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
-    Country, Currency, ESG_data, Exchange, Flow, ImpactCategory, Ownership,
+    Country, Currency, ESG_data, Exchange, ImpactCategory, Ownership,
     Policy_Level, Policy_Subcategory, Policy_Type, Production, ScenarioVariable,
     Sector, SectorCreditProfile, SubnationalRegion, SubSector, SupplyNode,
 )
@@ -292,27 +292,6 @@ def _import_asset(rows, lookup):
         )
         lookup['asset'][d['name'].lower()] = obj
         created += 1
-    return created
-
-
-def _import_asset_inventory(rows, lookup):
-    created = 0
-    for r in rows:
-        d = r['data']
-        asset = _get(lookup, 'asset', d['asset_name'])
-        flow = _get(lookup, 'flow', d['flow_key'])
-        if not asset or not flow:
-            continue
-        _, was_created = AssetInventory.objects.get_or_create(
-            asset=asset, flow=flow, year=_i(d.get('year')),
-            defaults={
-                'value': _f(d.get('value')),
-                'source': _s(d.get('source')),
-                'reference': _s(d.get('reference')),
-            },
-        )
-        if was_created:
-            created += 1
     return created
 
 
@@ -658,7 +637,6 @@ _IMPORTERS = {
     'SectorCreditProfile': _import_sector_credit_profile,
     'Company': _import_company,
     'Asset': _import_asset,
-    'AssetInventory': _import_asset_inventory,
     'Production': _import_production,
     'SupplyNode': _import_supply_node,
     'Exchange': _import_exchange,
@@ -680,7 +658,6 @@ def _build_lookup():
         'commodity': {o.name.lower(): o for o in Commodity.objects.all()},
         'commodity_key': {o.key.lower(): o for o in Commodity.objects.exclude(key=None)},
         'impact_category': {o.key.lower(): o for o in ImpactCategory.objects.all()},
-        'flow': {o.key.lower(): o for o in Flow.objects.all()},
         'policy_type': {o.name.lower(): o for o in Policy_Type.objects.all()},
         'policy_subcategory': {
             f"{o.policy_type.name.lower()}|{o.name.lower()}": o

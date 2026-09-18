@@ -2,9 +2,9 @@ from collections import defaultdict
 
 import openpyxl
 from dashboard.models import (
-    Asset, AssetInventory, Carbon_emission, CharacterizationFactor, ClimateScenario,
+    Asset, Carbon_emission, CharacterizationFactor, ClimateScenario,
     Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
-    Country, Currency, ESG_data, Flow, ImpactCategory, OWNERSHIP_OVERLAP_MESSAGE,
+    Country, Currency, ESG_data, ImpactCategory, OWNERSHIP_OVERLAP_MESSAGE,
     Ownership, Policy_Level, Policy_Subcategory, Policy_Type, Production,
     ScenarioVariable, Sector, SectorCreditProfile, SubnationalRegion, SubSector,
     periods_overlap, share_overflow_message, share_overflow_year,
@@ -83,7 +83,6 @@ def _build_db_name_cache():
         'company': keys(Company.objects, 'name'),
         'asset': keys(Asset.objects, 'name'),
         'impact_category': keys(ImpactCategory.objects, 'key'),
-        'flow': keys(Flow.objects, 'key'),
         'climate_scenario': keys(ClimateScenario.objects, 'key'),
         # Les node_ref sont des poignées locales au fichier : rien à résoudre en base.
         'supply_node': set(),
@@ -114,7 +113,6 @@ _EXISTING_KEY_QUERIES = {
     'SectorCreditProfile': (SectorCreditProfile, ['sector__name']),
     'Company': (Company, ['name']),
     'Asset': (Asset, ['name', 'country__name']),
-    'AssetInventory': (AssetInventory, ['asset__name', 'flow__key', 'year']),
     'Production': (Production, ['asset__name', 'commodity__name', 'year']),
     'Ownership': (Ownership, ['asset__name', 'company__name', 'start_year']),
     'Company_Revenue': (Company_Revenue, ['company__name', 'year']),

@@ -10,7 +10,7 @@ import openpyxl
 from django.test import TestCase
 
 from dashboard.models import (
-    Asset, AssetInventory, CharacterizationFactor, ClimateScenario, Commodity,
+    Asset, CharacterizationFactor, ClimateScenario, Commodity,
     Country, Exchange, Production, ScenarioVariable, Sector, SectorCreditProfile,
     SupplyNode,
 )
@@ -59,9 +59,6 @@ class RoundTripTest(TestCase):
             'country_name': 'Testland', 'subnational_region_name': 'Testrégion',
             'type': 'Factory', 'near_sensitive_zone': 'TRUE',
             'sensitive_zone_type': 'NATURA_2000', 'sensitive_zone_area_ha': 300})
-        _fill(wb, 'AssetInventory', {
-            'asset_name': 'Testusine', 'flow_key': 'water', 'year': 2024,
-            'value': 4200, 'source': 'compteur'})
         _fill(wb, 'Production', {
             'asset_name': 'Testusine', 'commodity_name': 'Testsoja',
             'company_name': 'Testcorp', 'tier': 0, 'year': 2024,
@@ -120,9 +117,6 @@ class RoundTripTest(TestCase):
         self.assertEqual(asset.sensitive_zone_type, 'NATURA_2000')
         self.assertEqual(asset.subnational_region.name, 'Testrégion')
 
-        inventory = AssetInventory.objects.get(asset=asset, flow__key='water')
-        self.assertAlmostEqual(inventory.value, 4200.0)
-
         production = Production.objects.get(asset=asset)
         self.assertEqual(production.tier, 0)
         self.assertEqual(production.company.name, 'Testcorp')
@@ -154,7 +148,7 @@ class RoundTripTest(TestCase):
         before = {
             model.__name__: model.objects.count()
             for model in (Asset, CharacterizationFactor, SupplyNode, Exchange,
-                          ScenarioVariable, Production, AssetInventory)
+                          ScenarioVariable, Production)
         }
 
         reparsed = self._parse()
@@ -164,7 +158,7 @@ class RoundTripTest(TestCase):
             {sheet: n for sheet, n in counts.items() if n}, {},
             'un second upload du même fichier ne doit rien créer')
         for model in (Asset, CharacterizationFactor, SupplyNode, Exchange,
-                      ScenarioVariable, Production, AssetInventory):
+                      ScenarioVariable, Production):
             self.assertEqual(model.objects.count(), before[model.__name__],
                              f'{model.__name__} a été dupliqué')
 

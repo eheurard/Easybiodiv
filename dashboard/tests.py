@@ -10,6 +10,7 @@ from .models import (
     Policy_Subcategory, Policy_Type, Production, Sector, SubnationalRegion,
     SubSector,
 )
+from .testing import make_inventory
 from .views import _get_dette_ecologique_data
 from .services import market as market_service
 
@@ -787,15 +788,11 @@ class PhysicalRiskDataTests(TestCase):
         self.assertAlmostEqual(data['kpis']['annual_loss'], 100.0, places=2)
 
     def test_inventory_subset_latest_year_ordered(self):
-        from .models import AssetInventory, Flow
         from .views import _get_physical_risk_data
-        water = Flow.objects.get(key='water')
-        co2 = Flow.objects.get(key='co2')
-        energy = Flow.objects.get(key='energy')
-        AssetInventory.objects.create(asset=self.a1, flow=water, year=2023, value=10.0)
-        AssetInventory.objects.create(asset=self.a1, flow=water, year=2024, value=100.0)
-        AssetInventory.objects.create(asset=self.a1, flow=co2, year=2024, value=50.0)
-        AssetInventory.objects.create(asset=self.a1, flow=energy, year=2024, value=999.0)
+        make_inventory(asset=self.a1, key='water', year=2023, value=10.0)
+        make_inventory(asset=self.a1, key='water', year=2024, value=100.0)
+        make_inventory(asset=self.a1, key='co2', year=2024, value=50.0)
+        make_inventory(asset=self.a1, key='energy', year=2024, value=999.0)
         data = _get_physical_risk_data(self.company)
         a1 = next(a for a in data['assets'] if a['name'] == 'Site A1')
         # sous-ensemble + ordre (eau, CO2) ; énergie exclue ; année récente (100, pas 10)
@@ -878,7 +875,6 @@ class LeapEvaluateDataTests(TestCase):
 
     def setUp(self):
         from django.contrib.auth import get_user_model
-        from .models import AssetInventory, Flow
         User = get_user_model()
         self.user = User.objects.create_user(username='evaluser', password='testpass')
         self.client.force_login(self.user)
@@ -899,15 +895,9 @@ class LeapEvaluateDataTests(TestCase):
         Production.objects.create(
             asset=self.asset, commodity=self.commodity, year=2024, production=10.0,
         )
-        AssetInventory.objects.create(
-            asset=self.asset, flow=Flow.objects.get(key='water'), year=2024, value=100.0
-        )
-        AssetInventory.objects.create(
-            asset=self.asset, flow=Flow.objects.get(key='co2'), year=2024, value=50.0
-        )
-        AssetInventory.objects.create(
-            asset=self.asset, flow=Flow.objects.get(key='waste'), year=2024, value=25.0
-        )
+        make_inventory(asset=self.asset, key='water', year=2024, value=100.0)
+        make_inventory(asset=self.asset, key='co2', year=2024, value=50.0)
+        make_inventory(asset=self.asset, key='waste', year=2024, value=25.0)
 
     def test_impact_sum_is_production_times_factor(self):
         from .views import _get_leap_evaluate_data
@@ -931,13 +921,10 @@ class LeapEvaluateDataTests(TestCase):
         self.assertEqual(a['sensitive_zone_type'], 'Natura 2000')
 
     def test_consumption_uses_latest_inventory_year_only(self):
-        from .models import AssetInventory, Flow
         from .views import _get_leap_evaluate_data
         # Année antérieure sur le même flow/asset : ne doit pas s'additionner
         # à l'année la plus récente (2024, value=100 créée dans setUp).
-        AssetInventory.objects.create(
-            asset=self.asset, flow=Flow.objects.get(key='water'), year=2023, value=10.0,
-        )
+        make_inventory(asset=self.asset, key='water', year=2023, value=10.0)
         a = _get_leap_evaluate_data(self.company)['assets'][0]
         self.assertAlmostEqual(a['water_consumption'], 100.0, places=2)
 
@@ -2047,36 +2034,6 @@ class GoldenViewOutputTests(TransactionTestCase):
             self.assertEqual(payload, expected, f'Sortie modifiée pour {fname}')
 
 
-class AssetInventoryModelTests(TestCase):
-
-    def _asset(self):
-        from .models import Asset, Country
-        c = Country.objects.create(name='FR', water_ownership='X',
-                                   land_ownership='Y')
-        return Asset.objects.create(name='Site', latitude=1.0, longitude=1.0,
-                                    country=c)
-
-    def test_create(self):
-        from .models import AssetInventory, Flow
-        a = self._asset()
-        f = Flow.objects.get(key='water')
-        inv = AssetInventory.objects.create(asset=a, flow=f, year=2024,
-                                            value=100.0)
-        self.assertEqual(inv.value, 100.0)
-        self.assertIn('Site', str(inv))
-
-    def test_unique_per_asset_flow_year(self):
-        from django.db import IntegrityError, transaction
-        from .models import AssetInventory, Flow
-        a = self._asset()
-        f = Flow.objects.get(key='co2')
-        AssetInventory.objects.create(asset=a, flow=f, year=2024, value=1.0)
-        with self.assertRaises(IntegrityError):
-            with transaction.atomic():
-                AssetInventory.objects.create(asset=a, flow=f, year=2024,
-                                              value=2.0)
-
-
 class ImpactCatalogModelTests(TestCase):
 
     def test_method_str(self):
@@ -2378,38 +2335,6 @@ class SupplyChainDroppedTests(TestCase):
         self.assertFalse(hasattr(m, 'Supply_chain'))
 
 
-class FlowModelTests(TestCase):
-
-    def test_create_and_str(self):
-        from .models import Flow
-        f = Flow.objects.create(key='custom_flow', name='Consommation eau',
-                                unit='m³', theme='water')
-        self.assertEqual(str(f), 'custom_flow')
-        self.assertEqual(f.theme, 'water')
-
-    def test_key_unique(self):
-        from django.db import IntegrityError, transaction
-        from .models import Flow
-        Flow.objects.create(key='unique_test', name='CO2', unit='t')
-        with self.assertRaises(IntegrityError):
-            with transaction.atomic():
-                Flow.objects.create(key='unique_test', name='CO2 bis', unit='t')
-
-
-class SeedFlowsTests(TestCase):
-
-    def test_five_flows_seeded(self):
-        from .models import Flow
-        keys = set(Flow.objects.values_list('key', flat=True))
-        self.assertEqual(keys, {'water', 'energy', 'co2', 'waste', 'surface_area'})
-
-    def test_themes(self):
-        from .models import Flow
-        self.assertEqual(Flow.objects.get(key='water').theme, 'water')
-        self.assertEqual(Flow.objects.get(key='co2').theme, 'carbon')
-        self.assertEqual(Flow.objects.get(key='surface_area').theme, 'land')
-
-
 class AssetConsumptionDroppedTests(TestCase):
 
     def test_model_gone(self):
@@ -2422,7 +2347,7 @@ class MeasuredVsModeledTests(TestCase):
     def test_pairs_measured_and_modeled(self):
         from .models import (
             Asset, Country, SubnationalRegion, Commodity, Production,
-            Flow, AssetInventory, ImpactCategory, CharacterizationFactor,
+            ImpactCategory, CharacterizationFactor,
         )
         from .services.impacts import measured_vs_modeled
         country = Country.objects.create(name='FR', water_ownership='X', land_ownership='Y')
@@ -2430,8 +2355,7 @@ class MeasuredVsModeledTests(TestCase):
         asset = Asset.objects.create(name='S', latitude=1.0, longitude=1.0,
                                      country=country, subnational_region=region)
         # mesuré : 100 d'eau (Flow theme 'water')
-        water = Flow.objects.get(key='water')  # seedé par 0037
-        AssetInventory.objects.create(asset=asset, flow=water, year=2024, value=100.0)
+        make_inventory(asset=asset, key='water', year=2024, value=100.0)
         # modélisé : production 10 × CF(catégorie theme 'water') = 10 × 2 = 20
         com = Commodity.objects.create(name='Soja')
         Production.objects.create(asset=asset, commodity=com, year=2024, production=10.0)
@@ -2442,43 +2366,6 @@ class MeasuredVsModeledTests(TestCase):
         out = measured_vs_modeled(asset, 'water', 2024)
         self.assertAlmostEqual(out['measured'], 100.0, places=4)
         self.assertAlmostEqual(out['modeled'], 20.0, places=4)
-
-
-class AssetConsumptionMigrateHelperTests(TestCase):
-
-    def test_migrate_maps_measures_and_year(self):
-        from .models import AssetInventory, Flow, Production, Asset, Country, Commodity
-        from dashboard.migrations import _asset_consumption_to_inventory as conv
-        country = Country.objects.create(name='FR', water_ownership='X', land_ownership='Y')
-        asset = Asset.objects.create(name='S', latitude=1.0, longitude=1.0, country=country)
-        com = Commodity.objects.create(name='Soja')
-        Production.objects.create(asset=asset, commodity=com, year=2023, production=1.0)
-
-        class _AC:
-            def __init__(self, asset_id, **measures):
-                self.asset_id = asset_id
-                for k, v in measures.items():
-                    setattr(self, k, v)
-
-        rows = [_AC(asset.pk, water_consumption=100.0, CO2_emissions=50.0,
-                    surface_area=0.0, energy_consumption=0.0, waste_generated=0.0)]
-
-        class _Objects:
-            def all(self):
-                return rows
-
-        class _FakeAC:
-            objects = _Objects()
-
-        conv.migrate(_FakeAC, AssetInventory, Flow, Production)
-        # 2 mesures non nulles → 2 lignes ; année = dernière prod (2023)
-        self.assertEqual(AssetInventory.objects.filter(asset=asset).count(), 2)
-        water = AssetInventory.objects.get(asset=asset, flow__key='water')
-        self.assertEqual(water.value, 100.0)
-        self.assertEqual(water.year, 2023)
-        self.assertEqual(
-            AssetInventory.objects.get(asset=asset, flow__key='co2').value, 50.0
-        )
 
 
 class PortfolioModelTests(TestCase):
