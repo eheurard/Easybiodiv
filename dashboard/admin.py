@@ -29,8 +29,8 @@ class SubnationalRegionAdmin(admin.ModelAdmin):
 
 @admin.register(Commodity)
 class CommodityAdmin(admin.ModelAdmin):
-    search_fields = ('name',)
-    list_display = ('name', 'unit', 'biodiversity_loss_class')
+    search_fields = ('name', 'key')
+    list_display = ('name', 'key', 'unit', 'theme', 'biodiversity_loss_class')
     list_filter = (
         'biodiversity_loss_class',
         'dependency_water', 'dependency_pollination',

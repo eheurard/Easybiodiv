@@ -7,6 +7,17 @@ UNDOCUMENTED_SCALE_HELP_TEXT = (
     'métier avant de saisir une valeur.'
 )
 
+KEY_HELP_TEXT = (
+    'Identifiant technique repris tel quel dans les clés JSON des vues. '
+    'Ne pas modifier sur un enregistrement existant sans vérifier les '
+    'vues qui le consomment.'
+)
+
+THEME_HELP_TEXT = (
+    'Clé d’appariement entre mesure et modèle : un inventaire d’actif '
+    'est comparé aux catégories d’impact qui portent le même thème.'
+)
+
 
 class Country(models.Model):
     name = models.CharField(max_length=255, verbose_name='Nom')
@@ -78,6 +89,30 @@ class SubnationalRegion(models.Model):
     def __str__(self):
         return self.name
 
+# Commodités techniques lues par le code (clés JSON des vues, inventaire mesuré,
+# émissions déclarées) : key -> (name, unit, theme). La migration
+# 0050_seed_technical_commodities en garde une copie figée.
+TECHNICAL_COMMODITIES = {
+    'water': ('Eau', 'm³', 'water'),
+    'energy': ('Énergie', 'MWh', 'energy'),
+    'co2': ('CO₂', 'tCO₂e', 'carbon'),
+    'waste': ('Déchets', 't', 'waste'),
+    'surface_area': ('Surface occupée', 'm²', 'land'),
+}
+
+
+class CommodityQuerySet(models.QuerySet):
+
+    def technical(self, key):
+        """Commodité technique `key`, recréée si elle manque (base vidée par un
+        test transactionnel, ou ligne supprimée à la main)."""
+        name, unit, theme = TECHNICAL_COMMODITIES[key]
+        commodity, _ = self.get_or_create(
+            key=key, defaults={'name': name, 'unit': unit, 'theme': theme},
+        )
+        return commodity
+
+
 class Commodity (models.Model):
     DEPENDENCY_CHOICES = [
         ('VL', 'Very low'),
@@ -97,6 +132,14 @@ class Commodity (models.Model):
         max_length=255, default="tonnes", verbose_name='Unité de mesure',
         help_text='Unité dans laquelle les productions et les échanges de cette '
                   'commodité sont exprimés (par défaut : tonnes).',
+    )
+    key = models.CharField(
+        max_length=50, unique=True, null=True, blank=True,
+        verbose_name='Clé technique', help_text=KEY_HELP_TEXT,
+    )
+    theme = models.CharField(
+        max_length=30, blank=True, default='', verbose_name='Thème',
+        help_text=THEME_HELP_TEXT,
     )
 
     dependency_water = models.CharField(
@@ -141,6 +184,8 @@ class Commodity (models.Model):
         help_text='Détermine lequel des trois taux de perte du pays s’applique : '
                   'agriculture, urbanisation ou extraction minière.',
     )
+
+    objects = CommodityQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Commodité'
@@ -724,18 +769,6 @@ class Carbon_emission(models.Model):
         unique_together = ('company', 'year', 'scope')
         verbose_name = 'Émission carbone'
         verbose_name_plural = 'Émissions carbone'
-
-
-KEY_HELP_TEXT = (
-    'Identifiant technique repris tel quel dans les clés JSON des vues. '
-    'Ne pas modifier sur un enregistrement existant sans vérifier les '
-    'vues qui le consomment.'
-)
-
-THEME_HELP_TEXT = (
-    'Clé d’appariement entre mesure et modèle : un inventaire d’actif '
-    'est comparé aux catégories d’impact qui portent le même thème.'
-)
 
 
 class ImpactMethod(models.Model):

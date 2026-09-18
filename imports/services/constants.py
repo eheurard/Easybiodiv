@@ -18,7 +18,7 @@ SHEET_COLUMNS = {
         'name', 'country_name', 'restoration_cost_m2', 'Mean_X', 'Mean_Y',
     ],
     'Commodity': [
-        'name', 'description', 'unit', 'biodiversity_loss_class',
+        'name', 'description', 'unit', 'key', 'theme', 'biodiversity_loss_class',
         'dependency_water', 'dependency_pollination', 'dependency_soil_quality',
         'dependency_carbon_sequestration', 'dependency_water_purification', 'dependency_pest_control',
     ],

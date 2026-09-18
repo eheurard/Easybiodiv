@@ -122,6 +122,8 @@ def _import_commodity(rows, lookup):
             name=d['name'],
             description=_s(d.get('description')),
             unit=d.get('unit') or 'tonnes',
+            key=(d.get('key') or '').strip().lower() or None,
+            theme=_s(d.get('theme')),
             biodiversity_loss_class=d.get('biodiversity_loss_class') or 'Agriculture',
             dependency_water=d.get('dependency_water') or 'VL',
             dependency_pollination=d.get('dependency_pollination') or 'VL',
@@ -131,6 +133,8 @@ def _import_commodity(rows, lookup):
             dependency_pest_control=d.get('dependency_pest_control') or 'VL',
         )
         lookup['commodity'][d['name'].lower()] = obj
+        if obj.key:
+            lookup['commodity_key'][obj.key] = obj
         created += 1
     return created
 
@@ -671,6 +675,7 @@ def _build_lookup():
         'country': {o.name.lower(): o for o in Country.objects.all()},
         'subnational_region': {o.name.lower(): o for o in SubnationalRegion.objects.all()},
         'commodity': {o.name.lower(): o for o in Commodity.objects.all()},
+        'commodity_key': {o.key.lower(): o for o in Commodity.objects.exclude(key=None)},
         'impact_category': {o.key.lower(): o for o in ImpactCategory.objects.all()},
         'flow': {o.key.lower(): o for o in Flow.objects.all()},
         'policy_type': {o.name.lower(): o for o in Policy_Type.objects.all()},

@@ -20,12 +20,14 @@ def parse_file(source):
     wb = openpyxl.load_workbook(source)
     file_names = _collect_file_names(wb)
     db_name_cache = _build_db_name_cache()
+    context = _build_row_check_context()
 
     result = {}
     for sheet_name in SHEET_COLUMNS:
         if sheet_name not in wb.sheetnames:
             continue
-        result[sheet_name] = _parse_sheet(wb[sheet_name], sheet_name, file_names, db_name_cache)
+        result[sheet_name] = _parse_sheet(
+            wb[sheet_name], sheet_name, file_names, db_name_cache, context)
     return result
 
 
@@ -149,7 +151,41 @@ def _choice_error(sheet_name, data):
     return None
 
 
-def _parse_sheet(ws, sheet_name, file_names, db_name_cache):
+def _build_row_check_context():
+    """État partagé par les contrôles propres à une feuille (voir _ROW_CHECKS)
+    pendant toute l'analyse d'un classeur."""
+    return {
+        'commodity_key_owner': {
+            key.lower(): name.lower()
+            for name, key in Commodity.objects.exclude(key=None).values_list('name', 'key')
+        },
+        'file_commodity_key_owner': {},
+    }
+
+
+def _commodity_row_error(data, context):
+    """Commodity.key est unique : une clé déjà prise par une autre commodité, en
+    base ou plus haut dans le fichier, ferait échouer tout l'import."""
+    key = data.get('key', '').strip().lower()
+    if not key:
+        return None
+    name = data['name'].strip().lower()
+    for owners in (context['commodity_key_owner'], context['file_commodity_key_owner']):
+        owner = owners.get(key)
+        if owner is not None and owner != name:
+            return f"Clé déjà utilisée par une autre commodité : '{data['key']}'"
+    context['file_commodity_key_owner'].setdefault(key, name)
+    return None
+
+
+# Contrôles propres à une feuille, appliqués ligne par ligne après les
+# énumérations et avant la détection des doublons.
+_ROW_CHECKS = {
+    'Commodity': _commodity_row_error,
+}
+
+
+def _parse_sheet(ws, sheet_name, file_names, db_name_cache, context):
     columns = SHEET_COLUMNS[sheet_name]
     required = REQUIRED_FIELDS[sheet_name]
     fk_fields = FK_FIELDS.get(sheet_name, {})
@@ -210,6 +246,13 @@ def _parse_sheet(ws, sheet_name, file_names, db_name_cache):
         choice_error = _choice_error(sheet_name, data)
         if choice_error:
             rows_out.append({'status': 'error', 'message': choice_error, 'data': data})
+            continue
+
+        # Contrôles propres à la feuille
+        row_check = _ROW_CHECKS.get(sheet_name)
+        row_error = row_check(data, context) if row_check else None
+        if row_error:
+            rows_out.append({'status': 'error', 'message': row_error, 'data': data})
             continue
 
         # Duplicate check

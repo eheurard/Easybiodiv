@@ -2012,6 +2012,10 @@ class GoldenViewOutputTests(TransactionTestCase):
     reset_sequences = True
 
     def setUp(self):
+        # Les commodités techniques créées par migration occuperaient les premiers
+        # identifiants : on les retire pour garder les PK figés dans les golden.
+        # populate_acme recrée celles dont il a besoin (Commodity.objects.technical).
+        Commodity.objects.exclude(key=None).delete()
         call_command('populate_acme')
         from django.contrib.auth import get_user_model
         User = get_user_model()
