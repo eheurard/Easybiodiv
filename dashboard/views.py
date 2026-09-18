@@ -95,7 +95,7 @@ def _get_dependencies_data(company):
     }
 
     productions_qs = Production.objects.filter(
-        Q(company=company) | Q(asset__ownership__Company=company)
+        Q(company=company) | Q(asset__in=Asset.objects.owned_by(company))
     ).select_related('commodity').distinct()
 
     max_year = productions_qs.aggregate(Max('year'))['year__max']
@@ -260,7 +260,7 @@ def _get_dependencies_data(company):
 
 def _get_company_data(company):
     assets = list(
-        Asset.objects.filter(ownership__Company=company)
+        Asset.objects.owned_by(company)
         .select_related('country', 'subnational_region')
         .prefetch_related('production_set__commodity')
         .distinct()
@@ -409,7 +409,7 @@ def _get_company_data(company):
 
 def _get_mesure_empreinte_data(company):
     assets = list(
-        Asset.objects.filter(ownership__Company=company)
+        Asset.objects.owned_by(company)
         .select_related('country')
         .distinct()
     )
@@ -537,7 +537,7 @@ def _get_mesure_empreinte_data(company):
 
 def _get_leap_locate_data(company):
     assets = list(
-        Asset.objects.filter(ownership__Company=company)
+        Asset.objects.owned_by(company)
         .select_related('country', 'subnational_region')
         .prefetch_related(
             Prefetch('production_set', queryset=Production.objects.select_related('commodity')),
@@ -547,12 +547,10 @@ def _get_leap_locate_data(company):
     asset_ids = [a.pk for a in assets]
     asset_id_set = set(asset_ids)
 
-    # Part de détention de la société sélectionnée pour chaque asset.
+    # Part de détention actuelle de la société sélectionnée pour chaque asset.
     ownership_map = {
-        o['Asset_id']: o['ownership']
-        for o in Ownership.objects.filter(
-            Asset_id__in=asset_ids, Company=company
-        ).values('Asset_id', 'ownership')
+        o.asset_id: o.share_label
+        for o in Ownership.objects.valid_in().filter(asset_id__in=asset_ids, company=company)
     }
 
     features = []
@@ -694,7 +692,7 @@ _EVALUATE_IMPACT_FIELDS = [
 
 def _get_leap_evaluate_data(company):
     assets = list(
-        Asset.objects.filter(ownership__Company=company)
+        Asset.objects.owned_by(company)
         .select_related('country', 'subnational_region')
         .distinct()
     )
@@ -777,7 +775,7 @@ def _get_leap_evaluate_data(company):
 
 def _get_leap_prepare_data(company):
     assets = list(
-        Asset.objects.filter(ownership__Company=company)
+        Asset.objects.owned_by(company)
         .prefetch_related(
             Prefetch('production_set',
                      queryset=Production.objects.select_related('commodity'))
@@ -853,7 +851,7 @@ def _get_dette_ecologique_data(company):
     }
 
     assets = list(
-        Asset.objects.filter(ownership__Company=company)
+        Asset.objects.owned_by(company)
         .select_related('country', 'subnational_region')
         .distinct()
     )
@@ -986,7 +984,7 @@ def _get_dette_ecologique_data(company):
 
 def _get_physical_risk_data(company):
     assets = list(
-        Asset.objects.filter(ownership__Company=company)
+        Asset.objects.owned_by(company)
         .select_related('country')
         .distinct()
     )
@@ -1150,7 +1148,7 @@ METRICS = (
 
 def _get_comparison_data(company):
     assets = list(
-        Asset.objects.filter(ownership__Company=company)
+        Asset.objects.owned_by(company)
         .select_related('country', 'subnational_region')
         .distinct()
     )
@@ -1319,8 +1317,8 @@ def _get_compliance_data(company):
     )
 
     sensitive_assets = list(
-        Asset.objects
-        .filter(ownership__Company=company, near_sensitive_zone=True)
+        Asset.objects.owned_by(company)
+        .filter(near_sensitive_zone=True)
         .distinct()
     )
     e4_5_metric = {
@@ -1937,7 +1935,7 @@ def _company_endpoint_impacts(company, category_keys):
     """
     totals = {k: 0.0 for k in category_keys}
     assets = list(
-        Asset.objects.filter(ownership__Company=company)
+        Asset.objects.owned_by(company)
         .values_list('pk', flat=True).distinct()
     )
     if not assets:
@@ -2040,7 +2038,7 @@ def _company_physical_risks(company):
     poids ; repli moyenne simple si le revenu total est nul. {hazard_key: score}.
     """
     keys = [key for key, _, _ in PHYSICAL_HAZARDS]
-    assets = list(Asset.objects.filter(ownership__Company=company).distinct())
+    assets = list(Asset.objects.owned_by(company).distinct())
     if not assets:
         return {k: 0.0 for k in keys}
 
@@ -2137,7 +2135,7 @@ def _company_ecological_debt(company):
     result = {'assets': {}, 'regions': {}, 'countries': {}}
 
     assets = list(
-        Asset.objects.filter(ownership__Company=company)
+        Asset.objects.owned_by(company)
         .select_related('country', 'subnational_region')
         .distinct()
     )

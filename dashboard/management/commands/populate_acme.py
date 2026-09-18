@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
@@ -381,14 +383,15 @@ class Command(BaseCommand):
 
         # ── Propriétés ────────────────────────────────────────────────────────
 
-        for asset, pct in [
-            (a_bretagne, "100%"),
-            (a_occitanie, "100%"),
-            (a_mato_grosso, "75%"),
-            (a_para, "100%"),
-            (a_sumatra, "60%"),
+        for asset, share in [
+            (a_bretagne, Decimal('1')),
+            (a_occitanie, Decimal('1')),
+            (a_mato_grosso, Decimal('0.75')),
+            (a_para, Decimal('1')),
+            (a_sumatra, Decimal('0.6')),
         ]:
-            Ownership.objects.get_or_create(Asset=asset, Company=acme, defaults={"ownership": pct})
+            Ownership.objects.get_or_create(
+                asset=asset, company=acme, defaults={'share': share})
 
         # ── Productions 2023-2024 ─────────────────────────────────────────────
 

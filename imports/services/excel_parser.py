@@ -6,6 +6,7 @@ from dashboard.models import (
     Policy_Subcategory, Policy_Type, Production, ScenarioVariable, Sector,
     SectorCreditProfile, SubnationalRegion, SubSector,
 )
+from .cells import parse_optional_year, parse_share
 from .constants import (
     AT_LEAST_ONE_OF, CHOICE_FIELDS, DUPLICATE_CRITERIA, FK_FIELDS,
     MODEL_KEY_TO_SOURCE, REQUIRED_FIELDS, SHEET_COLUMNS,
@@ -109,7 +110,7 @@ _EXISTING_KEY_QUERIES = {
     'Asset': (Asset, ['name', 'country__name']),
     'AssetInventory': (AssetInventory, ['asset__name', 'flow__key', 'year']),
     'Production': (Production, ['asset__name', 'commodity__name', 'year']),
-    'Ownership': (Ownership, ['Asset__name', 'Company__name']),
+    'Ownership': (Ownership, ['asset__name', 'company__name', 'start_year']),
     'Company_Revenue': (Company_Revenue, ['company__name', 'year']),
     'Company_Revenue_Sector': (Company_Revenue_Sector, [
         'company__name', 'subsector__name', 'year',
@@ -178,10 +179,30 @@ def _commodity_row_error(data, context):
     return None
 
 
+def _ownership_row_error(data, context):
+    """Part lisible dans ]0, 1] et années cohérentes (spec §6.2)."""
+    if parse_share(data.get('share')) is None:
+        return (
+            f"Part invalide pour 'share' : '{data.get('share')}' "
+            "(attendu : 0.75 ou 75%, au plus 1)"
+        )
+    years = {}
+    for column in ('start_year', 'end_year'):
+        try:
+            years[column] = parse_optional_year(data.get(column))
+        except ValueError:
+            return f"Année invalide pour '{column}' : '{data.get(column)}'"
+    start, end = years['start_year'], years['end_year']
+    if start is not None and end is not None and start > end:
+        return "L'année de début ('start_year') doit précéder l'année de fin ('end_year')"
+    return None
+
+
 # Contrôles propres à une feuille, appliqués ligne par ligne après les
 # énumérations et avant la détection des doublons.
 _ROW_CHECKS = {
     'Commodity': _commodity_row_error,
+    'Ownership': _ownership_row_error,
 }
 
 

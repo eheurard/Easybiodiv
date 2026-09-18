@@ -89,7 +89,7 @@ SHEET_COLUMNS = {
     ],
 
     # ── Données d'entreprise ──────────────────────────────────────────────────
-    'Ownership': ['asset_name', 'company_name', 'ownership', 'description'],
+    'Ownership': ['asset_name', 'company_name', 'share', 'start_year', 'end_year', 'description'],
     'Company_Revenue': ['company_name', 'year', 'revenue', 'currency'],
     'Company_Revenue_Sector': ['company_name', 'subsector_name', 'sector_name', 'year', 'revenue'],
     'Company_Policy': [
@@ -164,7 +164,7 @@ REQUIRED_FIELDS = {
     'Production': ['asset_name', 'commodity_name', 'year', 'production'],
     'SupplyNode': ['node_ref'],
     'Exchange': ['supplier_ref', 'consumer_ref', 'commodity_name', 'quantity', 'year'],
-    'Ownership': ['asset_name', 'company_name', 'ownership'],
+    'Ownership': ['asset_name', 'company_name', 'share'],
     'Company_Revenue': ['company_name', 'year', 'revenue', 'currency'],
     'Company_Revenue_Sector': ['company_name', 'subsector_name', 'sector_name', 'year', 'revenue'],
     'Company_Policy': [
@@ -197,7 +197,7 @@ DUPLICATE_CRITERIA = {
     'Production': ['asset_name', 'commodity_name', 'year'],
     'SupplyNode': ['node_ref'],
     'Exchange': ['supplier_ref', 'consumer_ref', 'commodity_name', 'year'],
-    'Ownership': ['asset_name', 'company_name'],
+    'Ownership': ['asset_name', 'company_name', 'start_year'],
     'Company_Revenue': ['company_name', 'year'],
     'Company_Revenue_Sector': ['company_name', 'subsector_name', 'year'],
     'Company_Policy': [

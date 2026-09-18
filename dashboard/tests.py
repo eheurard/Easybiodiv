@@ -26,7 +26,7 @@ def _make_world():
         name='Site Paris', latitude=48.8566, longitude=2.3522,
         country=country, subnational_region=region,
     )
-    Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+    Ownership.objects.create(asset=asset, company=company, share=1)
     Production.objects.create(asset=asset, commodity=commodity, year=2024, production=100.0)
     return company, country, region, commodity, asset
 
@@ -146,7 +146,7 @@ class CompanyDataRegionalCfTests(TestCase):
             name='Ferme', latitude=-3.0, longitude=-47.0,
             country=country, subnational_region=region,
         )
-        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Ownership.objects.create(asset=asset, company=company, share=1)
         Production.objects.create(asset=asset, commodity=com, year=2024, production=10.0)
         data = _get_company_data(company)
         feature = data['geojson']['features'][0]
@@ -204,7 +204,7 @@ class MesureEmpreinteDataViewTests(TestCase):
             name='Ferme A', latitude=-5.0, longitude=-55.0,
             country=country, subnational_region=region,
         )
-        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Ownership.objects.create(asset=asset, company=company, share=1)
         Production.objects.create(
             asset=asset, commodity=commodity, year=year, production=production_qty
         )
@@ -302,7 +302,7 @@ class MesureEmpreinteDataViewTests(TestCase):
             name='Estancia', latitude=-30.0, longitude=-65.0,
             country=country, subnational_region=region,
         )
-        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Ownership.objects.create(asset=asset, company=company, share=1)
         c1 = Commodity.objects.create(name='Maïs')
         _make_cf(c1, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 1.0)
         c2 = Commodity.objects.create(name='Blé')
@@ -545,7 +545,7 @@ class DependenciesDataTests(TestCase):
             name='Site B', latitude=0.0, longitude=0.0,
             country=self.country, subnational_region=self.region,
         )
-        Ownership.objects.create(Asset=asset, Company=self.company, ownership='100%')
+        Ownership.objects.create(asset=asset, company=self.company, share=1)
         commodity_vh = Commodity.objects.create(
             name='AssetCom',
             dependency_water='VH',
@@ -679,8 +679,8 @@ class PhysicalRiskDataTests(TestCase):
             country=self.country, subnational_region=self.region,
             risk_flood=0.2,
         )
-        Ownership.objects.create(Asset=self.a1, Company=self.company, ownership='100%')
-        Ownership.objects.create(Asset=self.a2, Company=self.company, ownership='100%')
+        Ownership.objects.create(asset=self.a1, company=self.company, share=1)
+        Ownership.objects.create(asset=self.a2, company=self.company, share=1)
 
         # Exposition: A1 latest year 2024 = 1000 (older 2022 ignored); A2 2024 = 500
         Production.objects.create(
@@ -775,7 +775,7 @@ class PhysicalRiskDataTests(TestCase):
             country=self.country, subnational_region=self.region,
             risk_flood=0.5,
         )
-        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Ownership.objects.create(asset=asset, company=company, share=1)
         Production.objects.create(
             asset=asset, commodity=self.commodity, year=2024,
             production=1.0, estimated_revenue=200.0,
@@ -895,7 +895,7 @@ class LeapEvaluateDataTests(TestCase):
             name='Site A', latitude=48.0, longitude=2.0, country=self.country,
             near_sensitive_zone=True, sensitive_zone_type='NATURA_2000',
         )
-        Ownership.objects.create(Asset=self.asset, Company=self.company, ownership='100%')
+        Ownership.objects.create(asset=self.asset, company=self.company, share=1)
         Production.objects.create(
             asset=self.asset, commodity=self.commodity, year=2024, production=10.0,
         )
@@ -1009,7 +1009,7 @@ class LeapPrepareDataTests(TestCase):
         self.asset = Asset.objects.create(
             name='Site A', latitude=48.0, longitude=2.0, country=self.country,
         )
-        Ownership.objects.create(Asset=self.asset, Company=self.company, ownership='100%')
+        Ownership.objects.create(asset=self.asset, company=self.company, share=1)
         Production.objects.create(
             asset=self.asset, commodity=self.commodity, year=2024, production=100.0,
         )
@@ -1133,7 +1133,7 @@ class DetteEcologiqueDataTests(TestCase):
             name='Site A', latitude=48.8, longitude=2.3,
             country=self.country, subnational_region=self.region,
         )
-        Ownership.objects.create(Asset=self.asset, Company=self.company, ownership='100%')
+        Ownership.objects.create(asset=self.asset, company=self.company, share=1)
 
     def test_no_assets_returns_empty(self):
         other = Company.objects.create(name='Empty')
@@ -1147,7 +1147,7 @@ class DetteEcologiqueDataTests(TestCase):
             name='No Region', latitude=0.0, longitude=0.0,
             country=self.country, subnational_region=None,
         )
-        Ownership.objects.create(Asset=asset_no_region, Company=self.company, ownership='100%')
+        Ownership.objects.create(asset=asset_no_region, company=self.company, share=1)
         Production.objects.create(
             asset=asset_no_region, commodity=self.commodity_agri, year=2024, production=100.0,
         )
@@ -1203,7 +1203,7 @@ class DetteEcologiqueDataTests(TestCase):
             name='Site B', latitude=48.9, longitude=2.4,
             country=self.country, subnational_region=self.region,
         )
-        Ownership.objects.create(Asset=asset2, Company=self.company, ownership='100%')
+        Ownership.objects.create(asset=asset2, company=self.company, share=1)
         Production.objects.create(
             asset=self.asset, commodity=self.commodity_agri, year=2024, production=100.0,
         )
@@ -1317,7 +1317,7 @@ class ComplianceDataTests(TestCase):
             near_sensitive_zone=near_zone, sensitive_zone_area_ha=area,
             sensitive_zone_type=('NATURA_2000' if near_zone else ''),
         )
-        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Ownership.objects.create(asset=asset, company=company, share=1)
         return company, asset
 
     def test_unconfigured_company(self):
@@ -1376,7 +1376,7 @@ class ComplianceDataTests(TestCase):
             near_sensitive_zone=True, sensitive_zone_area_ha=80.0,
             sensitive_zone_type='UNESCO',
         )
-        Ownership.objects.create(Asset=a2, Company=company, ownership='100%')
+        Ownership.objects.create(asset=a2, company=company, share=1)
         data = _get_compliance_data(company)
         self.assertEqual(data['e4_5_metric']['sites_count'], 2)
         self.assertAlmostEqual(data['e4_5_metric']['total_area_ha'], 200.0, places=2)
@@ -1885,7 +1885,7 @@ class LeapLocateDataTests(TestCase):
             name='Site Lyon', latitude=45.75, longitude=4.85,
             country=self.country, subnational_region=self.region,
         )
-        Ownership.objects.create(Asset=supplier_asset, Company=self.company, ownership='100%')
+        Ownership.objects.create(asset=supplier_asset, company=self.company, share=1)
         from .models import Exchange, SupplyNode
         consumer = SupplyNode.objects.create(asset=self.asset)
         supplier = SupplyNode.objects.create(asset=supplier_asset)
@@ -1970,7 +1970,7 @@ class ComparisonDataCfTests(TestCase):
         asset = Asset.objects.create(
             name='S', latitude=48.0, longitude=2.0, country=country, subnational_region=region,
         )
-        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Ownership.objects.create(asset=asset, company=company, share=1)
         Production.objects.create(asset=asset, commodity=com, year=2024, production=10.0)
         data = _get_comparison_data(company)
         self.assertAlmostEqual(data['total_impact_midpoint_ReCiPe2016_land_use'], 40.0, places=2)
@@ -2750,7 +2750,7 @@ class PortfolioImpactViewTests(TestCase):
         asset = Asset.objects.create(
             name='Site A', latitude=48.0, longitude=2.0, country=country,
         )
-        Ownership.objects.create(Asset=asset, Company=self.company_a, ownership='100%')
+        Ownership.objects.create(asset=asset, company=self.company_a, share=1)
         Production.objects.create(
             asset=asset, commodity=commodity, year=2024, production=100.0,
         )
@@ -2843,8 +2843,8 @@ class PortfolioPhysicalRiskViewTests(TestCase):
             name='A2', latitude=49.0, longitude=3.0, country=country,
             risk_drought=0.2,
         )
-        Ownership.objects.create(Asset=a1, Company=self.company_a, ownership='100%')
-        Ownership.objects.create(Asset=a2, Company=self.company_a, ownership='100%')
+        Ownership.objects.create(asset=a1, company=self.company_a, share=1)
+        Ownership.objects.create(asset=a2, company=self.company_a, share=1)
         Production.objects.create(
             asset=a1, commodity=commodity, year=2024, production=10.0,
             estimated_revenue=300.0,
@@ -2860,7 +2860,7 @@ class PortfolioPhysicalRiskViewTests(TestCase):
             name='B1', latitude=50.0, longitude=4.0, country=country,
             risk_drought=0.4,
         )
-        Ownership.objects.create(Asset=b1, Company=self.company_b, ownership='100%')
+        Ownership.objects.create(asset=b1, company=self.company_b, share=1)
         Production.objects.create(
             asset=b1, commodity=commodity, year=2024, production=10.0,
             estimated_revenue=100.0,
@@ -2872,7 +2872,7 @@ class PortfolioPhysicalRiskViewTests(TestCase):
             name='C1', latitude=51.0, longitude=5.0, country=country,
             risk_drought=0.6,
         )
-        Ownership.objects.create(Asset=c1, Company=self.company_c, ownership='100%')
+        Ownership.objects.create(asset=c1, company=self.company_c, share=1)
 
         # Company D : aucun asset → scores 0.
         self.company_d = Company.objects.create(name='DeltaCorp')
@@ -3091,7 +3091,7 @@ class PortfolioFinancedDebtHelperTests(TestCase):
             name='A1', latitude=-15.5, longitude=-47.9,
             country=country, subnational_region=region,
         )
-        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Ownership.objects.create(asset=asset, company=company, share=1)
         Production.objects.create(
             commodity=commodity, asset=asset, year=2023, production=10.0,
         )
@@ -3128,7 +3128,7 @@ class PortfolioFinancedDebtHelperTests(TestCase):
             name='A1', latitude=-15.5, longitude=-47.9,
             country=country, subnational_region=region,
         )
-        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Ownership.objects.create(asset=asset, company=company, share=1)
         Production.objects.create(
             commodity=commodity, asset=asset, year=2023, production=10.0,
         )
@@ -3167,7 +3167,7 @@ class PortfolioFinancedDebtHelperTests(TestCase):
             name='A1', latitude=0, longitude=0,
             country=country, subnational_region=region,
         )
-        Ownership.objects.create(Asset=asset, Company=company, ownership='100%')
+        Ownership.objects.create(asset=asset, company=company, share=1)
         Production.objects.create(
             commodity=commodity, asset=asset, year=2023, production=10.0,
         )
@@ -3209,7 +3209,7 @@ class PortfolioTransitionRiskViewTests(TestCase):
             name='A1', latitude=-15.5, longitude=-47.9,
             country=country, subnational_region=region,
         )
-        Ownership.objects.create(Asset=asset, Company=self.company, ownership='100%')
+        Ownership.objects.create(asset=asset, company=self.company, share=1)
         Production.objects.create(
             commodity=commodity, asset=asset, year=2023, production=10.0,
         )

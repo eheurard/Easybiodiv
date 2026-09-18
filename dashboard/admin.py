@@ -82,9 +82,14 @@ class ProductionAdmin(admin.ModelAdmin):
 
 @admin.register(Ownership)
 class OwnershipAdmin(admin.ModelAdmin):
-    search_fields = ('Asset__name', 'Company__name')
-    list_display = ('Asset', 'Company', 'ownership')
-    autocomplete_fields = ('Asset', 'Company')
+    search_fields = ('asset__name', 'company__name')
+    list_display = ('asset', 'company', 'share_percent', 'start_year', 'end_year')
+    list_filter = ('company',)
+    autocomplete_fields = ('asset', 'company')
+
+    @admin.display(description='Part de détention')
+    def share_percent(self, obj):
+        return obj.share_label
 
 
 @admin.register(Company_Revenue)

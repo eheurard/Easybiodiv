@@ -1,6 +1,9 @@
-from django.db import models
+from decimal import Decimal
+
 from django.conf import settings
-from django.core.validators import MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
+from django.db.models import F, Q
 
 UNDOCUMENTED_SCALE_HELP_TEXT = (
     'Échelle et unité non documentées à ce jour — vérifier le glossaire '
@@ -260,6 +263,15 @@ class SubSector(models.Model):
     def __str__(self):
         return self.name
 
+class AssetQuerySet(models.QuerySet):
+
+    def owned_by(self, company, year=None):
+        """Actifs détenus par `company` l'année `year` ; sans année, périmètre
+        actuel (spec §3.6). Trié par pk pour un ordre stable."""
+        held = Ownership.objects.valid_in(year).filter(company=company).values('asset_id')
+        return self.filter(pk__in=held).order_by('pk')
+
+
 class Asset(models.Model):
 
 
@@ -379,6 +391,8 @@ class Asset(models.Model):
         default=0, verbose_name='Surface de la zone sensible (ha)',
         help_text=SENSITIVE_ZONE_HELP_TEXT,
     )
+
+    objects = AssetQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Actif'
@@ -598,18 +612,84 @@ class Company_Policy(models.Model):
         verbose_name_plural = "Politiques d'entreprise"
 
 
+class OwnershipQuerySet(models.QuerySet):
+
+    def valid_in(self, year=None):
+        """Détentions valides l'année `year` ; sans année, celles en cours (sans
+        `end_year`). Convention : détenteur au 31 décembre (spec §3.6)."""
+        if year is None:
+            return self.filter(end_year__isnull=True)
+        return self.filter(
+            Q(start_year__isnull=True) | Q(start_year__lte=year),
+            Q(end_year__isnull=True) | Q(end_year__gte=year),
+        )
+
+
+OWNERSHIP_YEAR_HELP_TEXT = (
+    'Le détenteur d’une année est celui du 31 décembre : pour une cession en juin '
+    '2024, le vendeur finit en 2023 et l’acheteur commence en 2024. Vide = sans limite.'
+)
+
+
 class Ownership(models.Model):
-    Asset = models.ForeignKey(Asset, on_delete=models.CASCADE, verbose_name='Actif')
-    Company = models.ForeignKey(Company, on_delete=models.CASCADE, verbose_name='Entreprise')
-    ownership = models.CharField(max_length=255, verbose_name='Part de détention')
+    asset = models.ForeignKey(
+        Asset, on_delete=models.CASCADE, related_name='ownerships', verbose_name='Actif',
+    )
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='ownerships',
+        verbose_name='Entreprise',
+    )
+    share = models.DecimalField(
+        max_digits=5, decimal_places=4,
+        validators=[MinValueValidator(Decimal('0.0001')), MaxValueValidator(Decimal('1'))],
+        verbose_name='Part de détention', help_text='Entre 0 et 1 : 0,75 = 75 %.',
+    )
+    start_year = models.PositiveSmallIntegerField(
+        null=True, blank=True, verbose_name='Année de début',
+        help_text=OWNERSHIP_YEAR_HELP_TEXT,
+    )
+    end_year = models.PositiveSmallIntegerField(
+        null=True, blank=True, verbose_name='Année de fin',
+        help_text=OWNERSHIP_YEAR_HELP_TEXT,
+    )
     description = models.TextField(blank=True, verbose_name='Description')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name='Créé par',
+    )
+
+    objects = OwnershipQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Détention'
         verbose_name_plural = 'Détentions'
+        constraints = [
+            models.CheckConstraint(
+                name='ownership_share_range',
+                condition=Q(share__gt=0) & Q(share__lte=1),
+                violation_error_message=(
+                    'La part de détention doit être comprise entre 0 (exclu) et 1.'
+                ),
+            ),
+            models.CheckConstraint(
+                name='ownership_years_ordered',
+                condition=(
+                    Q(start_year__isnull=True) | Q(end_year__isnull=True)
+                    | Q(start_year__lte=F('end_year'))
+                ),
+                violation_error_message="L'année de début doit précéder l'année de fin.",
+            ),
+        ]
 
     def __str__(self):
-        return str(self.Asset.name) + " - " + str(self.Company.name)
+        return f'{self.asset.name} - {self.company.name}'
+
+    @property
+    def share_label(self):
+        """Part au format affiché : Decimal('0.75') → '75%'."""
+        return f'{(Decimal(self.share) * 100).normalize():f}%'
 
 
 class E4Assessment(models.Model):

@@ -8,6 +8,7 @@ from dashboard.models import (
     Policy_Level, Policy_Subcategory, Policy_Type, Production, ScenarioVariable,
     Sector, SectorCreditProfile, SubnationalRegion, SubSector, SupplyNode,
 )
+from .cells import parse_optional_year, parse_share
 from .constants import IMPORT_ORDER
 
 
@@ -420,11 +421,13 @@ def _import_ownership(rows, lookup):
         d = r['data']
         asset = _get(lookup, 'asset', d['asset_name'])
         company = _get(lookup, 'company', d['company_name'])
-        if not asset or not company:
+        share = parse_share(d.get('share'))
+        if not asset or not company or share is None:
             continue
         Ownership.objects.create(
-            Asset=asset, Company=company,
-            ownership=d.get('ownership', ''),
+            asset=asset, company=company, share=share,
+            start_year=parse_optional_year(d.get('start_year')),
+            end_year=parse_optional_year(d.get('end_year')),
             description=_s(d.get('description')),
         )
         created += 1

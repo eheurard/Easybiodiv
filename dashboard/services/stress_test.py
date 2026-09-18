@@ -272,7 +272,7 @@ def company_snapshot(company, year):
 
     revenue_row = Company_Revenue.objects.filter(company=company, year=year).first()
 
-    assets = list(Asset.objects.filter(ownership__Company=company).distinct())
+    assets = list(Asset.objects.owned_by(company, year))
     asset_ids = [asset.pk for asset in assets]
 
     latest_years = dict(
