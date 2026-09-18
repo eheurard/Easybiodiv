@@ -68,3 +68,40 @@ class OwnershipSheetTests(TestCase):
     def test_start_after_end_is_error(self):
         row = self._parse(self._row(start_year='2025', end_year='2024'))['Ownership'][0]
         self.assertEqual(row['status'], 'error')
+
+
+class OwnershipSheetSecondPassTests(TestCase):
+
+    def setUp(self):
+        country = Country.objects.create(
+            name='France', water_ownership='pub', land_ownership='priv')
+        self.asset = Asset.objects.create(
+            name='Usine A', latitude=1.0, longitude=2.0, country=country)
+        self.acme = Company.objects.create(name='Acme')
+        Company.objects.create(name='Autre')
+
+    def _row(self, **values):
+        row = {'asset_name': 'Usine A', 'company_name': 'Acme', 'share': '50%'}
+        row.update(values)
+        return row
+
+    def _statuses(self, *rows):
+        parsed = parse_file(_make_xlsx({'Ownership': _sheet('Ownership', *rows)}))
+        return parsed['Ownership']
+
+    def test_overlap_with_the_database_is_error(self):
+        Ownership.objects.create(asset=self.asset, company=self.acme, share='0.5')
+        rows = self._statuses(self._row(start_year='2024'))
+        self.assertEqual(rows[0]['status'], 'error')
+        self.assertIn('chevauche', rows[0]['message'])
+
+    def test_total_above_one_within_the_file_is_error(self):
+        rows = self._statuses(
+            self._row(share='60%'), self._row(company_name='Autre', share='50%'))
+        self.assertEqual([r['status'] for r in rows], ['ok', 'error'])
+        self.assertIn('100 %', rows[1]['message'])
+
+    def test_consecutive_periods_in_the_file_are_ok(self):
+        rows = self._statuses(
+            self._row(end_year='2023'), self._row(share='75%', start_year='2024'))
+        self.assertEqual([r['status'] for r in rows], ['ok', 'ok'])

@@ -1,10 +1,11 @@
 """Détention actif ↔ entreprise (spec 2026-09-18 §3.6)."""
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 
-from .models import Asset, Company, Country, Ownership
+from .models import Asset, Company, Country, Ownership, periods_overlap, share_overflow_year
 
 
 def _country():
@@ -89,3 +90,53 @@ class OwnedByTests(TestCase):
             asset=asset, company=self.company, share='0.75', start_year=2023)
         self.assertEqual(list(Asset.objects.owned_by(self.company, 2024)), [asset])
         self.assertEqual(list(Asset.objects.owned_by(self.company)), [asset])
+
+
+class OwnershipPeriodHelpersTests(SimpleTestCase):
+
+    def test_periods_overlap(self):
+        self.assertTrue(periods_overlap((None, 2023), (2023, None)))
+        self.assertFalse(periods_overlap((None, 2023), (2024, None)))
+        self.assertTrue(periods_overlap((None, None), (2010, 2012)))
+
+    def test_share_overflow_year(self):
+        half = Decimal('0.5')
+        self.assertIsNone(share_overflow_year([(half, None, None), (half, None, None)]))
+        self.assertEqual(
+            share_overflow_year([(Decimal('0.6'), 2020, None), (half, 2022, 2025)]), 2022)
+
+
+class OwnershipCleanTests(TestCase):
+
+    def setUp(self):
+        self.asset = _asset('Site', _country())
+        self.acme = Company.objects.create(name='Acme')
+        self.other = Company.objects.create(name='Autre')
+
+    def _clean(self, **fields):
+        Ownership(asset=self.asset, **fields).full_clean()
+
+    def test_overlapping_periods_for_the_same_company_are_rejected(self):
+        Ownership.objects.create(
+            asset=self.asset, company=self.acme, share='0.5', end_year=2023)
+        with self.assertRaisesMessage(ValidationError, 'chevauche'):
+            self._clean(company=self.acme, share='0.5', start_year=2023)
+
+    def test_consecutive_periods_are_accepted(self):
+        Ownership.objects.create(
+            asset=self.asset, company=self.acme, share='0.5', end_year=2023)
+        self._clean(company=self.acme, share='0.75', start_year=2024)
+
+    def test_total_share_above_one_is_rejected_with_its_year(self):
+        Ownership.objects.create(
+            asset=self.asset, company=self.acme, share='0.6', start_year=2020)
+        with self.assertRaisesMessage(ValidationError, 'dépasse 100 % en 2022'):
+            self._clean(company=self.other, share='0.5', start_year=2022)
+
+    def test_total_share_of_exactly_one_is_accepted(self):
+        Ownership.objects.create(asset=self.asset, company=self.acme, share='0.6')
+        self._clean(company=self.other, share='0.4')
+
+    def test_sale_then_purchase_does_not_add_up(self):
+        Ownership.objects.create(asset=self.asset, company=self.acme, share=1, end_year=2023)
+        self._clean(company=self.other, share=1, start_year=2024)

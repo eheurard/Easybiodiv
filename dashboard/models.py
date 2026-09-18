@@ -1,6 +1,7 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import F, Q
@@ -612,6 +613,44 @@ class Company_Policy(models.Model):
         verbose_name_plural = "Politiques d'entreprise"
 
 
+OWNERSHIP_OVERLAP_MESSAGE = (
+    'Cette entreprise détient déjà cet actif sur une période qui chevauche celle-ci.'
+)
+
+
+def share_overflow_message(year):
+    """Message d'erreur quand la somme des parts d'un actif dépasse 1."""
+    when = f' en {year}' if year else ''
+    return f'La somme des parts de cet actif dépasse 100 %{when}.'
+
+
+def _year_bounds(start, end):
+    """Période [start, end] en années ; une borne vide est ouverte."""
+    return (start if start is not None else 0, end if end is not None else 9999)
+
+
+def periods_overlap(first, second):
+    """Deux périodes (start_year, end_year) ont-elles une année en commun ?"""
+    first_start, first_end = _year_bounds(*first)
+    second_start, second_end = _year_bounds(*second)
+    return first_start <= second_end and second_start <= first_end
+
+
+def share_overflow_year(holdings):
+    """Première année où la somme des parts dépasse 1, ou None (0 si la période
+    fautive n'a pas d'année de début).
+
+    `holdings` : itérable de (share, start_year, end_year). La somme n'augmente
+    qu'au début d'une période : tester ces années suffit.
+    """
+    bounded = [(share, *_year_bounds(start, end)) for share, start, end in holdings]
+    for year in sorted({start for _, start, _ in bounded}):
+        total = sum(share for share, start, end in bounded if start <= year <= end)
+        if total > 1:
+            return year
+    return None
+
+
 class OwnershipQuerySet(models.QuerySet):
 
     def valid_in(self, year=None):
@@ -685,6 +724,28 @@ class Ownership(models.Model):
 
     def __str__(self):
         return f'{self.asset.name} - {self.company.name}'
+
+    def clean(self):
+        """Pas de chevauchement pour un même couple actif / entreprise, et somme
+        des parts d'un actif ≤ 1 chaque année (spec §3.6)."""
+        super().clean()
+        if self.asset_id is None or self.company_id is None:
+            return
+        try:
+            share = Decimal(str(self.share))
+        except (InvalidOperation, TypeError):
+            return  # clean_fields() signale déjà la part illisible
+        mine = (self.start_year, self.end_year)
+        others = list(Ownership.objects.filter(asset_id=self.asset_id).exclude(pk=self.pk))
+        for other in others:
+            same_company = other.company_id == self.company_id
+            if same_company and periods_overlap(mine, (other.start_year, other.end_year)):
+                raise ValidationError(OWNERSHIP_OVERLAP_MESSAGE)
+        year = share_overflow_year(
+            [(share, *mine)] + [(o.share, o.start_year, o.end_year) for o in others]
+        )
+        if year is not None:
+            raise ValidationError(share_overflow_message(year))
 
     @property
     def share_label(self):

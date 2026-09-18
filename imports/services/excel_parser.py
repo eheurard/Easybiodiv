@@ -1,10 +1,13 @@
+from collections import defaultdict
+
 import openpyxl
 from dashboard.models import (
     Asset, AssetInventory, Carbon_emission, CharacterizationFactor, ClimateScenario,
     Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
-    Country, Currency, ESG_data, Flow, ImpactCategory, Ownership, Policy_Level,
-    Policy_Subcategory, Policy_Type, Production, ScenarioVariable, Sector,
-    SectorCreditProfile, SubnationalRegion, SubSector,
+    Country, Currency, ESG_data, Flow, ImpactCategory, OWNERSHIP_OVERLAP_MESSAGE,
+    Ownership, Policy_Level, Policy_Subcategory, Policy_Type, Production,
+    ScenarioVariable, Sector, SectorCreditProfile, SubnationalRegion, SubSector,
+    periods_overlap, share_overflow_message, share_overflow_year,
 )
 from .cells import parse_optional_year, parse_share
 from .constants import (
@@ -27,8 +30,11 @@ def parse_file(source):
     for sheet_name in SHEET_COLUMNS:
         if sheet_name not in wb.sheetnames:
             continue
-        result[sheet_name] = _parse_sheet(
-            wb[sheet_name], sheet_name, file_names, db_name_cache, context)
+        rows = _parse_sheet(wb[sheet_name], sheet_name, file_names, db_name_cache, context)
+        sheet_check = _SHEET_CHECKS.get(sheet_name)
+        if sheet_check:
+            sheet_check(rows)
+        result[sheet_name] = rows
     return result
 
 
@@ -203,6 +209,50 @@ def _ownership_row_error(data, context):
 _ROW_CHECKS = {
     'Commodity': _commodity_row_error,
     'Ownership': _ownership_row_error,
+}
+
+
+def _mark_error(row, message):
+    row['status'] = 'error'
+    row['message'] = message
+
+
+def _ownership_sheet_check(rows):
+    """Seconde passe sur la feuille Ownership (spec §6.2) : chaque ligne 'ok' est
+    confrontée à la base et aux lignes 'ok' qui la précèdent dans le fichier."""
+    holdings = defaultdict(list)  # nom d'actif -> [(entreprise, part, début, fin, ligne)]
+    for o in Ownership.objects.select_related('asset', 'company'):
+        holdings[o.asset.name.lower()].append(
+            (o.company.name.lower(), o.share, o.start_year, o.end_year, None))
+    for row in rows:
+        if row['status'] != 'ok':
+            continue
+        d = row['data']
+        holdings[d['asset_name'].strip().lower()].append((
+            d['company_name'].strip().lower(),
+            parse_share(d['share']),
+            parse_optional_year(d.get('start_year')),
+            parse_optional_year(d.get('end_year')),
+            row,
+        ))
+    for entries in holdings.values():
+        for index, (company, share, start, end, row) in enumerate(entries):
+            if row is None:
+                continue
+            kept = [e for e in entries[:index] if e[4] is None or e[4]['status'] == 'ok']
+            if any(c == company and periods_overlap((start, end), (s, f))
+                   for c, _, s, f, _ in kept):
+                _mark_error(row, OWNERSHIP_OVERLAP_MESSAGE)
+                continue
+            year = share_overflow_year(
+                [(sh, s, f) for _, sh, s, f, _ in kept] + [(share, start, end)])
+            if year is not None:
+                _mark_error(row, share_overflow_message(year))
+
+
+# Contrôles portant sur toute une feuille, après l'analyse ligne par ligne.
+_SHEET_CHECKS = {
+    'Ownership': _ownership_sheet_check,
 }
 
 
