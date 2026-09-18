@@ -7,7 +7,7 @@ et que les tables restent mutuellement cohérentes.
 from django.apps import apps
 from django.test import SimpleTestCase, TestCase
 
-from dashboard.models import Asset, ClimateScenario, Exchange, ScenarioVariable
+from dashboard.models import Asset, ClimateScenario, ScenarioVariable
 from imports.services.constants import (
     AT_LEAST_ONE_OF, CHOICE_FIELDS, DUPLICATE_CRITERIA, FK_FIELDS, IMPORT_ORDER,
     MODEL_KEY_TO_SOURCE, REQUIRED_FIELDS, SHEET_COLUMNS,
@@ -30,11 +30,6 @@ class ChoiceFieldsMatchModelTest(SimpleTestCase):
             CHOICE_FIELDS['Asset']['sensitive_zone_type'],
             _model_choice_values(Asset, 'sensitive_zone_type'))
 
-    def test_exchange_data_confidence(self):
-        self.assertEqual(
-            CHOICE_FIELDS['Exchange']['data_confidence'],
-            _model_choice_values(Exchange, 'data_confidence'))
-
     def test_climate_scenario_family(self):
         self.assertEqual(
             CHOICE_FIELDS['ClimateScenario']['family'],
@@ -51,9 +46,7 @@ class SheetColumnsMatchModelTest(SimpleTestCase):
     objects.create() : c'est ce qui est arrivé quand la migration 0048 a retiré
     `description` de SubnationalRegion, Sector et SubSector."""
 
-    # Colonnes volontairement sans champ : node_ref relie SupplyNode et Exchange
-    # à l'intérieur d'un même classeur.
-    FILE_LOCAL_COLUMNS = {'SupplyNode': {'node_ref'}}
+    FILE_LOCAL_COLUMNS = {}
 
     def test_every_column_maps_to_a_model_field(self):
         for sheet_name, columns in SHEET_COLUMNS.items():

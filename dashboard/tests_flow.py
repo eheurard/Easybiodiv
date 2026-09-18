@@ -10,7 +10,7 @@ from .models import (
     Flow, FlowKind, FlowScope, Ownership, SubnationalRegion,
 )
 from .services import flows as flow_service
-from .testing import make_inventory, make_production
+from .testing import make_inventory, make_production, make_supply
 
 
 class TechnicalCommodityTests(TestCase):
@@ -234,3 +234,37 @@ class ProductionServiceTests(TestCase):
         self._produce(asset=self.a1, year=2024)
         result = flow_service.latest_inventory([self.a1.pk], ('water',))
         self.assertEqual(result[self.a1.pk]['water']['value'], 10.0)
+
+
+class SupplyServiceTests(TestCase):
+
+    def setUp(self):
+        country = Country.objects.create(
+            name='Brésil', water_ownership='Public', land_ownership='Private')
+        self.region = SubnationalRegion.objects.create(name='Pará', country=country)
+        self.company = Company.objects.create(name='Acme')
+        self.plant = Asset.objects.create(
+            name='Usine', latitude=1.0, longitude=2.0, country=country)
+        self.farm = Asset.objects.create(
+            name='Ferme', latitude=-3.0, longitude=-47.0, country=country)
+        self.soy = Commodity.objects.create(name='Soja')
+
+    def _supply(self, year, origin, destination):
+        return make_supply(
+            what=self.soy, year=year, quantity=1.0, origin=origin, destination=destination)
+
+    def test_supplies_to_the_assets_and_optionally_to_the_company(self):
+        to_plant = self._supply(2024, self.farm, self.plant)
+        to_company = self._supply(2024, self.region, self.company)
+        self.assertEqual(flow_service.supplies_to([self.plant.pk]), [to_plant])
+        self.assertEqual(
+            flow_service.supplies_to([self.plant.pk], company=self.company),
+            [to_plant, to_company])
+
+    def test_only_the_latest_year_of_each_destination_is_kept(self):
+        self._supply(2023, self.farm, self.plant)
+        recent = self._supply(2024, self.farm, self.plant)
+        company_2023 = self._supply(2023, self.region, self.company)
+        self.assertEqual(
+            flow_service.supplies_to([self.plant.pk], company=self.company),
+            [recent, company_2023])

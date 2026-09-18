@@ -7,7 +7,7 @@ from .models import (
     DisclosureRequirement, E4Assessment, ESG_data, Carbon_emission,
     Currency,
     ImpactMethod, ImpactCategory, CharacterizationFactor,
-    SupplyNode, Exchange, Flow,
+    Flow,
     ClimateScenario, ScenarioVariable, SectorCreditProfile,
 )
 
@@ -164,22 +164,6 @@ class CarbonEmissionAdmin(admin.ModelAdmin):
     list_display = ('company', 'year','scope', 'carbon_emission')
     list_filter = ('year',)
     autocomplete_fields = ('company',)
-
-
-@admin.register(SupplyNode)
-class SupplyNodeAdmin(admin.ModelAdmin):
-    search_fields = ('name', 'asset__name', 'region__name', 'country__name')
-    list_display = ('__str__', 'resolution', 'is_external')
-    list_filter = ('is_external',)
-    autocomplete_fields = ('asset', 'region', 'country', 'commodity')
-
-
-@admin.register(Exchange)
-class ExchangeAdmin(admin.ModelAdmin):
-    search_fields = ('supplier__name', 'consumer__name', 'commodity__name')
-    list_display = ('__str__', 'tier', 'year', 'data_confidence')
-    list_filter = ('tier', 'year', 'data_confidence')
-    autocomplete_fields = ('supplier', 'consumer', 'commodity', 'created_by')
 
 
 @admin.register(ImpactMethod)

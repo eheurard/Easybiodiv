@@ -10,7 +10,7 @@ from .models import (
     Policy_Subcategory, Policy_Type, Sector, SubnationalRegion,
     SubSector,
 )
-from .testing import make_inventory, make_production
+from .testing import make_inventory, make_production, make_supply
 from .views import _get_dette_ecologique_data
 from .services import market as market_service
 
@@ -1833,17 +1833,14 @@ class LeapLocateDataTests(TestCase):
         self.assertEqual(data['geojson']['features'], [])
 
     def test_supplier_features_and_links(self):
-        # Un asset fournisseur approvisionne l'asset détenu via un Exchange.
+        # Un asset fournisseur approvisionne l'asset détenu via un flux SUPPLY.
         supplier_asset = Asset.objects.create(
             name='Ferme Brésil', latitude=-15.0, longitude=-47.0,
             country=self.country, subnational_region=self.region,
         )
-        from .models import Exchange, SupplyNode
-        consumer = SupplyNode.objects.create(asset=self.asset)
-        supplier = SupplyNode.objects.create(asset=supplier_asset)
-        Exchange.objects.create(
-            supplier=supplier, consumer=consumer, commodity=self.commodity,
-            quantity=100.0, year=2024, tier=1,
+        make_supply(
+            what=self.commodity, year=2024, quantity=100.0, tier=1,
+            origin=supplier_asset, destination=self.asset,
         )
         from .views import _get_leap_locate_data
         data = _get_leap_locate_data(self.company)
@@ -1853,6 +1850,7 @@ class LeapLocateDataTests(TestCase):
         sp = sup_feats[0]['properties']
         self.assertEqual(sp['name'], 'Ferme Brésil')
         self.assertEqual(sp['commodities'], ['Soja'])
+        self.assertEqual(sp['id'], f'asset-{supplier_asset.pk}')
         self.assertEqual(sup_feats[0]['geometry']['coordinates'], [-47.0, -15.0])
 
         links = data['supplier_links']['features']
@@ -1873,12 +1871,9 @@ class LeapLocateDataTests(TestCase):
             country=self.country, subnational_region=self.region,
         )
         Ownership.objects.create(asset=supplier_asset, company=self.company, share=1)
-        from .models import Exchange, SupplyNode
-        consumer = SupplyNode.objects.create(asset=self.asset)
-        supplier = SupplyNode.objects.create(asset=supplier_asset)
-        Exchange.objects.create(
-            supplier=supplier, consumer=consumer, commodity=self.commodity,
-            quantity=100.0, year=2024, tier=1,
+        make_supply(
+            what=self.commodity, year=2024, quantity=100.0, tier=1,
+            origin=supplier_asset, destination=self.asset,
         )
         from .views import _get_leap_locate_data
         data = _get_leap_locate_data(self.company)
@@ -1896,6 +1891,19 @@ class LeapLocateDataTests(TestCase):
         from .views import _get_leap_locate_data
         data = _get_leap_locate_data(self.company)
         self.assertEqual(data['suppliers']['features'], [])
+        self.assertEqual(data['supplier_links']['features'], [])
+
+    def test_supply_to_the_company_shows_a_point_without_link(self):
+        make_supply(
+            what=self.commodity, year=2024, quantity=10.0,
+            origin=self.region, destination=self.company,
+        )
+        from .views import _get_leap_locate_data
+        data = _get_leap_locate_data(self.company)
+        sup_feats = data['suppliers']['features']
+        self.assertEqual(len(sup_feats), 1)
+        self.assertEqual(sup_feats[0]['properties']['id'], f'region-{self.region.pk}')
+        self.assertEqual(sup_feats[0]['properties']['name'], 'Île-de-France')
         self.assertEqual(data['supplier_links']['features'], [])
 
     def test_not_found_returns_404(self):
@@ -2240,86 +2248,6 @@ class TierVocabTests(TestCase):
         self.assertEqual(SCOPE_TO_TIER['raw material'], 3)
         for scope, tier in SCOPE_TO_TIER.items():
             self.assertEqual(TIER_TO_SCOPE[tier], scope)
-
-
-class SupplyNodeModelTests(TestCase):
-
-    def _country_region(self):
-        from .models import Country, SubnationalRegion
-        c = Country.objects.create(
-            name='Brésil', water_ownership='X', land_ownership='Y'
-        )
-        r = SubnationalRegion.objects.create(name='Pará', country=c)
-        return c, r
-
-    def test_asset_node_resolution_and_effective_location(self):
-        from .models import SupplyNode, Asset
-        c, r = self._country_region()
-        a = Asset.objects.create(
-            name='Ferme', latitude=-3.0, longitude=-47.0, country=c,
-            subnational_region=r
-        )
-        node = SupplyNode.objects.create(asset=a)
-        self.assertEqual(node.resolution, 'asset')
-        self.assertEqual(node.effective_region_id, r.pk)
-        self.assertEqual(node.effective_country_id, c.pk)
-
-    def test_country_node_resolution(self):
-        from .models import SupplyNode
-        c, r = self._country_region()
-        node = SupplyNode.objects.create(country=c, name='Fournisseur BR')
-        self.assertEqual(node.resolution, 'country')
-        self.assertIsNone(node.effective_region_id)
-        self.assertEqual(node.effective_country_id, c.pk)
-
-    def test_clean_requires_a_location(self):
-        from django.core.exceptions import ValidationError
-        from .models import SupplyNode
-        with self.assertRaises(ValidationError):
-            SupplyNode(name='vide').clean()
-
-
-class ExchangeModelTests(TestCase):
-
-    def test_directed_edge(self):
-        from .models import Exchange, SupplyNode, Asset, Country, Commodity
-        c = Country.objects.create(name='Brésil', water_ownership='X', land_ownership='Y')
-        a1 = Asset.objects.create(name='Usine', latitude=0.0, longitude=0.0, country=c)
-        a2 = Asset.objects.create(name='Ferme', latitude=-3.0, longitude=-47.0, country=c)
-        consumer = SupplyNode.objects.create(asset=a1)
-        supplier = SupplyNode.objects.create(asset=a2)
-        com = Commodity.objects.create(name='Soja')
-        ex = Exchange.objects.create(
-            supplier=supplier, consumer=consumer, commodity=com,
-            quantity=100.0, year=2024, tier=1,
-        )
-        self.assertEqual(consumer.incoming.count(), 1)
-        self.assertEqual(supplier.outgoing.count(), 1)
-        self.assertEqual(ex.tier, 1)
-        self.assertEqual(ex.data_confidence, 'country')
-
-
-class UpstreamChainTests(TestCase):
-
-    def test_multitier_traversal_with_cycle_guard(self):
-        from .models import Exchange, SupplyNode, Asset, Country, Commodity
-        from .services.supply import upstream_chain
-        c = Country.objects.create(name='BR', water_ownership='X', land_ownership='Y')
-        a = Asset.objects.create(name='A', latitude=0.0, longitude=0.0, country=c)
-        b = Asset.objects.create(name='B', latitude=1.0, longitude=1.0, country=c)
-        d = Asset.objects.create(name='D', latitude=2.0, longitude=2.0, country=c)
-        na = SupplyNode.objects.create(asset=a)
-        nb = SupplyNode.objects.create(asset=b)
-        nd = SupplyNode.objects.create(asset=d)
-        com = Commodity.objects.create(name='Soja')
-        # a <- b <- d  (deux tiers) + un cycle d -> b (doit être borné)
-        Exchange.objects.create(supplier=nb, consumer=na, commodity=com, quantity=1, year=2024)
-        Exchange.objects.create(supplier=nd, consumer=nb, commodity=com, quantity=1, year=2024)
-        Exchange.objects.create(supplier=nb, consumer=nd, commodity=com, quantity=1, year=2024)
-        chain = upstream_chain(na, 2024)
-        # 3 arêtes atteignables sans boucler indéfiniment
-        self.assertGreaterEqual(len(chain), 2)
-        self.assertLessEqual(len(chain), 3)
 
 
 class AssetConsumptionDroppedTests(TestCase):

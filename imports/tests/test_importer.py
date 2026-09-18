@@ -1,9 +1,9 @@
 from django.test import TestCase
 from dashboard.models import (
     Asset, CharacterizationFactor, ClimateScenario, Commodity,
-    Company, Company_Policy, Country, Exchange, Policy_Level, Policy_Subcategory,
+    Company, Company_Policy, Country, Policy_Level, Policy_Subcategory,
     Policy_Type, ScenarioVariable, Sector, SectorCreditProfile,
-    SubnationalRegion, SupplyNode,
+    SubnationalRegion,
 )
 from imports.services.importer import save_import
 
@@ -162,67 +162,6 @@ class ImporterCharacterizationFactorTest(TestCase):
         commodity = Commodity.objects.get(name='Wheat')
         self.assertEqual(
             CharacterizationFactor.objects.filter(commodity=commodity).count(), 0)
-
-
-class ImporterSupplyGraphTest(TestCase):
-    def setUp(self):
-        self.country = Country.objects.create(
-            name='France', water_ownership='pub', land_ownership='priv')
-        self.asset = Asset.objects.create(
-            name='Usine A', latitude=48.85, longitude=2.35, country=self.country)
-        self.commodity = Commodity.objects.create(name='Soy')
-
-    def test_creates_nodes_and_exchange(self):
-        counts = save_import({
-            'SupplyNode': [
-                _ok({'node_ref': 'N1', 'asset_name': 'Usine A',
-                     'subnational_region_name': '', 'country_name': '',
-                     'commodity_name': '', 'is_external': 'FALSE'}),
-                _ok({'node_ref': 'N2', 'asset_name': '',
-                     'subnational_region_name': '', 'country_name': 'France',
-                     'commodity_name': 'Soy', 'is_external': 'TRUE'}),
-            ],
-            'Exchange': [
-                _ok({'supplier_ref': 'N2', 'consumer_ref': 'N1',
-                     'commodity_name': 'Soy', 'quantity': '500', 'year': '2024',
-                     'tier': '1', 'data_confidence': ''}),
-            ],
-        })
-        self.assertEqual(counts['SupplyNode'], 2)
-        self.assertEqual(counts['Exchange'], 1)
-        exchange = Exchange.objects.get()
-        self.assertEqual(exchange.consumer.asset, self.asset)
-        self.assertTrue(exchange.supplier.is_external)
-        self.assertAlmostEqual(exchange.quantity, 500.0)
-        self.assertEqual(exchange.tier, 1)
-        # data_confidence vide → hérite de la résolution du fournisseur
-        self.assertEqual(exchange.data_confidence, 'country')
-
-    def test_reuses_existing_node_instead_of_duplicating(self):
-        existing = SupplyNode.objects.create(asset=self.asset)
-        counts = save_import({'SupplyNode': [
-            _ok({'node_ref': 'N1', 'asset_name': 'Usine A',
-                 'subnational_region_name': '', 'country_name': '',
-                 'commodity_name': '', 'is_external': ''}),
-        ]})
-        self.assertEqual(counts['SupplyNode'], 0)
-        self.assertEqual(SupplyNode.objects.filter(asset=self.asset).count(), 1)
-        self.assertEqual(SupplyNode.objects.get(asset=self.asset).pk, existing.pk)
-
-    def test_exchange_with_unknown_node_ref_is_skipped(self):
-        counts = save_import({
-            'SupplyNode': [
-                _ok({'node_ref': 'N1', 'asset_name': 'Usine A',
-                     'subnational_region_name': '', 'country_name': '',
-                     'commodity_name': '', 'is_external': ''}),
-            ],
-            'Exchange': [
-                _ok({'supplier_ref': 'GHOST', 'consumer_ref': 'N1',
-                     'commodity_name': 'Soy', 'quantity': '500', 'year': '2024',
-                     'tier': '1', 'data_confidence': ''}),
-            ],
-        })
-        self.assertEqual(counts['Exchange'], 0)
 
 
 class ImporterClimateStressTest(TestCase):

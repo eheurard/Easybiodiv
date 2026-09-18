@@ -67,18 +67,6 @@ SHEET_COLUMNS = {
         'near_sensitive_zone', 'sensitive_zone_type', 'sensitive_zone_name',
         'sensitive_zone_area_ha',
     ],
-    # ── Graphe d'approvisionnement ────────────────────────────────────────────
-    # node_ref est une poignée libre, locale au fichier : elle sert uniquement à
-    # relier les lignes Exchange aux lignes SupplyNode du même classeur.
-    'SupplyNode': [
-        'node_ref', 'asset_name', 'subnational_region_name', 'country_name',
-        'commodity_name', 'is_external',
-    ],
-    'Exchange': [
-        'supplier_ref', 'consumer_ref', 'commodity_name', 'quantity', 'year',
-        'tier', 'data_confidence',
-    ],
-
     # ── Données d'entreprise ──────────────────────────────────────────────────
     'Ownership': ['asset_name', 'company_name', 'share', 'start_year', 'end_year', 'description'],
     'Company_Revenue': ['company_name', 'year', 'revenue', 'currency'],
@@ -110,14 +98,6 @@ FK_FIELDS = {
     'SubSector': {'sector_name': 'sector'},
     'SectorCreditProfile': {'sector_name': 'sector'},
     'Asset': {'country_name': 'country', 'subnational_region_name': 'subnational_region'},
-    'SupplyNode': {
-        'asset_name': 'asset', 'subnational_region_name': 'subnational_region',
-        'country_name': 'country', 'commodity_name': 'commodity',
-    },
-    'Exchange': {
-        'supplier_ref': 'supply_node', 'consumer_ref': 'supply_node',
-        'commodity_name': 'commodity',
-    },
     'Ownership': {'asset_name': 'asset', 'company_name': 'company'},
     'Company_Revenue': {'company_name': 'company'},
     'Company_Revenue_Sector': {'company_name': 'company', 'subsector_name': 'subsector', 'sector_name': 'sector'},
@@ -146,8 +126,6 @@ REQUIRED_FIELDS = {
     'SectorCreditProfile': ['sector_name'],
     'Company': ['name'],
     'Asset': ['name', 'latitude', 'longitude', 'country_name'],
-    'SupplyNode': ['node_ref'],
-    'Exchange': ['supplier_ref', 'consumer_ref', 'commodity_name', 'quantity', 'year'],
     'Ownership': ['asset_name', 'company_name', 'share'],
     'Company_Revenue': ['company_name', 'year', 'revenue', 'currency'],
     'Company_Revenue_Sector': ['company_name', 'subsector_name', 'sector_name', 'year', 'revenue'],
@@ -177,8 +155,6 @@ DUPLICATE_CRITERIA = {
     'SectorCreditProfile': ['sector_name'],
     'Company': ['name'],
     'Asset': ['name', 'country_name'],
-    'SupplyNode': ['node_ref'],
-    'Exchange': ['supplier_ref', 'consumer_ref', 'commodity_name', 'year'],
     'Ownership': ['asset_name', 'company_name', 'start_year'],
     'Company_Revenue': ['company_name', 'year'],
     'Company_Revenue_Sector': ['company_name', 'subsector_name', 'year'],
@@ -193,10 +169,7 @@ DUPLICATE_CRITERIA = {
 
 # Colonnes dont au moins une doit être renseignée. Reflète les contraintes que
 # le modèle porte dans clean() — non appelé par objects.create().
-AT_LEAST_ONE_OF = {
-    # SupplyNode.clean() : un sommet exige asset, region ou country.
-    'SupplyNode': ['asset_name', 'subnational_region_name', 'country_name'],
-}
+AT_LEAST_ONE_OF = {}
 
 # Colonnes dont la valeur doit appartenir à une énumération. Comparaison
 # insensible à la casse ; une cellule vide est toujours acceptée (défaut modèle).
@@ -210,7 +183,6 @@ CHOICE_FIELDS = {
             'NATURA_2000', 'NATIONAL_PROTECTED', 'UNESCO', 'IUCN_KBA', 'OTHER',
         ],
     },
-    'Exchange': {'data_confidence': ['asset', 'region', 'country']},
     'ClimateScenario': {
         'family': ['ORDERLY', 'DISORDERLY', 'TOO_LITTLE', 'HOT_HOUSE'],
     },
@@ -222,7 +194,6 @@ IMPORT_ORDER = [
     'Policy_Type', 'Policy_Subcategory', 'Policy_Level',
     'Currency', 'Sector', 'SubSector', 'SectorCreditProfile',
     'Company', 'Asset',
-    'SupplyNode', 'Exchange',
     'Ownership', 'Company_Revenue', 'Company_Revenue_Sector', 'Company_Policy',
     'ESG_data', 'Carbon_emission',
     'ClimateScenario', 'ScenarioVariable',
@@ -245,6 +216,4 @@ MODEL_KEY_TO_SOURCE = {
     'asset': ('Asset', 'name'),
     'impact_category': (None, 'key'),
     'climate_scenario': ('ClimateScenario', 'key'),
-    # node_ref n'a pas d'équivalent stable en base : résolution intra-fichier.
-    'supply_node': ('SupplyNode', 'node_ref'),
 }

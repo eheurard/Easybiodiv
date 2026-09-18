@@ -206,53 +206,6 @@ class ParserKeyBasedFKTest(TestCase):
         self.assertEqual(result['ScenarioVariable'][0]['status'], 'error')
 
 
-class ParserSupplyNodeRefTest(TestCase):
-    def setUp(self):
-        country = Country.objects.create(
-            name='France', water_ownership='pub', land_ownership='priv')
-        Asset.objects.create(
-            name='Usine A', latitude=48.85, longitude=2.35, country=country)
-        Commodity.objects.create(name='Soy')
-
-    def test_exchange_ref_resolved_from_supply_node_sheet(self):
-        buf = _make_xlsx({
-            'SupplyNode': _sheet(
-                'SupplyNode',
-                {'node_ref': 'N1', 'asset_name': 'Usine A'},
-                {'node_ref': 'N2', 'country_name': 'France', 'commodity_name': 'Soy'}),
-            'Exchange': _sheet('Exchange', {
-                'supplier_ref': 'N2', 'consumer_ref': 'N1', 'commodity_name': 'Soy',
-                'quantity': '500', 'year': '2024', 'tier': '1'}),
-        })
-        result = parse_file(buf)
-        self.assertEqual(result['Exchange'][0]['status'], 'ok')
-
-    def test_node_without_any_location_is_error(self):
-        """SupplyNode.clean() exige asset, region ou country ; create() ne
-        l'appelle pas, la garde doit donc vivre dans le parseur."""
-        buf = _make_xlsx({'SupplyNode': _sheet('SupplyNode', {'node_ref': 'N1'})})
-        result = parse_file(buf)
-        self.assertEqual(result['SupplyNode'][0]['status'], 'error')
-        self.assertIn('au moins', result['SupplyNode'][0]['message'])
-
-    def test_node_located_by_country_only_is_ok(self):
-        buf = _make_xlsx({'SupplyNode': _sheet(
-            'SupplyNode', {'node_ref': 'N1', 'country_name': 'France'})})
-        result = parse_file(buf)
-        self.assertEqual(result['SupplyNode'][0]['status'], 'ok')
-
-    def test_exchange_with_undeclared_ref_is_error(self):
-        buf = _make_xlsx({
-            'SupplyNode': _sheet('SupplyNode', {'node_ref': 'N1', 'asset_name': 'Usine A'}),
-            'Exchange': _sheet('Exchange', {
-                'supplier_ref': 'GHOST', 'consumer_ref': 'N1', 'commodity_name': 'Soy',
-                'quantity': '500', 'year': '2024', 'tier': '1'}),
-        })
-        result = parse_file(buf)
-        self.assertEqual(result['Exchange'][0]['status'], 'error')
-        self.assertIn('supplier_ref', result['Exchange'][0]['message'])
-
-
 class ParserChoiceFieldTest(TestCase):
     def test_invalid_scenario_family_is_error(self):
         buf = _make_xlsx({'ClimateScenario': _sheet('ClimateScenario', {

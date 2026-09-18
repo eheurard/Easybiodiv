@@ -10,7 +10,7 @@ from django.views.decorators.http import require_GET, require_POST
 from .models import (
     Asset, Carbon_emission, Company, Company_Policy,
     Company_Revenue, Company_Revenue_Sector, Currency, DisclosureRequirement,
-    E4Assessment, Exchange, Ownership, Portfolio, PortfolioHolding,
+    E4Assessment, Ownership, Portfolio, PortfolioHolding,
 )
 from .forms import StressTestForm, PortfolioForm, PortfolioHoldingForm
 from .services.market import get_market_data, DEFAULT_RANGE
@@ -569,67 +569,50 @@ def _get_leap_locate_data(company):
             },
         })
 
-    # Fournisseurs : Exchange relie un SupplyNode fournisseur à un SupplyNode
-    # consommateur (asset détenu par la société). Requête unique sur tous les
-    # assets détenus, dernière année conservée par asset consommateur (comme
-    # l'ancien code le faisait par asset sur Supply_chain).
-    suppliers = {}          # pk du SupplyNode fournisseur -> Feature point
+    # Fournisseurs : flux SUPPLY vers un actif détenu (trait fournisseur → actif)
+    # ou vers la société elle-même (point sans trait : elle n'a pas de
+    # coordonnées). Dernière année connue de chaque destination.
+    suppliers = {}          # 'asset-<pk>' / 'region-<pk>' -> Feature point
     supplier_links = []     # une LineString fournisseur -> asset par lien
-    exchanges = list(
-        Exchange.objects.filter(consumer__asset_id__in=asset_ids)
-        .select_related(
-            'supplier', 'supplier__asset', 'supplier__asset__country',
-            'supplier__region', 'supplier__region__country', 'supplier__country',
-            'consumer', 'consumer__asset', 'commodity',
-        )
-    )
-    latest_sc_year = {}
-    for ex in exchanges:
-        aid = ex.consumer.asset_id
-        latest_sc_year[aid] = max(latest_sc_year.get(aid, ex.year), ex.year)
-
-    for ex in exchanges:
-        if ex.year != latest_sc_year[ex.consumer.asset_id]:
-            continue
-        sup = ex.supplier
-        cons_asset = ex.consumer.asset
-        if sup.asset_id:
-            coords = [sup.asset.longitude, sup.asset.latitude]
-            sup_name, sup_country = sup.asset.name, sup.asset.country.name
-            sup_is_owned = sup.asset_id in asset_id_set
-        elif sup.region_id:
-            coords = [sup.region.Mean_X, sup.region.Mean_Y]
-            sup_name = sup.name or sup.region.name
-            sup_country = sup.region.country.name
+    for flow in flow_service.supplies_to(asset_ids, company=company):
+        if flow.from_asset_id:
+            sup = flow.from_asset
+            sup_id = f'asset-{sup.pk}'
+            coords = [sup.longitude, sup.latitude]
+            sup_name, sup_country = sup.name, sup.country.name
+            sup_is_owned = sup.pk in asset_id_set
+        elif flow.from_region_id:
+            reg = flow.from_region
+            sup_id = f'region-{reg.pk}'
+            coords = [reg.Mean_X, reg.Mean_Y]
+            sup_name, sup_country = reg.name, reg.country.name
             sup_is_owned = False
         else:
-            continue  # pays seul : pas de coordonnées → lien ignoré
+            continue  # pays ou entreprise d'origine : pas de coordonnées → ignoré
 
-        # Si le fournisseur est lui-même un asset déjà affiché (détenu par la
-        # société sélectionnée), on conserve le lien/la flèche mais on n'ajoute
-        # pas de marqueur fournisseur en doublon du marqueur asset.
+        # Un fournisseur qui est lui-même un asset affiché (détenu par la société)
+        # garde son lien, mais pas de marqueur fournisseur en doublon.
         if not sup_is_owned:
-            feat = suppliers.get(sup.pk)
+            feat = suppliers.get(sup_id)
             if feat is None:
                 feat = {
                     'type': 'Feature',
                     'geometry': {'type': 'Point', 'coordinates': coords},
                     'properties': {
-                        'id': sup.pk,
+                        'id': sup_id,
                         'name': sup_name,
                         'country': sup_country,
                         'commodities': [],
                     },
                 }
-                suppliers[sup.pk] = feat
+                suppliers[sup_id] = feat
             commodities = feat['properties']['commodities']
-            if ex.commodity.name not in commodities:
-                commodities.append(ex.commodity.name)
+            if flow.what.name not in commodities:
+                commodities.append(flow.what.name)
 
-        # Lien dégénéré (fournisseur == consommateur, même asset détenu) :
-        # aucune flèche à tracer sur soi-même.
-        if sup_is_owned and sup.asset_id == cons_asset.pk:
-            continue
+        cons_asset = flow.to_asset
+        if cons_asset is None:
+            continue  # destination = la société : point fournisseur sans trait
 
         supplier_links.append({
             'type': 'Feature',
@@ -640,7 +623,7 @@ def _get_leap_locate_data(company):
             'properties': {
                 'supplier': sup_name,
                 'asset': cons_asset.name,
-                'commodity': ex.commodity.name,
+                'commodity': flow.what.name,
             },
         })
 

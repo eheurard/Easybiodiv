@@ -86,7 +86,6 @@ def _build_reference_sheet(wb):
     enum_sections = [
         ("Asset — type", CHOICE_FIELDS['Asset']['type']),
         ("Asset — sensitive_zone_type", CHOICE_FIELDS['Asset']['sensitive_zone_type']),
-        ("Exchange — data_confidence", CHOICE_FIELDS['Exchange']['data_confidence']),
         ("ClimateScenario — family", CHOICE_FIELDS['ClimateScenario']['family']),
         ("ScenarioVariable — key", CHOICE_FIELDS['ScenarioVariable']['key']),
     ] + list(_EXTRA_ENUMS.items())

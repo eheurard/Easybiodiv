@@ -84,8 +84,6 @@ def _build_db_name_cache():
         'asset': keys(Asset.objects, 'name'),
         'impact_category': keys(ImpactCategory.objects, 'key'),
         'climate_scenario': keys(ClimateScenario.objects, 'key'),
-        # Les node_ref sont des poignées locales au fichier : rien à résoudre en base.
-        'supply_node': set(),
     }
 
 
@@ -128,9 +126,6 @@ _EXISTING_KEY_QUERIES = {
     'Carbon_emission': (Carbon_emission, ['company__name', 'year', 'scope']),
     'ClimateScenario': (ClimateScenario, ['key']),
     'ScenarioVariable': (ScenarioVariable, ['scenario__key', 'year', 'key']),
-    # SupplyNode / Exchange : identité locale au fichier (node_ref), donc aucune
-    # clé comparable en base. L'idempotence est assurée par le get_or_create
-    # de l'importeur.
 }
 
 

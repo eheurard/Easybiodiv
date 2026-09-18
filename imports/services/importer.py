@@ -4,9 +4,9 @@ from django.db import transaction
 from dashboard.models import (
     Asset, Carbon_emission, CharacterizationFactor, ClimateScenario,
     Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
-    Country, Currency, ESG_data, Exchange, ImpactCategory, Ownership,
+    Country, Currency, ESG_data, ImpactCategory, Ownership,
     Policy_Level, Policy_Subcategory, Policy_Type, ScenarioVariable,
-    Sector, SectorCreditProfile, SubnationalRegion, SubSector, SupplyNode,
+    Sector, SectorCreditProfile, SubnationalRegion, SubSector,
 )
 from .cells import parse_optional_year, parse_share
 from .constants import IMPORT_ORDER
@@ -58,11 +58,6 @@ def _b(val, default=False):
     if not val:
         return default
     return str(val).strip().lower() in _TRUE_VALUES
-
-
-def _tier(val):
-    """Clamp a tier cell to the model's 0–3 range."""
-    return min(3, max(0, _i(val)))
 
 
 def _s(val, default=''):
@@ -292,56 +287,6 @@ def _import_asset(rows, lookup):
         )
         lookup['asset'][d['name'].lower()] = obj
         created += 1
-    return created
-
-
-def _import_supply_node(rows, lookup):
-    """Crée ou réutilise un sommet du graphe. `node_ref` est une poignée locale
-    au fichier ; l'identité en base reste la composition asset/region/country/
-    commodity, si bien qu'un nœud déjà présent est réutilisé, pas dupliqué."""
-    created = 0
-    for r in rows:
-        d = r['data']
-        obj, was_created = SupplyNode.objects.get_or_create(
-            asset=_get(lookup, 'asset', d.get('asset_name', '')),
-            region=_get(lookup, 'subnational_region', d.get('subnational_region_name', '')),
-            country=_get(lookup, 'country', d.get('country_name', '')),
-            commodity=_get(lookup, 'commodity', d.get('commodity_name', '')),
-            defaults={
-                'name': d['node_ref'],
-                'is_external': _b(d.get('is_external')),
-            },
-        )
-        lookup['supply_node'][d['node_ref'].lower()] = obj
-        if was_created:
-            created += 1
-    return created
-
-
-def _import_exchange(rows, lookup):
-    created = 0
-    for r in rows:
-        d = r['data']
-        supplier = _get(lookup, 'supply_node', d['supplier_ref'])
-        consumer = _get(lookup, 'supply_node', d['consumer_ref'])
-        commodity = _get(lookup, 'commodity', d['commodity_name'])
-        if not supplier or not consumer or not commodity:
-            continue
-        _, was_created = Exchange.objects.get_or_create(
-            supplier=supplier,
-            consumer=consumer,
-            commodity=commodity,
-            year=_i(d.get('year')),
-            defaults={
-                'quantity': _f(d.get('quantity')),
-                'tier': _tier(d.get('tier')),
-                # À défaut de valeur explicite, la confiance suit la résolution
-                # du nœud fournisseur (asset > region > country).
-                'data_confidence': d.get('data_confidence') or supplier.resolution,
-            },
-        )
-        if was_created:
-            created += 1
     return created
 
 
@@ -608,8 +553,6 @@ _IMPORTERS = {
     'SectorCreditProfile': _import_sector_credit_profile,
     'Company': _import_company,
     'Asset': _import_asset,
-    'SupplyNode': _import_supply_node,
-    'Exchange': _import_exchange,
     'Ownership': _import_ownership,
     'Company_Revenue': _import_company_revenue,
     'Company_Revenue_Sector': _import_company_revenue_sector,
@@ -646,6 +589,4 @@ def _build_lookup():
         'company': {o.name.lower(): o for o in Company.objects.all()},
         'asset': {o.name.lower(): o for o in Asset.objects.all()},
         'climate_scenario': {o.key.lower(): o for o in ClimateScenario.objects.all()},
-        # Poignées locales au fichier, remplies par _import_supply_node.
-        'supply_node': {},
     }

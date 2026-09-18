@@ -90,3 +90,27 @@ def company_productions(company):
         .select_related('what')
         .order_by('pk')
     )
+
+
+def supplies_to(asset_ids, company=None):
+    """Flux SUPPLY vers ces actifs (et vers `company` si fournie), en ne gardant
+    que la dernière année connue de chaque destination."""
+    destination = Q(to_asset_id__in=asset_ids)
+    if company is not None:
+        destination |= Q(to_company=company)
+    rows = list(
+        Flow.objects.filter(kind=FlowKind.SUPPLY).filter(destination)
+        .select_related(
+            'what', 'from_asset__country', 'from_region__country', 'to_asset',
+        )
+        .order_by('pk')
+    )
+
+    def _destination(flow):
+        return ('asset', flow.to_asset_id) if flow.to_asset_id else ('company', flow.to_company_id)
+
+    latest = {}
+    for flow in rows:
+        key = _destination(flow)
+        latest[key] = max(latest.get(key, flow.year), flow.year)
+    return [flow for flow in rows if flow.year == latest[_destination(flow)]]

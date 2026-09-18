@@ -877,8 +877,8 @@ def _flow_endpoint(model, side, label):
 
 class Flow(models.Model):
     """Quantité d'une commodité, une année, d'une origine vers une destination
-    (spec 2026-09-18). Remplace Production, AssetInventory, SupplyNode, Exchange
-    et Carbon_emission."""
+    (spec 2026-09-18). Remplace Production, AssetInventory, l'ancien graphe
+    fournisseurs et Carbon_emission (modèles historiques, aujourd'hui supprimés)."""
 
     Kind = FlowKind
     Scope = FlowScope
@@ -1211,114 +1211,6 @@ class CharacterizationFactor(models.Model):
 
     def __str__(self):
         return f'{self.commodity.name} — {self.category.key}'
-
-
-SUPPLY_NODE_LOCATION_HELP_TEXT = (
-    'Un nœud requiert au moins un actif, une région ou un pays. Le plus '
-    'précis des trois détermine sa résolution.'
-)
-
-
-class SupplyNode(models.Model):
-    """Sommet du graphe fournisseurs, à résolution variable
-    (asset/région/pays)."""
-
-    asset = models.ForeignKey(
-        Asset, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Actif', help_text=SUPPLY_NODE_LOCATION_HELP_TEXT,
-    )
-    region = models.ForeignKey(
-        SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Région infranationale',
-        help_text=SUPPLY_NODE_LOCATION_HELP_TEXT,
-    )
-    country = models.ForeignKey(
-        Country, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Pays', help_text=SUPPLY_NODE_LOCATION_HELP_TEXT,
-    )
-    commodity = models.ForeignKey(
-        Commodity, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Commodité',
-    )
-    name = models.CharField(max_length=255, blank=True, verbose_name='Nom')
-    is_external = models.BooleanField(default=False, verbose_name='Fournisseur externe')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
-
-    class Meta:
-        verbose_name = "Nœud d'approvisionnement"
-        verbose_name_plural = "Nœuds d'approvisionnement"
-
-    def clean(self):
-        from django.core.exceptions import ValidationError
-        if not (self.asset_id or self.region_id or self.country_id):
-            raise ValidationError(
-                'Un SupplyNode requiert au moins asset, region ou country.'
-            )
-
-    @property
-    def resolution(self):
-        if self.asset_id:
-            return 'asset'
-        if self.region_id:
-            return 'region'
-        return 'country'
-
-    @property
-    def effective_region_id(self):
-        return (self.asset.subnational_region_id if self.asset_id
-                else self.region_id)
-
-    @property
-    def effective_country_id(self):
-        return self.asset.country_id if self.asset_id else self.country_id
-
-    def __str__(self):
-        if self.asset_id:
-            return self.asset.name
-        return self.name or f'{self.resolution} node #{self.pk}'
-
-
-class Exchange(models.Model):
-    """Arête dirigée fournisseur → consommateur du graphe d'approvisionnement."""
-    supplier = models.ForeignKey(
-        SupplyNode, on_delete=models.CASCADE, related_name='outgoing',
-        verbose_name='Fournisseur',
-    )
-    consumer = models.ForeignKey(
-        SupplyNode, on_delete=models.CASCADE, related_name='incoming',
-        verbose_name='Consommateur',
-    )
-    commodity = models.ForeignKey(
-        Commodity, on_delete=models.CASCADE, verbose_name='Commodité',
-    )
-    quantity = models.FloatField(verbose_name='Quantité échangée')
-    year = models.IntegerField(verbose_name='Année')
-    tier = models.PositiveSmallIntegerField(
-        default=0, validators=[MaxValueValidator(3)], verbose_name='Tier',
-        help_text=TIER_HELP_TEXT,
-    )
-    data_confidence = models.CharField(
-        max_length=16,
-        choices=[('asset', 'asset'), ('region', 'region'), ('country', 'country')],
-        default='country',
-        verbose_name='Résolution de la donnée',
-        help_text='Précision de la localisation d’où provient cette donnée : relevée '
-                  'sur l’actif, estimée à la région, ou estimée au pays.',
-    )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        verbose_name='Créé par',
-    )
-
-    class Meta:
-        verbose_name = 'Échange'
-        verbose_name_plural = 'Échanges'
-
-    def __str__(self):
-        return f'{self.supplier} → {self.consumer} ({self.commodity.name}, {self.year})'
 
 
 class ClimateScenario(models.Model):
