@@ -27,3 +27,15 @@ def make_inventory(*, asset, key, year, value):
         kind=kind, what=Commodity.objects.technical(key), year=year, quantity=value,
         **ends,
     )
+
+
+def make_production(*, commodity, year, production, asset=None, company=None,
+                    estimated_revenue=0.0, tier=0):
+    """Flux PRODUCTION, avec la signature de l'ancien Production.objects.create
+    pour limiter la réécriture des tests. Un actif l'emporte sur l'entreprise :
+    une production n'a qu'une origine."""
+    return Flow.objects.create(
+        kind=FlowKind.PRODUCTION, what=commodity,
+        from_asset=asset, from_company=None if asset is not None else company,
+        year=year, quantity=production, estimated_revenue=estimated_revenue, tier=tier,
+    )

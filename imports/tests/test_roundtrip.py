@@ -11,7 +11,7 @@ from django.test import TestCase
 
 from dashboard.models import (
     Asset, CharacterizationFactor, ClimateScenario, Commodity,
-    Country, Exchange, Production, ScenarioVariable, Sector, SectorCreditProfile,
+    Country, Exchange, ScenarioVariable, Sector, SectorCreditProfile,
     SupplyNode,
 )
 from imports.services.excel_parser import parse_file
@@ -59,10 +59,6 @@ class RoundTripTest(TestCase):
             'country_name': 'Testland', 'subnational_region_name': 'Testrégion',
             'type': 'Factory', 'near_sensitive_zone': 'TRUE',
             'sensitive_zone_type': 'NATURA_2000', 'sensitive_zone_area_ha': 300})
-        _fill(wb, 'Production', {
-            'asset_name': 'Testusine', 'commodity_name': 'Testsoja',
-            'company_name': 'Testcorp', 'tier': 0, 'year': 2024,
-            'production': 1000, 'estimated_revenue': 250000})
         _fill(wb, 'SupplyNode',
               {'node_ref': 'AVAL', 'asset_name': 'Testusine'},
               {'node_ref': 'AMONT', 'country_name': 'Testland',
@@ -117,10 +113,6 @@ class RoundTripTest(TestCase):
         self.assertEqual(asset.sensitive_zone_type, 'NATURA_2000')
         self.assertEqual(asset.subnational_region.name, 'Testrégion')
 
-        production = Production.objects.get(asset=asset)
-        self.assertEqual(production.tier, 0)
-        self.assertEqual(production.company.name, 'Testcorp')
-
         exchange = Exchange.objects.get(commodity__name='Testsoja')
         self.assertEqual(exchange.consumer.asset, asset)
         self.assertTrue(exchange.supplier.is_external)
@@ -148,7 +140,7 @@ class RoundTripTest(TestCase):
         before = {
             model.__name__: model.objects.count()
             for model in (Asset, CharacterizationFactor, SupplyNode, Exchange,
-                          ScenarioVariable, Production)
+                          ScenarioVariable)
         }
 
         reparsed = self._parse()
@@ -158,7 +150,7 @@ class RoundTripTest(TestCase):
             {sheet: n for sheet, n in counts.items() if n}, {},
             'un second upload du même fichier ne doit rien créer')
         for model in (Asset, CharacterizationFactor, SupplyNode, Exchange,
-                      ScenarioVariable, Production):
+                      ScenarioVariable):
             self.assertEqual(model.objects.count(), before[model.__name__],
                              f'{model.__name__} a été dupliqué')
 

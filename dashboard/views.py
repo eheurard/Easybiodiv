@@ -3,16 +3,14 @@ from collections import defaultdict
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Max, Prefetch
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
 
-from django.db.models import Q
 from .models import (
     Asset, Carbon_emission, Company, Company_Policy,
     Company_Revenue, Company_Revenue_Sector, Currency, DisclosureRequirement,
-    E4Assessment, Exchange, Ownership, Portfolio, PortfolioHolding, Production,
+    E4Assessment, Exchange, Ownership, Portfolio, PortfolioHolding,
 )
 from .forms import StressTestForm, PortfolioForm, PortfolioHoldingForm
 from .services.market import get_market_data, DEFAULT_RANGE
@@ -95,15 +93,12 @@ def _get_dependencies_data(company):
         'revenue_segments': [],
     }
 
-    productions_qs = Production.objects.filter(
-        Q(company=company) | Q(asset__in=Asset.objects.owned_by(company))
-    ).select_related('commodity').distinct()
-
-    max_year = productions_qs.aggregate(Max('year'))['year__max']
-    if max_year is None:
+    all_productions = flow_service.company_productions(company)
+    if not all_productions:
         return empty
 
-    productions = list(productions_qs.filter(year=max_year))
+    max_year = max(p.year for p in all_productions)
+    productions = [p for p in all_productions if p.year == max_year]
 
     # --- KPIs ---
     all_scores = []
@@ -111,12 +106,12 @@ def _get_dependencies_data(company):
     service_totals = {svc['key']: [] for svc in SERVICES}
 
     for p in productions:
-        scores = _commodity_dep_scores(p.commodity)
+        scores = _commodity_dep_scores(p.what)
         all_scores.extend(scores.values())
         for key, val in scores.items():
             service_totals[key].append(val)
         if any(v >= 0.7 for v in scores.values()):
-            critical_nodes.add((p.commodity_id, p.tier))
+            critical_nodes.add((p.what_id, p.tier))
 
     global_score = sum(all_scores) / len(all_scores) if all_scores else 0
 
@@ -131,7 +126,7 @@ def _get_dependencies_data(company):
     # --- Supply Chain ---
     scope_groups = defaultdict(list)
     for p in productions:
-        scope_groups[p.tier].append(_commodity_dep_scores(p.commodity))
+        scope_groups[p.tier].append(_commodity_dep_scores(p.what))
 
     supply_chain = []
     for tier in sorted(scope_groups):
@@ -261,14 +256,14 @@ def _get_dependencies_data(company):
 
 def _get_company_data(company):
     assets = list(
-        Asset.objects.owned_by(company)
-        .select_related('country', 'subnational_region')
-        .prefetch_related('production_set__commodity')
-        .distinct()
+        Asset.objects.owned_by(company).select_related('country', 'subnational_region')
     )
+    prods_by_asset = defaultdict(list)
+    for p in flow_service.productions([a.pk for a in assets]):
+        prods_by_asset[p.from_asset_id].append(p)
 
     cf_index = build_cf_index(
-        commodity_ids=[p.commodity_id for a in assets for p in a.production_set.all()],
+        commodity_ids=[p.what_id for prods in prods_by_asset.values() for p in prods],
         category_keys=[CAT_ECOSYSTEM_DIVERSITY],
     )
 
@@ -279,7 +274,7 @@ def _get_company_data(company):
     country_data = defaultdict(lambda: {'asset_count': 0, 'commodity_assets': defaultdict(int)})
 
     for asset in assets:
-        asset_commodities = {p.commodity.name for p in asset.production_set.all()}
+        asset_commodities = {p.what.name for p in prods_by_asset[asset.pk]}
         country_names.add(asset.country.name)
         if asset.subnational_region is not None:
             region_names.add(asset.subnational_region.name)
@@ -304,13 +299,13 @@ def _get_company_data(company):
 
     features = []
     for asset in assets:
-        prods_all = list(asset.production_set.all())
+        prods_all = prods_by_asset[asset.pk]
         latest_year = max((p.year for p in prods_all), default=None)
         recent_prods = [p for p in prods_all if p.year == latest_year] if latest_year else []
 
         footprint = sum(
-            p.production * cf_value(
-                cf_index, p.commodity_id, CAT_ECOSYSTEM_DIVERSITY,
+            p.quantity * cf_value(
+                cf_index, p.what_id, CAT_ECOSYSTEM_DIVERSITY,
                 asset.subnational_region_id, asset.country_id,
             )
             for p in recent_prods
@@ -324,27 +319,27 @@ def _get_company_data(company):
         dette_eco = 0.0
         for p in recent_prods:
             field = _BIODIV_LOSS_FIELDS.get(
-                p.commodity.biodiversity_loss_class, 'biodiversity_loss_agriculture'
+                p.what.biodiversity_loss_class, 'biodiversity_loss_agriculture'
             )
             biodiv_loss = getattr(asset.country, field, 0.0)
             dette_eco += (
                 biodiv_loss
                 * restoration_cost
-                * p.production
+                * p.quantity
                 * cf_value(
-                    cf_index, p.commodity_id, CAT_ECOSYSTEM_DIVERSITY,
+                    cf_index, p.what_id, CAT_ECOSYSTEM_DIVERSITY,
                     asset.subnational_region_id, asset.country_id,
                 )
             )
 
         productions_data = [
             {
-                'commodity': p.commodity.name,
-                'quantity': round(p.production, 2),
-                'unit': p.commodity.unit,
-                'revenue': round(p.estimated_revenue, 2),
+                'commodity': p.what.name,
+                'quantity': round(p.quantity, 2),
+                'unit': p.what.unit,
+                'revenue': round(p.estimated_revenue or 0.0, 2),
             }
-            for p in sorted(recent_prods, key=lambda x: -x.production)
+            for p in sorted(recent_prods, key=lambda x: -x.quantity)
         ]
 
         features.append({
@@ -357,7 +352,7 @@ def _get_company_data(company):
                 'name': asset.name,
                 'type': asset.type,
                 'country': asset.country.name,
-                'commodities': ', '.join(sorted({p.commodity.name for p in prods_all})),
+                'commodities': ', '.join(sorted({p.what.name for p in prods_all})),
                 'region': asset.subnational_region.name if asset.subnational_region else '',
                 'year': latest_year,
                 'productions': productions_data,
@@ -431,28 +426,15 @@ def _get_mesure_empreinte_data(company):
 
     asset_ids = [a.pk for a in assets]
 
-    latest_years = dict(
-        Production.objects.filter(asset_id__in=asset_ids)
-        .values('asset_id')
-        .annotate(max_year=Max('year'))
-        .values_list('asset_id', 'max_year')
-    )
-
-    if not latest_years:
+    productions = flow_service.latest_productions(asset_ids)
+    if not productions:
         return empty
 
     # ref_year is the most recent data year across all assets (assets may contribute different years)
-    ref_year = max(latest_years.values())
-
-    productions = list(
-        Production.objects.filter(asset_id__in=asset_ids)
-        .select_related('commodity', 'asset__country')
-        .order_by('pk')  # ordre déterministe : parité SQLite/PostgreSQL (sankey_links)
-    )
-    productions = [p for p in productions if latest_years.get(p.asset_id) == p.year]
+    ref_year = max(p.year for p in productions)
 
     cf_index = build_cf_index(
-        commodity_ids=[p.commodity_id for p in productions],
+        commodity_ids=[p.what_id for p in productions],
         category_keys=[CAT_ECOSYSTEM_DIVERSITY],
     )
 
@@ -462,14 +444,15 @@ def _get_mesure_empreinte_data(company):
     link_commodity_asset = defaultdict(float)
 
     for p in productions:
-        impact = p.production * cf_value(
-            cf_index, p.commodity_id, CAT_ECOSYSTEM_DIVERSITY,
-            p.asset.subnational_region_id, p.asset.country_id,
+        asset = p.from_asset
+        impact = p.quantity * cf_value(
+            cf_index, p.what_id, CAT_ECOSYSTEM_DIVERSITY,
+            asset.subnational_region_id, asset.country_id,
         )
-        commodity_impact[p.commodity.name] += impact
-        asset_impact[p.asset_id] += impact
-        asset_meta.setdefault(p.asset_id, {'name': p.asset.name, 'country': p.asset.country.name})
-        link_commodity_asset[(p.commodity.name, p.asset_id)] += impact
+        commodity_impact[p.what.name] += impact
+        asset_impact[asset.pk] += impact
+        asset_meta.setdefault(asset.pk, {'name': asset.name, 'country': asset.country.name})
+        link_commodity_asset[(p.what.name, asset.pk)] += impact
 
     country_impact = defaultdict(float)
     for aid, imp in asset_impact.items():
@@ -538,14 +521,12 @@ def _get_mesure_empreinte_data(company):
 
 def _get_leap_locate_data(company):
     assets = list(
-        Asset.objects.owned_by(company)
-        .select_related('country', 'subnational_region')
-        .prefetch_related(
-            Prefetch('production_set', queryset=Production.objects.select_related('commodity')),
-        )
-        .distinct()
+        Asset.objects.owned_by(company).select_related('country', 'subnational_region')
     )
     asset_ids = [a.pk for a in assets]
+    recent_by_asset = defaultdict(list)
+    for p in flow_service.latest_productions(asset_ids):
+        recent_by_asset[p.from_asset_id].append(p)
     asset_id_set = set(asset_ids)
 
     # Part de détention actuelle de la société sélectionnée pour chaque asset.
@@ -557,22 +538,20 @@ def _get_leap_locate_data(company):
     features = []
     for a in assets:
         # Données de production directe (opérations propres de la société).
-        prods_all = list(a.production_set.all())
-        latest_year = max((p.year for p in prods_all), default=None)
-        recent_prods = [p for p in prods_all if p.year == latest_year] if latest_year else []
+        recent_prods = recent_by_asset[a.pk]
 
         productions = [
             {
-                'commodity': p.commodity.name,
-                'quantity': round(p.production, 2),
-                'unit': p.commodity.unit,
-                'revenue': round(p.estimated_revenue, 2),
+                'commodity': p.what.name,
+                'quantity': round(p.quantity, 2),
+                'unit': p.what.unit,
+                'revenue': round(p.estimated_revenue or 0.0, 2),
             }
-            for p in sorted(recent_prods, key=lambda x: -x.production)
+            for p in sorted(recent_prods, key=lambda x: -x.quantity)
         ]
-        revenue_total = round(sum(p.estimated_revenue for p in recent_prods), 2)
+        revenue_total = round(sum(p.estimated_revenue or 0.0 for p in recent_prods), 2)
         asset_types = sorted({
-            p.commodity.get_biodiversity_loss_class_display() for p in recent_prods
+            p.what.get_biodiversity_loss_class_display() for p in recent_prods
         })
 
         features.append({
@@ -707,32 +686,23 @@ def _get_leap_evaluate_data(company):
     }
 
     # Productions de l'année la plus récente de chaque asset.
-    latest_years = dict(
-        Production.objects.filter(asset_id__in=asset_ids)
-        .values('asset_id')
-        .annotate(max_year=Max('year'))
-        .values_list('asset_id', 'max_year')
-    )
-    productions = [
-        p for p in Production.objects.filter(asset_id__in=asset_ids).select_related('commodity')
-        if latest_years.get(p.asset_id) == p.year
-    ]
+    productions = flow_service.latest_productions(asset_ids)
 
     _evaluate_keys = [f for f, _ in _EVALUATE_IMPACT_FIELDS]
     asset_loc = {a.pk: (a.subnational_region_id, a.country_id) for a in assets}
     cf_index = build_cf_index(
-        commodity_ids=[p.commodity_id for p in productions],
+        commodity_ids=[p.what_id for p in productions],
         category_keys=_evaluate_keys,
     )
 
     # Somme des impacts midpoint par asset : production × facteur de la commodité.
     asset_impacts = defaultdict(lambda: {f: 0.0 for f, _ in _EVALUATE_IMPACT_FIELDS})
     for p in productions:
-        ai = asset_impacts[p.asset_id]
-        region_id, country_id = asset_loc.get(p.asset_id, (None, None))
+        ai = asset_impacts[p.from_asset_id]
+        region_id, country_id = asset_loc.get(p.from_asset_id, (None, None))
         for f in _evaluate_keys:
-            ai[f] += p.production * cf_value(
-                cf_index, p.commodity_id, f, region_id, country_id,
+            ai[f] += p.quantity * cf_value(
+                cf_index, p.what_id, f, region_id, country_id,
             )
 
     assets_out = []
@@ -770,18 +740,12 @@ def _get_leap_evaluate_data(company):
 
 
 def _get_leap_prepare_data(company):
-    assets = list(
-        Asset.objects.owned_by(company)
-        .prefetch_related(
-            Prefetch('production_set',
-                     queryset=Production.objects.select_related('commodity'))
-        )
-        .distinct()
-    )
+    assets = list(Asset.objects.owned_by(company))
+    prods_by_asset = defaultdict(list)
+    for p in flow_service.productions([a.pk for a in assets]):
+        prods_by_asset[p.from_asset_id].append(p)
 
-    all_commodity_ids = [
-        p.commodity_id for a in assets for p in a.production_set.all()
-    ]
+    all_commodity_ids = [p.what_id for prods in prods_by_asset.values() for p in prods]
     cf_index = build_cf_index(
         commodity_ids=all_commodity_ids, category_keys=[CAT_ECOSYSTEM_DIVERSITY],
     )
@@ -790,7 +754,7 @@ def _get_leap_prepare_data(company):
     assets_out = []
     years = []
     for a in assets:
-        prods = list(a.production_set.all())
+        prods = prods_by_asset[a.pk]
         latest = max((p.year for p in prods), default=None)
         if latest is None:
             continue
@@ -801,7 +765,7 @@ def _get_leap_prepare_data(company):
         for p in prods:
             if p.year != latest:
                 continue
-            c = p.commodity
+            c = p.what
             commodities.setdefault(c.pk, {
                 'id': c.pk,
                 'name': c.name,
@@ -809,7 +773,7 @@ def _get_leap_prepare_data(company):
                     cf_index, c.pk, CAT_ECOSYSTEM_DIVERSITY,
                 ),
             })
-            line_qty[c.pk] += p.production
+            line_qty[c.pk] += p.quantity
             line_unit[c.pk] = c.unit
 
         lines = [
@@ -858,25 +822,14 @@ def _get_dette_ecologique_data(company):
 
     asset_ids = [a.pk for a in assets]
 
-    latest_years = dict(
-        Production.objects.filter(asset_id__in=asset_ids)
-        .values('asset_id')
-        .annotate(max_year=Max('year'))
-        .values_list('asset_id', 'max_year')
-    )
-    if not latest_years:
+    productions = flow_service.latest_productions(asset_ids)
+    if not productions:
         return empty
 
-    ref_year = max(latest_years.values())
-
-    productions = list(
-        Production.objects.filter(asset_id__in=asset_ids)
-        .select_related('commodity', 'asset__country', 'asset__subnational_region')
-    )
-    productions = [p for p in productions if latest_years.get(p.asset_id) == p.year]
+    ref_year = max(p.year for p in productions)
 
     cf_index = build_cf_index(
-        commodity_ids=[p.commodity_id for p in productions],
+        commodity_ids=[p.what_id for p in productions],
         category_keys=[CAT_ECOSYSTEM_DIVERSITY],
     )
 
@@ -885,25 +838,25 @@ def _get_dette_ecologique_data(company):
     global_comm = defaultdict(float)
 
     for p in productions:
-        asset = asset_map.get(p.asset_id)
+        asset = asset_map.get(p.from_asset_id)
         if asset is None:
             continue
         field = _BIODIV_LOSS_FIELDS.get(
-            p.commodity.biodiversity_loss_class, 'biodiversity_loss_agriculture'
+            p.what.biodiversity_loss_class, 'biodiversity_loss_agriculture'
         )
         biodiv_loss = getattr(asset.country, field, 0.0)
         restoration = asset.subnational_region.restoration_cost_m2
         lbiodiv = (
             biodiv_loss
             * restoration
-            * p.production
+            * p.quantity
             * cf_value(
-                cf_index, p.commodity_id, CAT_ECOSYSTEM_DIVERSITY,
+                cf_index, p.what_id, CAT_ECOSYSTEM_DIVERSITY,
                 asset.subnational_region_id, asset.country_id,
             )
         )
-        asset_comm[p.asset_id][p.commodity.name] += lbiodiv
-        global_comm[p.commodity.name] += lbiodiv
+        asset_comm[p.from_asset_id][p.what.name] += lbiodiv
+        global_comm[p.what.name] += lbiodiv
 
     total = sum(global_comm.values())
     if total == 0:
@@ -1027,18 +980,9 @@ def _get_physical_risk_data(company):
             if key in entries and entries[key]['value']
         ]
 
-    latest_years = dict(
-        Production.objects.filter(asset_id__in=asset_ids)
-        .values('asset_id')
-        .annotate(max_year=Max('year'))
-        .values_list('asset_id', 'max_year')
-    )
     exposition = defaultdict(float)
-    for p in Production.objects.filter(asset_id__in=asset_ids).values(
-        'asset_id', 'year', 'estimated_revenue'
-    ):
-        if latest_years.get(p['asset_id']) == p['year']:
-            exposition[p['asset_id']] += p['estimated_revenue']
+    for p in flow_service.latest_productions(asset_ids):
+        exposition[p.from_asset_id] += p.estimated_revenue or 0.0
 
     # --- Per-asset payload + KPI accumulation ---
     assets_out = []
@@ -1144,13 +1088,6 @@ def _get_comparison_data(company):
     )
     asset_ids = [a.pk for a in assets]
 
-    latest_years = dict(
-        Production.objects.filter(asset_id__in=asset_ids)
-        .values('asset_id')
-        .annotate(max_year=Max('year'))
-        .values_list('asset_id', 'max_year')
-    )
-
     result = {
         'company_id': company.pk,
         'company_name': company.name,
@@ -1159,18 +1096,13 @@ def _get_comparison_data(company):
         **{f'total_{f}': 0 for f, _ in _IMPACT_FIELDS},
         **{f'avg_{f}': 0  for f, _ in _DEPENDENCY_FIELDS},
     }
-    if not latest_years:
+    productions = flow_service.latest_productions(asset_ids)
+    if not productions:
         return result
-
-    productions = list(
-        Production.objects.filter(asset_id__in=asset_ids)
-        .select_related('commodity', 'asset__country', 'asset__subnational_region')
-    )
-    productions = [p for p in productions if latest_years.get(p.asset_id) == p.year]
 
     _impact_keys = [f for f, _ in _IMPACT_FIELDS]
     cf_index = build_cf_index(
-        commodity_ids=[p.commodity_id for p in productions],
+        commodity_ids=[p.what_id for p in productions],
         category_keys=_impact_keys,
     )
 
@@ -1180,26 +1112,26 @@ def _get_comparison_data(company):
     total_lbiodiv = 0.0
 
     for p in productions:
-        asset = asset_map.get(p.asset_id)
+        asset = asset_map.get(p.from_asset_id)
         for f in _impact_keys:
-            impact_totals[f] += p.production * cf_value(
-                cf_index, p.commodity_id, f,
+            impact_totals[f] += p.quantity * cf_value(
+                cf_index, p.what_id, f,
                 asset.subnational_region_id if asset else None,
                 asset.country_id if asset else None,
             )
         for f, _ in _DEPENDENCY_FIELDS:
-            dep_scores[f].append(SCORE_MAP.get(getattr(p.commodity, f, 'VL'), 0.0))
+            dep_scores[f].append(SCORE_MAP.get(getattr(p.what, f, 'VL'), 0.0))
 
         if asset and asset.subnational_region:
             biodiv_field = _BIODIV_LOSS_FIELDS.get(
-                p.commodity.biodiversity_loss_class, 'biodiversity_loss_agriculture'
+                p.what.biodiversity_loss_class, 'biodiversity_loss_agriculture'
             )
             total_lbiodiv += (
                 getattr(asset.country, biodiv_field, 0.0)
                 * asset.subnational_region.restoration_cost_m2
-                * p.production
+                * p.quantity
                 * cf_value(
-                    cf_index, p.commodity_id, CAT_ECOSYSTEM_DIVERSITY,
+                    cf_index, p.what_id, CAT_ECOSYSTEM_DIVERSITY,
                     asset.subnational_region_id, asset.country_id,
                 )
             )
@@ -1924,36 +1856,19 @@ def _company_endpoint_impacts(company, category_keys):
     Retourne {category_key: total}.
     """
     totals = {k: 0.0 for k in category_keys}
-    assets = list(
-        Asset.objects.owned_by(company)
-        .values_list('pk', flat=True).distinct()
-    )
-    if not assets:
+    asset_ids = list(Asset.objects.owned_by(company).values_list('pk', flat=True))
+    productions = flow_service.latest_productions(asset_ids)
+    if not productions:
         return totals
-    asset_ids = list(assets)
-
-    latest_years = dict(
-        Production.objects.filter(asset_id__in=asset_ids)
-        .values('asset_id').annotate(max_year=Max('year'))
-        .values_list('asset_id', 'max_year')
-    )
-    if not latest_years:
-        return totals
-
-    productions = [
-        p for p in Production.objects.filter(asset_id__in=asset_ids)
-        .select_related('commodity', 'asset')
-        if latest_years.get(p.asset_id) == p.year
-    ]
     cf_index = build_cf_index(
-        commodity_ids=[p.commodity_id for p in productions],
+        commodity_ids=[p.what_id for p in productions],
         category_keys=category_keys,
     )
     for p in productions:
         for key in category_keys:
-            totals[key] += p.production * cf_value(
-                cf_index, p.commodity_id, key,
-                p.asset.subnational_region_id, p.asset.country_id,
+            totals[key] += p.quantity * cf_value(
+                cf_index, p.what_id, key,
+                p.from_asset.subnational_region_id, p.from_asset.country_id,
             )
     return totals
 
@@ -2033,15 +1948,9 @@ def _company_physical_risks(company):
         return {k: 0.0 for k in keys}
 
     asset_ids = [a.pk for a in assets]
-    latest_years = dict(
-        Production.objects.filter(asset_id__in=asset_ids)
-        .values('asset_id').annotate(max_year=Max('year'))
-        .values_list('asset_id', 'max_year')
-    )
     weights = {a.pk: 0.0 for a in assets}
-    for p in Production.objects.filter(asset_id__in=asset_ids):
-        if latest_years.get(p.asset_id) == p.year:
-            weights[p.asset_id] += p.estimated_revenue or 0.0
+    for p in flow_service.latest_productions(asset_ids):
+        weights[p.from_asset_id] += p.estimated_revenue or 0.0
 
     total_w = sum(weights.values())
     scores = {}
@@ -2134,22 +2043,12 @@ def _company_ecological_debt(company):
         return result
 
     asset_ids = [a.pk for a in assets]
-    latest_years = dict(
-        Production.objects.filter(asset_id__in=asset_ids)
-        .values('asset_id').annotate(max_year=Max('year'))
-        .values_list('asset_id', 'max_year')
-    )
-    if not latest_years:
+    productions = flow_service.latest_productions(asset_ids)
+    if not productions:
         return result
 
-    productions = [
-        p for p in Production.objects.filter(asset_id__in=asset_ids)
-        .select_related('commodity', 'asset__country', 'asset__subnational_region')
-        if latest_years.get(p.asset_id) == p.year
-    ]
-
     cf_index = build_cf_index(
-        commodity_ids=[p.commodity_id for p in productions],
+        commodity_ids=[p.what_id for p in productions],
         category_keys=[CAT_ECOSYSTEM_DIVERSITY],
     )
 
@@ -2157,22 +2056,22 @@ def _company_ecological_debt(company):
     counted_country_assets = set()
 
     for p in productions:
-        asset = asset_map.get(p.asset_id)
+        asset = asset_map.get(p.from_asset_id)
         if asset is None:
             continue
         field = _BIODIV_LOSS_FIELDS.get(
-            p.commodity.biodiversity_loss_class, 'biodiversity_loss_agriculture'
+            p.what.biodiversity_loss_class, 'biodiversity_loss_agriculture'
         )
         biodiv_loss = getattr(asset.country, field, 0.0)
         restoration = asset.subnational_region.restoration_cost_m2
         lbiodiv = (
-            biodiv_loss * restoration * p.production
+            biodiv_loss * restoration * p.quantity
             * cf_value(
-                cf_index, p.commodity_id, CAT_ECOSYSTEM_DIVERSITY,
+                cf_index, p.what_id, CAT_ECOSYSTEM_DIVERSITY,
                 asset.subnational_region_id, asset.country_id,
             )
         )
-        name = p.commodity.name
+        name = p.what.name
 
         a_entry = result['assets'].setdefault(asset.pk, {
             'name': asset.name, 'latitude': asset.latitude,

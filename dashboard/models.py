@@ -425,42 +425,6 @@ TIER_HELP_TEXT = (
 )
 
 
-class Production(models.Model):
-    commodity = models.ForeignKey(
-        Commodity, on_delete=models.CASCADE, verbose_name='Commodité',
-    )
-    asset = models.ForeignKey(
-        Asset, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Actif',
-    )
-    company = models.ForeignKey(
-        Company, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Entreprise',
-    )
-    subnational_region = models.ForeignKey(
-        SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Région infranationale',
-    )
-    country = models.ForeignKey(
-        Country, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Pays',
-    )
-    tier = models.PositiveSmallIntegerField(
-        default=0, validators=[MaxValueValidator(3)], verbose_name='Tier',
-        help_text=TIER_HELP_TEXT,
-    )
-    year = models.IntegerField(verbose_name='Année')
-    production = models.FloatField(verbose_name='Quantité produite')
-    estimated_revenue = models.FloatField(
-        default=0.0, verbose_name='Revenu estimé',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
-    )
-
-    class Meta:
-        verbose_name = 'Production'
-        verbose_name_plural = 'Productions'
-
-    def __str__(self):
-        asset_name = self.asset.name if self.asset else "no asset"
-        return f"{asset_name} - {self.commodity.name} - {self.year}"
-
 class Company_Revenue(models.Model):
     company = models.ForeignKey(
         Company, on_delete=models.CASCADE, verbose_name='Entreprise',

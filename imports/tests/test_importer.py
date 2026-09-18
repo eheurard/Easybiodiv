@@ -2,7 +2,7 @@ from django.test import TestCase
 from dashboard.models import (
     Asset, CharacterizationFactor, ClimateScenario, Commodity,
     Company, Company_Policy, Country, Exchange, Policy_Level, Policy_Subcategory,
-    Policy_Type, Production, ScenarioVariable, Sector, SectorCreditProfile,
+    Policy_Type, ScenarioVariable, Sector, SectorCreditProfile,
     SubnationalRegion, SupplyNode,
 )
 from imports.services.importer import save_import
@@ -162,42 +162,6 @@ class ImporterCharacterizationFactorTest(TestCase):
         commodity = Commodity.objects.get(name='Wheat')
         self.assertEqual(
             CharacterizationFactor.objects.filter(commodity=commodity).count(), 0)
-
-
-class ImporterProductionTest(TestCase):
-    def setUp(self):
-        self.country = Country.objects.create(
-            name='France', water_ownership='pub', land_ownership='priv')
-        Asset.objects.create(
-            name='Usine A', latitude=48.85, longitude=2.35, country=self.country)
-        Commodity.objects.create(name='Soy')
-        Company.objects.create(name='Acme')
-
-    def test_tier_column_is_stored(self):
-        counts = save_import({'Production': [
-            _ok({'asset_name': 'Usine A', 'commodity_name': 'Soy', 'tier': '2',
-                 'year': '2024', 'production': '100'}),
-        ]})
-        self.assertEqual(counts['Production'], 1)
-        self.assertEqual(Production.objects.get().tier, 2)
-
-    def test_tier_is_clamped_to_model_range(self):
-        save_import({'Production': [
-            _ok({'asset_name': 'Usine A', 'commodity_name': 'Soy', 'tier': '9',
-                 'year': '2024', 'production': '100'}),
-        ]})
-        self.assertEqual(Production.objects.get().tier, 3)
-
-    def test_optional_fks_are_wired(self):
-        save_import({'Production': [
-            _ok({'asset_name': 'Usine A', 'commodity_name': 'Soy',
-                 'company_name': 'Acme', 'country_name': 'France',
-                 'subnational_region_name': '',
-                 'tier': '0', 'year': '2024', 'production': '100'}),
-        ]})
-        production = Production.objects.get()
-        self.assertEqual(production.company.name, 'Acme')
-        self.assertEqual(production.country, self.country)
 
 
 class ImporterSupplyGraphTest(TestCase):

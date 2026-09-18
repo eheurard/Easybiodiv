@@ -7,7 +7,7 @@ from collections import defaultdict
 
 from django.db.models import Q
 
-from dashboard.models import Flow, FlowKind
+from dashboard.models import Asset, Flow, FlowKind
 
 _OUTGOING_INVENTORY_KINDS = (FlowKind.EMISSION, FlowKind.WASTE)
 
@@ -58,4 +58,35 @@ def inventory_total(asset, theme, year):
     return sum(
         flow.quantity
         for flow in _inventory_rows([asset.pk]).filter(what__theme=theme, year=year)
+    )
+
+
+def productions(asset_ids):
+    """Flux PRODUCTION des actifs donnés, toutes années, dans l'ordre de création
+    (déterminisme SQLite/PostgreSQL : le sankey de Mesure d'empreinte en dépend)."""
+    return list(
+        Flow.objects.filter(kind=FlowKind.PRODUCTION, from_asset_id__in=asset_ids)
+        .select_related('what', 'from_asset__country', 'from_asset__subnational_region')
+        .order_by('pk')
+    )
+
+
+def latest_productions(asset_ids):
+    """Comme productions(), en ne gardant que l'année la plus récente de chaque actif."""
+    rows = productions(asset_ids)
+    latest = {}
+    for flow in rows:
+        latest[flow.from_asset_id] = max(latest.get(flow.from_asset_id, flow.year), flow.year)
+    return [flow for flow in rows if flow.year == latest[flow.from_asset_id]]
+
+
+def company_productions(company):
+    """Flux PRODUCTION déclarés par l'entreprise ou par les actifs qu'elle détient
+    aujourd'hui, toutes années, dans l'ordre de création."""
+    owned = Asset.objects.owned_by(company).values('pk')
+    return list(
+        Flow.objects.filter(kind=FlowKind.PRODUCTION)
+        .filter(Q(from_company=company) | Q(from_asset__in=owned))
+        .select_related('what')
+        .order_by('pk')
     )

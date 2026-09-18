@@ -6,7 +6,7 @@ from django.db import transaction
 from dashboard.models import (
     Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
     Company_Revenue_Sector, Country, DisclosureRequirement, E4Assessment,
-    Ownership, Policy_Level, Policy_Subcategory, Policy_Type, Production,
+    Flow, FlowKind, Ownership, Policy_Level, Policy_Subcategory, Policy_Type,
     Sector, SectorCreditProfile, SubSector, SubnationalRegion,
     CharacterizationFactor, ImpactCategory,
 )
@@ -411,18 +411,13 @@ class Command(BaseCommand):
         ]
 
         for asset, commodity, scope, year, qty, revenue in productions:
-            Production.objects.get_or_create(
-                asset=asset,
-                commodity=commodity,
+            Flow.objects.get_or_create(
+                kind=FlowKind.PRODUCTION,
+                what=commodity,
+                from_asset=asset,
                 tier=SCOPE_TO_TIER[scope],
                 year=year,
-                defaults={
-                    "company": acme,
-                    "production": qty,
-                    "estimated_revenue": revenue,
-                    "country": asset.country,
-                    "subnational_region": asset.subnational_region,
-                },
+                defaults={'quantity': qty, 'estimated_revenue': revenue},
             )
 
         # ── Revenus ───────────────────────────────────────────────────────────

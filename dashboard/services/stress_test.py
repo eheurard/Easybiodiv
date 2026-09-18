@@ -161,15 +161,13 @@ def interpolate_trajectory(points, year):
 #
 # Tout ce qui suit touche la base. Le noyau ci-dessus reste pur.
 
-from django.db.models import Max  # noqa: E402
-
 from ..models import ScenarioVariable  # noqa: E402  (import après le noyau pur)
 from ..models import Company_Revenue_Sector, SectorCreditProfile  # noqa: E402
 from ..models import (  # noqa: E402
     Asset, Carbon_emission, ClimateScenario, Company_Policy, Company_Revenue,
-    Production,
 )
 from .hazards import PHYSICAL_RISKS  # noqa: E402
+from .flows import latest_productions  # noqa: E402
 
 KEY_CARBON_PRICE = ScenarioVariable.Key.CARBON_PRICE
 KEY_HAZARD_MULTIPLIER = ScenarioVariable.Key.HAZARD_MULTIPLIER
@@ -273,21 +271,12 @@ def company_snapshot(company, year):
     revenue_row = Company_Revenue.objects.filter(company=company, year=year).first()
 
     assets = list(Asset.objects.owned_by(company, year))
-    asset_ids = [asset.pk for asset in assets]
 
-    latest_years = dict(
-        Production.objects.filter(asset_id__in=asset_ids)
-        .values('asset_id').annotate(max_year=Max('year'))
-        .values_list('asset_id', 'max_year')
-    )
     exposure_by_asset = {}
-    for row in Production.objects.filter(asset_id__in=asset_ids).values(
-        'asset_id', 'year', 'estimated_revenue'
-    ):
-        if latest_years.get(row['asset_id']) == row['year']:
-            exposure_by_asset[row['asset_id']] = (
-                exposure_by_asset.get(row['asset_id'], 0.0) + row['estimated_revenue']
-            )
+    for p in latest_productions([asset.pk for asset in assets]):
+        exposure_by_asset[p.from_asset_id] = (
+            exposure_by_asset.get(p.from_asset_id, 0.0) + (p.estimated_revenue or 0.0)
+        )
 
     levels = [
         link.policy_level

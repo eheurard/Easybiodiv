@@ -67,11 +67,6 @@ SHEET_COLUMNS = {
         'near_sensitive_zone', 'sensitive_zone_type', 'sensitive_zone_name',
         'sensitive_zone_area_ha',
     ],
-    'Production': [
-        'asset_name', 'commodity_name', 'company_name', 'subnational_region_name', 'country_name',
-        'tier', 'year', 'production', 'estimated_revenue',
-    ],
-
     # ── Graphe d'approvisionnement ────────────────────────────────────────────
     # node_ref est une poignée libre, locale au fichier : elle sert uniquement à
     # relier les lignes Exchange aux lignes SupplyNode du même classeur.
@@ -115,10 +110,6 @@ FK_FIELDS = {
     'SubSector': {'sector_name': 'sector'},
     'SectorCreditProfile': {'sector_name': 'sector'},
     'Asset': {'country_name': 'country', 'subnational_region_name': 'subnational_region'},
-    'Production': {
-        'asset_name': 'asset', 'commodity_name': 'commodity', 'company_name': 'company',
-        'subnational_region_name': 'subnational_region', 'country_name': 'country',
-    },
     'SupplyNode': {
         'asset_name': 'asset', 'subnational_region_name': 'subnational_region',
         'country_name': 'country', 'commodity_name': 'commodity',
@@ -155,7 +146,6 @@ REQUIRED_FIELDS = {
     'SectorCreditProfile': ['sector_name'],
     'Company': ['name'],
     'Asset': ['name', 'latitude', 'longitude', 'country_name'],
-    'Production': ['asset_name', 'commodity_name', 'year', 'production'],
     'SupplyNode': ['node_ref'],
     'Exchange': ['supplier_ref', 'consumer_ref', 'commodity_name', 'quantity', 'year'],
     'Ownership': ['asset_name', 'company_name', 'share'],
@@ -187,7 +177,6 @@ DUPLICATE_CRITERIA = {
     'SectorCreditProfile': ['sector_name'],
     'Company': ['name'],
     'Asset': ['name', 'country_name'],
-    'Production': ['asset_name', 'commodity_name', 'year'],
     'SupplyNode': ['node_ref'],
     'Exchange': ['supplier_ref', 'consumer_ref', 'commodity_name', 'year'],
     'Ownership': ['asset_name', 'company_name', 'start_year'],
@@ -232,7 +221,7 @@ IMPORT_ORDER = [
     'Country', 'SubnationalRegion', 'Commodity', 'CharacterizationFactor',
     'Policy_Type', 'Policy_Subcategory', 'Policy_Level',
     'Currency', 'Sector', 'SubSector', 'SectorCreditProfile',
-    'Company', 'Asset', 'Production',
+    'Company', 'Asset',
     'SupplyNode', 'Exchange',
     'Ownership', 'Company_Revenue', 'Company_Revenue_Sector', 'Company_Policy',
     'ESG_data', 'Carbon_emission',

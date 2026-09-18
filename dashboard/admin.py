@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Country, SubnationalRegion, Commodity, Sector, SubSector,
-    Asset, Company, Production, Ownership,
+    Asset, Company, Ownership,
     Company_Revenue, Company_Revenue_Sector,
     Policy_Type, Policy_Subcategory, Policy_Level, Company_Policy,
     DisclosureRequirement, E4Assessment, ESG_data, Carbon_emission,
@@ -67,17 +67,6 @@ class AssetAdmin(admin.ModelAdmin):
 class CompanyAdmin(admin.ModelAdmin):
     search_fields = ('name', 'isin', 'ticker')
     list_display = ('name', 'isin', 'ticker')
-
-
-@admin.register(Production)
-class ProductionAdmin(admin.ModelAdmin):
-    search_fields = (
-        'commodity__name', 'asset__name', 'company__name',
-        'subnational_region__name', 'country__name',
-    )
-    list_display = ('__str__', 'commodity', 'company', 'tier', 'year', 'production')
-    list_filter = ('tier', 'year', 'country')
-    autocomplete_fields = ('commodity', 'asset', 'company', 'subnational_region', 'country')
 
 
 @admin.register(Ownership)

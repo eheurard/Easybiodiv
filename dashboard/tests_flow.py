@@ -7,10 +7,10 @@ from django.urls import reverse
 
 from .models import (
     ALL_ENDPOINTS, FLOW_RULES, TECHNICAL_COMMODITIES, Asset, Commodity, Company, Country,
-    Flow, FlowKind, FlowScope, SubnationalRegion,
+    Flow, FlowKind, FlowScope, Ownership, SubnationalRegion,
 )
 from .services import flows as flow_service
-from .testing import make_inventory
+from .testing import make_inventory, make_production
 
 
 class TechnicalCommodityTests(TestCase):
@@ -191,3 +191,46 @@ class FlowAdminTests(TestCase):
         response = self._post(from_asset=self.asset.pk, to_environment='on')
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Flow.objects.get().created_by, self.root)
+
+
+class ProductionServiceTests(TestCase):
+
+    def setUp(self):
+        country = Country.objects.create(
+            name='France', water_ownership='Public', land_ownership='Private')
+        self.company = Company.objects.create(name='Acme')
+        self.a1 = Asset.objects.create(name='A1', latitude=1.0, longitude=2.0, country=country)
+        self.a2 = Asset.objects.create(name='A2', latitude=1.0, longitude=2.0, country=country)
+        Ownership.objects.create(asset=self.a1, company=self.company, share=1)
+        self.soy = Commodity.objects.create(name='Soja')
+
+    def _produce(self, **kwargs):
+        return make_production(commodity=self.soy, production=1.0, **kwargs)
+
+    def test_productions_keep_creation_order_across_years(self):
+        first = self._produce(asset=self.a1, year=2024)
+        second = self._produce(asset=self.a1, year=2023)
+        self.assertEqual(flow_service.productions([self.a1.pk]), [first, second])
+
+    def test_latest_productions_keep_the_latest_year_of_each_asset(self):
+        self._produce(asset=self.a1, year=2023)
+        recent = self._produce(asset=self.a1, year=2024)
+        older_asset = self._produce(asset=self.a2, year=2022)
+        self.assertEqual(
+            flow_service.latest_productions([self.a1.pk, self.a2.pk]), [recent, older_asset])
+
+    def test_other_kinds_are_not_productions(self):
+        make_inventory(asset=self.a1, key='co2', year=2024, value=5.0)
+        self.assertEqual(flow_service.productions([self.a1.pk]), [])
+
+    def test_company_productions_merge_the_company_and_its_assets(self):
+        own = self._produce(asset=self.a1, year=2024)
+        declared = self._produce(company=self.company, year=2024)
+        self._produce(asset=self.a2, year=2024)  # actif non détenu
+        self.assertEqual(flow_service.company_productions(self.company), [own, declared])
+
+    def test_a_more_recent_production_does_not_shift_the_inventory_year(self):
+        make_inventory(asset=self.a1, key='water', year=2023, value=10.0)
+        self._produce(asset=self.a1, year=2024)
+        result = flow_service.latest_inventory([self.a1.pk], ('water',))
+        self.assertEqual(result[self.a1.pk]['water']['value'], 10.0)

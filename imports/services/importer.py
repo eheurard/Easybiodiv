@@ -5,7 +5,7 @@ from dashboard.models import (
     Asset, Carbon_emission, CharacterizationFactor, ClimateScenario,
     Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
     Country, Currency, ESG_data, Exchange, ImpactCategory, Ownership,
-    Policy_Level, Policy_Subcategory, Policy_Type, Production, ScenarioVariable,
+    Policy_Level, Policy_Subcategory, Policy_Type, ScenarioVariable,
     Sector, SectorCreditProfile, SubnationalRegion, SubSector, SupplyNode,
 )
 from .cells import parse_optional_year, parse_share
@@ -291,35 +291,6 @@ def _import_asset(rows, lookup):
             sensitive_zone_area_ha=_f(d.get('sensitive_zone_area_ha')),
         )
         lookup['asset'][d['name'].lower()] = obj
-        created += 1
-    return created
-
-
-def _import_production(rows, lookup):
-    created = 0
-    for r in rows:
-        d = r['data']
-        asset = _get(lookup, 'asset', d['asset_name'])
-        commodity = _get(lookup, 'commodity', d['commodity_name'])
-        if not asset or not commodity:
-            continue
-        try:
-            year = int(d['year'])
-            production = float(d['production'])
-        except (ValueError, TypeError):
-            continue
-        Production.objects.create(
-            asset=asset,
-            commodity=commodity,
-            company=_get(lookup, 'company', d.get('company_name', '')),
-            subnational_region=_get(
-                lookup, 'subnational_region', d.get('subnational_region_name', '')),
-            country=_get(lookup, 'country', d.get('country_name', '')),
-            year=year,
-            production=production,
-            estimated_revenue=_f(d.get('estimated_revenue')),
-            tier=_tier(d.get('tier')),
-        )
         created += 1
     return created
 
@@ -637,7 +608,6 @@ _IMPORTERS = {
     'SectorCreditProfile': _import_sector_credit_profile,
     'Company': _import_company,
     'Asset': _import_asset,
-    'Production': _import_production,
     'SupplyNode': _import_supply_node,
     'Exchange': _import_exchange,
     'Ownership': _import_ownership,

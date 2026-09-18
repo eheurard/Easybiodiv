@@ -23,7 +23,7 @@ GROUPS = [
         m.Company, m.Asset, m.Ownership, m.Company_Revenue,
         m.Company_Revenue_Sector, m.ESG_data, m.Carbon_emission,
     ]),
-    ('Flux', [m.Flow, m.Production, m.SupplyNode, m.Exchange]),
+    ('Flux', [m.Flow, m.SupplyNode, m.Exchange]),
     ('Impacts & inventaire (ACV)', [
         m.ImpactMethod, m.ImpactCategory, m.CharacterizationFactor,
     ]),

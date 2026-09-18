@@ -82,18 +82,20 @@ def measured_vs_modeled(asset, theme, year):
     (production × CF des catégories portant ce theme). Renvoie
     {'measured': float, 'modeled': float}.
     """
-    from dashboard.models import ImpactCategory, Production
-    from dashboard.services.flows import inventory_total
+    from dashboard.models import ImpactCategory
+    from dashboard.services.flows import inventory_total, productions
     measured = inventory_total(asset, theme, year)
     cat_keys = list(
         ImpactCategory.objects.filter(theme=theme).values_list('key', flat=True)
     )
     cf_index = build_cf_index(category_keys=cat_keys)
     modeled = 0.0
-    for p in Production.objects.filter(asset=asset, year=year).select_related('commodity'):
+    for p in productions([asset.pk]):
+        if p.year != year:
+            continue
         for key in cat_keys:
-            modeled += p.production * cf_value(
-                cf_index, p.commodity_id, key,
+            modeled += p.quantity * cf_value(
+                cf_index, p.what_id, key,
                 asset.subnational_region_id, asset.country_id,
             )
     return {'measured': measured, 'modeled': modeled}

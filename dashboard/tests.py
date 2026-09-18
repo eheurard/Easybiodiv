@@ -6,11 +6,11 @@ from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from .models import (
     Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
-    Company_Revenue_Sector, Country, Ownership, Policy_Level,
-    Policy_Subcategory, Policy_Type, Production, Sector, SubnationalRegion,
+    Company_Revenue_Sector, Country, Flow, Ownership, Policy_Level,
+    Policy_Subcategory, Policy_Type, Sector, SubnationalRegion,
     SubSector,
 )
-from .testing import make_inventory
+from .testing import make_inventory, make_production
 from .views import _get_dette_ecologique_data
 from .services import market as market_service
 
@@ -28,7 +28,7 @@ def _make_world():
         country=country, subnational_region=region,
     )
     Ownership.objects.create(asset=asset, company=company, share=1)
-    Production.objects.create(asset=asset, commodity=commodity, year=2024, production=100.0)
+    make_production(asset=asset, commodity=commodity, year=2024, production=100.0)
     return company, country, region, commodity, asset
 
 
@@ -129,7 +129,7 @@ class CompanyDataRegionalCfTests(TestCase):
     def test_regional_cf_overrides_global_for_footprint(self):
         from .models import (
             Company, Country, SubnationalRegion, Commodity, Asset, Ownership,
-            Production, ImpactCategory, CharacterizationFactor,
+            ImpactCategory, CharacterizationFactor,
         )
         from .views import _get_company_data
         company = Company.objects.create(name='RegCorp')
@@ -148,7 +148,7 @@ class CompanyDataRegionalCfTests(TestCase):
             country=country, subnational_region=region,
         )
         Ownership.objects.create(asset=asset, company=company, share=1)
-        Production.objects.create(asset=asset, commodity=com, year=2024, production=10.0)
+        make_production(asset=asset, commodity=com, year=2024, production=10.0)
         data = _get_company_data(company)
         feature = data['geojson']['features'][0]
         # footprint = 10 * 5.0 (CF régional), pas 10 * 1.0 (global)
@@ -206,7 +206,7 @@ class MesureEmpreinteDataViewTests(TestCase):
             country=country, subnational_region=region,
         )
         Ownership.objects.create(asset=asset, company=company, share=1)
-        Production.objects.create(
+        make_production(
             asset=asset, commodity=commodity, year=year, production=production_qty
         )
         return company, country, commodity, asset
@@ -241,7 +241,7 @@ class MesureEmpreinteDataViewTests(TestCase):
             impact_factor=2.0, production_qty=10.0, year=2022
         )
         # Add a newer production — this one should be used
-        Production.objects.create(
+        make_production(
             asset=asset, commodity=commodity, year=2024, production=100.0
         )
         url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': company.pk})
@@ -308,8 +308,8 @@ class MesureEmpreinteDataViewTests(TestCase):
         _make_cf(c1, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 1.0)
         c2 = Commodity.objects.create(name='Blé')
         _make_cf(c2, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 3.0)
-        Production.objects.create(asset=asset, commodity=c1, year=2024, production=100.0)
-        Production.objects.create(asset=asset, commodity=c2, year=2024, production=100.0)
+        make_production(asset=asset, commodity=c1, year=2024, production=100.0)
+        make_production(asset=asset, commodity=c2, year=2024, production=100.0)
 
         url = reverse('dashboard:mesure_empreinte_data', kwargs={'pk': company.pk})
         data = json.loads(self.client.get(url).content)
@@ -375,7 +375,7 @@ class DependenciesDataTests(TestCase):
             dependency_pest_control='VL',
             dependency_pollination='VL',
         )
-        Production.objects.create(
+        make_production(
             company=self.company,
             commodity=self.commodity,
             year=2024,
@@ -530,7 +530,7 @@ class DependenciesDataTests(TestCase):
             dependency_pollination='VH',
         )
         # Older year — should be ignored
-        Production.objects.create(
+        make_production(
             company=self.company, commodity=commodity2, year=2020,
             production=999.0, tier=0,
         )
@@ -556,7 +556,7 @@ class DependenciesDataTests(TestCase):
             dependency_pest_control='VH',
             dependency_pollination='VH',
         )
-        Production.objects.create(
+        make_production(
             asset=asset, commodity=commodity_vh, year=2024,
             production=50.0, tier=1,
         )
@@ -593,7 +593,7 @@ class DependenciesDataTests(TestCase):
         from .views import _get_dependencies_data
         # tier=5 simule une donnée corrompue (hors plage 0-3, ex. saisie admin
         # directe) : .create() ne déclenche pas les validators du champ.
-        Production.objects.create(
+        make_production(
             company=self.company, commodity=self.commodity, year=2024,
             production=10.0, tier=5,
         )
@@ -684,15 +684,15 @@ class PhysicalRiskDataTests(TestCase):
         Ownership.objects.create(asset=self.a2, company=self.company, share=1)
 
         # Exposition: A1 latest year 2024 = 1000 (older 2022 ignored); A2 2024 = 500
-        Production.objects.create(
+        make_production(
             asset=self.a1, commodity=self.commodity, year=2022,
             production=1.0, estimated_revenue=9999.0,
         )
-        Production.objects.create(
+        make_production(
             asset=self.a1, commodity=self.commodity, year=2024,
             production=1.0, estimated_revenue=1000.0,
         )
-        Production.objects.create(
+        make_production(
             asset=self.a2, commodity=self.commodity, year=2024,
             production=1.0, estimated_revenue=500.0,
         )
@@ -777,7 +777,7 @@ class PhysicalRiskDataTests(TestCase):
             risk_flood=0.5,
         )
         Ownership.objects.create(asset=asset, company=company, share=1)
-        Production.objects.create(
+        make_production(
             asset=asset, commodity=self.commodity, year=2024,
             production=1.0, estimated_revenue=200.0,
         )
@@ -892,7 +892,7 @@ class LeapEvaluateDataTests(TestCase):
             near_sensitive_zone=True, sensitive_zone_type='NATURA_2000',
         )
         Ownership.objects.create(asset=self.asset, company=self.company, share=1)
-        Production.objects.create(
+        make_production(
             asset=self.asset, commodity=self.commodity, year=2024, production=10.0,
         )
         make_inventory(asset=self.asset, key='water', year=2024, value=100.0)
@@ -936,7 +936,7 @@ class LeapEvaluateDataTests(TestCase):
 
     def test_uses_latest_year_only(self):
         from .views import _get_leap_evaluate_data
-        Production.objects.create(
+        make_production(
             asset=self.asset, commodity=self.commodity, year=2020, production=999.0,
         )
         data = _get_leap_evaluate_data(self.company)
@@ -997,7 +997,7 @@ class LeapPrepareDataTests(TestCase):
             name='Site A', latitude=48.0, longitude=2.0, country=self.country,
         )
         Ownership.objects.create(asset=self.asset, company=self.company, share=1)
-        Production.objects.create(
+        make_production(
             asset=self.asset, commodity=self.commodity, year=2024, production=100.0,
         )
 
@@ -1022,7 +1022,7 @@ class LeapPrepareDataTests(TestCase):
 
     def test_uses_latest_year_only(self):
         from .views import _get_leap_prepare_data
-        Production.objects.create(
+        make_production(
             asset=self.asset, commodity=self.commodity, year=2020, production=999.0,
         )
         data = _get_leap_prepare_data(self.company)
@@ -1034,7 +1034,7 @@ class LeapPrepareDataTests(TestCase):
     def test_aggregates_same_commodity_lines_in_asset(self):
         from .views import _get_leap_prepare_data
         # deux productions même asset/commodité/année -> agrégées en une ligne
-        Production.objects.create(
+        make_production(
             asset=self.asset, commodity=self.commodity, year=2024, production=50.0,
         )
         data = _get_leap_prepare_data(self.company)
@@ -1135,7 +1135,7 @@ class DetteEcologiqueDataTests(TestCase):
             country=self.country, subnational_region=None,
         )
         Ownership.objects.create(asset=asset_no_region, company=self.company, share=1)
-        Production.objects.create(
+        make_production(
             asset=asset_no_region, commodity=self.commodity_agri, year=2024, production=100.0,
         )
         result = _get_dette_ecologique_data(self.company)
@@ -1144,7 +1144,7 @@ class DetteEcologiqueDataTests(TestCase):
 
     def test_lbiodiv_formula_agriculture(self):
         # 2.0 * 10.0 * 100.0 * 0.5 = 1000.0
-        Production.objects.create(
+        make_production(
             asset=self.asset, commodity=self.commodity_agri, year=2024, production=100.0,
         )
         result = _get_dette_ecologique_data(self.company)
@@ -1156,7 +1156,7 @@ class DetteEcologiqueDataTests(TestCase):
             name='Béton', biodiversity_loss_class='Urbanisation',
         )
         _make_cf(commodity_urb, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 0.5)
-        Production.objects.create(
+        make_production(
             asset=self.asset, commodity=commodity_urb, year=2024, production=100.0,
         )
         result = _get_dette_ecologique_data(self.company)
@@ -1168,17 +1168,17 @@ class DetteEcologiqueDataTests(TestCase):
             name='Lithium', biodiversity_loss_class='Mining',
         )
         _make_cf(commodity_min, 'impact_endpoint_ReCiPe2016_ecosystem_diversity', 0.5)
-        Production.objects.create(
+        make_production(
             asset=self.asset, commodity=commodity_min, year=2024, production=100.0,
         )
         result = _get_dette_ecologique_data(self.company)
         self.assertAlmostEqual(result['total_lbiodiv'], 750.0, places=2)
 
     def test_latest_year_only(self):
-        Production.objects.create(
+        make_production(
             asset=self.asset, commodity=self.commodity_agri, year=2022, production=999.0,
         )
-        Production.objects.create(
+        make_production(
             asset=self.asset, commodity=self.commodity_agri, year=2024, production=100.0,
         )
         # Only 2024 : 2.0 * 10.0 * 100.0 * 0.5 = 1000.0
@@ -1191,10 +1191,10 @@ class DetteEcologiqueDataTests(TestCase):
             country=self.country, subnational_region=self.region,
         )
         Ownership.objects.create(asset=asset2, company=self.company, share=1)
-        Production.objects.create(
+        make_production(
             asset=self.asset, commodity=self.commodity_agri, year=2024, production=100.0,
         )
-        Production.objects.create(
+        make_production(
             asset=asset2, commodity=self.commodity_agri, year=2024, production=50.0,
         )
         result = _get_dette_ecologique_data(self.company)
@@ -1808,7 +1808,7 @@ class LeapLocateDataTests(TestCase):
     def test_geojson_feature_properties(self):
         # _make_world() crée une production Soja (100 t, 2024) sur l'asset, détenu
         # à 100 % ; la commodité a la classe biodiversité 'Agriculture' par défaut.
-        Production.objects.filter(asset=self.asset).update(estimated_revenue=50000.0)
+        Flow.objects.filter(kind='PRODUCTION', from_asset=self.asset).update(estimated_revenue=50000.0)
         from .views import _get_leap_locate_data
         data = _get_leap_locate_data(self.company)
         feats = data['geojson']['features']
@@ -1943,7 +1943,7 @@ class ComparisonDataCfTests(TestCase):
 
     def test_totals_use_cf(self):
         from .models import (
-            Company, Country, SubnationalRegion, Commodity, Asset, Ownership, Production,
+            Company, Country, SubnationalRegion, Commodity, Asset, Ownership,
         )
         from .views import _get_comparison_data
         company = Company.objects.create(name='CmpCorp')
@@ -1958,7 +1958,7 @@ class ComparisonDataCfTests(TestCase):
             name='S', latitude=48.0, longitude=2.0, country=country, subnational_region=region,
         )
         Ownership.objects.create(asset=asset, company=company, share=1)
-        Production.objects.create(asset=asset, commodity=com, year=2024, production=10.0)
+        make_production(asset=asset, commodity=com, year=2024, production=10.0)
         data = _get_comparison_data(company)
         self.assertAlmostEqual(data['total_impact_midpoint_ReCiPe2016_land_use'], 40.0, places=2)
 
@@ -2322,19 +2322,6 @@ class UpstreamChainTests(TestCase):
         self.assertLessEqual(len(chain), 3)
 
 
-class SupplyChainDroppedTests(TestCase):
-
-    def test_production_has_no_scope_and_supply_chain_gone(self):
-        from .models import Production, Commodity, Company
-        com = Commodity.objects.create(name='X')
-        company = Company.objects.create(name='C')
-        p = Production.objects.create(commodity=com, company=company, year=2024,
-                                      production=1.0, tier=1)
-        self.assertFalse(hasattr(p, 'scope'))
-        import dashboard.models as m
-        self.assertFalse(hasattr(m, 'Supply_chain'))
-
-
 class AssetConsumptionDroppedTests(TestCase):
 
     def test_model_gone(self):
@@ -2346,7 +2333,7 @@ class MeasuredVsModeledTests(TestCase):
 
     def test_pairs_measured_and_modeled(self):
         from .models import (
-            Asset, Country, SubnationalRegion, Commodity, Production,
+            Asset, Country, SubnationalRegion, Commodity,
             ImpactCategory, CharacterizationFactor,
         )
         from .services.impacts import measured_vs_modeled
@@ -2358,7 +2345,7 @@ class MeasuredVsModeledTests(TestCase):
         make_inventory(asset=asset, key='water', year=2024, value=100.0)
         # modélisé : production 10 × CF(catégorie theme 'water') = 10 × 2 = 20
         com = Commodity.objects.create(name='Soja')
-        Production.objects.create(asset=asset, commodity=com, year=2024, production=10.0)
+        make_production(asset=asset, commodity=com, year=2024, production=10.0)
         cat = ImpactCategory.objects.get(
             key='impact_midpoint_ReCiPe2016_water_consumption'
         )  # theme 'water' (seedé Plan A)
@@ -2638,7 +2625,7 @@ class PortfolioImpactViewTests(TestCase):
             name='Site A', latitude=48.0, longitude=2.0, country=country,
         )
         Ownership.objects.create(asset=asset, company=self.company_a, share=1)
-        Production.objects.create(
+        make_production(
             asset=asset, commodity=commodity, year=2024, production=100.0,
         )
         Company_Revenue.objects.create(
@@ -2732,11 +2719,11 @@ class PortfolioPhysicalRiskViewTests(TestCase):
         )
         Ownership.objects.create(asset=a1, company=self.company_a, share=1)
         Ownership.objects.create(asset=a2, company=self.company_a, share=1)
-        Production.objects.create(
+        make_production(
             asset=a1, commodity=commodity, year=2024, production=10.0,
             estimated_revenue=300.0,
         )
-        Production.objects.create(
+        make_production(
             asset=a2, commodity=commodity, year=2024, production=10.0,
             estimated_revenue=100.0,
         )
@@ -2748,7 +2735,7 @@ class PortfolioPhysicalRiskViewTests(TestCase):
             risk_drought=0.4,
         )
         Ownership.objects.create(asset=b1, company=self.company_b, share=1)
-        Production.objects.create(
+        make_production(
             asset=b1, commodity=commodity, year=2024, production=10.0,
             estimated_revenue=100.0,
         )
@@ -2979,7 +2966,7 @@ class PortfolioFinancedDebtHelperTests(TestCase):
             country=country, subnational_region=region,
         )
         Ownership.objects.create(asset=asset, company=company, share=1)
-        Production.objects.create(
+        make_production(
             commodity=commodity, asset=asset, year=2023, production=10.0,
         )
         # Lbiodiv = 2.0 (loss) * 3.0 (restoration) * 10.0 (prod) * 5.0 (recipe) = 300.0
@@ -3016,7 +3003,7 @@ class PortfolioFinancedDebtHelperTests(TestCase):
             country=country, subnational_region=region,
         )
         Ownership.objects.create(asset=asset, company=company, share=1)
-        Production.objects.create(
+        make_production(
             commodity=commodity, asset=asset, year=2023, production=10.0,
         )
 
@@ -3055,7 +3042,7 @@ class PortfolioFinancedDebtHelperTests(TestCase):
             country=country, subnational_region=region,
         )
         Ownership.objects.create(asset=asset, company=company, share=1)
-        Production.objects.create(
+        make_production(
             commodity=commodity, asset=asset, year=2023, production=10.0,
         )
 
@@ -3097,7 +3084,7 @@ class PortfolioTransitionRiskViewTests(TestCase):
             country=country, subnational_region=region,
         )
         Ownership.objects.create(asset=asset, company=self.company, share=1)
-        Production.objects.create(
+        make_production(
             commodity=commodity, asset=asset, year=2023, production=10.0,
         )
         Company_Revenue.objects.create(company=self.company, year=2023, evic=1000.0, revenue=0.0)

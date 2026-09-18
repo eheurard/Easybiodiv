@@ -5,7 +5,7 @@ from dashboard.models import (
     Asset, Carbon_emission, CharacterizationFactor, ClimateScenario,
     Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
     Country, Currency, ESG_data, ImpactCategory, OWNERSHIP_OVERLAP_MESSAGE,
-    Ownership, Policy_Level, Policy_Subcategory, Policy_Type, Production,
+    Ownership, Policy_Level, Policy_Subcategory, Policy_Type,
     ScenarioVariable, Sector, SectorCreditProfile, SubnationalRegion, SubSector,
     periods_overlap, share_overflow_message, share_overflow_year,
 )
@@ -113,7 +113,6 @@ _EXISTING_KEY_QUERIES = {
     'SectorCreditProfile': (SectorCreditProfile, ['sector__name']),
     'Company': (Company, ['name']),
     'Asset': (Asset, ['name', 'country__name']),
-    'Production': (Production, ['asset__name', 'commodity__name', 'year']),
     'Ownership': (Ownership, ['asset__name', 'company__name', 'start_year']),
     'Company_Revenue': (Company_Revenue, ['company__name', 'year']),
     'Company_Revenue_Sector': (Company_Revenue_Sector, [
