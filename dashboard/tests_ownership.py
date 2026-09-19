@@ -1,9 +1,11 @@
 """Détention actif ↔ entreprise (spec 2026-09-18 §3.6)."""
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import SimpleTestCase, TestCase
+from django.urls import reverse
 
 from .models import Asset, Company, Country, Ownership, periods_overlap, share_overflow_year
 
@@ -140,3 +142,20 @@ class OwnershipCleanTests(TestCase):
     def test_sale_then_purchase_does_not_add_up(self):
         Ownership.objects.create(asset=self.asset, company=self.acme, share=1, end_year=2023)
         self._clean(company=self.other, share=1, start_year=2024)
+
+
+class OwnershipAdminTests(TestCase):
+
+    def setUp(self):
+        self.root = get_user_model().objects.create_superuser(
+            'root', 'root@example.com', 'pass')
+        self.client.force_login(self.root)
+        self.asset = _asset('Site', _country())
+        self.company = Company.objects.create(name='Acme')
+
+    def test_creation_records_its_author(self):
+        response = self.client.post(reverse('admin:dashboard_ownership_add'), {
+            'asset': self.asset.pk, 'company': self.company.pk, 'share': '0.5',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Ownership.objects.get().created_by, self.root)

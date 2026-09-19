@@ -75,10 +75,16 @@ class OwnershipAdmin(admin.ModelAdmin):
     list_display = ('asset', 'company', 'share_percent', 'start_year', 'end_year')
     list_filter = ('company',)
     autocomplete_fields = ('asset', 'company')
+    exclude = ('created_by',)
 
     @admin.display(description='Part de détention')
     def share_percent(self, obj):
         return obj.share_label
+
+    def save_model(self, request, obj, form, change):
+        if not change and obj.created_by_id is None:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Company_Revenue)
