@@ -199,6 +199,10 @@ class FlowAdmin(admin.ModelAdmin):
     )
     list_display = ('kind', 'what', 'scope', 'origin', 'destination', 'year', 'quantity')
     list_filter = ('kind', 'scope', 'year', 'tier')
+    list_select_related = (
+        'what', 'from_asset', 'from_region', 'from_country', 'from_company',
+        'to_asset', 'to_region', 'to_country', 'to_company',
+    )
     autocomplete_fields = (
         'what', 'from_asset', 'from_region', 'from_country', 'from_company',
         'to_asset', 'to_region', 'to_country', 'to_company',
