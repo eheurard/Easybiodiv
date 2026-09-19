@@ -10,7 +10,7 @@ from django.views.decorators.http import require_GET, require_POST
 from .models import (
     Asset, Company, Company_Policy,
     Company_Revenue, Company_Revenue_Sector, Currency, DisclosureRequirement,
-    E4Assessment, Ownership, Portfolio, PortfolioHolding,
+    E4Assessment, FlowScope, Ownership, Portfolio, PortfolioHolding,
 )
 from .forms import StressTestForm, PortfolioForm, PortfolioHoldingForm
 from .services.market import get_market_data, DEFAULT_RANGE
@@ -25,6 +25,7 @@ from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
 DR_STATUS_LABELS = {s.value: s.label for s in DisclosureRequirement.Status}
 LEAP_STATUS_LABELS = {s.value: s.label for s in E4Assessment.LeapStatus}
 MATERIALITY_LABELS = {s.value: s.label for s in E4Assessment.Materiality}
+FLOW_SCOPE_LABELS = {s.value: s.label for s in FlowScope}
 
 
 SCORE_MAP = {'VL': 0.0, 'L': 0.2, 'M': 0.5, 'H': 0.7, 'VH': 1.0}
@@ -1317,7 +1318,10 @@ def _get_esg_carbon(company):
         {
             'year': year,
             'total': round(sum(scopes.values()), 2),
-            'scopes': {scope: round(value, 2) for scope, value in scopes.items()},
+            'scopes': {
+                FLOW_SCOPE_LABELS.get(scope, scope): round(value, 2)
+                for scope, value in scopes.items()
+            },
         }
         for year, scopes in flow_service.declared_emissions(company).items()
     ]

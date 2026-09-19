@@ -1587,6 +1587,13 @@ class EsgDataCarbonTests(TestCase):
         self.assertAlmostEqual(hist[0]['total'], 30.3, places=2)
         self.assertNotIn('Scope 1+2', hist[0]['scopes'])
 
+    def test_undefined_scope_uses_its_label(self):
+        from .views import _get_esg_data
+        self._carbon(2022, 'undefined', 12.0)
+        hist = _get_esg_data(self.company)['carbon']['historical']
+        self.assertIn('Non défini', hist[0]['scopes'])
+        self.assertNotIn('undefined', hist[0]['scopes'])
+
 
 class EsgDataPoliciesTests(TestCase):
 
