@@ -11,6 +11,17 @@ from dashboard.models import Asset, Flow, FlowKind, FlowScope
 
 _OUTGOING_INVENTORY_KINDS = (FlowKind.EMISSION, FlowKind.WASTE)
 
+_ENDPOINT_RELATIONS = (
+    'what', 'from_asset', 'from_region', 'from_country', 'from_company',
+    'to_asset', 'to_region', 'to_country', 'to_company',
+)
+
+
+def flows_with_endpoints():
+    """Tous les flux, avec leurs extrémités préchargées (imports/services/
+    excel_parser.py : détection des doublons de la feuille Flow)."""
+    return Flow.objects.select_related(*_ENDPOINT_RELATIONS)
+
 
 def _inventory_rows(asset_ids):
     """Lignes d'inventaire mesuré des actifs : consommations qui y entrent,

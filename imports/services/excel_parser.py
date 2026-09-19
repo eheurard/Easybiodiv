@@ -4,12 +4,13 @@ import openpyxl
 from dashboard.models import (
     Asset, CharacterizationFactor, ClimateScenario,
     Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
-    Country, Currency, ENDPOINT_ENVIRONMENT, ESG_data, FLOW_RULES, Flow, FlowKind,
+    Country, Currency, ENDPOINT_ENVIRONMENT, ESG_data, FLOW_RULES, FlowKind,
     ImpactCategory, OWNERSHIP_OVERLAP_MESSAGE, Ownership, Policy_Level,
     Policy_Subcategory, Policy_Type, REVENUE_PRODUCTION_ONLY_MESSAGE,
     ScenarioVariable, Sector, SectorCreditProfile, SubnationalRegion, SubSector,
     SUPPLY_SELF_LOOP_MESSAGE, periods_overlap, share_overflow_message, share_overflow_year,
 )
+from dashboard.services.flows import flows_with_endpoints
 from .cells import parse_int, parse_number, parse_optional_year, parse_share
 from .constants import (
     AT_LEAST_ONE_OF, CHOICE_FIELDS, DUPLICATE_CRITERIA, ENDPOINT_TYPE_MODEL_KEYS,
@@ -334,11 +335,7 @@ def _flow_end(flow, side):
 
 def _existing_flow_keys():
     keys = set()
-    rows = Flow.objects.select_related(
-        'what', 'from_asset', 'from_region', 'from_country', 'from_company',
-        'to_asset', 'to_region', 'to_country', 'to_company',
-    )
-    for flow in rows:
+    for flow in flows_with_endpoints():
         keys.add((
             flow.kind.lower(), flow.what.name.lower(), flow.scope.lower(),
             *_flow_end(flow, 'from'), *_flow_end(flow, 'to'), str(flow.year),
