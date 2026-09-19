@@ -77,8 +77,12 @@ easybiodiv/
 ├── dashboard/               # cœur métier : modèles, vues agrégées, LEAP, Portfolio
 │   ├── services/            # logique métier extraite (market, stress_test…)
 │   ├── management/ migrations/ golden/ static/ templates/
+│   ├── testing.py           # fabriques make_* pour les tests (hors collecte pytest)
 │   ├── tests.py             # gros fichier de tests historique
 │   ├── tests_admin_console.py
+│   ├── tests_backup.py
+│   ├── tests_flow.py
+│   ├── tests_ownership.py
 │   └── tests_stress_test.py
 ├── imports/                 # Upload Excel, parsing, validation, mapping
 │   ├── services/ templates/
@@ -214,7 +218,10 @@ vues uniquement, sans trace d'import persistée).
 - Organisation : un dossier `tests/` par app pour `authentication` et `imports`
   (`test_models.py`, `test_views.py`, `test_forms.py`…). `dashboard` utilise encore
   des fichiers plats à la racine de l'app (`tests.py`, `tests_admin_console.py`,
-  `tests_stress_test.py`) — d'où le `python_files` élargi dans `pytest.ini`.
+  `tests_stress_test.py`, `tests_flow.py`, `tests_ownership.py`, `tests_backup.py`)
+  — d'où le `python_files` élargi dans `pytest.ini`. `dashboard/testing.py` porte
+  les fabriques `make_*` utilisées par ces tests ; il ne correspond à aucun de ces
+  motifs et n'est donc jamais collecté comme fichier de tests.
 - La config de collecte vit dans `pytest.ini`. Elle exclut volontairement le motif
   `*_test.py`, qui ramasserait `dashboard/services/stress_test.py` (code de production).
 - **Fixtures** : `pytest` fixtures + `factory_boy` (installé ; aucune factory écrite
