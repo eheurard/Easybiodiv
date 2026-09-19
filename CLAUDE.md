@@ -37,7 +37,7 @@ risques biodiversité.
 | Frontend           | **HTML5 + CSS3 + JavaScript natif** — **aucun framework JS** (pas de React/Vue/HTMX si non-strictement requis) |
 | Cartographie       | **Leaflet.js** (chargé en local ou CDN)                               |
 | Graphiques         | Chart.js (CDN) — sinon `<canvas>` natif                                |
-| Base de données    | **SQLite** en dev → migration **PostgreSQL + PostGIS** en prod         |
+| Base de données    | **SQLite** en dev **et en prod** (o2switch, voir `docs/deploiement-production.md`) ; code gardé compatible PostgreSQL |
 | Hébergement cible  | **cPanel** (Passenger / WSGI Python)                                  |
 | Dev local          | venv + `runserver`                                                    |
 | Tests              | **Django TestCase + pytest-django**                                   |
@@ -104,7 +104,7 @@ l'environnement python est ./venv/scripts/activate.ps1
 
 ## 4. Modèle de données — principes
 
-Tous les modèles métier vivent dans **`dashboard/models.py`** (~33 modèles).
+Tous les modèles métier vivent dans **`dashboard/models.py`** (~28 modèles).
 `authentication` ne porte que `User` ; **`imports` n'a aucun modèle** (parsing et
 vues uniquement, sans trace d'import persistée).
 
@@ -117,28 +117,36 @@ vues uniquement, sans trace d'import persistée).
   sectoriel passe par `Company_Revenue_Sector` → `SubSector` → `Sector`.
 - `Asset` : **l'entité géolocalisée** (c'est elle, et non une « Site »), avec
   `latitude` / `longitude` en `FloatField`, rattachée à `Country` et
-  `SubnationalRegion`. Le lien Asset ↔ Company passe par `Ownership`.
+  `SubnationalRegion`. Le lien Asset ↔ Company passe par `Ownership` : part décimale
+  (`share`, entre 0 et 1) et années de validité (`start_year`, `end_year`). Lire le
+  périmètre d'une entreprise avec `Asset.objects.owned_by(company, year=None)`.
 - `Country`, `SubnationalRegion`, `Commodity`, `Sector`, `SubSector`, `Currency` :
   tables de référence.
 
 ### Activité et finance
 
-- `Production` : production d'une `Commodity` par un `Asset`, pour une `Company`,
-  localisée (`country`, `subnational_region`).
+- `Flow` : table unique des flux (spec
+  `docs/superpowers/specs/2026-09-18-table-flow-unique-design.md`). Une ligne = une
+  quantité d'une commodité (`what`), une année, d'une origine (`from_*`) vers une
+  destination (`to_*`) : actif, région, pays, entreprise, milieu
+  (`*_environment`) ou vide (inconnu). `kind` : PRODUCTION, SUPPLY, CONSUMPTION,
+  EMISSION, WASTE ; les extrémités autorisées par nature sont dans `FLOW_RULES`,
+  qui génère les contraintes en base. Lecture **uniquement** via
+  `dashboard/services/flows.py`.
 - `Company_Revenue` / `Company_Revenue_Sector` : chiffre d'affaires, global et
   ventilé par `SubSector`.
 - `Policy_Type` → `Policy_Subcategory` → `Policy_Level`, appliqués via
   `Company_Policy` : cadre réglementaire (EUDR, CSRD/ESRS E4, taxe biodiversité…).
-- `ESG_data`, `Carbon_emission` : indicateurs extra-financiers par entreprise.
+- `ESG_data` : indicateurs extra-financiers par entreprise. Les émissions déclarées
+  sont des flux EMISSION de l'entreprise vers le milieu, avec leur `scope`.
 
 ### Impacts (chaîne ACV)
 
 - `ImpactMethod` → `ImpactCategory` → `CharacterizationFactor` : facteurs de
   caractérisation régionalisés (impact par unité de `Commodity`).
-- `Flow` + `AssetInventory` : flux physiques mesurés à l'échelle asset
-  (eau, énergie, CO₂, déchets, surface).
-- `SupplyNode` + `Exchange` : graphe d'approvisionnement dirigé
-  (fournisseur → consommateur), à résolution variable asset/région/pays.
+- Inventaire mesuré (eau, énergie, CO₂, déchets, surface) et approvisionnement :
+  flux `Flow` (CONSUMPTION, EMISSION, WASTE, SUPPLY). Les commodités techniques
+  lues par le code ont une `Commodity.key` (`TECHNICAL_COMMODITIES`).
 
 ### Conformité et risque
 
@@ -155,15 +163,15 @@ vues uniquement, sans trace d'import persistée).
 ### Conventions
 
 - `created_at` / `updated_at` ne sont présents que sur les modèles récents
-  (`E4Assessment`, `CharacterizationFactor`, `SupplyNode`, `Exchange`,
+  (`E4Assessment`, `CharacterizationFactor`, `Flow`, `Ownership`,
   `ClimateScenario`, `SectorCreditProfile`, `Portfolio`) ; `created_by` sur
-  `E4Assessment`, `Exchange` et `Portfolio`. Les tables de référence historiques
-  n'en ont pas — les ajouter sur **tout nouveau modèle métier**, sans rétrofit
-  massif de l'existant.
+  `E4Assessment`, `Flow`, `Ownership` et `Portfolio`. Les tables de référence
+  historiques n'en ont pas — les ajouter sur **tout nouveau modèle métier**, sans
+  rétrofit massif de l'existant.
 - Aucun champ `geom` PostGIS n'existe aujourd'hui : la géo passe par
   `latitude` / `longitude` sur `Asset`.
-- Nommage historique inconsistant (`Company_Revenue`, `ESG_data`, `Ownership.Asset`
-  en capitale). Ne pas propager ce style : **nouveau code en `snake_case`** pour les
+- Nommage historique inconsistant (`Company_Revenue`, `ESG_data`, `Policy_Level`).
+  Ne pas propager ce style : **nouveau code en `snake_case`** pour les
   champs et `CamelCase` sans underscore pour les classes.
 - Préférer `models.TextChoices` aux constantes brutes.
 

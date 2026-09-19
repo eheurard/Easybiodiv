@@ -74,9 +74,10 @@ automatiquement.
 
 ## 5. Déployer
 
-Le déploiement est piloté par `.cpanel.yml` (`migrate`, `collectstatic
---noinput`, puis `touch tmp/restart.txt`) : les statiques sont donc recollectées
-à chaque déploiement, y compris `dashboard/css/admin-easybiodiv.css`, le fichier
+Le déploiement est piloté par `.cpanel.yml` (`backup_sqlite`, `migrate`,
+`collectstatic --noinput`, puis `touch tmp/restart.txt`) : les statiques sont
+donc recollectées à chaque déploiement, y compris
+`dashboard/css/admin-easybiodiv.css`, le fichier
 propre à la console de données, en supplément de ceux de
 `django.contrib.admin`. Dans cPanel : **Git Version Control → Update from
 Remote**.
@@ -98,9 +99,31 @@ git status --porcelain     # chaque ligne retournée bloque le déploiement
 
 ## 6. Migrations futures
 
-Après transfert du code, `migrate` tourne automatiquement via `.cpanel.yml`.
-Sauvegarder la base avant toute migration destructive : sur SQLite il n'y a pas
-de restauration à un point dans le temps, seulement la dernière copie du cron.
+Après transfert du code, `.cpanel.yml` lance d'abord `python manage.py
+backup_sqlite`, qui écrit une copie cohérente de la base dans
+`db.sqlite3.pre-deploy` (API `backup` de SQLite, sûre en mode WAL), puis
+`migrate`. Ce fichier est écrasé à chaque déploiement : il ne protège que le
+dernier. Il est ignoré par git (`*.sqlite3.pre-deploy`), il ne bloque donc pas
+les déploiements suivants.
+
+Retour arrière après une migration ratée : revenir au commit précédent, arrêter
+l'application, remplacer `db.sqlite3` par `db.sqlite3.pre-deploy` et supprimer
+`db.sqlite3-wal` et `db.sqlite3-shm`, puis redémarrer (`touch tmp/restart.txt`).
+
+### Refonte de la table Flow (septembre 2026)
+
+Le déploiement de `feat/table-flow` supprime, sans les recopier, les données de
+`Production`, `AssetInventory`, `SupplyNode`, `Exchange`, `Carbon_emission` et
+`Ownership` (spec `docs/superpowers/specs/2026-09-18-table-flow-unique-design.md`,
+décision 2).
+
+1. Déployer à un moment calme : Git Version Control → Update from Remote.
+2. Vérifier dans le journal de déploiement la ligne `Sauvegarde écrite :`.
+3. Télécharger le nouveau modèle Excel depuis `/imports/`, remplir les feuilles
+   `Ownership` et `Flow` (et `Commodity` si besoin), puis importer.
+
+Entre les étapes 1 et 3, les pages affichent des entreprises sans production ni
+émission.
 
 ## 7. Développement local
 

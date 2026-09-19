@@ -12,6 +12,7 @@ deployment:
   tasks:
     - export VENV=/home/heel8455/virtualenv/repositories/Easybiodiv/3.12/bin
     - /bin/mkdir -p tmp
+    - $VENV/python manage.py backup_sqlite
     - $VENV/python manage.py migrate --noinput
     - $VENV/python manage.py collectstatic --noinput
     - /bin/touch tmp/restart.txt
