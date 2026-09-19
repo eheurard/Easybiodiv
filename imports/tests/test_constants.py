@@ -7,9 +7,9 @@ et que les tables restent mutuellement cohérentes.
 from django.apps import apps
 from django.test import SimpleTestCase, TestCase
 
-from dashboard.models import Asset, ClimateScenario, ScenarioVariable
+from dashboard.models import Asset, ClimateScenario, Flow, LOCATED_ENDPOINTS, ScenarioVariable
 from imports.services.constants import (
-    AT_LEAST_ONE_OF, CHOICE_FIELDS, DUPLICATE_CRITERIA, FK_FIELDS, IMPORT_ORDER,
+    AT_LEAST_ONE_OF, CHOICE_FIELDS, DUPLICATE_CRITERIA, ENDPOINT_TYPES, FK_FIELDS, IMPORT_ORDER,
     MODEL_KEY_TO_SOURCE, REQUIRED_FIELDS, SHEET_COLUMNS,
 )
 from imports.services.excel_parser import _EXISTING_KEY_QUERIES
@@ -40,13 +40,25 @@ class ChoiceFieldsMatchModelTest(SimpleTestCase):
             CHOICE_FIELDS['ScenarioVariable']['key'],
             _model_choice_values(ScenarioVariable, 'key'))
 
+    def test_flow_kind(self):
+        self.assertEqual(CHOICE_FIELDS['Flow']['kind'], _model_choice_values(Flow, 'kind'))
+
+    def test_flow_scope(self):
+        self.assertEqual(CHOICE_FIELDS['Flow']['scope'], _model_choice_values(Flow, 'scope'))
+
+    def test_endpoint_types_cover_the_model(self):
+        self.assertEqual(
+            [t for t in ENDPOINT_TYPES if t != 'milieu'], list(LOCATED_ENDPOINTS))
+
 
 class SheetColumnsMatchModelTest(SimpleTestCase):
     """Une colonne sans champ correspondant fait planter l'import au premier
     objects.create() : c'est ce qui est arrivé quand la migration 0048 a retiré
     `description` de SubnationalRegion, Sector et SubSector."""
 
-    FILE_LOCAL_COLUMNS = {}
+    # Colonnes volontairement sans champ : la feuille Flow décrit chaque extrémité
+    # par un type et un nom, traduits vers les clés étrangères à l'import.
+    FILE_LOCAL_COLUMNS = {'Flow': {'from_type', 'from_name', 'to_type', 'to_name'}}
 
     def test_every_column_maps_to_a_model_field(self):
         for sheet_name, columns in SHEET_COLUMNS.items():

@@ -7,7 +7,7 @@ from dashboard.models import (
     ImpactCategory, Policy_Level, Policy_Subcategory, Policy_Type, Sector,
     SubnationalRegion, SubSector,
 )
-from .constants import CHOICE_FIELDS, SHEET_COLUMNS
+from .constants import CHOICE_FIELDS, ENDPOINT_TYPES, SHEET_COLUMNS
 
 _HEADER_FILL = PatternFill(start_color='1F7A4A', end_color='1F7A4A', fill_type='solid')
 _HEADER_FONT = Font(bold=True, color='FFFFFF')
@@ -62,13 +62,22 @@ def _write_column(ws, col_idx, title, sections):
         row += 1
 
 
+def _commodity_label(commodity):
+    """« CO₂ — tCO₂e — co2 » : nom, unité et, s'il y en a une, clé technique."""
+    parts = [commodity.name, commodity.unit]
+    if commodity.key:
+        parts.append(commodity.key)
+    return ' — '.join(parts)
+
+
 def _build_reference_sheet(wb):
     ws = wb.create_sheet('_Référence')
 
     db_sections = [
         ('Countries', Country.objects.values_list('name', flat=True)),
         ('SubnationalRegions', SubnationalRegion.objects.values_list('name', flat=True)),
-        ('Commodities', Commodity.objects.values_list('name', flat=True)),
+        ('Commodities (nom — unité — clé)',
+         [_commodity_label(c) for c in Commodity.objects.order_by('name')]),
         ('ImpactCategories (category_key)',
          ImpactCategory.objects.values_list('key', flat=True)),
         ('Policy_Types', Policy_Type.objects.values_list('name', flat=True)),
@@ -84,6 +93,9 @@ def _build_reference_sheet(wb):
     ]
 
     enum_sections = [
+        ("Flow — kind", CHOICE_FIELDS['Flow']['kind']),
+        ("Flow — scope (vide = undefined)", CHOICE_FIELDS['Flow']['scope']),
+        ("Flow — from_type / to_type (vide = inconnu)", ENDPOINT_TYPES),
         ("Asset — type", CHOICE_FIELDS['Asset']['type']),
         ("Asset — sensitive_zone_type", CHOICE_FIELDS['Asset']['sensitive_zone_type']),
         ("ClimateScenario — family", CHOICE_FIELDS['ClimateScenario']['family']),

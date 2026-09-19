@@ -67,6 +67,14 @@ SHEET_COLUMNS = {
         'near_sensitive_zone', 'sensitive_zone_type', 'sensitive_zone_name',
         'sensitive_zone_area_ha',
     ],
+    # Flux : une quantité d'une commodité, une année, d'une origine vers une
+    # destination. from_type / to_type : asset, region, country, company, milieu,
+    # ou vide (inconnu) ; *_name reste vide pour milieu et inconnu. `what` accepte
+    # le nom ou la clé technique de la commodité.
+    'Flow': [
+        'kind', 'what', 'scope', 'from_type', 'from_name', 'to_type', 'to_name',
+        'year', 'quantity', 'tier', 'estimated_revenue', 'source', 'reference',
+    ],
     # ── Données d'entreprise ──────────────────────────────────────────────────
     'Ownership': ['asset_name', 'company_name', 'share', 'start_year', 'end_year', 'description'],
     'Company_Revenue': ['company_name', 'year', 'revenue', 'currency'],
@@ -124,6 +132,7 @@ REQUIRED_FIELDS = {
     'SectorCreditProfile': ['sector_name'],
     'Company': ['name'],
     'Asset': ['name', 'latitude', 'longitude', 'country_name'],
+    'Flow': ['kind', 'what', 'year', 'quantity'],
     'Ownership': ['asset_name', 'company_name', 'share'],
     'Company_Revenue': ['company_name', 'year', 'revenue', 'currency'],
     'Company_Revenue_Sector': ['company_name', 'subsector_name', 'sector_name', 'year', 'revenue'],
@@ -152,6 +161,7 @@ DUPLICATE_CRITERIA = {
     'SectorCreditProfile': ['sector_name'],
     'Company': ['name'],
     'Asset': ['name', 'country_name'],
+    'Flow': ['kind', 'what', 'scope', 'from_type', 'from_name', 'to_type', 'to_name', 'year'],
     'Ownership': ['asset_name', 'company_name', 'start_year'],
     'Company_Revenue': ['company_name', 'year'],
     'Company_Revenue_Sector': ['company_name', 'subsector_name', 'year'],
@@ -166,6 +176,22 @@ DUPLICATE_CRITERIA = {
 # Colonnes dont au moins une doit être renseignée. Reflète les contraintes que
 # le modèle porte dans clean() — non appelé par objects.create().
 AT_LEAST_ONE_OF = {}
+
+# Types d'extrémité de la feuille Flow. Les quatre premiers reprennent les
+# constantes ENDPOINT_* du modèle ; 'milieu' correspond à ENDPOINT_ENVIRONMENT.
+ENDPOINT_TYPES = ['asset', 'region', 'country', 'company', 'milieu']
+
+# Type d'extrémité → clé du dictionnaire de résolution des noms (lookup).
+ENDPOINT_TYPE_MODEL_KEYS = {
+    'asset': 'asset',
+    'region': 'subnational_region',
+    'country': 'country',
+    'company': 'company',
+}
+
+# Feuilles remplacées par Flow (spec 2026-09-18 §6.1) : un classeur qui les
+# contient encore reçoit une erreur explicite au lieu d'être ignoré.
+REMOVED_SHEETS = ['Production', 'AssetInventory', 'SupplyNode', 'Exchange', 'Carbon_emission']
 
 # Colonnes dont la valeur doit appartenir à une énumération. Comparaison
 # insensible à la casse ; une cellule vide est toujours acceptée (défaut modèle).
@@ -183,13 +209,19 @@ CHOICE_FIELDS = {
         'family': ['ORDERLY', 'DISORDERLY', 'TOO_LITTLE', 'HOT_HOUSE'],
     },
     'ScenarioVariable': {'key': ['carbon_price', 'hazard_multiplier']},
+    'Flow': {
+        'kind': ['PRODUCTION', 'SUPPLY', 'CONSUMPTION', 'EMISSION', 'WASTE'],
+        'scope': ['Scope 1', 'Scope 2', 'Scope 3', 'Scope 1+2', 'Scope 1+2+3', 'undefined'],
+        'from_type': ENDPOINT_TYPES,
+        'to_type': ENDPOINT_TYPES,
+    },
 }
 
 IMPORT_ORDER = [
     'Country', 'SubnationalRegion', 'Commodity', 'CharacterizationFactor',
     'Policy_Type', 'Policy_Subcategory', 'Policy_Level',
     'Currency', 'Sector', 'SubSector', 'SectorCreditProfile',
-    'Company', 'Asset',
+    'Company', 'Asset', 'Flow',
     'Ownership', 'Company_Revenue', 'Company_Revenue_Sector', 'Company_Policy',
     'ESG_data',
     'ClimateScenario', 'ScenarioVariable',

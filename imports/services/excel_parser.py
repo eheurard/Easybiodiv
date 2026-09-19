@@ -4,15 +4,16 @@ import openpyxl
 from dashboard.models import (
     Asset, CharacterizationFactor, ClimateScenario,
     Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
-    Country, Currency, ESG_data, ImpactCategory, OWNERSHIP_OVERLAP_MESSAGE,
-    Ownership, Policy_Level, Policy_Subcategory, Policy_Type,
+    Country, Currency, ENDPOINT_ENVIRONMENT, ESG_data, FLOW_RULES, Flow, FlowKind,
+    ImpactCategory, OWNERSHIP_OVERLAP_MESSAGE, Ownership, Policy_Level,
+    Policy_Subcategory, Policy_Type, REVENUE_PRODUCTION_ONLY_MESSAGE,
     ScenarioVariable, Sector, SectorCreditProfile, SubnationalRegion, SubSector,
-    periods_overlap, share_overflow_message, share_overflow_year,
+    SUPPLY_SELF_LOOP_MESSAGE, periods_overlap, share_overflow_message, share_overflow_year,
 )
 from .cells import parse_optional_year, parse_share
 from .constants import (
-    AT_LEAST_ONE_OF, CHOICE_FIELDS, DUPLICATE_CRITERIA, FK_FIELDS,
-    MODEL_KEY_TO_SOURCE, REQUIRED_FIELDS, SHEET_COLUMNS,
+    AT_LEAST_ONE_OF, CHOICE_FIELDS, DUPLICATE_CRITERIA, ENDPOINT_TYPE_MODEL_KEYS,
+    FK_FIELDS, MODEL_KEY_TO_SOURCE, REMOVED_SHEETS, REQUIRED_FIELDS, SHEET_COLUMNS,
 )
 
 
@@ -24,9 +25,18 @@ def parse_file(source):
     wb = openpyxl.load_workbook(source)
     file_names = _collect_file_names(wb)
     db_name_cache = _build_db_name_cache()
-    context = _build_row_check_context()
+    context = _build_row_check_context(wb, file_names, db_name_cache)
 
     result = {}
+    for sheet_name in REMOVED_SHEETS:
+        if sheet_name in wb.sheetnames:
+            result[sheet_name] = [{
+                'status': 'error',
+                'message': (
+                    f"La feuille {sheet_name} n'existe plus : utilisez la feuille Flow."
+                ),
+                'data': {},
+            }]
     for sheet_name in SHEET_COLUMNS:
         if sheet_name not in wb.sheetnames:
             continue
@@ -130,6 +140,8 @@ _EXISTING_KEY_QUERIES = {
 
 def _existing_keys(sheet_name):
     """Return the set of existing duplicate-key tuples from the DB."""
+    if sheet_name in _DUPLICATE_KEYS:
+        return _DUPLICATE_KEYS[sheet_name][1]()
     entry = _EXISTING_KEY_QUERIES.get(sheet_name)
     if entry is None:
         return set()
@@ -149,10 +161,40 @@ def _choice_error(sheet_name, data):
     return None
 
 
-def _build_row_check_context():
+def _sheet_values(wb, sheet_name, columns):
+    """Valeurs texte des colonnes demandées d'une feuille, une tuple par ligne."""
+    if sheet_name not in wb.sheetnames:
+        return []
+    ws = wb[sheet_name]
+    header = [c.value for c in ws[1]]
+    indexes = [header.index(c) if c in header else None for c in columns]
+    values = []
+    for row in ws.iter_rows(min_row=2):
+        values.append(tuple(
+            str(row[i].value).strip()
+            if i is not None and i < len(row) and row[i].value is not None else ''
+            for i in indexes
+        ))
+    return values
+
+
+def _build_row_check_context(wb, file_names, db_name_cache):
     """État partagé par les contrôles propres à une feuille (voir _ROW_CHECKS)
     pendant toute l'analyse d'un classeur."""
+    commodity_names = {}  # nom ou clé, en minuscules -> nom de la commodité
+    for name, key in Commodity.objects.values_list('name', 'key'):
+        commodity_names[name.lower()] = name.lower()
+        if key:
+            commodity_names[key.lower()] = name.lower()
+    for name, key in _sheet_values(wb, 'Commodity', ('name', 'key')):
+        if name:
+            commodity_names.setdefault(name.lower(), name.lower())
+            if key:
+                commodity_names.setdefault(key.lower(), name.lower())
     return {
+        'file_names': file_names,
+        'db_name_cache': db_name_cache,
+        'commodity_names': commodity_names,
         'commodity_key_owner': {
             key.lower(): name.lower()
             for name, key in Commodity.objects.exclude(key=None).values_list('name', 'key')
@@ -195,11 +237,102 @@ def _ownership_row_error(data, context):
     return None
 
 
+def _sheet_endpoint(value):
+    """Type d'extrémité du classeur → type du modèle ('milieu' → environment,
+    vide → None)."""
+    value = (value or '').strip().lower()
+    if not value:
+        return None
+    return ENDPOINT_ENVIRONMENT if value == 'milieu' else value
+
+
+def _flow_row_error(data, context):
+    """Contrôles de la feuille Flow (spec §6.1) : commodité, extrémités, puis
+    règles FLOW_RULES avec le message même de la contrainte en base."""
+    if data['what'].strip().lower() not in context['commodity_names']:
+        return f"Commodité introuvable pour 'what' : '{data['what']}' (nom ou clé)"
+    for side in ('from', 'to'):
+        endpoint_type = data.get(f'{side}_type', '').strip().lower()
+        name = data.get(f'{side}_name', '').strip()
+        if endpoint_type in ('', 'milieu'):
+            if name:
+                shown = endpoint_type or 'vide'
+                return f"'{side}_name' doit rester vide quand '{side}_type' vaut « {shown} »"
+            continue
+        if not name:
+            return f"'{side}_name' est obligatoire quand '{side}_type' vaut « {endpoint_type} »"
+        model_key = ENDPOINT_TYPE_MODEL_KEYS[endpoint_type]
+        if not _can_resolve(model_key, name, context['file_names'], context['db_name_cache']):
+            return f"Valeur introuvable pour '{side}_name' : '{name}'"
+    kind = data['kind'].strip().upper()
+    rule = FLOW_RULES[kind]
+    origin = _sheet_endpoint(data.get('from_type'))
+    destination = _sheet_endpoint(data.get('to_type'))
+    if origin not in rule.origins or destination not in rule.destinations:
+        return rule.message
+    same_place = (
+        origin is not None and origin == destination
+        and data['from_name'].strip().lower() == data['to_name'].strip().lower()
+    )
+    if kind == FlowKind.SUPPLY.value and same_place:
+        return SUPPLY_SELF_LOOP_MESSAGE
+    if data.get('estimated_revenue') and kind != FlowKind.PRODUCTION.value:
+        return REVENUE_PRODUCTION_ONLY_MESSAGE
+    return None
+
+
+def _flow_duplicate_key(data, context):
+    """Clé de doublon normalisée : `what` ramené au nom de la commodité, scope
+    vide = 'undefined'."""
+    what = data['what'].strip().lower()
+    return (
+        data['kind'].strip().lower(),
+        context['commodity_names'].get(what, what),
+        (data.get('scope') or 'undefined').strip().lower(),
+        data.get('from_type', '').strip().lower(),
+        data.get('from_name', '').strip().lower(),
+        data.get('to_type', '').strip().lower(),
+        data.get('to_name', '').strip().lower(),
+        data.get('year', '').strip(),
+    )
+
+
+def _flow_end(flow, side):
+    """(type du classeur, nom en minuscules) d'une extrémité d'un Flow en base."""
+    endpoint = flow.origin_type if side == 'from' else flow.destination_type
+    if endpoint is None:
+        return '', ''
+    if endpoint == ENDPOINT_ENVIRONMENT:
+        return 'milieu', ''
+    return endpoint, getattr(flow, f'{side}_{endpoint}').name.lower()
+
+
+def _existing_flow_keys():
+    keys = set()
+    rows = Flow.objects.select_related(
+        'what', 'from_asset', 'from_region', 'from_country', 'from_company',
+        'to_asset', 'to_region', 'to_country', 'to_company',
+    )
+    for flow in rows:
+        keys.add((
+            flow.kind.lower(), flow.what.name.lower(), flow.scope.lower(),
+            *_flow_end(flow, 'from'), *_flow_end(flow, 'to'), str(flow.year),
+        ))
+    return keys
+
+
 # Contrôles propres à une feuille, appliqués ligne par ligne après les
 # énumérations et avant la détection des doublons.
 _ROW_CHECKS = {
     'Commodity': _commodity_row_error,
     'Ownership': _ownership_row_error,
+    'Flow': _flow_row_error,
+}
+
+# Feuilles dont la clé de doublon demande une normalisation : (clé du fichier,
+# clés existantes en base).
+_DUPLICATE_KEYS = {
+    'Flow': (_flow_duplicate_key, _existing_flow_keys),
 }
 
 
@@ -318,7 +451,10 @@ def _parse_sheet(ws, sheet_name, file_names, db_name_cache, context):
             continue
 
         # Duplicate check
-        key = tuple(data.get(f, '').strip().lower() for f in dup_criteria)
+        if sheet_name in _DUPLICATE_KEYS:
+            key = _DUPLICATE_KEYS[sheet_name][0](data, context)
+        else:
+            key = tuple(data.get(f, '').strip().lower() for f in dup_criteria)
         if key in existing or key in seen:
             rows_out.append({'status': 'duplicate', 'data': data})
         else:

@@ -4,12 +4,12 @@ from django.db import transaction
 from dashboard.models import (
     Asset, CharacterizationFactor, ClimateScenario,
     Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
-    Country, Currency, ESG_data, ImpactCategory, Ownership,
+    Country, Currency, ESG_data, Flow, FlowScope, ImpactCategory, Ownership,
     Policy_Level, Policy_Subcategory, Policy_Type, ScenarioVariable,
     Sector, SectorCreditProfile, SubnationalRegion, SubSector,
 )
 from .cells import parse_optional_year, parse_share
-from .constants import IMPORT_ORDER
+from .constants import ENDPOINT_TYPE_MODEL_KEYS, IMPORT_ORDER
 
 
 @transaction.atomic
@@ -62,6 +62,11 @@ def _b(val, default=False):
 
 def _s(val, default=''):
     return val if val else default
+
+
+def _tier(val):
+    """Clamp a tier cell to the model's 0–3 range."""
+    return min(3, max(0, _i(val)))
 
 
 def _get(lookup, model_key, name):
@@ -517,6 +522,48 @@ def _import_scenario_variable(rows, lookup):
     return created
 
 
+# 'scope 1' → 'Scope 1' : le classeur accepte n'importe quelle casse.
+_SCOPES = {scope.lower(): scope for scope in FlowScope.values}
+
+
+def _endpoint_kwargs(side, d, lookup):
+    """Champs d'une extrémité de Flow : {} si vide, None si le nom est introuvable."""
+    endpoint_type = (d.get(f'{side}_type') or '').strip().lower()
+    if endpoint_type == 'milieu':
+        return {f'{side}_environment': True}
+    if not endpoint_type:
+        return {}
+    target = _get(lookup, ENDPOINT_TYPE_MODEL_KEYS[endpoint_type], d.get(f'{side}_name', ''))
+    return {f'{side}_{endpoint_type}': target} if target else None
+
+
+def _import_flow(rows, lookup):
+    created = 0
+    for r in rows:
+        d = r['data']
+        alias = d['what'].strip().lower()
+        what = lookup['commodity'].get(alias) or lookup['commodity_key'].get(alias)
+        origin = _endpoint_kwargs('from', d, lookup)
+        destination = _endpoint_kwargs('to', d, lookup)
+        if what is None or origin is None or destination is None:
+            continue
+        revenue = d.get('estimated_revenue')
+        Flow.objects.create(
+            kind=d['kind'].strip().upper(),
+            what=what,
+            scope=_SCOPES.get((d.get('scope') or '').strip().lower(), FlowScope.UNDEFINED),
+            year=_i(d.get('year')),
+            quantity=_f(d.get('quantity')),
+            tier=_tier(d.get('tier')),
+            estimated_revenue=_f(revenue) if revenue else None,
+            source=_s(d.get('source')),
+            reference=_s(d.get('reference')),
+            **origin, **destination,
+        )
+        created += 1
+    return created
+
+
 _IMPORTERS = {
     'Country': _import_country,
     'SubnationalRegion': _import_subnational_region,
@@ -531,6 +578,7 @@ _IMPORTERS = {
     'SectorCreditProfile': _import_sector_credit_profile,
     'Company': _import_company,
     'Asset': _import_asset,
+    'Flow': _import_flow,
     'Ownership': _import_ownership,
     'Company_Revenue': _import_company_revenue,
     'Company_Revenue_Sector': _import_company_revenue_sector,
