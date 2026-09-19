@@ -2,8 +2,8 @@ import openpyxl
 from django.test import TestCase
 
 from dashboard.models import (
-    FLOW_RULES, REVENUE_PRODUCTION_ONLY_MESSAGE, Asset, Commodity, Company, Country, Flow,
-    FlowKind,
+    FLOW_RULES, REVENUE_PRODUCTION_ONLY_MESSAGE, SUPPLY_SELF_LOOP_MESSAGE, Asset, Commodity,
+    Company, Country, Flow, FlowKind,
 )
 from imports.services.excel_parser import parse_file
 from imports.services.excel_template import build_template
@@ -113,3 +113,47 @@ class FlowSheetTests(TestCase):
         parsed = self._parse(self._row(tier='9'))
         save_import(parsed)
         self.assertEqual(Flow.objects.get().tier, 3)
+
+    def test_comma_decimal_quantity_is_imported(self):
+        parsed = self._parse(self._row(quantity='12,5'))
+        self.assertEqual(parsed['Flow'][0]['status'], 'ok')
+        save_import(parsed)
+        self.assertEqual(Flow.objects.get().quantity, 12.5)
+
+    def test_invalid_year_is_error(self):
+        row = self._parse(self._row(year='FY2024'))['Flow'][0]
+        self.assertEqual(row['status'], 'error')
+        self.assertIn('year', row['message'])
+
+    def test_invalid_quantity_is_error(self):
+        row = self._parse(self._row(quantity='abc'))['Flow'][0]
+        self.assertEqual(row['status'], 'error')
+        self.assertIn('quantity', row['message'])
+
+    def test_invalid_tier_is_error(self):
+        row = self._parse(self._row(
+            kind='PRODUCTION', from_type='asset', from_name='Mine', to_type='', to_name='',
+            tier='deux'))['Flow'][0]
+        self.assertEqual(row['status'], 'error')
+        self.assertIn('tier', row['message'])
+
+    def test_invalid_estimated_revenue_is_error(self):
+        row = self._parse(self._row(
+            kind='PRODUCTION', from_type='asset', from_name='Mine', to_type='', to_name='',
+            estimated_revenue='n/a'))['Flow'][0]
+        self.assertEqual(row['status'], 'error')
+        self.assertIn('estimated_revenue', row['message'])
+
+    def test_supply_self_loop_is_error(self):
+        row = self._parse(self._row(
+            from_type='asset', from_name='Mine', to_type='asset', to_name='Mine'))['Flow'][0]
+        self.assertEqual(row['status'], 'error')
+        self.assertEqual(row['message'], SUPPLY_SELF_LOOP_MESSAGE)
+
+    def test_duplicate_row_within_the_same_file_is_duplicate(self):
+        rows = self._parse(self._row(), self._row())['Flow']
+        self.assertEqual([r['status'] for r in rows], ['ok', 'duplicate'])
+
+    def test_uppercase_endpoint_type_is_accepted(self):
+        row = self._parse(self._row(from_type='ASSET', from_name='Mine'))['Flow'][0]
+        self.assertEqual(row['status'], 'ok')

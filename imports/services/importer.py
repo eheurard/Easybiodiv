@@ -8,7 +8,7 @@ from dashboard.models import (
     Policy_Level, Policy_Subcategory, Policy_Type, ScenarioVariable,
     Sector, SectorCreditProfile, SubnationalRegion, SubSector,
 )
-from .cells import parse_optional_year, parse_share
+from .cells import parse_int, parse_number, parse_optional_year, parse_share
 from .constants import ENDPOINT_TYPE_MODEL_KEYS, IMPORT_ORDER
 
 
@@ -66,7 +66,7 @@ def _s(val, default=''):
 
 def _tier(val):
     """Clamp a tier cell to the model's 0–3 range."""
-    return min(3, max(0, _i(val)))
+    return min(3, max(0, parse_int(val) if val else 0))
 
 
 def _get(lookup, model_key, name):
@@ -552,10 +552,10 @@ def _import_flow(rows, lookup):
             kind=d['kind'].strip().upper(),
             what=what,
             scope=_SCOPES.get((d.get('scope') or '').strip().lower(), FlowScope.UNDEFINED),
-            year=_i(d.get('year')),
-            quantity=_f(d.get('quantity')),
+            year=parse_int(d.get('year')),
+            quantity=parse_number(d.get('quantity')),
             tier=_tier(d.get('tier')),
-            estimated_revenue=_f(revenue) if revenue else None,
+            estimated_revenue=parse_number(revenue) if revenue else None,
             source=_s(d.get('source')),
             reference=_s(d.get('reference')),
             **origin, **destination,

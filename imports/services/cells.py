@@ -1,4 +1,5 @@
 """Lecture des cellules à format métier, partagée par l'analyseur et l'importeur."""
+import math
 from decimal import Decimal, InvalidOperation
 
 SHARE_QUANTUM = Decimal('0.0001')
@@ -38,3 +39,31 @@ def parse_optional_year(value):
     if not text:
         return None
     return int(float(text))
+
+
+def parse_number(value):
+    """Nombre : '12,5' ou '12.5' → 12.5 (virgule ou point décimal, espaces
+    ignorés).
+
+    Lève ValueError si la cellule est vide ou n'est pas un nombre fini.
+    """
+    text = str(value if value is not None else '').strip().replace(',', '.')
+    text = ''.join(text.split())
+    if not text:
+        raise ValueError('valeur vide')
+    result = float(text)
+    if not math.isfinite(result):
+        raise ValueError('valeur non finie')
+    return result
+
+
+def parse_int(value):
+    """Entier : '2024' ou '2024.0' → 2024.
+
+    Lève ValueError si la cellule est vide, non numérique, ou porte une partie
+    décimale non nulle ('2024.5', 'FY2024').
+    """
+    number = parse_number(value)
+    if not number.is_integer():
+        raise ValueError(f"'{value}' n'est pas un entier")
+    return int(number)

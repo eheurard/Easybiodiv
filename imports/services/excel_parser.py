@@ -10,7 +10,7 @@ from dashboard.models import (
     ScenarioVariable, Sector, SectorCreditProfile, SubnationalRegion, SubSector,
     SUPPLY_SELF_LOOP_MESSAGE, periods_overlap, share_overflow_message, share_overflow_year,
 )
-from .cells import parse_optional_year, parse_share
+from .cells import parse_int, parse_number, parse_optional_year, parse_share
 from .constants import (
     AT_LEAST_ONE_OF, CHOICE_FIELDS, DUPLICATE_CRITERIA, ENDPOINT_TYPE_MODEL_KEYS,
     FK_FIELDS, MODEL_KEY_TO_SOURCE, REMOVED_SHEETS, REQUIRED_FIELDS, SHEET_COLUMNS,
@@ -246,11 +246,36 @@ def _sheet_endpoint(value):
     return ENDPOINT_ENVIRONMENT if value == 'milieu' else value
 
 
+# Champs numériques de la feuille Flow : lecteur et facultatif ou non (spec F1).
+_FLOW_NUMBER_FIELDS = (
+    ('year', parse_int, False),
+    ('quantity', parse_number, False),
+    ('tier', parse_int, True),
+    ('estimated_revenue', parse_number, True),
+)
+
+
+def _flow_number_error(data):
+    """Premier champ numérique illisible de la ligne, ou None si tous le sont."""
+    for field, parser, optional in _FLOW_NUMBER_FIELDS:
+        value = data.get(field, '')
+        if optional and not value:
+            continue
+        try:
+            parser(value)
+        except ValueError:
+            return f"Nombre invalide pour '{field}' : '{value}'"
+    return None
+
+
 def _flow_row_error(data, context):
-    """Contrôles de la feuille Flow (spec §6.1) : commodité, extrémités, puis
-    règles FLOW_RULES avec le message même de la contrainte en base."""
+    """Contrôles de la feuille Flow (spec §6.1) : commodité, nombres, extrémités,
+    puis règles FLOW_RULES avec le message même de la contrainte en base."""
     if data['what'].strip().lower() not in context['commodity_names']:
         return f"Commodité introuvable pour 'what' : '{data['what']}' (nom ou clé)"
+    number_error = _flow_number_error(data)
+    if number_error:
+        return number_error
     for side in ('from', 'to'):
         endpoint_type = data.get(f'{side}_type', '').strip().lower()
         name = data.get(f'{side}_name', '').strip()
