@@ -21,7 +21,7 @@ GROUPS = [
     ]),
     ('Entreprises & actifs', [
         m.Company, m.Asset, m.Ownership, m.Company_Revenue,
-        m.Company_Revenue_Sector, m.ESG_data, m.Carbon_emission,
+        m.Company_Revenue_Sector, m.ESG_data,
     ]),
     ('Flux', [m.Flow]),
     ('Impacts & inventaire (ACV)', [

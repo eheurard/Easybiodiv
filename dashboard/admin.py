@@ -4,7 +4,7 @@ from .models import (
     Asset, Company, Ownership,
     Company_Revenue, Company_Revenue_Sector,
     Policy_Type, Policy_Subcategory, Policy_Level, Company_Policy,
-    DisclosureRequirement, E4Assessment, ESG_data, Carbon_emission,
+    DisclosureRequirement, E4Assessment, ESG_data,
     Currency,
     ImpactMethod, ImpactCategory, CharacterizationFactor,
     Flow,
@@ -157,14 +157,6 @@ class E4AssessmentAdmin(admin.ModelAdmin):
             )
         }),
     )
-
-@admin.register(Carbon_emission)
-class CarbonEmissionAdmin(admin.ModelAdmin):
-    search_fields = ('company__name',)
-    list_display = ('company', 'year','scope', 'carbon_emission')
-    list_filter = ('year',)
-    autocomplete_fields = ('company',)
-
 
 @admin.register(ImpactMethod)
 class ImpactMethodAdmin(admin.ModelAdmin):

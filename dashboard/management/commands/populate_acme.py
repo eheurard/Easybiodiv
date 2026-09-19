@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from dashboard.models import (
-    Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
+    Asset, Commodity, Company, Company_Policy, Company_Revenue,
     Company_Revenue_Sector, Country, DisclosureRequirement, E4Assessment,
     Flow, FlowKind, Ownership, Policy_Level, Policy_Subcategory, Policy_Type,
     Sector, SectorCreditProfile, SubSector, SubnationalRegion,
@@ -790,10 +790,12 @@ class Command(BaseCommand):
             (2023, 'Scope 1', 23500), (2023, 'Scope 2', 13000), (2023, 'Scope 3', 74000),
             (2024, 'Scope 1', 22000), (2024, 'Scope 2', 12000), (2024, 'Scope 3', 70000),
         ]
+        co2 = Commodity.objects.technical('co2')
         for yr, scope, val in carbon_rows:
-            Carbon_emission.objects.get_or_create(
-                company=acme, year=yr, scope=scope,
-                defaults={'carbon_emission': float(val)},
+            Flow.objects.get_or_create(
+                kind=FlowKind.EMISSION, what=co2, from_company=acme,
+                to_environment=True, scope=scope, year=yr,
+                defaults={'quantity': float(val)},
             )
 
         # ── Conformité ESRS E4 (démo) ─────────────────────────────────────────

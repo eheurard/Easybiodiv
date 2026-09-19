@@ -1103,21 +1103,6 @@ class ESG_data(models.Model):
         verbose_name = 'Donnée ESG'
         verbose_name_plural = 'Données ESG'
 
-class Carbon_emission(models.Model):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, verbose_name='Entreprise')
-    year = models.IntegerField(verbose_name='Exercice')
-    scope = models.CharField(max_length=255, verbose_name='Scope')
-    carbon_emission = models.FloatField(default=0, verbose_name='Émissions (tCO₂e)')
-
-    def __str__(self):
-        return f"{self.company.name} - {self.year} - {self.scope}"
-
-    class Meta:
-        unique_together = ('company', 'year', 'scope')
-        verbose_name = 'Émission carbone'
-        verbose_name_plural = 'Émissions carbone'
-
-
 class ImpactMethod(models.Model):
     """Méthode de caractérisation LCA (ReCiPe2016, GBS, …)."""
     name = models.CharField(max_length=100, unique=True, verbose_name='Nom')

@@ -53,3 +53,11 @@ def make_supply(*, what, year, quantity, origin, destination, tier=0):
         **{f'from_{_END_FIELD[type(origin)]}': origin},
         **{f'to_{_END_FIELD[type(destination)]}': destination},
     )
+
+
+def make_declared_emission(*, company, year, scope, value):
+    """Émission déclarée par l'entreprise (ancien Carbon_emission)."""
+    return Flow.objects.create(
+        kind=FlowKind.EMISSION, what=Commodity.objects.technical('co2'),
+        from_company=company, to_environment=True, scope=scope, year=year, quantity=value,
+    )

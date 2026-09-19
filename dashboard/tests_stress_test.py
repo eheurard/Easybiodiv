@@ -19,6 +19,7 @@ from dashboard.services.stress_test import (
     resolve_credit_profile, retained_emissions, scenario_trajectory,
     scenario_value, shock_to_pd, shock_to_sigma,
 )
+from dashboard.testing import make_declared_emission
 
 
 class RetainedEmissionsTests(SimpleTestCase):
@@ -776,3 +777,40 @@ class ClimateStressTestViewTests(TestCase):
         self.client.force_login(self.user)
         url = reverse('dashboard:climate_stress_test_data', kwargs={'pk': 999999})
         self.assertEqual(self.client.get(url).status_code, 404)
+
+
+class CompanySnapshotScopesTests(TestCase):
+
+    def setUp(self):
+        self.company = Company.objects.create(name='Mine SA')
+
+    def _declare(self, scope, value, year=2024):
+        make_declared_emission(company=self.company, year=year, scope=scope, value=value)
+
+    def test_scope_1_2_counts_when_the_detail_is_missing(self):
+        self._declare('Scope 1+2', 30.0)
+        snapshot = company_snapshot(self.company, 2024)
+        self.assertEqual(snapshot['scope1'] + snapshot['scope2'], 30.0)
+        self.assertTrue(snapshot['scope12_combined'])
+
+    def test_the_detail_wins_over_the_aggregate(self):
+        self._declare('Scope 1', 20.0)
+        self._declare('Scope 2', 10.0)
+        self._declare('Scope 1+2', 30.0)
+        snapshot = company_snapshot(self.company, 2024)
+        self.assertEqual((snapshot['scope1'], snapshot['scope2']), (20.0, 10.0))
+        self.assertFalse(snapshot['scope12_combined'])
+
+    def test_an_unsplit_total_is_reported_apart(self):
+        self._declare('Scope 1+2+3', 50.0)
+        snapshot = company_snapshot(self.company, 2024)
+        self.assertEqual(snapshot['scope1'] + snapshot['scope2'] + snapshot['scope3'], 0.0)
+        self.assertEqual(snapshot['unsplit_total'], 50.0)
+
+    def test_an_unsplit_total_produces_its_own_warning(self):
+        Company_Revenue.objects.create(
+            company=self.company, year=2024, revenue=1_000_000.0, currency='EUR')
+        self._declare('Scope 1+2+3', 50.0)
+        warnings = get_stress_test_data(self.company)['warnings']
+        self.assertTrue(any('non ventilées' in w for w in warnings), warnings)
+        self.assertFalse(any("Aucune donnée d'émissions" in w for w in warnings), warnings)

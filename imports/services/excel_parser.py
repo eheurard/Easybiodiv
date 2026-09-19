@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import openpyxl
 from dashboard.models import (
-    Asset, Carbon_emission, CharacterizationFactor, ClimateScenario,
+    Asset, CharacterizationFactor, ClimateScenario,
     Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
     Country, Currency, ESG_data, ImpactCategory, OWNERSHIP_OVERLAP_MESSAGE,
     Ownership, Policy_Level, Policy_Subcategory, Policy_Type,
@@ -123,7 +123,6 @@ _EXISTING_KEY_QUERIES = {
         'policy_level__name',
     ]),
     'ESG_data': (ESG_data, ['company__name', 'year']),
-    'Carbon_emission': (Carbon_emission, ['company__name', 'year', 'scope']),
     'ClimateScenario': (ClimateScenario, ['key']),
     'ScenarioVariable': (ScenarioVariable, ['scenario__key', 'year', 'key']),
 }

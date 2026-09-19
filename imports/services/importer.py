@@ -2,7 +2,7 @@ from datetime import date
 
 from django.db import transaction
 from dashboard.models import (
-    Asset, Carbon_emission, CharacterizationFactor, ClimateScenario,
+    Asset, CharacterizationFactor, ClimateScenario,
     Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
     Country, Currency, ESG_data, ImpactCategory, Ownership,
     Policy_Level, Policy_Subcategory, Policy_Type, ScenarioVariable,
@@ -477,28 +477,6 @@ def _import_esg_data(rows, lookup):
     return created
 
 
-def _import_carbon_emission(rows, lookup):
-    created = 0
-    for r in rows:
-        d = r['data']
-        company = _get(lookup, 'company', d['company_name'])
-        if not company:
-            continue
-        try:
-            year = int(d['year'])
-            emission = float(d['carbon_emission'])
-        except (ValueError, TypeError):
-            continue
-        scope = _s(d.get('scope'))
-        _, was_created = Carbon_emission.objects.get_or_create(
-            company=company, year=year, scope=scope,
-            defaults={'carbon_emission': emission},
-        )
-        if was_created:
-            created += 1
-    return created
-
-
 def _import_climate_scenario(rows, lookup):
     created = 0
     for r in rows:
@@ -558,7 +536,6 @@ _IMPORTERS = {
     'Company_Revenue_Sector': _import_company_revenue_sector,
     'Company_Policy': _import_company_policy,
     'ESG_data': _import_esg_data,
-    'Carbon_emission': _import_carbon_emission,
     'ClimateScenario': _import_climate_scenario,
     'ScenarioVariable': _import_scenario_variable,
 }

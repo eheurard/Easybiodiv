@@ -2,7 +2,7 @@
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from .models import (
@@ -10,7 +10,7 @@ from .models import (
     Flow, FlowKind, FlowScope, Ownership, SubnationalRegion,
 )
 from .services import flows as flow_service
-from .testing import make_inventory, make_production, make_supply
+from .testing import make_declared_emission, make_inventory, make_production, make_supply
 
 
 class TechnicalCommodityTests(TestCase):
@@ -42,6 +42,57 @@ class TechnicalCommodityTests(TestCase):
         Commodity.objects.filter(key='co2').delete()
         co2 = Commodity.objects.technical('co2')
         self.assertEqual((co2.name, co2.unit, co2.theme), TECHNICAL_COMMODITIES['co2'])
+
+
+class ResolveScopesTests(SimpleTestCase):
+
+    def test_detailed_scopes_win_over_the_aggregate(self):
+        self.assertEqual(
+            flow_service.resolve_scopes(
+                {'Scope 1': 22.8, 'Scope 2': 7.5, 'Scope 1+2': 30.3, 'Scope 3': 584.0}),
+            {'Scope 1': 22.8, 'Scope 2': 7.5, 'Scope 3': 584.0},
+        )
+
+    def test_aggregate_is_used_when_the_detail_is_missing(self):
+        self.assertEqual(
+            flow_service.resolve_scopes({'Scope 1+2': 32.6, 'Scope 3': 572.5}),
+            {'Scope 1+2': 32.6, 'Scope 3': 572.5},
+        )
+
+    def test_unsplittable_totals_only_count_when_alone(self):
+        self.assertEqual(
+            flow_service.resolve_scopes({'Scope 1+2+3': 100.0, 'undefined': 5.0}),
+            {'Scope 1+2+3': 100.0})
+        self.assertEqual(flow_service.resolve_scopes({'undefined': 5.0}), {'undefined': 5.0})
+        self.assertEqual(
+            flow_service.resolve_scopes({'Scope 1': 1.0, 'undefined': 5.0}), {'Scope 1': 1.0})
+
+
+class DeclaredEmissionsTests(TestCase):
+
+    def setUp(self):
+        country = Country.objects.create(
+            name='France', water_ownership='Public', land_ownership='Private')
+        self.company = Company.objects.create(name='Acme')
+        self.asset = Asset.objects.create(
+            name='Usine', latitude=1.0, longitude=2.0, country=country)
+        Ownership.objects.create(asset=self.asset, company=self.company, share=1)
+
+    def _declare(self, year, scope, value):
+        make_declared_emission(company=self.company, year=year, scope=scope, value=value)
+
+    def test_years_are_sorted_and_scopes_resolved(self):
+        self._declare(2023, 'Scope 1+2', 10.0)
+        self._declare(2022, 'Scope 1', 4.0)
+        self._declare(2022, 'Scope 1+2', 9.0)
+        result = flow_service.declared_emissions(self.company)
+        self.assertEqual(list(result), [2022, 2023])
+        self.assertEqual(result[2022], {'Scope 1': 4.0})
+        self.assertEqual(result[2023], {'Scope 1+2': 10.0})
+
+    def test_co2_measured_on_an_asset_is_not_declared(self):
+        make_inventory(asset=self.asset, key='co2', year=2024, value=99.0)
+        self.assertEqual(flow_service.declared_emissions(self.company), {})
 
 
 class FlowRulesTests(TestCase):

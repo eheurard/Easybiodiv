@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import (
-    Asset, Carbon_emission, Company, Company_Policy,
+    Asset, Company, Company_Policy,
     Company_Revenue, Company_Revenue_Sector, Currency, DisclosureRequirement,
     E4Assessment, Ownership, Portfolio, PortfolioHolding,
 )
@@ -1313,19 +1313,13 @@ def _linear_projection(points, end_year):
 
 
 def _get_esg_carbon(company):
-    emissions = Carbon_emission.objects.filter(company=company).order_by('year')
-    by_year = defaultdict(lambda: {'total': 0.0, 'scopes': defaultdict(float)})
-    for e in emissions:
-        by_year[e.year]['total'] += e.carbon_emission
-        by_year[e.year]['scopes'][e.scope] += e.carbon_emission
-
     historical = [
         {
-            'year': y,
-            'total': round(d['total'], 2),
-            'scopes': {k: round(v, 2) for k, v in d['scopes'].items()},
+            'year': year,
+            'total': round(sum(scopes.values()), 2),
+            'scopes': {scope: round(value, 2) for scope, value in scopes.items()},
         }
-        for y, d in sorted(by_year.items())
+        for year, scopes in flow_service.declared_emissions(company).items()
     ]
 
     projection = _linear_projection(

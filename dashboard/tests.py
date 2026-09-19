@@ -5,12 +5,12 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from .models import (
-    Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
+    Asset, Commodity, Company, Company_Policy, Company_Revenue,
     Company_Revenue_Sector, Country, Flow, Ownership, Policy_Level,
     Policy_Subcategory, Policy_Type, Sector, SubnationalRegion,
     SubSector,
 )
-from .testing import make_inventory, make_production, make_supply
+from .testing import make_declared_emission, make_inventory, make_production, make_supply
 from .views import _get_dette_ecologique_data
 from .services import market as market_service
 
@@ -1424,39 +1424,6 @@ class ComplianceDataTests(TestCase):
         self.assertEqual(synth['counts_by_status']['COMPLIANT'], 1)
 
 
-class CarbonEmissionModelTests(TestCase):
-
-    def setUp(self):
-        self.company = Company.objects.create(name='CarbonCorp')
-
-    def test_multiple_scopes_same_year_allowed(self):
-        Carbon_emission.objects.create(
-            company=self.company, year=2024, scope='Scope 1', carbon_emission=10.0
-        )
-        Carbon_emission.objects.create(
-            company=self.company, year=2024, scope='Scope 2', carbon_emission=5.0
-        )
-        self.assertEqual(
-            Carbon_emission.objects.filter(company=self.company, year=2024).count(), 2
-        )
-
-    def test_duplicate_company_year_scope_rejected(self):
-        Carbon_emission.objects.create(
-            company=self.company, year=2024, scope='Scope 1', carbon_emission=10.0
-        )
-        with self.assertRaises(IntegrityError):
-            with transaction.atomic():
-                Carbon_emission.objects.create(
-                    company=self.company, year=2024, scope='Scope 1', carbon_emission=99.0
-                )
-
-    def test_str_does_not_raise(self):
-        e = Carbon_emission.objects.create(
-            company=self.company, year=2024, scope='Scope 1', carbon_emission=10.0
-        )
-        self.assertEqual(str(e), 'CarbonCorp - 2024 - Scope 1')
-
-
 class CompliancePageViewTests(TestCase):
 
     def setUp(self):
@@ -1572,9 +1539,7 @@ class EsgDataCarbonTests(TestCase):
         self.company = Company.objects.create(name='EsgCorp')
 
     def _carbon(self, year, scope, val):
-        Carbon_emission.objects.create(
-            company=self.company, year=year, scope=scope, carbon_emission=val
-        )
+        make_declared_emission(company=self.company, year=year, scope=scope, value=val)
 
     def test_historical_sums_scopes_per_year(self):
         from .views import _get_esg_data
@@ -1612,6 +1577,15 @@ class EsgDataCarbonTests(TestCase):
         self.assertEqual(data['carbon']['historical'], [])
         self.assertEqual(data['carbon']['projection'], [])
         self.assertIsNone(data['carbon']['latest_year'])
+
+    def test_aggregate_scope_is_not_double_counted(self):
+        from .views import _get_esg_data
+        self._carbon(2022, 'Scope 1', 22.8)
+        self._carbon(2022, 'Scope 2', 7.5)
+        self._carbon(2022, 'Scope 1+2', 30.3)
+        hist = _get_esg_data(self.company)['carbon']['historical']
+        self.assertAlmostEqual(hist[0]['total'], 30.3, places=2)
+        self.assertNotIn('Scope 1+2', hist[0]['scopes'])
 
 
 class EsgDataPoliciesTests(TestCase):

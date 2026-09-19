@@ -7,7 +7,7 @@ from collections import defaultdict
 
 from django.db.models import Q
 
-from dashboard.models import Asset, Flow, FlowKind
+from dashboard.models import Asset, Flow, FlowKind, FlowScope
 
 _OUTGOING_INVENTORY_KINDS = (FlowKind.EMISSION, FlowKind.WASTE)
 
@@ -114,3 +114,47 @@ def supplies_to(asset_ids, company=None):
         key = _destination(flow)
         latest[key] = max(latest.get(key, flow.year), flow.year)
     return [flow for flow in rows if flow.year == latest[_destination(flow)]]
+
+
+# Libellés de scope en chaînes simples : ce sont les clés des dictionnaires
+# renvoyés aux vues et sérialisés en JSON.
+_SCOPE_1 = FlowScope.SCOPE_1.value
+_SCOPE_2 = FlowScope.SCOPE_2.value
+_SCOPE_3 = FlowScope.SCOPE_3.value
+_SCOPE_1_2 = FlowScope.SCOPE_1_2.value
+# Totaux impossibles à ventiler, par ordre de préférence.
+_UNSPLIT_TOTALS = (FlowScope.SCOPE_1_2_3.value, FlowScope.UNDEFINED.value)
+
+
+def resolve_scopes(values):
+    """Scopes retenus pour une année, {scope: tCO₂e} → {scope: tCO₂e} (spec §4).
+
+    Scopes 1 et 2 détaillés s'ils existent, sinon Scope 1+2 ; plus le Scope 3.
+    Un total non ventilable (1+2+3, puis undefined) ne compte que seul.
+    """
+    kept = {}
+    detailed = {s: values[s] for s in (_SCOPE_1, _SCOPE_2) if s in values}
+    if detailed:
+        kept.update(detailed)
+    elif _SCOPE_1_2 in values:
+        kept[_SCOPE_1_2] = values[_SCOPE_1_2]
+    if _SCOPE_3 in values:
+        kept[_SCOPE_3] = values[_SCOPE_3]
+    if not kept:
+        for scope in _UNSPLIT_TOTALS:
+            if scope in values:
+                kept[scope] = values[scope]
+                break
+    return kept
+
+
+def declared_emissions(company):
+    """{année: {scope: tCO₂e}} des émissions déclarées par l'entreprise, scopes
+    résolus, années croissantes. Le CO₂ mesuré sur ses actifs n'y entre jamais."""
+    raw = defaultdict(lambda: defaultdict(float))
+    rows = Flow.objects.filter(
+        kind=FlowKind.EMISSION, from_company=company, what__key='co2',
+    ).order_by('year', 'pk')
+    for flow in rows:
+        raw[flow.year][str(flow.scope)] += flow.quantity
+    return {year: resolve_scopes(dict(values)) for year, values in sorted(raw.items())}

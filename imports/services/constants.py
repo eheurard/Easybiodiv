@@ -76,7 +76,6 @@ SHEET_COLUMNS = {
         'policy_date', 'comment',
     ],
     'ESG_data': ['company_name', 'year', 'employees_number'],
-    'Carbon_emission': ['company_name', 'year', 'scope', 'carbon_emission'],
 
     # ── Stress test climatique ────────────────────────────────────────────────
     'ClimateScenario': [
@@ -108,7 +107,6 @@ FK_FIELDS = {
         'policy_level_name': 'policy_level',
     },
     'ESG_data': {'company_name': 'company'},
-    'Carbon_emission': {'company_name': 'company'},
     'ScenarioVariable': {'scenario_key': 'climate_scenario'},
 }
 
@@ -134,7 +132,6 @@ REQUIRED_FIELDS = {
         'policy_level_name', 'policy_date',
     ],
     'ESG_data': ['company_name', 'year'],
-    'Carbon_emission': ['company_name', 'year', 'scope', 'carbon_emission'],
     'ClimateScenario': ['key', 'name'],
     'ScenarioVariable': ['scenario_key', 'year', 'key', 'value'],
 }
@@ -162,7 +159,6 @@ DUPLICATE_CRITERIA = {
         'company_name', 'policy_type_name', 'policy_subcategory_name', 'policy_level_name',
     ],
     'ESG_data': ['company_name', 'year'],
-    'Carbon_emission': ['company_name', 'year', 'scope'],
     'ClimateScenario': ['key'],
     'ScenarioVariable': ['scenario_key', 'year', 'key'],
 }
@@ -195,7 +191,7 @@ IMPORT_ORDER = [
     'Currency', 'Sector', 'SubSector', 'SectorCreditProfile',
     'Company', 'Asset',
     'Ownership', 'Company_Revenue', 'Company_Revenue_Sector', 'Company_Policy',
-    'ESG_data', 'Carbon_emission',
+    'ESG_data',
     'ClimateScenario', 'ScenarioVariable',
 ]
 
