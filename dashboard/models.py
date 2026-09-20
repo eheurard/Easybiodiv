@@ -1,10 +1,28 @@
-from django.db import models
+import operator
+from collections import namedtuple
+from decimal import Decimal, InvalidOperation
+from functools import reduce
+
 from django.conf import settings
-from django.core.validators import MaxValueValidator
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
+from django.db.models import F, Q
 
 UNDOCUMENTED_SCALE_HELP_TEXT = (
     'Échelle et unité non documentées à ce jour — vérifier le glossaire '
     'métier avant de saisir une valeur.'
+)
+
+KEY_HELP_TEXT = (
+    'Identifiant technique repris tel quel dans les clés JSON des vues. '
+    'Ne pas modifier sur un enregistrement existant sans vérifier les '
+    'vues qui le consomment.'
+)
+
+THEME_HELP_TEXT = (
+    'Clé d’appariement entre mesure et modèle : un inventaire d’actif '
+    'est comparé aux catégories d’impact qui portent le même thème.'
 )
 
 
@@ -78,6 +96,30 @@ class SubnationalRegion(models.Model):
     def __str__(self):
         return self.name
 
+# Commodités techniques lues par le code (clés JSON des vues, inventaire mesuré,
+# émissions déclarées) : key -> (name, unit, theme). La migration
+# 0050_seed_technical_commodities en garde une copie figée.
+TECHNICAL_COMMODITIES = {
+    'water': ('Eau', 'm³', 'water'),
+    'energy': ('Énergie', 'MWh', 'energy'),
+    'co2': ('CO₂', 'tCO₂e', 'carbon'),
+    'waste': ('Déchets', 't', 'waste'),
+    'surface_area': ('Surface occupée', 'm²', 'land'),
+}
+
+
+class CommodityQuerySet(models.QuerySet):
+
+    def technical(self, key):
+        """Commodité technique `key`, recréée si elle manque (base vidée par un
+        test transactionnel, ou ligne supprimée à la main)."""
+        name, unit, theme = TECHNICAL_COMMODITIES[key]
+        commodity, _ = self.get_or_create(
+            key=key, defaults={'name': name, 'unit': unit, 'theme': theme},
+        )
+        return commodity
+
+
 class Commodity (models.Model):
     DEPENDENCY_CHOICES = [
         ('VL', 'Very low'),
@@ -97,6 +139,14 @@ class Commodity (models.Model):
         max_length=255, default="tonnes", verbose_name='Unité de mesure',
         help_text='Unité dans laquelle les productions et les échanges de cette '
                   'commodité sont exprimés (par défaut : tonnes).',
+    )
+    key = models.CharField(
+        max_length=50, unique=True, null=True, blank=True,
+        verbose_name='Clé technique', help_text=KEY_HELP_TEXT,
+    )
+    theme = models.CharField(
+        max_length=30, blank=True, default='', verbose_name='Thème',
+        help_text=THEME_HELP_TEXT,
     )
 
     dependency_water = models.CharField(
@@ -141,6 +191,8 @@ class Commodity (models.Model):
         help_text='Détermine lequel des trois taux de perte du pays s’applique : '
                   'agriculture, urbanisation ou extraction minière.',
     )
+
+    objects = CommodityQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Commodité'
@@ -214,6 +266,15 @@ class SubSector(models.Model):
 
     def __str__(self):
         return self.name
+
+class AssetQuerySet(models.QuerySet):
+
+    def owned_by(self, company, year=None):
+        """Actifs détenus par `company` l'année `year` ; sans année, périmètre
+        actuel (spec §3.6). Trié par pk pour un ordre stable."""
+        held = Ownership.objects.valid_in(year).filter(company=company).values('asset_id')
+        return self.filter(pk__in=held).order_by('pk')
+
 
 class Asset(models.Model):
 
@@ -335,6 +396,8 @@ class Asset(models.Model):
         help_text=SENSITIVE_ZONE_HELP_TEXT,
     )
 
+    objects = AssetQuerySet.as_manager()
+
     class Meta:
         verbose_name = 'Actif'
         verbose_name_plural = 'Actifs'
@@ -361,42 +424,6 @@ TIER_HELP_TEXT = (
     'premières.'
 )
 
-
-class Production(models.Model):
-    commodity = models.ForeignKey(
-        Commodity, on_delete=models.CASCADE, verbose_name='Commodité',
-    )
-    asset = models.ForeignKey(
-        Asset, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Actif',
-    )
-    company = models.ForeignKey(
-        Company, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Entreprise',
-    )
-    subnational_region = models.ForeignKey(
-        SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Région infranationale',
-    )
-    country = models.ForeignKey(
-        Country, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Pays',
-    )
-    tier = models.PositiveSmallIntegerField(
-        default=0, validators=[MaxValueValidator(3)], verbose_name='Tier',
-        help_text=TIER_HELP_TEXT,
-    )
-    year = models.IntegerField(verbose_name='Année')
-    production = models.FloatField(verbose_name='Quantité produite')
-    estimated_revenue = models.FloatField(
-        default=0.0, verbose_name='Revenu estimé',
-        help_text=UNDOCUMENTED_SCALE_HELP_TEXT,
-    )
-
-    class Meta:
-        verbose_name = 'Production'
-        verbose_name_plural = 'Productions'
-
-    def __str__(self):
-        asset_name = self.asset.name if self.asset else "no asset"
-        return f"{asset_name} - {self.commodity.name} - {self.year}"
 
 class Company_Revenue(models.Model):
     company = models.ForeignKey(
@@ -553,18 +580,383 @@ class Company_Policy(models.Model):
         verbose_name_plural = "Politiques d'entreprise"
 
 
+OWNERSHIP_OVERLAP_MESSAGE = (
+    'Cette entreprise détient déjà cet actif sur une période qui chevauche celle-ci.'
+)
+
+
+def share_overflow_message(year):
+    """Message d'erreur quand la somme des parts d'un actif dépasse 1."""
+    when = f' en {year}' if year else ''
+    return f'La somme des parts de cet actif dépasse 100 %{when}.'
+
+
+def _year_bounds(start, end):
+    """Période [start, end] en années ; une borne vide est ouverte."""
+    return (start if start is not None else 0, end if end is not None else 9999)
+
+
+def periods_overlap(first, second):
+    """Deux périodes (start_year, end_year) ont-elles une année en commun ?"""
+    first_start, first_end = _year_bounds(*first)
+    second_start, second_end = _year_bounds(*second)
+    return first_start <= second_end and second_start <= first_end
+
+
+def share_overflow_year(holdings):
+    """Première année où la somme des parts dépasse 1, ou None (0 si la période
+    fautive n'a pas d'année de début).
+
+    `holdings` : itérable de (share, start_year, end_year). La somme n'augmente
+    qu'au début d'une période : tester ces années suffit.
+    """
+    bounded = [(share, *_year_bounds(start, end)) for share, start, end in holdings]
+    for year in sorted({start for _, start, _ in bounded}):
+        total = sum(share for share, start, end in bounded if start <= year <= end)
+        if total > 1:
+            return year
+    return None
+
+
+class OwnershipQuerySet(models.QuerySet):
+
+    def valid_in(self, year=None):
+        """Détentions valides l'année `year` ; sans année, celles en cours (sans
+        `end_year`). Convention : détenteur au 31 décembre (spec §3.6)."""
+        if year is None:
+            return self.filter(end_year__isnull=True)
+        return self.filter(
+            Q(start_year__isnull=True) | Q(start_year__lte=year),
+            Q(end_year__isnull=True) | Q(end_year__gte=year),
+        )
+
+
+OWNERSHIP_YEAR_HELP_TEXT = (
+    'Le détenteur d’une année est celui du 31 décembre : pour une cession en juin '
+    '2024, le vendeur finit en 2023 et l’acheteur commence en 2024. Vide = sans limite.'
+)
+
+
 class Ownership(models.Model):
-    Asset = models.ForeignKey(Asset, on_delete=models.CASCADE, verbose_name='Actif')
-    Company = models.ForeignKey(Company, on_delete=models.CASCADE, verbose_name='Entreprise')
-    ownership = models.CharField(max_length=255, verbose_name='Part de détention')
+    asset = models.ForeignKey(
+        Asset, on_delete=models.CASCADE, related_name='ownerships', verbose_name='Actif',
+    )
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='ownerships',
+        verbose_name='Entreprise',
+    )
+    share = models.DecimalField(
+        max_digits=5, decimal_places=4,
+        validators=[MinValueValidator(Decimal('0.0001')), MaxValueValidator(Decimal('1'))],
+        verbose_name='Part de détention', help_text='Entre 0 et 1 : 0,75 = 75 %.',
+    )
+    start_year = models.PositiveSmallIntegerField(
+        null=True, blank=True, verbose_name='Année de début',
+        help_text=OWNERSHIP_YEAR_HELP_TEXT,
+    )
+    end_year = models.PositiveSmallIntegerField(
+        null=True, blank=True, verbose_name='Année de fin',
+        help_text=OWNERSHIP_YEAR_HELP_TEXT,
+    )
     description = models.TextField(blank=True, verbose_name='Description')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name='Créé par',
+    )
+
+    objects = OwnershipQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Détention'
         verbose_name_plural = 'Détentions'
+        constraints = [
+            models.CheckConstraint(
+                name='ownership_share_range',
+                condition=Q(share__gt=0) & Q(share__lte=1),
+                violation_error_message=(
+                    'La part de détention doit être comprise entre 0 (exclu) et 1.'
+                ),
+            ),
+            models.CheckConstraint(
+                name='ownership_years_ordered',
+                condition=(
+                    Q(start_year__isnull=True) | Q(end_year__isnull=True)
+                    | Q(start_year__lte=F('end_year'))
+                ),
+                violation_error_message="L'année de début doit précéder l'année de fin.",
+            ),
+        ]
 
     def __str__(self):
-        return str(self.Asset.name) + " - " + str(self.Company.name)
+        return f'{self.asset.name} - {self.company.name}'
+
+    def clean(self):
+        """Pas de chevauchement pour un même couple actif / entreprise, et somme
+        des parts d'un actif ≤ 1 chaque année (spec §3.6)."""
+        super().clean()
+        if self.asset_id is None or self.company_id is None:
+            return
+        try:
+            share = Decimal(str(self.share))
+        except (InvalidOperation, TypeError):
+            return  # clean_fields() signale déjà la part illisible
+        mine = (self.start_year, self.end_year)
+        others = list(Ownership.objects.filter(asset_id=self.asset_id).exclude(pk=self.pk))
+        for other in others:
+            same_company = other.company_id == self.company_id
+            if same_company and periods_overlap(mine, (other.start_year, other.end_year)):
+                raise ValidationError(OWNERSHIP_OVERLAP_MESSAGE)
+        year = share_overflow_year(
+            [(share, *mine)] + [(o.share, o.start_year, o.end_year) for o in others]
+        )
+        if year is not None:
+            raise ValidationError(share_overflow_message(year))
+
+    @property
+    def share_label(self):
+        """Part au format affiché : Decimal('0.75') → '75%'."""
+        return f'{(Decimal(self.share) * 100).normalize():f}%'
+
+
+# ── Flux : table Flow unique (spec 2026-09-18) ────────────────────────────────
+
+ENDPOINT_ASSET = 'asset'
+ENDPOINT_REGION = 'region'
+ENDPOINT_COUNTRY = 'country'
+ENDPOINT_COMPANY = 'company'
+ENDPOINT_ENVIRONMENT = 'environment'
+# Extrémités « lieu ou entreprise ». None désigne un côté vide (inconnu).
+LOCATED_ENDPOINTS = (ENDPOINT_ASSET, ENDPOINT_REGION, ENDPOINT_COUNTRY, ENDPOINT_COMPANY)
+ALL_ENDPOINTS = LOCATED_ENDPOINTS + (ENDPOINT_ENVIRONMENT, None)
+
+
+class FlowKind(models.TextChoices):
+    PRODUCTION = 'PRODUCTION', 'Production'
+    SUPPLY = 'SUPPLY', 'Approvisionnement'
+    CONSUMPTION = 'CONSUMPTION', 'Consommation'
+    EMISSION = 'EMISSION', 'Émission'
+    WASTE = 'WASTE', 'Déchet'
+
+
+class FlowScope(models.TextChoices):
+    SCOPE_1 = 'Scope 1', 'Scope 1'
+    SCOPE_2 = 'Scope 2', 'Scope 2'
+    SCOPE_3 = 'Scope 3', 'Scope 3'
+    SCOPE_1_2 = 'Scope 1+2', 'Scope 1+2'
+    SCOPE_1_2_3 = 'Scope 1+2+3', 'Scope 1+2+3'
+    UNDEFINED = 'undefined', 'Non défini'
+
+
+FlowRule = namedtuple('FlowRule', ['origins', 'destinations', 'message'])
+
+# Types d'extrémité autorisés par nature de flux (spec §3.4). Source unique des
+# contraintes en base et des messages d'erreur de l'import Excel.
+FLOW_RULES = {
+    FlowKind.PRODUCTION.value: FlowRule(
+        (ENDPOINT_ASSET, ENDPOINT_COMPANY), (None,),
+        "Une production part d'un actif ou d'une entreprise, sans destination.",
+    ),
+    FlowKind.SUPPLY.value: FlowRule(
+        LOCATED_ENDPOINTS, LOCATED_ENDPOINTS,
+        'Un approvisionnement va d’un actif, d’une région, d’un pays ou d’une '
+        'entreprise vers un autre actif, région, pays ou entreprise.',
+    ),
+    FlowKind.CONSUMPTION.value: FlowRule(
+        (ENDPOINT_ENVIRONMENT, None), (ENDPOINT_ASSET, ENDPOINT_COMPANY),
+        'Une consommation vient du milieu ou d’une origine inconnue et va vers un '
+        'actif ou une entreprise.',
+    ),
+    FlowKind.EMISSION.value: FlowRule(
+        (ENDPOINT_ASSET, ENDPOINT_COMPANY), (ENDPOINT_ENVIRONMENT,),
+        "Une émission part d'un actif ou d'une entreprise et va vers le milieu.",
+    ),
+    FlowKind.WASTE.value: FlowRule(
+        (ENDPOINT_ASSET, ENDPOINT_COMPANY), (ENDPOINT_ENVIRONMENT, None, ENDPOINT_ASSET),
+        "Un déchet part d'un actif ou d'une entreprise et va vers le milieu, un actif "
+        '(site de traitement) ou une destination inconnue.',
+    ),
+}
+
+SUPPLY_SELF_LOOP_MESSAGE = 'Un approvisionnement ne peut pas relier un lieu à lui-même.'
+REVENUE_PRODUCTION_ONLY_MESSAGE = 'Seule une production porte un revenu estimé.'
+
+# Suffixe du champ clé étrangère de chaque type d'extrémité : from_<suffixe>.
+_ENDPOINT_FIELD_SUFFIX = {
+    ENDPOINT_ASSET: 'asset',
+    ENDPOINT_REGION: 'region',
+    ENDPOINT_COUNTRY: 'country',
+    ENDPOINT_COMPANY: 'company',
+}
+
+
+def endpoint_q(side, endpoint):
+    """Q vrai quand le côté `side` ('from' ou 'to') vaut exactement `endpoint`."""
+    condition = Q(**{f'{side}_environment': endpoint == ENDPOINT_ENVIRONMENT})
+    for candidate, suffix in _ENDPOINT_FIELD_SUFFIX.items():
+        condition &= Q(**{f'{side}_{suffix}__isnull': candidate != endpoint})
+    return condition
+
+
+def _endpoints_q(side, endpoints):
+    return reduce(operator.or_, (endpoint_q(side, endpoint) for endpoint in endpoints))
+
+
+def _flow_constraints():
+    """Contraintes de Flow (spec §3.3 et §3.4), générées depuis FLOW_RULES."""
+    distinct_ends = reduce(operator.and_, (
+        ~Q(**{f'from_{suffix}': F(f'to_{suffix}')})
+        for suffix in _ENDPOINT_FIELD_SUFFIX.values()
+    ))
+    constraints = [
+        models.CheckConstraint(
+            name='flow_single_origin',
+            condition=_endpoints_q('from', ALL_ENDPOINTS),
+            violation_error_message='Un flux a au plus une origine.',
+        ),
+        models.CheckConstraint(
+            name='flow_single_destination',
+            condition=_endpoints_q('to', ALL_ENDPOINTS),
+            violation_error_message='Un flux a au plus une destination.',
+        ),
+        models.CheckConstraint(
+            name='flow_located_end',
+            condition=(
+                _endpoints_q('from', LOCATED_ENDPOINTS) | _endpoints_q('to', LOCATED_ENDPOINTS)
+            ),
+            violation_error_message=(
+                "L'origine ou la destination doit être un actif, une région, un pays ou "
+                'une entreprise.'
+            ),
+        ),
+        models.CheckConstraint(
+            name='flow_environment_one_end',
+            condition=~Q(from_environment=True, to_environment=True),
+            violation_error_message=(
+                'Le milieu ne peut pas être à la fois origine et destination.'
+            ),
+        ),
+        models.CheckConstraint(
+            name='flow_revenue_production_only',
+            condition=Q(estimated_revenue__isnull=True) | Q(kind=FlowKind.PRODUCTION.value),
+            violation_error_message=REVENUE_PRODUCTION_ONLY_MESSAGE,
+        ),
+        models.CheckConstraint(
+            name='flow_supply_distinct_ends',
+            condition=~Q(kind=FlowKind.SUPPLY.value) | distinct_ends,
+            violation_error_message=SUPPLY_SELF_LOOP_MESSAGE,
+        ),
+    ]
+    for kind, rule in FLOW_RULES.items():
+        constraints.append(models.CheckConstraint(
+            name=f'flow_rule_{kind.lower()}',
+            condition=~Q(kind=kind) | (
+                _endpoints_q('from', rule.origins) & _endpoints_q('to', rule.destinations)
+            ),
+            violation_error_message=rule.message,
+        ))
+    return constraints
+
+
+FLOW_ENDPOINT_HELP_TEXT = (
+    'Au plus un champ renseigné par côté (actif, région, pays, entreprise ou milieu). '
+    'Tout vide = inconnu (acheteur ou origine non renseignés).'
+)
+
+
+def _flow_endpoint(model, side, label):
+    """Clé étrangère d'extrémité d'un Flow (from_* ou to_*)."""
+    return models.ForeignKey(
+        model, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='flows_out' if side == 'from' else 'flows_in',
+        verbose_name=f"{'Origine' if side == 'from' else 'Destination'} — {label}",
+        help_text=FLOW_ENDPOINT_HELP_TEXT,
+    )
+
+
+class Flow(models.Model):
+    """Quantité d'une commodité, une année, d'une origine vers une destination
+    (spec 2026-09-18). Remplace Production, AssetInventory, l'ancien graphe
+    fournisseurs et Carbon_emission (modèles historiques, aujourd'hui supprimés)."""
+
+    Kind = FlowKind
+    Scope = FlowScope
+
+    kind = models.CharField(
+        max_length=12, choices=FlowKind.choices, verbose_name='Nature du flux',
+    )
+    what = models.ForeignKey(
+        Commodity, on_delete=models.PROTECT, related_name='flows',
+        verbose_name='Commodité',
+    )
+    scope = models.CharField(
+        max_length=12, choices=FlowScope.choices, default=FlowScope.UNDEFINED,
+        verbose_name='Scope GES',
+    )
+
+    from_asset = _flow_endpoint(Asset, 'from', 'actif')
+    from_region = _flow_endpoint(SubnationalRegion, 'from', 'région')
+    from_country = _flow_endpoint(Country, 'from', 'pays')
+    from_company = _flow_endpoint(Company, 'from', 'entreprise')
+    from_environment = models.BooleanField(
+        default=False, verbose_name='Origine — milieu',
+        help_text='Prélevé dans le milieu naturel, à proximité de la destination.',
+    )
+
+    to_asset = _flow_endpoint(Asset, 'to', 'actif')
+    to_region = _flow_endpoint(SubnationalRegion, 'to', 'région')
+    to_country = _flow_endpoint(Country, 'to', 'pays')
+    to_company = _flow_endpoint(Company, 'to', 'entreprise')
+    to_environment = models.BooleanField(
+        default=False, verbose_name='Destination — milieu',
+        help_text='Rejeté dans le milieu naturel, à proximité de l’origine.',
+    )
+
+    year = models.IntegerField(verbose_name='Année')
+    quantity = models.FloatField(
+        verbose_name='Quantité', help_text="Exprimée dans l'unité de la commodité.",
+    )
+    tier = models.PositiveSmallIntegerField(
+        default=0, validators=[MaxValueValidator(3)], verbose_name='Tier',
+        help_text=TIER_HELP_TEXT,
+    )
+    estimated_revenue = models.FloatField(
+        null=True, blank=True, verbose_name='Revenu estimé',
+        help_text='Production uniquement. ' + UNDOCUMENTED_SCALE_HELP_TEXT,
+    )
+    source = models.CharField(max_length=255, blank=True, verbose_name='Source')
+    reference = models.CharField(max_length=255, blank=True, verbose_name='Référence')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name='Créé par',
+    )
+
+    class Meta:
+        verbose_name = 'Flux'
+        verbose_name_plural = 'Flux'
+        constraints = _flow_constraints()
+
+    def __str__(self):
+        return f'{self.get_kind_display()} — {self.what.name} ({self.year})'
+
+    def _endpoint_type(self, side):
+        if getattr(self, f'{side}_environment'):
+            return ENDPOINT_ENVIRONMENT
+        for endpoint, suffix in _ENDPOINT_FIELD_SUFFIX.items():
+            if getattr(self, f'{side}_{suffix}_id') is not None:
+                return endpoint
+        return None
+
+    @property
+    def origin_type(self):
+        return self._endpoint_type('from')
+
+    @property
+    def destination_type(self):
+        return self._endpoint_type('to')
 
 
 class E4Assessment(models.Model):
@@ -711,33 +1103,6 @@ class ESG_data(models.Model):
         verbose_name = 'Donnée ESG'
         verbose_name_plural = 'Données ESG'
 
-class Carbon_emission(models.Model):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, verbose_name='Entreprise')
-    year = models.IntegerField(verbose_name='Exercice')
-    scope = models.CharField(max_length=255, verbose_name='Scope')
-    carbon_emission = models.FloatField(default=0, verbose_name='Émissions (tCO₂e)')
-
-    def __str__(self):
-        return f"{self.company.name} - {self.year} - {self.scope}"
-
-    class Meta:
-        unique_together = ('company', 'year', 'scope')
-        verbose_name = 'Émission carbone'
-        verbose_name_plural = 'Émissions carbone'
-
-
-KEY_HELP_TEXT = (
-    'Identifiant technique repris tel quel dans les clés JSON des vues. '
-    'Ne pas modifier sur un enregistrement existant sans vérifier les '
-    'vues qui le consomment.'
-)
-
-THEME_HELP_TEXT = (
-    'Clé d’appariement entre mesure et modèle : un inventaire d’actif '
-    'est comparé aux catégories d’impact qui portent le même thème.'
-)
-
-
 class ImpactMethod(models.Model):
     """Méthode de caractérisation LCA (ReCiPe2016, GBS, …)."""
     name = models.CharField(max_length=100, unique=True, verbose_name='Nom')
@@ -831,158 +1196,6 @@ class CharacterizationFactor(models.Model):
 
     def __str__(self):
         return f'{self.commodity.name} — {self.category.key}'
-
-
-SUPPLY_NODE_LOCATION_HELP_TEXT = (
-    'Un nœud requiert au moins un actif, une région ou un pays. Le plus '
-    'précis des trois détermine sa résolution.'
-)
-
-
-class SupplyNode(models.Model):
-    """Sommet du graphe fournisseurs, à résolution variable
-    (asset/région/pays)."""
-
-    asset = models.ForeignKey(
-        Asset, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Actif', help_text=SUPPLY_NODE_LOCATION_HELP_TEXT,
-    )
-    region = models.ForeignKey(
-        SubnationalRegion, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Région infranationale',
-        help_text=SUPPLY_NODE_LOCATION_HELP_TEXT,
-    )
-    country = models.ForeignKey(
-        Country, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Pays', help_text=SUPPLY_NODE_LOCATION_HELP_TEXT,
-    )
-    commodity = models.ForeignKey(
-        Commodity, on_delete=models.CASCADE, null=True, blank=True,
-        verbose_name='Commodité',
-    )
-    name = models.CharField(max_length=255, blank=True, verbose_name='Nom')
-    is_external = models.BooleanField(default=False, verbose_name='Fournisseur externe')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
-
-    class Meta:
-        verbose_name = "Nœud d'approvisionnement"
-        verbose_name_plural = "Nœuds d'approvisionnement"
-
-    def clean(self):
-        from django.core.exceptions import ValidationError
-        if not (self.asset_id or self.region_id or self.country_id):
-            raise ValidationError(
-                'Un SupplyNode requiert au moins asset, region ou country.'
-            )
-
-    @property
-    def resolution(self):
-        if self.asset_id:
-            return 'asset'
-        if self.region_id:
-            return 'region'
-        return 'country'
-
-    @property
-    def effective_region_id(self):
-        return (self.asset.subnational_region_id if self.asset_id
-                else self.region_id)
-
-    @property
-    def effective_country_id(self):
-        return self.asset.country_id if self.asset_id else self.country_id
-
-    def __str__(self):
-        if self.asset_id:
-            return self.asset.name
-        return self.name or f'{self.resolution} node #{self.pk}'
-
-
-class Exchange(models.Model):
-    """Arête dirigée fournisseur → consommateur du graphe d'approvisionnement."""
-    supplier = models.ForeignKey(
-        SupplyNode, on_delete=models.CASCADE, related_name='outgoing',
-        verbose_name='Fournisseur',
-    )
-    consumer = models.ForeignKey(
-        SupplyNode, on_delete=models.CASCADE, related_name='incoming',
-        verbose_name='Consommateur',
-    )
-    commodity = models.ForeignKey(
-        Commodity, on_delete=models.CASCADE, verbose_name='Commodité',
-    )
-    quantity = models.FloatField(verbose_name='Quantité échangée')
-    year = models.IntegerField(verbose_name='Année')
-    tier = models.PositiveSmallIntegerField(
-        default=0, validators=[MaxValueValidator(3)], verbose_name='Tier',
-        help_text=TIER_HELP_TEXT,
-    )
-    data_confidence = models.CharField(
-        max_length=16,
-        choices=[('asset', 'asset'), ('region', 'region'), ('country', 'country')],
-        default='country',
-        verbose_name='Résolution de la donnée',
-        help_text='Précision de la localisation d’où provient cette donnée : relevée '
-                  'sur l’actif, estimée à la région, ou estimée au pays.',
-    )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        verbose_name='Créé par',
-    )
-
-    class Meta:
-        verbose_name = 'Échange'
-        verbose_name_plural = 'Échanges'
-
-    def __str__(self):
-        return f'{self.supplier} → {self.consumer} ({self.commodity.name}, {self.year})'
-
-
-class Flow(models.Model):
-    """Flux physique mesuré (inventaire) ; `theme` l'apparie aux ImpactCategory."""
-    key = models.CharField(
-        max_length=50, unique=True, verbose_name='Clé technique',
-        help_text=KEY_HELP_TEXT,
-    )
-    name = models.CharField(max_length=255, verbose_name='Nom')
-    unit = models.CharField(max_length=50, blank=True, verbose_name='Unité')
-    theme = models.CharField(
-        max_length=30, blank=True, verbose_name='Thème', help_text=THEME_HELP_TEXT,
-    )
-
-    class Meta:
-        verbose_name = 'Flux'
-        verbose_name_plural = 'Flux'
-
-    def __str__(self):
-        return self.key
-
-
-class AssetInventory(models.Model):
-    """Inventaire mesuré à l'échelle asset (flux water/energy/co2/waste/surface_area)."""
-    asset = models.ForeignKey(
-        Asset, on_delete=models.CASCADE, related_name='inventory',
-        verbose_name='Actif',
-    )
-    flow = models.ForeignKey(Flow, on_delete=models.CASCADE, verbose_name='Flux')
-    year = models.IntegerField(verbose_name='Année')
-    value = models.FloatField(
-        default=0.0, verbose_name='Valeur mesurée',
-        help_text='Valeur relevée sur le terrain, dans l’unité du flux sélectionné.',
-    )
-    source = models.CharField(max_length=255, blank=True, verbose_name='Source')
-    reference = models.CharField(max_length=255, blank=True, verbose_name='Référence')
-
-    class Meta:
-        unique_together = ('asset', 'flow', 'year')
-        verbose_name = "Inventaire d'actif"
-        verbose_name_plural = "Inventaires d'actifs"
-
-    def __str__(self):
-        return f'{self.asset.name} — {self.flow.key} {self.year}'
 
 
 class ClimateScenario(models.Model):

@@ -1,10 +1,12 @@
+from decimal import Decimal
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from dashboard.models import (
-    Asset, Carbon_emission, Commodity, Company, Company_Policy, Company_Revenue,
+    Asset, Commodity, Company, Company_Policy, Company_Revenue,
     Company_Revenue_Sector, Country, DisclosureRequirement, E4Assessment,
-    Ownership, Policy_Level, Policy_Subcategory, Policy_Type, Production,
+    Flow, FlowKind, Ownership, Policy_Level, Policy_Subcategory, Policy_Type,
     Sector, SectorCreditProfile, SubSector, SubnationalRegion,
     CharacterizationFactor, ImpactCategory,
 )
@@ -381,14 +383,15 @@ class Command(BaseCommand):
 
         # ── Propriétés ────────────────────────────────────────────────────────
 
-        for asset, pct in [
-            (a_bretagne, "100%"),
-            (a_occitanie, "100%"),
-            (a_mato_grosso, "75%"),
-            (a_para, "100%"),
-            (a_sumatra, "60%"),
+        for asset, share in [
+            (a_bretagne, Decimal('1')),
+            (a_occitanie, Decimal('1')),
+            (a_mato_grosso, Decimal('0.75')),
+            (a_para, Decimal('1')),
+            (a_sumatra, Decimal('0.6')),
         ]:
-            Ownership.objects.get_or_create(Asset=asset, Company=acme, defaults={"ownership": pct})
+            Ownership.objects.get_or_create(
+                asset=asset, company=acme, defaults={'share': share})
 
         # ── Productions 2023-2024 ─────────────────────────────────────────────
 
@@ -408,18 +411,13 @@ class Command(BaseCommand):
         ]
 
         for asset, commodity, scope, year, qty, revenue in productions:
-            Production.objects.get_or_create(
-                asset=asset,
-                commodity=commodity,
+            Flow.objects.get_or_create(
+                kind=FlowKind.PRODUCTION,
+                what=commodity,
+                from_asset=asset,
                 tier=SCOPE_TO_TIER[scope],
                 year=year,
-                defaults={
-                    "company": acme,
-                    "production": qty,
-                    "estimated_revenue": revenue,
-                    "country": asset.country,
-                    "subnational_region": asset.subnational_region,
-                },
+                defaults={'quantity': qty, 'estimated_revenue': revenue},
             )
 
         # ── Revenus ───────────────────────────────────────────────────────────
@@ -792,10 +790,12 @@ class Command(BaseCommand):
             (2023, 'Scope 1', 23500), (2023, 'Scope 2', 13000), (2023, 'Scope 3', 74000),
             (2024, 'Scope 1', 22000), (2024, 'Scope 2', 12000), (2024, 'Scope 3', 70000),
         ]
+        co2 = Commodity.objects.technical('co2')
         for yr, scope, val in carbon_rows:
-            Carbon_emission.objects.get_or_create(
-                company=acme, year=yr, scope=scope,
-                defaults={'carbon_emission': float(val)},
+            Flow.objects.get_or_create(
+                kind=FlowKind.EMISSION, what=co2, from_company=acme,
+                to_environment=True, scope=scope, year=yr,
+                defaults={'quantity': float(val)},
             )
 
         # ── Conformité ESRS E4 (démo) ─────────────────────────────────────────

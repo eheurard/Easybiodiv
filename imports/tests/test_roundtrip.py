@@ -10,9 +10,8 @@ import openpyxl
 from django.test import TestCase
 
 from dashboard.models import (
-    Asset, AssetInventory, CharacterizationFactor, ClimateScenario, Commodity,
-    Country, Exchange, Production, ScenarioVariable, Sector, SectorCreditProfile,
-    SupplyNode,
+    Asset, CharacterizationFactor, ClimateScenario, Commodity,
+    Country, Flow, ScenarioVariable, Sector, SectorCreditProfile,
 )
 from imports.services.excel_parser import parse_file
 from imports.services.excel_template import build_template
@@ -59,21 +58,16 @@ class RoundTripTest(TestCase):
             'country_name': 'Testland', 'subnational_region_name': 'Testrégion',
             'type': 'Factory', 'near_sensitive_zone': 'TRUE',
             'sensitive_zone_type': 'NATURA_2000', 'sensitive_zone_area_ha': 300})
-        _fill(wb, 'AssetInventory', {
-            'asset_name': 'Testusine', 'flow_key': 'water', 'year': 2024,
-            'value': 4200, 'source': 'compteur'})
-        _fill(wb, 'Production', {
-            'asset_name': 'Testusine', 'commodity_name': 'Testsoja',
-            'company_name': 'Testcorp', 'tier': 0, 'year': 2024,
-            'production': 1000, 'estimated_revenue': 250000})
-        _fill(wb, 'SupplyNode',
-              {'node_ref': 'AVAL', 'asset_name': 'Testusine'},
-              {'node_ref': 'AMONT', 'country_name': 'Testland',
-               'commodity_name': 'Testsoja', 'is_external': 'TRUE'})
-        _fill(wb, 'Exchange', {
-            'supplier_ref': 'AMONT', 'consumer_ref': 'AVAL',
-            'commodity_name': 'Testsoja', 'quantity': 800, 'year': 2024,
-            'tier': 1, 'data_confidence': 'country'})
+        _fill(wb, 'Flow',
+              {'kind': 'PRODUCTION', 'what': 'Testsoja', 'from_type': 'asset',
+               'from_name': 'Testusine', 'year': 2024, 'quantity': 1000, 'tier': 0,
+               'estimated_revenue': 250000},
+              {'kind': 'SUPPLY', 'what': 'Testsoja', 'from_type': 'country',
+               'from_name': 'Testland', 'to_type': 'asset', 'to_name': 'Testusine',
+               'year': 2024, 'quantity': 800, 'tier': 1},
+              {'kind': 'CONSUMPTION', 'what': 'water', 'from_type': 'milieu',
+               'to_type': 'asset', 'to_name': 'Testusine', 'year': 2024,
+               'quantity': 4200, 'source': 'compteur'})
         _fill(wb, 'ClimateScenario', {
             'key': 'test_orderly', 'name': 'Scénario test', 'family': 'ORDERLY',
             'warming_c': 1.5, 'order': 99})
@@ -104,8 +98,6 @@ class RoundTripTest(TestCase):
 
         self.assertEqual(counts['Country'], 1)
         self.assertEqual(counts['CharacterizationFactor'], 2)
-        self.assertEqual(counts['SupplyNode'], 2)
-        self.assertEqual(counts['Exchange'], 1)
         self.assertEqual(counts['ScenarioVariable'], 2)
 
         region_cf = CharacterizationFactor.objects.get(
@@ -120,18 +112,13 @@ class RoundTripTest(TestCase):
         self.assertEqual(asset.sensitive_zone_type, 'NATURA_2000')
         self.assertEqual(asset.subnational_region.name, 'Testrégion')
 
-        inventory = AssetInventory.objects.get(asset=asset, flow__key='water')
-        self.assertAlmostEqual(inventory.value, 4200.0)
-
-        production = Production.objects.get(asset=asset)
-        self.assertEqual(production.tier, 0)
-        self.assertEqual(production.company.name, 'Testcorp')
-
-        exchange = Exchange.objects.get(commodity__name='Testsoja')
-        self.assertEqual(exchange.consumer.asset, asset)
-        self.assertTrue(exchange.supplier.is_external)
-        self.assertEqual(exchange.tier, 1)
-        self.assertAlmostEqual(exchange.quantity, 800.0)
+        self.assertEqual(counts['Flow'], 3)
+        supply = Flow.objects.get(kind='SUPPLY')
+        self.assertEqual((supply.from_country.name, supply.to_asset), ('Testland', asset))
+        self.assertEqual(supply.tier, 1)
+        water = Flow.objects.get(kind='CONSUMPTION')
+        self.assertTrue(water.from_environment)
+        self.assertAlmostEqual(water.quantity, 4200.0)
 
         scenario = ClimateScenario.objects.get(key='test_orderly')
         self.assertEqual(scenario.family, ClimateScenario.Family.ORDERLY)
@@ -146,15 +133,13 @@ class RoundTripTest(TestCase):
         self.assertTrue(Country.objects.filter(name='Testland').exists())
         self.assertTrue(Commodity.objects.filter(name='Testsoja').exists())
         self.assertTrue(Sector.objects.filter(name='Testsecteur').exists())
-        self.assertEqual(SupplyNode.objects.filter(asset=asset).count(), 1)
 
     def test_reuploading_the_same_workbook_creates_nothing_new(self):
         """Le vrai flux : le fichier est ré-analysé avant d'être ré-importé."""
         save_import(self.parsed)
         before = {
             model.__name__: model.objects.count()
-            for model in (Asset, CharacterizationFactor, SupplyNode, Exchange,
-                          ScenarioVariable, Production, AssetInventory)
+            for model in (Asset, CharacterizationFactor, Flow, ScenarioVariable)
         }
 
         reparsed = self._parse()
@@ -163,20 +148,6 @@ class RoundTripTest(TestCase):
         self.assertEqual(
             {sheet: n for sheet, n in counts.items() if n}, {},
             'un second upload du même fichier ne doit rien créer')
-        for model in (Asset, CharacterizationFactor, SupplyNode, Exchange,
-                      ScenarioVariable, Production, AssetInventory):
+        for model in (Asset, CharacterizationFactor, Flow, ScenarioVariable):
             self.assertEqual(model.objects.count(), before[model.__name__],
                              f'{model.__name__} a été dupliqué')
-
-    def test_supply_graph_idempotence_relies_on_the_importer(self):
-        """SupplyNode/Exchange n'ont pas de clé comparable en base : le parseur
-        les revoit en 'ok', c'est le get_or_create de l'importeur qui protège."""
-        save_import(self.parsed)
-        reparsed = self._parse()
-
-        statuses = {r['status'] for r in reparsed['SupplyNode']}
-        self.assertEqual(statuses, {'ok'})
-
-        save_import(reparsed)
-        self.assertEqual(SupplyNode.objects.count(), 2)
-        self.assertEqual(Exchange.objects.count(), 1)

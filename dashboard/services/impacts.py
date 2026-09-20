@@ -77,26 +77,25 @@ def legacy_cf_rows(values):
 
 
 def measured_vs_modeled(asset, theme, year):
-    """Apparie, pour un asset/thème/année : la mesure terrain (AssetInventory
-    dont le flow porte ce theme) et l'impact ACV modélisé (production × CF des
-    catégories portant ce theme). Renvoie {'measured': float, 'modeled': float}.
+    """Apparie, pour un asset/thème/année : la mesure terrain (lignes d'inventaire
+    de Flow dont la commodité porte ce theme) et l'impact ACV modélisé
+    (production × CF des catégories portant ce theme). Renvoie
+    {'measured': float, 'modeled': float}.
     """
-    from dashboard.models import AssetInventory, ImpactCategory, Production
-    measured = sum(
-        inv.value
-        for inv in AssetInventory.objects.filter(
-            asset=asset, year=year, flow__theme=theme
-        )
-    )
+    from dashboard.models import ImpactCategory
+    from dashboard.services.flows import inventory_total, productions
+    measured = inventory_total(asset, theme, year)
     cat_keys = list(
         ImpactCategory.objects.filter(theme=theme).values_list('key', flat=True)
     )
     cf_index = build_cf_index(category_keys=cat_keys)
     modeled = 0.0
-    for p in Production.objects.filter(asset=asset, year=year).select_related('commodity'):
+    for p in productions([asset.pk]):
+        if p.year != year:
+            continue
         for key in cat_keys:
-            modeled += p.production * cf_value(
-                cf_index, p.commodity_id, key,
+            modeled += p.quantity * cf_value(
+                cf_index, p.what_id, key,
                 asset.subnational_region_id, asset.country_id,
             )
     return {'measured': measured, 'modeled': modeled}

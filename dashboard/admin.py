@@ -1,13 +1,13 @@
 from django.contrib import admin
 from .models import (
     Country, SubnationalRegion, Commodity, Sector, SubSector,
-    Asset, Company, Production, Ownership,
+    Asset, Company, Ownership,
     Company_Revenue, Company_Revenue_Sector,
     Policy_Type, Policy_Subcategory, Policy_Level, Company_Policy,
-    DisclosureRequirement, E4Assessment, ESG_data, Carbon_emission,
+    DisclosureRequirement, E4Assessment, ESG_data,
     Currency,
     ImpactMethod, ImpactCategory, CharacterizationFactor,
-    SupplyNode, Exchange, Flow, AssetInventory,
+    Flow,
     ClimateScenario, ScenarioVariable, SectorCreditProfile,
 )
 
@@ -29,8 +29,8 @@ class SubnationalRegionAdmin(admin.ModelAdmin):
 
 @admin.register(Commodity)
 class CommodityAdmin(admin.ModelAdmin):
-    search_fields = ('name',)
-    list_display = ('name', 'unit', 'biodiversity_loss_class')
+    search_fields = ('name', 'key')
+    list_display = ('name', 'key', 'unit', 'theme', 'biodiversity_loss_class')
     list_filter = (
         'biodiversity_loss_class',
         'dependency_water', 'dependency_pollination',
@@ -69,22 +69,22 @@ class CompanyAdmin(admin.ModelAdmin):
     list_display = ('name', 'isin', 'ticker')
 
 
-@admin.register(Production)
-class ProductionAdmin(admin.ModelAdmin):
-    search_fields = (
-        'commodity__name', 'asset__name', 'company__name',
-        'subnational_region__name', 'country__name',
-    )
-    list_display = ('__str__', 'commodity', 'company', 'tier', 'year', 'production')
-    list_filter = ('tier', 'year', 'country')
-    autocomplete_fields = ('commodity', 'asset', 'company', 'subnational_region', 'country')
-
-
 @admin.register(Ownership)
 class OwnershipAdmin(admin.ModelAdmin):
-    search_fields = ('Asset__name', 'Company__name')
-    list_display = ('Asset', 'Company', 'ownership')
-    autocomplete_fields = ('Asset', 'Company')
+    search_fields = ('asset__name', 'company__name')
+    list_display = ('asset', 'company', 'share_percent', 'start_year', 'end_year')
+    list_filter = ('company',)
+    autocomplete_fields = ('asset', 'company')
+    exclude = ('created_by',)
+
+    @admin.display(description='Part de détention')
+    def share_percent(self, obj):
+        return obj.share_label
+
+    def save_model(self, request, obj, form, change):
+        if not change and obj.created_by_id is None:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Company_Revenue)
@@ -164,30 +164,6 @@ class E4AssessmentAdmin(admin.ModelAdmin):
         }),
     )
 
-@admin.register(Carbon_emission)
-class CarbonEmissionAdmin(admin.ModelAdmin):
-    search_fields = ('company__name',)
-    list_display = ('company', 'year','scope', 'carbon_emission')
-    list_filter = ('year',)
-    autocomplete_fields = ('company',)
-
-
-@admin.register(SupplyNode)
-class SupplyNodeAdmin(admin.ModelAdmin):
-    search_fields = ('name', 'asset__name', 'region__name', 'country__name')
-    list_display = ('__str__', 'resolution', 'is_external')
-    list_filter = ('is_external',)
-    autocomplete_fields = ('asset', 'region', 'country', 'commodity')
-
-
-@admin.register(Exchange)
-class ExchangeAdmin(admin.ModelAdmin):
-    search_fields = ('supplier__name', 'consumer__name', 'commodity__name')
-    list_display = ('__str__', 'tier', 'year', 'data_confidence')
-    list_filter = ('tier', 'year', 'data_confidence')
-    autocomplete_fields = ('supplier', 'consumer', 'commodity', 'created_by')
-
-
 @admin.register(ImpactMethod)
 class ImpactMethodAdmin(admin.ModelAdmin):
     search_fields = ('name',)
@@ -210,19 +186,58 @@ class CharacterizationFactorAdmin(admin.ModelAdmin):
     autocomplete_fields = ('category', 'commodity', 'region', 'country')
 
 
+def _endpoint_label(flow, side):
+    """Libellé d'une extrémité : lieu ou entreprise, « Milieu », ou « — » si vide."""
+    if getattr(flow, f'{side}_environment'):
+        return 'Milieu'
+    for suffix in ('asset', 'region', 'country', 'company'):
+        target = getattr(flow, f'{side}_{suffix}')
+        if target is not None:
+            return str(target)
+    return '—'
+
+
 @admin.register(Flow)
 class FlowAdmin(admin.ModelAdmin):
-    search_fields = ('key', 'name')
-    list_display = ('key', 'name', 'unit', 'theme')
-    list_filter = ('theme',)
+    search_fields = (
+        'what__name', 'from_asset__name', 'from_company__name',
+        'to_asset__name', 'to_company__name',
+    )
+    list_display = ('kind', 'what', 'scope', 'origin', 'destination', 'year', 'quantity')
+    list_filter = ('kind', 'scope', 'year', 'tier')
+    list_select_related = (
+        'what', 'from_asset', 'from_region', 'from_country', 'from_company',
+        'to_asset', 'to_region', 'to_country', 'to_company',
+    )
+    autocomplete_fields = (
+        'what', 'from_asset', 'from_region', 'from_country', 'from_company',
+        'to_asset', 'to_region', 'to_country', 'to_company',
+    )
+    fieldsets = (
+        (None, {'fields': (
+            'kind', 'what', 'scope', 'year', 'quantity', 'tier', 'estimated_revenue',
+            'source', 'reference',
+        )}),
+        ('Origine', {'fields': (
+            'from_asset', 'from_region', 'from_country', 'from_company', 'from_environment',
+        )}),
+        ('Destination', {'fields': (
+            'to_asset', 'to_region', 'to_country', 'to_company', 'to_environment',
+        )}),
+    )
 
+    @admin.display(description='Origine')
+    def origin(self, obj):
+        return _endpoint_label(obj, 'from')
 
-@admin.register(AssetInventory)
-class AssetInventoryAdmin(admin.ModelAdmin):
-    search_fields = ('asset__name', 'flow__key')
-    list_display = ('asset', 'flow', 'year', 'value')
-    list_filter = ('flow', 'year')
-    autocomplete_fields = ('asset', 'flow')
+    @admin.display(description='Destination')
+    def destination(self, obj):
+        return _endpoint_label(obj, 'to')
+
+    def save_model(self, request, obj, form, change):
+        if not change and obj.created_by_id is None:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 class ScenarioVariableInline(admin.TabularInline):

@@ -161,15 +161,13 @@ def interpolate_trajectory(points, year):
 #
 # Tout ce qui suit touche la base. Le noyau ci-dessus reste pur.
 
-from django.db.models import Max  # noqa: E402
-
 from ..models import ScenarioVariable  # noqa: E402  (import après le noyau pur)
 from ..models import Company_Revenue_Sector, SectorCreditProfile  # noqa: E402
 from ..models import (  # noqa: E402
-    Asset, Carbon_emission, ClimateScenario, Company_Policy, Company_Revenue,
-    Production,
+    Asset, ClimateScenario, Company_Policy, Company_Revenue,
 )
 from .hazards import PHYSICAL_RISKS  # noqa: E402
+from .flows import declared_emissions, latest_productions  # noqa: E402
 
 KEY_CARBON_PRICE = ScenarioVariable.Key.CARBON_PRICE
 KEY_HAZARD_MULTIPLIER = ScenarioVariable.Key.HAZARD_MULTIPLIER
@@ -265,29 +263,20 @@ def resolve_credit_profile(company, year):
 
 def company_snapshot(company, year):
     """Émissions, CA, exposition et couples (aléa, vulnérabilité) par actif."""
-    emissions = {}
-    for row in Carbon_emission.objects.filter(company=company, year=year):
-        normalized = row.scope.strip().lower().replace(' ', '')
-        emissions[normalized] = emissions.get(normalized, 0.0) + row.carbon_emission
+    # Scopes déjà résolus : détail prioritaire sur l'agrégat (spec §4). Un Scope
+    # 1+2 non détaillé est porté par `scope1` ; les totaux non ventilables
+    # (Scope 1+2+3, undefined) restent à part.
+    scopes = declared_emissions(company).get(year, {})
 
     revenue_row = Company_Revenue.objects.filter(company=company, year=year).first()
 
-    assets = list(Asset.objects.filter(ownership__Company=company).distinct())
-    asset_ids = [asset.pk for asset in assets]
+    assets = list(Asset.objects.owned_by(company, year))
 
-    latest_years = dict(
-        Production.objects.filter(asset_id__in=asset_ids)
-        .values('asset_id').annotate(max_year=Max('year'))
-        .values_list('asset_id', 'max_year')
-    )
     exposure_by_asset = {}
-    for row in Production.objects.filter(asset_id__in=asset_ids).values(
-        'asset_id', 'year', 'estimated_revenue'
-    ):
-        if latest_years.get(row['asset_id']) == row['year']:
-            exposure_by_asset[row['asset_id']] = (
-                exposure_by_asset.get(row['asset_id'], 0.0) + row['estimated_revenue']
-            )
+    for p in latest_productions([asset.pk for asset in assets]):
+        exposure_by_asset[p.from_asset_id] = (
+            exposure_by_asset.get(p.from_asset_id, 0.0) + (p.estimated_revenue or 0.0)
+        )
 
     levels = [
         link.policy_level
@@ -314,9 +303,11 @@ def company_snapshot(company, year):
         })
 
     return {
-        'scope1': emissions.get('scope1', 0.0),
-        'scope2': emissions.get('scope2', 0.0),
-        'scope3': emissions.get('scope3', 0.0),
+        'scope1': scopes.get('Scope 1', 0.0) + scopes.get('Scope 1+2', 0.0),
+        'scope2': scopes.get('Scope 2', 0.0),
+        'scope3': scopes.get('Scope 3', 0.0),
+        'scope12_combined': 'Scope 1+2' in scopes,
+        'unsplit_total': scopes.get('Scope 1+2+3', 0.0) + scopes.get('undefined', 0.0),
         'revenue': revenue_row.revenue if revenue_row else 0.0,
         'exposure': sum(exposure_by_asset.values()),
         'asset_count': len(assets),
@@ -506,10 +497,20 @@ def get_stress_test_data(company, params=None):
     }
 
     snapshot = company_snapshot(company, reference_year)
-    if snapshot['scope1'] + snapshot['scope2'] + snapshot['scope3'] == 0:
+    if snapshot['unsplit_total']:
+        warnings.append(
+            f"Émissions {reference_year} non ventilées par scope (Scope 1+2+3 ou "
+            f"non défini) : le canal transition est nul."
+        )
+    elif snapshot['scope1'] + snapshot['scope2'] + snapshot['scope3'] == 0:
         warnings.append(
             f"Aucune donnée d'émissions pour {reference_year} : le canal "
             f"transition est nul."
+        )
+    if snapshot['scope12_combined']:
+        warnings.append(
+            f"Scopes 1 et 2 déclarés ensemble pour {reference_year} (Scope 1+2) : "
+            f"comptés en scope 1."
         )
     if snapshot['asset_count'] == 0:
         warnings.append(

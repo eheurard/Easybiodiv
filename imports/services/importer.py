@@ -2,13 +2,14 @@ from datetime import date
 
 from django.db import transaction
 from dashboard.models import (
-    Asset, AssetInventory, Carbon_emission, CharacterizationFactor, ClimateScenario,
+    Asset, CharacterizationFactor, ClimateScenario,
     Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
-    Country, Currency, ESG_data, Exchange, Flow, ImpactCategory, Ownership,
-    Policy_Level, Policy_Subcategory, Policy_Type, Production, ScenarioVariable,
-    Sector, SectorCreditProfile, SubnationalRegion, SubSector, SupplyNode,
+    Country, Currency, ESG_data, Flow, FlowScope, ImpactCategory, Ownership,
+    Policy_Level, Policy_Subcategory, Policy_Type, ScenarioVariable,
+    Sector, SectorCreditProfile, SubnationalRegion, SubSector,
 )
-from .constants import IMPORT_ORDER
+from .cells import parse_int, parse_number, parse_optional_year, parse_share
+from .constants import ENDPOINT_TYPE_MODEL_KEYS, IMPORT_ORDER
 
 
 @transaction.atomic
@@ -59,13 +60,13 @@ def _b(val, default=False):
     return str(val).strip().lower() in _TRUE_VALUES
 
 
-def _tier(val):
-    """Clamp a tier cell to the model's 0–3 range."""
-    return min(3, max(0, _i(val)))
-
-
 def _s(val, default=''):
     return val if val else default
+
+
+def _tier(val):
+    """Clamp a tier cell to the model's 0–3 range."""
+    return min(3, max(0, parse_int(val) if val else 0))
 
 
 def _get(lookup, model_key, name):
@@ -122,6 +123,8 @@ def _import_commodity(rows, lookup):
             name=d['name'],
             description=_s(d.get('description')),
             unit=d.get('unit') or 'tonnes',
+            key=(d.get('key') or '').strip().lower() or None,
+            theme=_s(d.get('theme')),
             biodiversity_loss_class=d.get('biodiversity_loss_class') or 'Agriculture',
             dependency_water=d.get('dependency_water') or 'VL',
             dependency_pollination=d.get('dependency_pollination') or 'VL',
@@ -131,6 +134,8 @@ def _import_commodity(rows, lookup):
             dependency_pest_control=d.get('dependency_pest_control') or 'VL',
         )
         lookup['commodity'][d['name'].lower()] = obj
+        if obj.key:
+            lookup['commodity_key'][obj.key] = obj
         created += 1
     return created
 
@@ -290,106 +295,6 @@ def _import_asset(rows, lookup):
     return created
 
 
-def _import_asset_inventory(rows, lookup):
-    created = 0
-    for r in rows:
-        d = r['data']
-        asset = _get(lookup, 'asset', d['asset_name'])
-        flow = _get(lookup, 'flow', d['flow_key'])
-        if not asset or not flow:
-            continue
-        _, was_created = AssetInventory.objects.get_or_create(
-            asset=asset, flow=flow, year=_i(d.get('year')),
-            defaults={
-                'value': _f(d.get('value')),
-                'source': _s(d.get('source')),
-                'reference': _s(d.get('reference')),
-            },
-        )
-        if was_created:
-            created += 1
-    return created
-
-
-def _import_production(rows, lookup):
-    created = 0
-    for r in rows:
-        d = r['data']
-        asset = _get(lookup, 'asset', d['asset_name'])
-        commodity = _get(lookup, 'commodity', d['commodity_name'])
-        if not asset or not commodity:
-            continue
-        try:
-            year = int(d['year'])
-            production = float(d['production'])
-        except (ValueError, TypeError):
-            continue
-        Production.objects.create(
-            asset=asset,
-            commodity=commodity,
-            company=_get(lookup, 'company', d.get('company_name', '')),
-            subnational_region=_get(
-                lookup, 'subnational_region', d.get('subnational_region_name', '')),
-            country=_get(lookup, 'country', d.get('country_name', '')),
-            year=year,
-            production=production,
-            estimated_revenue=_f(d.get('estimated_revenue')),
-            tier=_tier(d.get('tier')),
-        )
-        created += 1
-    return created
-
-
-def _import_supply_node(rows, lookup):
-    """Crée ou réutilise un sommet du graphe. `node_ref` est une poignée locale
-    au fichier ; l'identité en base reste la composition asset/region/country/
-    commodity, si bien qu'un nœud déjà présent est réutilisé, pas dupliqué."""
-    created = 0
-    for r in rows:
-        d = r['data']
-        obj, was_created = SupplyNode.objects.get_or_create(
-            asset=_get(lookup, 'asset', d.get('asset_name', '')),
-            region=_get(lookup, 'subnational_region', d.get('subnational_region_name', '')),
-            country=_get(lookup, 'country', d.get('country_name', '')),
-            commodity=_get(lookup, 'commodity', d.get('commodity_name', '')),
-            defaults={
-                'name': d['node_ref'],
-                'is_external': _b(d.get('is_external')),
-            },
-        )
-        lookup['supply_node'][d['node_ref'].lower()] = obj
-        if was_created:
-            created += 1
-    return created
-
-
-def _import_exchange(rows, lookup):
-    created = 0
-    for r in rows:
-        d = r['data']
-        supplier = _get(lookup, 'supply_node', d['supplier_ref'])
-        consumer = _get(lookup, 'supply_node', d['consumer_ref'])
-        commodity = _get(lookup, 'commodity', d['commodity_name'])
-        if not supplier or not consumer or not commodity:
-            continue
-        _, was_created = Exchange.objects.get_or_create(
-            supplier=supplier,
-            consumer=consumer,
-            commodity=commodity,
-            year=_i(d.get('year')),
-            defaults={
-                'quantity': _f(d.get('quantity')),
-                'tier': _tier(d.get('tier')),
-                # À défaut de valeur explicite, la confiance suit la résolution
-                # du nœud fournisseur (asset > region > country).
-                'data_confidence': d.get('data_confidence') or supplier.resolution,
-            },
-        )
-        if was_created:
-            created += 1
-    return created
-
-
 def _import_company_revenue(rows, lookup):
     created = 0
     for r in rows:
@@ -416,11 +321,13 @@ def _import_ownership(rows, lookup):
         d = r['data']
         asset = _get(lookup, 'asset', d['asset_name'])
         company = _get(lookup, 'company', d['company_name'])
-        if not asset or not company:
+        share = parse_share(d.get('share'))
+        if not asset or not company or share is None:
             continue
         Ownership.objects.create(
-            Asset=asset, Company=company,
-            ownership=d.get('ownership', ''),
+            asset=asset, company=company, share=share,
+            start_year=parse_optional_year(d.get('start_year')),
+            end_year=parse_optional_year(d.get('end_year')),
             description=_s(d.get('description')),
         )
         created += 1
@@ -575,28 +482,6 @@ def _import_esg_data(rows, lookup):
     return created
 
 
-def _import_carbon_emission(rows, lookup):
-    created = 0
-    for r in rows:
-        d = r['data']
-        company = _get(lookup, 'company', d['company_name'])
-        if not company:
-            continue
-        try:
-            year = int(d['year'])
-            emission = float(d['carbon_emission'])
-        except (ValueError, TypeError):
-            continue
-        scope = _s(d.get('scope'))
-        _, was_created = Carbon_emission.objects.get_or_create(
-            company=company, year=year, scope=scope,
-            defaults={'carbon_emission': emission},
-        )
-        if was_created:
-            created += 1
-    return created
-
-
 def _import_climate_scenario(rows, lookup):
     created = 0
     for r in rows:
@@ -637,6 +522,48 @@ def _import_scenario_variable(rows, lookup):
     return created
 
 
+# 'scope 1' → 'Scope 1' : le classeur accepte n'importe quelle casse.
+_SCOPES = {scope.lower(): scope for scope in FlowScope.values}
+
+
+def _endpoint_kwargs(side, d, lookup):
+    """Champs d'une extrémité de Flow : {} si vide, None si le nom est introuvable."""
+    endpoint_type = (d.get(f'{side}_type') or '').strip().lower()
+    if endpoint_type == 'milieu':
+        return {f'{side}_environment': True}
+    if not endpoint_type:
+        return {}
+    target = _get(lookup, ENDPOINT_TYPE_MODEL_KEYS[endpoint_type], d.get(f'{side}_name', ''))
+    return {f'{side}_{endpoint_type}': target} if target else None
+
+
+def _import_flow(rows, lookup):
+    created = 0
+    for r in rows:
+        d = r['data']
+        alias = d['what'].strip().lower()
+        what = lookup['commodity'].get(alias) or lookup['commodity_key'].get(alias)
+        origin = _endpoint_kwargs('from', d, lookup)
+        destination = _endpoint_kwargs('to', d, lookup)
+        if what is None or origin is None or destination is None:
+            continue
+        revenue = d.get('estimated_revenue')
+        Flow.objects.create(
+            kind=d['kind'].strip().upper(),
+            what=what,
+            scope=_SCOPES.get((d.get('scope') or '').strip().lower(), FlowScope.UNDEFINED),
+            year=parse_int(d.get('year')),
+            quantity=parse_number(d.get('quantity')),
+            tier=_tier(d.get('tier')),
+            estimated_revenue=parse_number(revenue) if revenue else None,
+            source=_s(d.get('source')),
+            reference=_s(d.get('reference')),
+            **origin, **destination,
+        )
+        created += 1
+    return created
+
+
 _IMPORTERS = {
     'Country': _import_country,
     'SubnationalRegion': _import_subnational_region,
@@ -651,16 +578,12 @@ _IMPORTERS = {
     'SectorCreditProfile': _import_sector_credit_profile,
     'Company': _import_company,
     'Asset': _import_asset,
-    'AssetInventory': _import_asset_inventory,
-    'Production': _import_production,
-    'SupplyNode': _import_supply_node,
-    'Exchange': _import_exchange,
+    'Flow': _import_flow,
     'Ownership': _import_ownership,
     'Company_Revenue': _import_company_revenue,
     'Company_Revenue_Sector': _import_company_revenue_sector,
     'Company_Policy': _import_company_policy,
     'ESG_data': _import_esg_data,
-    'Carbon_emission': _import_carbon_emission,
     'ClimateScenario': _import_climate_scenario,
     'ScenarioVariable': _import_scenario_variable,
 }
@@ -671,8 +594,8 @@ def _build_lookup():
         'country': {o.name.lower(): o for o in Country.objects.all()},
         'subnational_region': {o.name.lower(): o for o in SubnationalRegion.objects.all()},
         'commodity': {o.name.lower(): o for o in Commodity.objects.all()},
+        'commodity_key': {o.key.lower(): o for o in Commodity.objects.exclude(key=None)},
         'impact_category': {o.key.lower(): o for o in ImpactCategory.objects.all()},
-        'flow': {o.key.lower(): o for o in Flow.objects.all()},
         'policy_type': {o.name.lower(): o for o in Policy_Type.objects.all()},
         'policy_subcategory': {
             f"{o.policy_type.name.lower()}|{o.name.lower()}": o
@@ -691,6 +614,4 @@ def _build_lookup():
         'company': {o.name.lower(): o for o in Company.objects.all()},
         'asset': {o.name.lower(): o for o in Asset.objects.all()},
         'climate_scenario': {o.key.lower(): o for o in ClimateScenario.objects.all()},
-        # Poignées locales au fichier, remplies par _import_supply_node.
-        'supply_node': {},
     }

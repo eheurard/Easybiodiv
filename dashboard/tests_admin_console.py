@@ -161,7 +161,7 @@ class AdminGroupingTests(TestCase):
         self.client.force_login(self.superuser)
         response = self.client.get(reverse('admin:index'))
         self.assertContains(response, 'Référentiels géographiques')
-        self.assertContains(response, 'Chaîne d&#x27;approvisionnement')
+        self.assertContains(response, 'Flux')
 
 
 class AdminTooltipTests(TestCase):

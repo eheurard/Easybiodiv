@@ -18,7 +18,7 @@ SHEET_COLUMNS = {
         'name', 'country_name', 'restoration_cost_m2', 'Mean_X', 'Mean_Y',
     ],
     'Commodity': [
-        'name', 'description', 'unit', 'biodiversity_loss_class',
+        'name', 'description', 'unit', 'key', 'theme', 'biodiversity_loss_class',
         'dependency_water', 'dependency_pollination', 'dependency_soil_quality',
         'dependency_carbon_sequestration', 'dependency_water_purification', 'dependency_pest_control',
     ],
@@ -67,29 +67,16 @@ SHEET_COLUMNS = {
         'near_sensitive_zone', 'sensitive_zone_type', 'sensitive_zone_name',
         'sensitive_zone_area_ha',
     ],
-    # Inventaire mesuré à l'échelle asset : une ligne par (asset, flux, année).
-    'AssetInventory': [
-        'asset_name', 'flow_key', 'year', 'value', 'source', 'reference',
+    # Flux : une quantité d'une commodité, une année, d'une origine vers une
+    # destination. from_type / to_type : asset, region, country, company, milieu,
+    # ou vide (inconnu) ; *_name reste vide pour milieu et inconnu. `what` accepte
+    # le nom ou la clé technique de la commodité.
+    'Flow': [
+        'kind', 'what', 'scope', 'from_type', 'from_name', 'to_type', 'to_name',
+        'year', 'quantity', 'tier', 'estimated_revenue', 'source', 'reference',
     ],
-    'Production': [
-        'asset_name', 'commodity_name', 'company_name', 'subnational_region_name', 'country_name',
-        'tier', 'year', 'production', 'estimated_revenue',
-    ],
-
-    # ── Graphe d'approvisionnement ────────────────────────────────────────────
-    # node_ref est une poignée libre, locale au fichier : elle sert uniquement à
-    # relier les lignes Exchange aux lignes SupplyNode du même classeur.
-    'SupplyNode': [
-        'node_ref', 'asset_name', 'subnational_region_name', 'country_name',
-        'commodity_name', 'is_external',
-    ],
-    'Exchange': [
-        'supplier_ref', 'consumer_ref', 'commodity_name', 'quantity', 'year',
-        'tier', 'data_confidence',
-    ],
-
     # ── Données d'entreprise ──────────────────────────────────────────────────
-    'Ownership': ['asset_name', 'company_name', 'ownership', 'description'],
+    'Ownership': ['asset_name', 'company_name', 'share', 'start_year', 'end_year', 'description'],
     'Company_Revenue': ['company_name', 'year', 'revenue', 'currency'],
     'Company_Revenue_Sector': ['company_name', 'subsector_name', 'sector_name', 'year', 'revenue'],
     'Company_Policy': [
@@ -97,7 +84,6 @@ SHEET_COLUMNS = {
         'policy_date', 'comment',
     ],
     'ESG_data': ['company_name', 'year', 'employees_number'],
-    'Carbon_emission': ['company_name', 'year', 'scope', 'carbon_emission'],
 
     # ── Stress test climatique ────────────────────────────────────────────────
     'ClimateScenario': [
@@ -119,19 +105,6 @@ FK_FIELDS = {
     'SubSector': {'sector_name': 'sector'},
     'SectorCreditProfile': {'sector_name': 'sector'},
     'Asset': {'country_name': 'country', 'subnational_region_name': 'subnational_region'},
-    'AssetInventory': {'asset_name': 'asset', 'flow_key': 'flow'},
-    'Production': {
-        'asset_name': 'asset', 'commodity_name': 'commodity', 'company_name': 'company',
-        'subnational_region_name': 'subnational_region', 'country_name': 'country',
-    },
-    'SupplyNode': {
-        'asset_name': 'asset', 'subnational_region_name': 'subnational_region',
-        'country_name': 'country', 'commodity_name': 'commodity',
-    },
-    'Exchange': {
-        'supplier_ref': 'supply_node', 'consumer_ref': 'supply_node',
-        'commodity_name': 'commodity',
-    },
     'Ownership': {'asset_name': 'asset', 'company_name': 'company'},
     'Company_Revenue': {'company_name': 'company'},
     'Company_Revenue_Sector': {'company_name': 'company', 'subsector_name': 'subsector', 'sector_name': 'sector'},
@@ -142,7 +115,6 @@ FK_FIELDS = {
         'policy_level_name': 'policy_level',
     },
     'ESG_data': {'company_name': 'company'},
-    'Carbon_emission': {'company_name': 'company'},
     'ScenarioVariable': {'scenario_key': 'climate_scenario'},
 }
 
@@ -160,11 +132,8 @@ REQUIRED_FIELDS = {
     'SectorCreditProfile': ['sector_name'],
     'Company': ['name'],
     'Asset': ['name', 'latitude', 'longitude', 'country_name'],
-    'AssetInventory': ['asset_name', 'flow_key', 'year', 'value'],
-    'Production': ['asset_name', 'commodity_name', 'year', 'production'],
-    'SupplyNode': ['node_ref'],
-    'Exchange': ['supplier_ref', 'consumer_ref', 'commodity_name', 'quantity', 'year'],
-    'Ownership': ['asset_name', 'company_name', 'ownership'],
+    'Flow': ['kind', 'what', 'year', 'quantity'],
+    'Ownership': ['asset_name', 'company_name', 'share'],
     'Company_Revenue': ['company_name', 'year', 'revenue', 'currency'],
     'Company_Revenue_Sector': ['company_name', 'subsector_name', 'sector_name', 'year', 'revenue'],
     'Company_Policy': [
@@ -172,7 +141,6 @@ REQUIRED_FIELDS = {
         'policy_level_name', 'policy_date',
     ],
     'ESG_data': ['company_name', 'year'],
-    'Carbon_emission': ['company_name', 'year', 'scope', 'carbon_emission'],
     'ClimateScenario': ['key', 'name'],
     'ScenarioVariable': ['scenario_key', 'year', 'key', 'value'],
 }
@@ -193,28 +161,37 @@ DUPLICATE_CRITERIA = {
     'SectorCreditProfile': ['sector_name'],
     'Company': ['name'],
     'Asset': ['name', 'country_name'],
-    'AssetInventory': ['asset_name', 'flow_key', 'year'],
-    'Production': ['asset_name', 'commodity_name', 'year'],
-    'SupplyNode': ['node_ref'],
-    'Exchange': ['supplier_ref', 'consumer_ref', 'commodity_name', 'year'],
-    'Ownership': ['asset_name', 'company_name'],
+    'Flow': ['kind', 'what', 'scope', 'from_type', 'from_name', 'to_type', 'to_name', 'year'],
+    'Ownership': ['asset_name', 'company_name', 'start_year'],
     'Company_Revenue': ['company_name', 'year'],
     'Company_Revenue_Sector': ['company_name', 'subsector_name', 'year'],
     'Company_Policy': [
         'company_name', 'policy_type_name', 'policy_subcategory_name', 'policy_level_name',
     ],
     'ESG_data': ['company_name', 'year'],
-    'Carbon_emission': ['company_name', 'year', 'scope'],
     'ClimateScenario': ['key'],
     'ScenarioVariable': ['scenario_key', 'year', 'key'],
 }
 
 # Colonnes dont au moins une doit être renseignée. Reflète les contraintes que
 # le modèle porte dans clean() — non appelé par objects.create().
-AT_LEAST_ONE_OF = {
-    # SupplyNode.clean() : un sommet exige asset, region ou country.
-    'SupplyNode': ['asset_name', 'subnational_region_name', 'country_name'],
+AT_LEAST_ONE_OF = {}
+
+# Types d'extrémité de la feuille Flow. Les quatre premiers reprennent les
+# constantes ENDPOINT_* du modèle ; 'milieu' correspond à ENDPOINT_ENVIRONMENT.
+ENDPOINT_TYPES = ['asset', 'region', 'country', 'company', 'milieu']
+
+# Type d'extrémité → clé du dictionnaire de résolution des noms (lookup).
+ENDPOINT_TYPE_MODEL_KEYS = {
+    'asset': 'asset',
+    'region': 'subnational_region',
+    'country': 'country',
+    'company': 'company',
 }
+
+# Feuilles remplacées par Flow (spec 2026-09-18 §6.1) : un classeur qui les
+# contient encore reçoit une erreur explicite au lieu d'être ignoré.
+REMOVED_SHEETS = ['Production', 'AssetInventory', 'SupplyNode', 'Exchange', 'Carbon_emission']
 
 # Colonnes dont la valeur doit appartenir à une énumération. Comparaison
 # insensible à la casse ; une cellule vide est toujours acceptée (défaut modèle).
@@ -228,21 +205,25 @@ CHOICE_FIELDS = {
             'NATURA_2000', 'NATIONAL_PROTECTED', 'UNESCO', 'IUCN_KBA', 'OTHER',
         ],
     },
-    'Exchange': {'data_confidence': ['asset', 'region', 'country']},
     'ClimateScenario': {
         'family': ['ORDERLY', 'DISORDERLY', 'TOO_LITTLE', 'HOT_HOUSE'],
     },
     'ScenarioVariable': {'key': ['carbon_price', 'hazard_multiplier']},
+    'Flow': {
+        'kind': ['PRODUCTION', 'SUPPLY', 'CONSUMPTION', 'EMISSION', 'WASTE'],
+        'scope': ['Scope 1', 'Scope 2', 'Scope 3', 'Scope 1+2', 'Scope 1+2+3', 'undefined'],
+        'from_type': ENDPOINT_TYPES,
+        'to_type': ENDPOINT_TYPES,
+    },
 }
 
 IMPORT_ORDER = [
     'Country', 'SubnationalRegion', 'Commodity', 'CharacterizationFactor',
     'Policy_Type', 'Policy_Subcategory', 'Policy_Level',
     'Currency', 'Sector', 'SubSector', 'SectorCreditProfile',
-    'Company', 'Asset', 'AssetInventory', 'Production',
-    'SupplyNode', 'Exchange',
+    'Company', 'Asset', 'Flow',
     'Ownership', 'Company_Revenue', 'Company_Revenue_Sector', 'Company_Policy',
-    'ESG_data', 'Carbon_emission',
+    'ESG_data',
     'ClimateScenario', 'ScenarioVariable',
 ]
 
@@ -262,8 +243,5 @@ MODEL_KEY_TO_SOURCE = {
     'company': ('Company', 'name'),
     'asset': ('Asset', 'name'),
     'impact_category': (None, 'key'),
-    'flow': (None, 'key'),
     'climate_scenario': ('ClimateScenario', 'key'),
-    # node_ref n'a pas d'équivalent stable en base : résolution intra-fichier.
-    'supply_node': ('SupplyNode', 'node_ref'),
 }
