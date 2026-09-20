@@ -7,7 +7,7 @@
   "avg_dependency_water_purification": 0.9,
   "company_id": 1,
   "company_name": "Acme Corp",
-  "number_of_assets": 5,
+  "number_of_assets": 6,
   "total_impact_endpoint_GBS_terrestrial_dynamic": 1157290.0,
   "total_impact_endpoint_GBS_terrestrial_static": 990450.0,
   "total_impact_endpoint_ReCiPe2016_ecosystem_diversity": 4608.1,

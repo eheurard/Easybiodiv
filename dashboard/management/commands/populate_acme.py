@@ -1,17 +1,40 @@
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from dashboard.models import (
-    Asset, Commodity, Company, Company_Policy, Company_Revenue,
-    Company_Revenue_Sector, Country, DisclosureRequirement, E4Assessment,
-    Flow, FlowKind, Ownership, Policy_Level, Policy_Subcategory, Policy_Type,
-    Sector, SectorCreditProfile, SubSector, SubnationalRegion,
-    CharacterizationFactor, ImpactCategory,
+    Asset, CharacterizationFactor, Commodity, Company, Company_Policy,
+    Company_Revenue, Company_Revenue_Sector, Country, Currency,
+    DisclosureRequirement, E4Assessment, ESG_data, Flow, FlowKind, FlowScope,
+    ImpactCategory, Ownership, Policy_Level, Policy_Subcategory, Policy_Type,
+    Portfolio, PortfolioHolding, Sector, SectorCreditProfile, SubSector,
+    SubnationalRegion,
 )
 from dashboard.services.impacts import legacy_cf_rows
 from dashboard.services.supply import SCOPE_TO_TIER
+
+
+DEMO_SOURCE = "Démonstration Easybiodiv"
+
+
+def _demo_flow(kind, what, year, quantity, reference, created_by, **endpoints):
+    """Crée un flux de démonstration s'il n'existe pas déjà.
+
+    `endpoints` porte les extrémités (from_*/to_*), le scope et le tier : ils
+    font partie de la recherche, deux flux ne différant que par leur origine
+    étant deux flux distincts.
+    """
+    Flow.objects.get_or_create(
+        kind=kind, what=what, year=year, **endpoints,
+        defaults={
+            'quantity': float(quantity),
+            'source': DEMO_SOURCE,
+            'reference': reference,
+            'created_by': created_by,
+        },
+    )
 
 
 class Command(BaseCommand):
@@ -20,6 +43,13 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         self.stdout.write("Création des données Acme Corp…")
+
+        # Auteur des données de démonstration : premier compte disponible, pour
+        # renseigner les champs `created_by` des modèles récents.
+        demo_user = (
+            get_user_model().objects.filter(is_superuser=True).first()
+            or get_user_model().objects.first()
+        )
 
         # ── Pays ──────────────────────────────────────────────────────────────
 
@@ -282,7 +312,7 @@ class Command(BaseCommand):
 
         # ── Entreprise ────────────────────────────────────────────────────────
 
-        acme, _ = Company.objects.get_or_create(
+        acme, _ = Company.objects.update_or_create(
             name="Acme Corp",
             defaults={
                 "description": (
@@ -381,17 +411,53 @@ class Command(BaseCommand):
             },
         )
 
-        # ── Propriétés ────────────────────────────────────────────────────────
+        a_valorisation, _ = Asset.objects.get_or_create(
+            name="Unité de valorisation des coproduits Bretagne",
+            defaults={
+                "description": "Méthanisation et valorisation des coproduits — Lamballe",
+                "latitude": 48.47,
+                "longitude": -2.51,
+                "country": france,
+                "subnational_region": bretagne,
+                "type": "Factory",
+                "risk_water": 0.15, "risk_pollination": 0.10, "risk_soil_quality": 0.12,
+                "risk_carbon_sequestration": 0.10, "risk_water_purification": 0.15,
+                "risk_pest_control": 0.10, "risk_water_stress": 0.20, "risk_wildfire": 0.05,
+                "risk_cyclone": 0.02, "risk_drought": 0.25, "risk_flood": 0.25,
+                "risk_coastal_inundation": 0.15, "risk_heatwave": 0.35,
+                "risk_temperature_variation": 0.30, "risk_precipitation_variation": 0.28,
+            },
+        )
 
-        for asset, share in [
-            (a_bretagne, Decimal('1')),
-            (a_occitanie, Decimal('1')),
-            (a_mato_grosso, Decimal('0.75')),
-            (a_para, Decimal('1')),
-            (a_sumatra, Decimal('0.6')),
+        # ── Détentions ────────────────────────────────────────────────────────
+        #
+        # Part décimale et années de validité (spec §3.6) : le détenteur d'une
+        # année est celui du 31 décembre. Sumatra illustre une montée au capital.
+
+        for asset, share, start_year, note in [
+            (a_bretagne, Decimal('1'), 2015, "Site historique du groupe."),
+            (a_occitanie, Decimal('1'), 2017, "Acquis au rachat du groupe céréalier Midi."),
+            (a_valorisation, Decimal('1'), 2022, "Construit en propre, adossé à la raffinerie."),
+            (a_mato_grosso, Decimal('0.75'), 2019, "Coentreprise avec un partenaire local (25 %)."),
+            (a_para, Decimal('1'), 2020, "Rachat intégral de l'exploitation."),
+            (a_sumatra, Decimal('0.6'), 2021, "Participation portée de 40 % à 60 % en 2021."),
         ]:
             Ownership.objects.get_or_create(
-                asset=asset, company=acme, defaults={'share': share})
+                asset=asset, company=acme, end_year=None,
+                defaults={
+                    'share': share, 'start_year': start_year,
+                    'description': note, 'created_by': demo_user,
+                },
+            )
+
+        Ownership.objects.get_or_create(
+            asset=a_sumatra, company=acme, end_year=2020,
+            defaults={
+                'share': Decimal('0.4'), 'start_year': 2016,
+                'description': "Participation initiale, portée à 60 % en 2021.",
+                'created_by': demo_user,
+            },
+        )
 
         # ── Productions 2023-2024 ─────────────────────────────────────────────
 
@@ -419,6 +485,132 @@ class Command(BaseCommand):
                 year=year,
                 defaults={'quantity': qty, 'estimated_revenue': revenue},
             )
+
+        # ── Inventaire mesuré des sites ───────────────────────────────────────
+        #
+        # Commodités techniques (Commodity.key) : ce sont elles que lisent les
+        # vues via dashboard/services/flows.py. Une consommation entre dans
+        # l'actif, une émission et un déchet en sortent (FLOW_RULES).
+
+        water = Commodity.objects.technical('water')
+        energy = Commodity.objects.technical('energy')
+        co2 = Commodity.objects.technical('co2')
+        waste = Commodity.objects.technical('waste')
+        surface = Commodity.objects.technical('surface_area')
+
+        # Prélevé dans le milieu : eau (m³) et surface occupée (m²).
+        for asset, commodity, qty_2023, qty_2024 in [
+            (a_bretagne,     water,   1_250_000,   1_180_000),
+            (a_occitanie,    water,      85_000,      92_000),
+            (a_valorisation, water,     140_000,     155_000),
+            (a_mato_grosso,  water,   4_200_000,   4_550_000),
+            (a_para,         water,   2_300_000,   2_480_000),
+            (a_sumatra,      water,   6_800_000,   7_100_000),
+            (a_bretagne,     surface,   120_000,     120_000),
+            (a_occitanie,    surface,    45_000,      45_000),
+            (a_valorisation, surface,    18_000,      18_000),
+            (a_mato_grosso,  surface, 62_000_000,  64_500_000),
+            (a_para,         surface, 31_000_000,  33_200_000),
+            (a_sumatra,      surface, 48_000_000,  48_000_000),
+        ]:
+            for year, qty in [(2023, qty_2023), (2024, qty_2024)]:
+                _demo_flow(
+                    FlowKind.CONSUMPTION, commodity, year, qty,
+                    "Relevés de site (données fictives)", demo_user,
+                    from_environment=True, to_asset=asset,
+                )
+
+        # Énergie : origine non renseignée (réseau), destination l'actif — ou le
+        # siège social, qui n'est pas un actif géolocalisé.
+        for asset, mwh_2023, mwh_2024 in [
+            (a_bretagne,     42_000, 40_500),
+            (a_occitanie,     3_200,  3_400),
+            (a_valorisation,  5_600,  6_100),
+            (a_mato_grosso,  12_500, 13_400),
+            (a_para,          6_800,  7_300),
+            (a_sumatra,      18_000, 19_200),
+        ]:
+            for year, qty in [(2023, mwh_2023), (2024, mwh_2024)]:
+                _demo_flow(
+                    FlowKind.CONSUMPTION, energy, year, qty,
+                    "Factures d'électricité (données fictives)", demo_user,
+                    to_asset=asset,
+                )
+
+        for year, qty in [(2023, 1_450), (2024, 1_380)]:
+            _demo_flow(
+                FlowKind.CONSUMPTION, energy, year, qty,
+                "Siège social et flotte — hors périmètre des sites", demo_user,
+                to_company=acme,
+            )
+
+        # Émissions mesurées sur site (Scope 1) : actif → milieu. Distinctes des
+        # émissions déclarées par l'entreprise, créées plus bas.
+        for asset, t_2023, t_2024 in [
+            (a_bretagne,     9_000, 7_600),
+            (a_occitanie,    1_200, 1_300),
+            (a_valorisation,  1_000, 1_000),
+            (a_mato_grosso,  5_400, 5_200),
+            (a_para,         3_100, 3_000),
+            (a_sumatra,      4_800, 4_900),
+        ]:
+            for year, qty in [(2023, t_2023), (2024, t_2024)]:
+                _demo_flow(
+                    FlowKind.EMISSION, co2, year, qty,
+                    "Bilan carbone site (données fictives)", demo_user,
+                    scope=FlowScope.SCOPE_1, from_asset=asset, to_environment=True,
+                )
+
+        # Déchets : les trois destinations autorisées sont illustrées — le milieu,
+        # un actif de traitement, ou une destination inconnue.
+        for asset, t_2023, t_2024, endpoints, reference in [
+            (a_bretagne, 3_200, 3_050, {'to_asset': a_valorisation},
+             "Coproduits de raffinage envoyés à l'unité de valorisation"),
+            (a_occitanie, 450, 480, {'to_asset': a_valorisation},
+             "Issues de silo envoyées à l'unité de valorisation"),
+            (a_mato_grosso, 1_800, 1_950, {'to_environment': True},
+             "Résidus de culture laissés au champ"),
+            (a_para, 950, 1_020, {},
+             "Collecte par un prestataire local, destination non tracée"),
+            (a_sumatra, 5_400, 5_700, {'to_environment': True},
+             "Rafles et effluents d'huilerie épandus sur la plantation"),
+        ]:
+            for year, qty in [(2023, t_2023), (2024, t_2024)]:
+                _demo_flow(
+                    FlowKind.WASTE, waste, year, qty, reference, demo_user,
+                    from_asset=asset, **endpoints,
+                )
+
+        # ── Approvisionnements ────────────────────────────────────────────────
+        #
+        # Un SUPPLY relie deux lieux ou entreprises. Le tier situe le maillon :
+        # 0 opérations directes, 1 fournisseur direct, 2 amont, 3 matière première.
+        # Origine actif ou région → tracé sur la carte ; origine pays ou
+        # destination entreprise → pas de coordonnées, donc pas de trait.
+
+        for what, origin, destination, tier, qty_2023, qty_2024, reference in [
+            (palme, {'from_asset': a_sumatra}, {'to_asset': a_bretagne}, 1,
+             180_000, 195_000, "Huile brute expédiée vers la raffinerie"),
+            (soja, {'from_asset': a_mato_grosso}, {'to_asset': a_bretagne}, 1,
+             165_000, 172_000, "Soja du Mato Grosso trituré en Bretagne"),
+            (soja, {'from_asset': a_para}, {'to_company': acme}, 1,
+             88_000, 94_000, "Soja du Pará vendu depuis le négoce groupe"),
+            (soja, {'from_region': mato_grosso}, {'to_asset': a_bretagne}, 2,
+             40_000, 45_000, "Achats auprès de producteurs tiers de la région"),
+            (palme, {'from_region': sumatra}, {'to_asset': a_bretagne}, 2,
+             55_000, 60_000, "Achats auprès de petits planteurs de Riau"),
+            (ble, {'from_country': france}, {'to_asset': a_occitanie}, 3,
+             15_000, 16_000, "Collecte nationale, exploitations non tracées"),
+            (mais, {'from_country': brazil}, {'to_company': acme}, 3,
+             22_000, 24_000, "Maïs importé, origine régionale non tracée"),
+            (palme, {'from_company': acme}, {'to_country': france}, 0,
+             52_000, 55_000, "Huile raffinée livrée sur le marché français"),
+        ]:
+            for year, qty in [(2023, qty_2023), (2024, qty_2024)]:
+                _demo_flow(
+                    FlowKind.SUPPLY, what, year, qty, reference, demo_user,
+                    tier=tier, **origin, **destination,
+                )
 
         # ── Revenus ───────────────────────────────────────────────────────────
 
@@ -790,7 +982,6 @@ class Command(BaseCommand):
             (2023, 'Scope 1', 23500), (2023, 'Scope 2', 13000), (2023, 'Scope 3', 74000),
             (2024, 'Scope 1', 22000), (2024, 'Scope 2', 12000), (2024, 'Scope 3', 70000),
         ]
-        co2 = Commodity.objects.technical('co2')
         for yr, scope, val in carbon_rows:
             Flow.objects.get_or_create(
                 kind=FlowKind.EMISSION, what=co2, from_company=acme,
@@ -816,6 +1007,7 @@ class Command(BaseCommand):
             company=acme,
             reporting_year=2024,
             defaults={
+                "created_by": demo_user,
                 "standard_version": E4Assessment.StandardVersion.AMENDED_2025,
                 "materiality_status": E4Assessment.Materiality.MATERIAL,
                 "materiality_justification": (
@@ -863,16 +1055,54 @@ class Command(BaseCommand):
                 defaults={"status": status, "justification": justif},
             )
 
+        # ── Données ESG & portefeuille de démonstration ───────────────────────
+
+        for year, employees in [(2022, 1_850), (2023, 1_920), (2024, 1_980)]:
+            ESG_data.objects.get_or_create(
+                company=acme, year=year, defaults={"employees_number": employees},
+            )
+
+        eur, _ = Currency.objects.get_or_create(
+            code="EUR", defaults={"name": "Euro", "symbol": "€", "ratio_USD": 1.08},
+        )
+
+        # Le portefeuille appartient à un utilisateur : sans compte en base, on le
+        # saute plutôt que de créer un fonds orphelin.
+        if demo_user is not None:
+            portfolio, _ = Portfolio.objects.get_or_create(
+                name="Fonds démo Easybiodiv",
+                defaults={
+                    "size": 20_000_000,
+                    "currency": eur,
+                    "is_shared": True,
+                    "created_by": demo_user,
+                },
+            )
+            PortfolioHolding.objects.get_or_create(
+                portfolio=portfolio, company=acme,
+                defaults={
+                    "amount": 12_000_000,
+                    "weight": 60.0,
+                    "instrument_type": PortfolioHolding.Instrument.EQUITY,
+                },
+            )
+
+        # ── Résumé ────────────────────────────────────────────────────────────
+
+        owned = Asset.objects.owned_by(acme)
+        flows_by_kind = {
+            kind.label: Flow.objects.filter(kind=kind).count() for kind in FlowKind
+        }
         self.stdout.write(self.style.SUCCESS(
             "\nAcme Corp — données créées avec succès !\n"
             "  Pays           : France, Brésil, Indonésie\n"
             "  Régions        : Bretagne, Occitanie, Mato Grosso, Pará, Sumatra\n"
-            "  Actifs         : 5 (2 FR · 2 BR · 1 ID)\n"
-            "  Commodités     : Blé, Maïs, Soja, Huile de palme\n"
-            "  Productions    : 12 entrées (2023-2024)\n"
+            f"  Actifs détenus : {owned.count()} (3 FR · 2 BR · 1 ID)\n"
+            "  Commodités     : Blé, Maïs, Soja, Huile de palme + 5 techniques\n"
             "  Chiffre d'aff. : 452,6 M€ (2024)\n"
-            "  Types politi.  : Risque Réglementaire, Risque de Marché\n"
-            "  Sous-catégories: EUDR · CSRD/ESRS E4 · Taxe biodiversité · ESG · Marchés durables\n"
             "  Politiques     : 15 niveaux définis, 5 appliqués à Acme Corp\n"
+            "  Conformité     : E4Assessment 2024 + 5 exigences de publication\n"
             "  Profil         : exposition modérée-haute au risque de transition\n"
+            "\n  Flux (table Flow, toutes entreprises) :\n"
+            + "".join(f"    {label:<20} {count}\n" for label, count in flows_by_kind.items())
         ))

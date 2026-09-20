@@ -163,20 +163,6 @@
                   </a>
                 </li>
                 <li>
-                  <a href="{% url 'dashboard:physical_risk' %}"
-                    class="sidebar__nav-sublink {% block nav_physical_risk %}{% endblock %}"
-                    aria-label="Risque physique">
-                    Risque physique
-                  </a>
-                </li>
-                <li>
-                  <a href="{% url 'dashboard:dette_ecologique' %}"
-                    class="sidebar__nav-sublink {% block nav_dette_ecologique %}{% endblock %}"
-                    aria-label="Dette écologique">
-                    Dette écologique
-                  </a>
-                </li>
-                <li>
                   <a href="{% url 'dashboard:climate_stress_test' %}"
                     class="sidebar__nav-sublink {% block nav_climate_stress_test %}{% endblock %}"
                     aria-label="Stress test climatique">
@@ -214,27 +200,18 @@
             {% if user.is_authenticated %}
             <a href="{% url 'dashboard:portfolio_analysis' %}"
               class="sidebar__nav-link {% block nav_portfolio %}{% endblock %}" aria-label="Portfolio analysis">
-            {% else %}
-            <span class="sidebar__nav-link sidebar__nav-link--disabled" aria-disabled="true"
-              aria-label="Portfolio analysis (connexion requise)" title="Connexion requise">
-            {% endif %}
-              <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <rect x="2.5" y="4" width="15" height="12" rx="2" stroke="currentColor" stroke-width="1.5" />
-                <path d="M7 4V3a1.5 1.5 0 011.5-1.5h3A1.5 1.5 0 0113 3v1" stroke="currentColor" stroke-width="1.5" />
-                <path d="M2.5 9h15" stroke="currentColor" stroke-width="1.3" />
-              </svg>
-              <span class="sidebar__nav-label">Portfolio analysis</span>
-            {% if user.is_authenticated %}</a>{% else %}</span>{% endif %}
-          </li>
-          <li>
-            <a href="{% url 'dashboard:compliance' %}"
-              class="sidebar__nav-link {% block nav_compliance %}{% endblock %}" aria-label="Conformité CSRD">
-              <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <rect x="4" y="2" width="12" height="16" rx="2" stroke="currentColor" stroke-width="1.5" />
-                <path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
-              </svg>
-              <span class="sidebar__nav-label">Conformité CSRD</span>
-            </a>
+              {% else %}
+              <span class="sidebar__nav-link sidebar__nav-link--disabled" aria-disabled="true"
+                aria-label="Portfolio analysis (connexion requise)" title="Connexion requise">
+                {% endif %}
+                <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none"
+                  aria-hidden="true">
+                  <rect x="2.5" y="4" width="15" height="12" rx="2" stroke="currentColor" stroke-width="1.5" />
+                  <path d="M7 4V3a1.5 1.5 0 011.5-1.5h3A1.5 1.5 0 0113 3v1" stroke="currentColor" stroke-width="1.5" />
+                  <path d="M2.5 9h15" stroke="currentColor" stroke-width="1.3" />
+                </svg>
+                <span class="sidebar__nav-label">Portfolio analysis</span>
+                {% if user.is_authenticated %}</a>{% else %}</span>{% endif %}
           </li>
         </ul>
       </nav>

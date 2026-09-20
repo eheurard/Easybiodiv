@@ -103,7 +103,7 @@
     }
   ],
   "inputs": {
-    "asset_count": 5,
+    "asset_count": 6,
     "ebitda_proxy": 51564000.0,
     "emissions": {
       "retained": 34000.0,

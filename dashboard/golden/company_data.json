@@ -1,21 +1,11 @@
 {
-  "asset_count": 5,
+  "asset_count": 6,
   "commodity_count": 4,
   "company_id": 1,
   "company_name": "Acme Corp",
   "countries": [
     {
-      "asset_count": 2,
-      "commodities": [
-        {
-          "count": 2,
-          "name": "Soja"
-        }
-      ],
-      "name": "Brésil"
-    },
-    {
-      "asset_count": 2,
+      "asset_count": 3,
       "commodities": [
         {
           "count": 1,
@@ -31,6 +21,16 @@
         }
       ],
       "name": "France"
+    },
+    {
+      "asset_count": 2,
+      "commodities": [
+        {
+          "count": 2,
+          "name": "Soja"
+        }
+      ],
+      "name": "Brésil"
     },
     {
       "asset_count": 1,
@@ -189,6 +189,27 @@
           "region": "Sumatra",
           "type": "Factory",
           "year": 2024
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            -2.51,
+            48.47
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "commodities": "",
+          "country": "France",
+          "dette_eco": 0.0,
+          "footprint": 0,
+          "name": "Unité de valorisation des coproduits Bretagne",
+          "productions": [],
+          "region": "Bretagne",
+          "type": "Factory",
+          "year": null
         },
         "type": "Feature"
       }

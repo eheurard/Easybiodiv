@@ -143,16 +143,158 @@
           "type": "Factory"
         },
         "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            -2.51,
+            48.47
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "asset_type": "",
+          "country": "France",
+          "name": "Unité de valorisation des coproduits Bretagne",
+          "ownership": "100%",
+          "productions": [],
+          "region": "Bretagne",
+          "revenue_total": 0,
+          "type": "Factory"
+        },
+        "type": "Feature"
       }
     ],
     "type": "FeatureCollection"
   },
   "supplier_links": {
-    "features": [],
+    "features": [
+      {
+        "geometry": {
+          "coordinates": [
+            [
+              102.1,
+              0.75
+            ],
+            [
+              -2.76,
+              48.51
+            ]
+          ],
+          "type": "LineString"
+        },
+        "properties": {
+          "asset": "Usine de transformation Bretagne",
+          "commodity": "Huile de palme",
+          "supplier": "Palmeraie Sumatra"
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            [
+              -56.08,
+              -13.83
+            ],
+            [
+              -2.76,
+              48.51
+            ]
+          ],
+          "type": "LineString"
+        },
+        "properties": {
+          "asset": "Usine de transformation Bretagne",
+          "commodity": "Soja",
+          "supplier": "Plantation soja Mato Grosso"
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            [
+              -55.0,
+              -12.5
+            ],
+            [
+              -2.76,
+              48.51
+            ]
+          ],
+          "type": "LineString"
+        },
+        "properties": {
+          "asset": "Usine de transformation Bretagne",
+          "commodity": "Soja",
+          "supplier": "Mato Grosso"
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            [
+              102.0,
+              0.5
+            ],
+            [
+              -2.76,
+              48.51
+            ]
+          ],
+          "type": "LineString"
+        },
+        "properties": {
+          "asset": "Usine de transformation Bretagne",
+          "commodity": "Huile de palme",
+          "supplier": "Sumatra"
+        },
+        "type": "Feature"
+      }
+    ],
     "type": "FeatureCollection"
   },
   "suppliers": {
-    "features": [],
+    "features": [
+      {
+        "geometry": {
+          "coordinates": [
+            -55.0,
+            -12.5
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "commodities": [
+            "Soja"
+          ],
+          "country": "Brésil",
+          "id": "region-3",
+          "name": "Mato Grosso"
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            102.0,
+            0.5
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "commodities": [
+            "Huile de palme"
+          ],
+          "country": "Indonésie",
+          "id": "region-5",
+          "name": "Sumatra"
+        },
+        "type": "Feature"
+      }
+    ],
     "type": "FeatureCollection"
   }
 }

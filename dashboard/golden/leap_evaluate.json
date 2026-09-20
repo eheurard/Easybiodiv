@@ -1,7 +1,7 @@
 {
   "assets": [
     {
-      "co2_emissions": 0.0,
+      "co2_emissions": 7600.0,
       "country": "France",
       "id": 1,
       "impacts": {
@@ -22,11 +22,11 @@
       "name": "Usine de transformation Bretagne",
       "near_sensitive_zone": false,
       "sensitive_zone_type": "",
-      "waste_generated": 0.0,
-      "water_consumption": 0.0
+      "waste_generated": 3050.0,
+      "water_consumption": 1180000.0
     },
     {
-      "co2_emissions": 0.0,
+      "co2_emissions": 1300.0,
       "country": "France",
       "id": 2,
       "impacts": {
@@ -47,11 +47,11 @@
       "name": "Silo céréalier Occitanie",
       "near_sensitive_zone": false,
       "sensitive_zone_type": "",
-      "waste_generated": 0.0,
-      "water_consumption": 0.0
+      "waste_generated": 480.0,
+      "water_consumption": 92000.0
     },
     {
-      "co2_emissions": 0.0,
+      "co2_emissions": 5200.0,
       "country": "Brésil",
       "id": 3,
       "impacts": {
@@ -72,11 +72,11 @@
       "name": "Plantation soja Mato Grosso",
       "near_sensitive_zone": false,
       "sensitive_zone_type": "",
-      "waste_generated": 0.0,
-      "water_consumption": 0.0
+      "waste_generated": 1950.0,
+      "water_consumption": 4550000.0
     },
     {
-      "co2_emissions": 0.0,
+      "co2_emissions": 3000.0,
       "country": "Brésil",
       "id": 4,
       "impacts": {
@@ -97,11 +97,11 @@
       "name": "Plantation soja Pará",
       "near_sensitive_zone": true,
       "sensitive_zone_type": "IUCN Key Biodiversity Area",
-      "waste_generated": 0.0,
-      "water_consumption": 0.0
+      "waste_generated": 1020.0,
+      "water_consumption": 2480000.0
     },
     {
-      "co2_emissions": 0.0,
+      "co2_emissions": 4900.0,
       "country": "Indonésie",
       "id": 5,
       "impacts": {
@@ -122,8 +122,33 @@
       "name": "Palmeraie Sumatra",
       "near_sensitive_zone": true,
       "sensitive_zone_type": "Aire protégée nationale",
+      "waste_generated": 5700.0,
+      "water_consumption": 7100000.0
+    },
+    {
+      "co2_emissions": 1000.0,
+      "country": "France",
+      "id": 6,
+      "impacts": {
+        "impact_midpoint_ReCiPe2016_climate_change": 0.0,
+        "impact_midpoint_ReCiPe2016_freshwater_ecotoxicity": 0.0,
+        "impact_midpoint_ReCiPe2016_freshwater_eutrophication": 0.0,
+        "impact_midpoint_ReCiPe2016_land_use": 0.0,
+        "impact_midpoint_ReCiPe2016_marine_eutrophication": 0.0,
+        "impact_midpoint_ReCiPe2016_ozonedepletion": 0.0,
+        "impact_midpoint_ReCiPe2016_resource_depletion_fossil": 0.0,
+        "impact_midpoint_ReCiPe2016_resource_depletion_minerals": 0.0,
+        "impact_midpoint_ReCiPe2016_soil_acidification": 0.0,
+        "impact_midpoint_ReCiPe2016_terrestrial_acidification": 0.0,
+        "impact_midpoint_ReCiPe2016_water_consumption": 0.0
+      },
+      "latitude": 48.47,
+      "longitude": -2.51,
+      "name": "Unité de valorisation des coproduits Bretagne",
+      "near_sensitive_zone": false,
+      "sensitive_zone_type": "",
       "waste_generated": 0.0,
-      "water_consumption": 0.0
+      "water_consumption": 155000.0
     }
   ],
   "company_id": 1,
