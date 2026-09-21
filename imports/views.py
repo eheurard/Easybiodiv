@@ -1,19 +1,31 @@
 import json
+import logging
 import os
 import uuid
 
 from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from .decorators import creator_required
 from .services.constants import SHEET_COLUMNS
+from .services.excel_export import build_full_export
 from .services.excel_parser import parse_file
 from .services.excel_template import build_template
 from .services.importer import save_import
 
+logger = logging.getLogger(__name__)
+
 _STATUS_MAP = {'ok': 'ok', 'duplicate': 'dup', 'error': 'error'}
+_XLSX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+
+def _xlsx_response(buffer, filename):
+    response = HttpResponse(buffer.getvalue(), content_type=_XLSX_CONTENT_TYPE)
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 
 @creator_required
@@ -24,13 +36,24 @@ def index(request):
 @creator_required
 @require_http_methods(['GET'])
 def download_template(request):
-    buffer = build_template()
-    response = HttpResponse(
-        buffer.getvalue(),
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    return _xlsx_response(build_template(), 'easybiodiv_template.xlsx')
+
+
+@creator_required
+@require_http_methods(['GET'])
+def export_all(request):
+    """Toute la base au format du classeur d'import, réimportable tel quel.
+
+    Chaque export est journalisé — qui, quand, combien de lignes : la base porte
+    des données d'entreprises potentiellement sensibles (CLAUDE.md §10).
+    """
+    buffer, counts = build_full_export()
+    logger.info(
+        'Export complet par %s (id %s) : %s lignes, %s feuilles',
+        request.user.username, request.user.pk, sum(counts.values()), len(counts),
     )
-    response['Content-Disposition'] = 'attachment; filename="easybiodiv_template.xlsx"'
-    return response
+    return _xlsx_response(
+        buffer, f'easybiodiv_export_{timezone.localdate():%Y-%m-%d}.xlsx')
 
 
 @creator_required

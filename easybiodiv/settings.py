@@ -157,6 +157,24 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 LOGIN_URL = '/auth/login/'
 
+# Journal d'audit : les exports de la base (imports.views) sont tracés, car elle
+# porte des données d'entreprises potentiellement sensibles. Sortie console,
+# que Passenger redirige vers le journal d'erreurs de l'application sur cPanel.
+# Seul le logger `imports` est configuré : ceux de Django gardent leur défaut.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'horodate': {'format': '{asctime} {levelname} {name} — {message}', 'style': '{'},
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'horodate'},
+    },
+    'loggers': {
+        'imports': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+    },
+}
+
 # --- Durcissement sécurité (actif uniquement hors DEBUG, c.-à-d. en production) ---
 if not DEBUG:
     # Derrière le proxy/Passenger d'o2switch : indiquer à Django que la requête

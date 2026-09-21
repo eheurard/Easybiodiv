@@ -95,3 +95,60 @@ class ViewsAccessTest(TestCase):
         self.assertContains(resp, 'importé')
         from dashboard.models import Country
         self.assertTrue(Country.objects.filter(name='TestLand').exists())
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class ExportAllViewTests(TestCase):
+    """Bouton « Exporter toutes les données » : réservé aux créateurs, journalisé."""
+
+    def setUp(self):
+        self.creator = User.objects.create_user('creator', password='pass', role='CREATOR')
+        User.objects.create_user('sub', password='pass', role='SUBSCRIBER')
+
+    def test_anonymous_is_sent_to_login(self):
+        resp = self.client.get(reverse('imports:export_all'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('/auth/login/', resp['Location'])
+
+    def test_subscriber_is_forbidden(self):
+        self.client.login(username='sub', password='pass')
+        resp = self.client.get(reverse('imports:export_all'))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_creator_downloads_a_dated_workbook_with_every_sheet(self):
+        from django.utils import timezone
+
+        from imports.services.constants import SHEET_COLUMNS
+
+        self.client.login(username='creator', password='pass')
+        resp = self.client.get(reverse('imports:export_all'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(
+            resp['Content-Type'],
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        self.assertEqual(
+            resp['Content-Disposition'],
+            f'attachment; filename="easybiodiv_export_{timezone.localdate():%Y-%m-%d}.xlsx"',
+        )
+        wb = openpyxl.load_workbook(io.BytesIO(resp.content))
+        self.assertEqual(wb.sheetnames, list(SHEET_COLUMNS))
+
+    def test_every_export_is_logged_with_its_author(self):
+        self.client.login(username='creator', password='pass')
+        with self.assertLogs('imports.views', level='INFO') as logs:
+            self.client.get(reverse('imports:export_all'))
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn('Export complet par creator', logs.output[0])
+
+    def test_export_is_post_free(self):
+        # Pas de formulaire : un simple lien de téléchargement, en GET seulement.
+        self.client.login(username='creator', password='pass')
+        resp = self.client.post(reverse('imports:export_all'))
+        self.assertEqual(resp.status_code, 405)
+
+    def test_button_is_shown_to_creators_on_the_import_page(self):
+        self.client.login(username='creator', password='pass')
+        resp = self.client.get(reverse('imports:index'))
+        self.assertContains(resp, reverse('imports:export_all'))
+        self.assertContains(resp, 'Exporter toutes les données')

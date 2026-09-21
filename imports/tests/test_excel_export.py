@@ -13,7 +13,9 @@ from dashboard.models import (
 from dashboard.testing import (
     make_declared_emission, make_inventory, make_production, make_supply,
 )
-from imports.services.excel_export import build_flow_export, flow_row, flows_of
+from imports.services.excel_export import (
+    build_flow_export, build_full_export, flow_row, flows_of,
+)
 from imports.services.excel_parser import parse_file
 from imports.services.importer import save_import
 
@@ -93,3 +95,103 @@ class FlowExportTests(TestCase):
         buffer, _ = build_flow_export([self.company])
         parsed = parse_file(buffer)
         self.assertEqual({row['status'] for row in parsed['Flow']}, {'duplicate'})
+
+
+class FullExportTests(TestCase):
+    """Export complet : toutes les feuilles, réimportables sans perte.
+
+    Deux pièges de relecture sont couverts : le parseur lit chaque cellule en
+    texte, si bien qu'une date Excel reviendrait « 2024-03-15 00:00:00 », et une
+    part de détention doit garder ses quatre décimales.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        from datetime import date
+        from decimal import Decimal
+
+        from dashboard.models import (
+            Company_Policy, Company_Revenue_Sector, Policy_Level, Policy_Subcategory,
+            Policy_Type, Sector, SubSector,
+        )
+
+        country = Country.objects.create(
+            name='Testland', water_ownership='Public', land_ownership='Privé')
+        region = SubnationalRegion.objects.create(name='Testrégion', country=country)
+        cls.company = Company.objects.create(name='Testco')
+        cls.asset = Asset.objects.create(
+            name='Site test', country=country, subnational_region=region,
+            latitude=45.0, longitude=1.0)
+        Ownership.objects.create(
+            asset=cls.asset, company=cls.company, share=Decimal('0.575'))
+        wheat = Commodity.objects.create(name='Testblé', unit='tonnes')
+        make_production(commodity=wheat, year=2024, production=1_000, asset=cls.asset)
+
+        policy_type = Policy_Type.objects.create(name='Réglementaire')
+        subcategory = Policy_Subcategory.objects.create(name='EUDR', policy_type=policy_type)
+        cls.level = Policy_Level.objects.create(name='Conforme', subcategory=subcategory)
+        Company_Policy.objects.create(
+            company=cls.company, policy_level=cls.level,
+            policy_date=date(2024, 3, 15), comment='Adoptée au conseil de mars')
+
+        sector = Sector.objects.create(name='Agriculture test')
+        subsector = SubSector.objects.create(name='Céréales test', sector=sector)
+        Company_Revenue_Sector.objects.create(
+            company=cls.company, subsector=subsector, year=2024, revenue=1_000_000)
+
+    def _export_delete_reimport(self, queryset):
+        """Exporte, supprime `queryset`, puis recharge le classeur exporté."""
+        buffer, _ = build_full_export()
+        queryset.delete()
+        save_import(parse_file(buffer))
+
+    def test_every_importable_sheet_is_exported_with_the_import_headers(self):
+        import openpyxl
+
+        from imports.services.constants import SHEET_COLUMNS
+
+        buffer, counts = build_full_export()
+        wb = openpyxl.load_workbook(buffer)
+        self.assertEqual(wb.sheetnames, list(SHEET_COLUMNS))
+        for sheet_name, columns in SHEET_COLUMNS.items():
+            header = [cell.value for cell in wb[sheet_name][1]]
+            self.assertEqual(header, columns, sheet_name)
+        self.assertEqual(counts['Company_Policy'], 1)
+
+    def test_full_export_parses_without_a_single_error(self):
+        buffer, _ = build_full_export()
+        errors = [
+            (sheet, row.get('message'))
+            for sheet, rows in parse_file(buffer).items()
+            for row in rows if row['status'] == 'error'
+        ]
+        self.assertEqual(errors, [])
+
+    def test_policy_date_survives_the_round_trip(self):
+        from datetime import date
+
+        from dashboard.models import Company_Policy
+
+        self._export_delete_reimport(Company_Policy.objects.all())
+        policy = Company_Policy.objects.get(company=self.company)
+        self.assertEqual(policy.policy_date, date(2024, 3, 15))
+        self.assertEqual(policy.comment, 'Adoptée au conseil de mars')
+
+    def test_ownership_share_keeps_its_four_decimals(self):
+        from decimal import Decimal
+
+        self._export_delete_reimport(Ownership.objects.all())
+        self.assertEqual(
+            Ownership.objects.get(asset=self.asset).share, Decimal('0.5750'))
+
+    def test_policy_without_level_is_exported_and_flagged_on_reimport(self):
+        # policy_level est nullable : la ligne sort avec des noms vides au lieu
+        # de faire échouer tout l'export, et l'aperçu d'import la signale.
+        from dashboard.models import Company_Policy
+
+        Company_Policy.objects.create(
+            company=Company.objects.create(name='Sans niveau'), policy_level=None)
+        buffer, counts = build_full_export()
+        self.assertEqual(counts['Company_Policy'], 2)
+        statuses = [row['status'] for row in parse_file(buffer)['Company_Policy']]
+        self.assertIn('error', statuses)

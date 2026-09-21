@@ -4,7 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Import Excel — Easybiodiv</title>
+  <title>Import / export Excel — Easybiodiv</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'dashboard/img/favicon.svg' %}">
+  <link rel="icon" type="image/x-icon" href="{% static 'dashboard/img/favicon.ico' %}">
+  <link rel="apple-touch-icon" href="{% static 'dashboard/img/apple-touch-icon.png' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -160,8 +163,8 @@
   </script>
 
   <div class="page-header">
-    <h1>Import Excel</h1>
-    <p>Importez vos données de référence depuis un fichier Excel.</p>
+    <h1>Import / export Excel</h1>
+    <p>Importez vos données de référence depuis un fichier Excel, ou exportez toute la base au même format.</p>
   </div>
 
   {% if success %}
@@ -222,6 +225,24 @@
           Analyser et prévisualiser
         </button>
       </form>
+    </div>
+
+    <!-- Card 3 : Exporter toute la base -->
+    <div class="card">
+      <div class="card__step">Sauvegarde</div>
+      <h2 class="card__title">Exporter toutes les données</h2>
+      <p class="card__desc">
+        Télécharge toute la base au format du template, une feuille par table.
+        Le fichier se réimporte tel quel, ici ou sur une autre instance.
+        Utilisateurs, portefeuilles et évaluations ESRS E4 n'en font pas partie.
+        Chaque export est journalisé.
+      </p>
+      <a href="{% url 'imports:export_all' %}" class="btn btn--outline" download>
+        <svg class="icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+        Exporter toutes les données (.xlsx)
+      </a>
     </div>
 
   </div>
