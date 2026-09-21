@@ -53,3 +53,18 @@ django.txt
 .coverage
 .coverage.*
 htmlcov/
+
+# Peuplement de la base pour des entreprises reelles
+#
+# Le code de chargement et ses tests portent des donnees d'entreprises
+# nommees : ils restent hors du depot. `populate_acme` fait exception, c'est
+# le jeu de demonstration fictif dont depend le golden de dashboard/tests.py.
+#
+# Un nouveau populate_<entreprise>.py est ignore automatiquement ; son fichier
+# de tests, lui, doit etre ajoute a la main ci-dessous (le motif tests_*.py
+# ramasserait les tests du coeur : tests_flow.py, tests_ownership.py...).
+dashboard/management/commands/populate_*.py
+!dashboard/management/commands/populate_acme.py
+dashboard/tests_antofagasta.py
+dashboard/tests_rio_tinto.py
+dashboard/tests_bhp.py
