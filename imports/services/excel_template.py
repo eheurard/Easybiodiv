@@ -23,19 +23,24 @@ _EXTRA_ENUMS = {
 }
 
 
+def write_header(ws, columns):
+    """Ligne d'en-tete d'une feuille du classeur : noms de colonnes mis en
+    forme et largeurs. Partagee avec l'export (imports/services/excel_export.py)
+    pour que les deux classeurs se ressemblent."""
+    for col_idx, col_name in enumerate(columns, 1):
+        cell = ws.cell(row=1, column=col_idx, value=col_name)
+        cell.font = _HEADER_FONT
+        cell.fill = _HEADER_FILL
+        cell.alignment = _HEADER_ALIGN
+        ws.column_dimensions[cell.column_letter].width = max(len(col_name) + 4, 15)
+
+
 def build_template():
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
 
     for sheet_name, columns in SHEET_COLUMNS.items():
-        ws = wb.create_sheet(sheet_name)
-        for col_idx, col_name in enumerate(columns, 1):
-            cell = ws.cell(row=1, column=col_idx, value=col_name)
-            cell.font = _HEADER_FONT
-            cell.fill = _HEADER_FILL
-            cell.alignment = _HEADER_ALIGN
-            letter = ws.cell(row=1, column=col_idx).column_letter
-            ws.column_dimensions[letter].width = max(len(col_name) + 4, 15)
+        write_header(wb.create_sheet(sheet_name), columns)
 
     _build_reference_sheet(wb)
 
