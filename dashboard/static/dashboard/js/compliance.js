@@ -10,24 +10,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const initialDataEl = document.getElementById('comp-data');
   const initialData = initialDataEl ? JSON.parse(initialDataEl.textContent) : null;
 
-  const select = document.getElementById('comp-company-select');
-  if (select) {
-    select.addEventListener('change', () => {
-      const id = parseInt(select.value, 10);
-      localStorage.setItem(COMP_COMPANY_KEY, String(id));
-      compFetch(id);
-    });
-  }
+  const combobox = CompanyCombobox.init({
+    root: document.getElementById('company-combobox'),
+    companies,
+    selected: initialData,
+    onSelect: id => compFetch(id),
+  });
 
   const savedId = parseInt(localStorage.getItem(COMP_COMPANY_KEY), 10);
-  const savedExists = savedId && companies.some(c => c.id === savedId);
+  const saved = savedId ? companies.find(c => c.id === savedId) : null;
 
-  if (savedExists && (!initialData || savedId !== initialData.company_id)) {
-    if (select) select.value = String(savedId);
+  if (saved && (!initialData || savedId !== initialData.company_id)) {
+    if (combobox) combobox.setSelected(saved.id, saved.name);
     compFetch(savedId);
-  } else {
-    if (select && initialData) select.value = String(initialData.company_id);
-    if (initialData) compRender(initialData);
+  } else if (initialData) {
+    compRender(initialData);
   }
 });
 

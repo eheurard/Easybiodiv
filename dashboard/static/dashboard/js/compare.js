@@ -34,57 +34,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── Combobox ──────────────────────────────────────────────────────────────────
 
+// Composant partagé company_combobox.js ; la comparaison ne touche pas au
+// choix mémorisé des autres pages.
 function initCompareCombobox(side, companies) {
-  const input    = document.getElementById(`company-search-${side}`);
-  const listbox  = document.getElementById(`company-listbox-${side}`);
-  const combobox = document.getElementById(`company-combobox-${side}`);
-  if (!input || !listbox || !combobox) return;
-
-  function renderOptions(query) {
-    const q = query.toLowerCase();
-    const filtered = companies.filter((c) => c.name.toLowerCase().includes(q));
-    listbox.innerHTML = filtered
-      .map((c) => `<li class="company-combobox__option" role="option" data-id="${c.id}" tabindex="-1">${escHtml(c.name)}</li>`)
-      .join('');
-    const open = filtered.length > 0;
-    listbox.hidden = !open;
-    combobox.setAttribute('aria-expanded', String(open));
-  }
-
-  function selectCompany(id, name) {
-    input.value = name;
-    listbox.hidden = true;
-    combobox.setAttribute('aria-expanded', 'false');
-    fetchCompanyData(side, id);
-  }
-
-  input.addEventListener('input',  () => renderOptions(input.value));
-  input.addEventListener('focus',  () => renderOptions(input.value));
-
-  listbox.addEventListener('click', (e) => {
-    const opt = e.target.closest('[data-id]');
-    if (opt) selectCompany(Number(opt.dataset.id), opt.textContent.trim());
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!combobox.contains(e.target)) {
-      listbox.hidden = true;
-      combobox.setAttribute('aria-expanded', 'false');
-    }
-  });
-
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { listbox.hidden = true; combobox.setAttribute('aria-expanded', 'false'); }
-    if (e.key === 'ArrowDown') { const f = listbox.querySelector('[data-id]'); if (f) { e.preventDefault(); f.focus(); } }
-  });
-
-  listbox.addEventListener('keydown', (e) => {
-    const opts = [...listbox.querySelectorAll('[data-id]')];
-    const idx  = opts.indexOf(document.activeElement);
-    if (e.key === 'ArrowDown' && idx < opts.length - 1) { e.preventDefault(); opts[idx + 1].focus(); }
-    if (e.key === 'ArrowUp')  { e.preventDefault(); if (idx > 0) opts[idx - 1].focus(); else input.focus(); }
-    if (e.key === 'Enter' && idx >= 0) selectCompany(Number(opts[idx].dataset.id), opts[idx].textContent.trim());
-    if (e.key === 'Escape') { listbox.hidden = true; combobox.setAttribute('aria-expanded', 'false'); input.focus(); }
+  CompanyCombobox.init({
+    root: document.getElementById(`company-combobox-${side}`),
+    companies,
+    persist: false,
+    onSelect: (id) => fetchCompanyData(side, id),
   });
 }
 

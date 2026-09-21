@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const saved = savedId ? companies.find((c) => c.id === savedId) : null;
 
   if (saved && initialData && savedId !== initialData.company_id) {
-    ovInitCombobox(companies, { company_name: saved.name });
+    ovInitCombobox(companies, { company_id: saved.id, company_name: saved.name });
     ovSelectCompany(savedId, null);
   } else if (initialData) {
     ovInitCombobox(companies, initialData);
@@ -881,80 +881,10 @@ function ovRenderPolicies(data) {
 // ── Combobox entreprise ────────────────────────────────────────────────────
 
 function ovInitCombobox(companies, initialData) {
-  const input = document.getElementById('company-search');
-  const listbox = document.getElementById('company-listbox');
-  const combobox = document.getElementById('company-combobox');
-  if (!input || !listbox || !combobox) return;
-
-  function renderOptions(query) {
-    const q = query.toLowerCase();
-    const filtered = companies.filter((c) => c.name.toLowerCase().includes(q));
-    listbox.innerHTML = filtered
-      .map(
-        (c) =>
-          `<li class="company-combobox__option" role="option" data-id="${c.id}" tabindex="-1">${escHtml(c.name)}</li>`
-      )
-      .join('');
-    const open = filtered.length > 0;
-    listbox.hidden = !open;
-    combobox.setAttribute('aria-expanded', String(open));
-  }
-
-  function selectCompany(id, name) {
-    input.value = name;
-    listbox.hidden = true;
-    combobox.setAttribute('aria-expanded', 'false');
-    localStorage.setItem(SELECTED_COMPANY_KEY, id);
-    ovSelectCompany(id, null);
-  }
-
-  input.addEventListener('input', () => renderOptions(input.value));
-  input.addEventListener('focus', () => renderOptions(input.value));
-
-  listbox.addEventListener('click', (e) => {
-    const opt = e.target.closest('[data-id]');
-    if (opt) selectCompany(Number(opt.dataset.id), opt.textContent.trim());
+  CompanyCombobox.init({
+    root: document.getElementById('company-combobox'),
+    companies,
+    selected: initialData,
+    onSelect: (id) => ovSelectCompany(id, null),
   });
-
-  document.addEventListener('click', (e) => {
-    if (!combobox.contains(e.target)) {
-      listbox.hidden = true;
-      combobox.setAttribute('aria-expanded', 'false');
-    }
-  });
-
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      listbox.hidden = true;
-      combobox.setAttribute('aria-expanded', 'false');
-    }
-    if (e.key === 'ArrowDown') {
-      const first = listbox.querySelector('[data-id]');
-      if (first) { e.preventDefault(); first.focus(); }
-    }
-  });
-
-  listbox.addEventListener('keydown', (e) => {
-    const opts = [...listbox.querySelectorAll('[data-id]')];
-    const idx = opts.indexOf(document.activeElement);
-    if (e.key === 'ArrowDown' && idx < opts.length - 1) {
-      e.preventDefault(); opts[idx + 1].focus();
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (idx > 0) opts[idx - 1].focus(); else input.focus();
-    }
-    if (e.key === 'Enter' && idx >= 0) {
-      selectCompany(Number(opts[idx].dataset.id), opts[idx].textContent.trim());
-    }
-    if (e.key === 'Escape') {
-      listbox.hidden = true;
-      combobox.setAttribute('aria-expanded', 'false');
-      input.focus();
-    }
-  });
-
-  if (initialData && companies.length > 0) {
-    input.value = initialData.company_name;
-  }
 }

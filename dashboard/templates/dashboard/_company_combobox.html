@@ -1,0 +1,28 @@
+{% comment %}
+Sélecteur d'entreprise partagé par toutes les pages. Le comportement est dans
+dashboard/js/company_combobox.js (chargé par base.html).
+
+Paramètres facultatifs :
+  suffix      suffixe des id, pour plusieurs sélecteurs sur une page ("left" → company-search-left)
+  label       libellé visible (défaut : « Entreprise »)
+  aria_label  libellé du champ (défaut : « Sélectionner une entreprise »)
+{% endcomment %}
+<div class="company-combobox" id="company-combobox{% if suffix %}-{{ suffix }}{% endif %}" role="combobox"
+  aria-expanded="false" aria-haspopup="listbox" aria-owns="company-listbox{% if suffix %}-{{ suffix }}{% endif %}">
+  <span class="company-combobox__label label-caps">{{ label|default:"Entreprise" }}</span>
+  <div class="company-combobox__input-wrap">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3" />
+      <path d="M10 10l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+    </svg>
+    <input type="text" id="company-search{% if suffix %}-{{ suffix }}{% endif %}" class="company-combobox__input"
+      placeholder="Rechercher une entreprise…" autocomplete="off" aria-autocomplete="list"
+      aria-controls="company-listbox{% if suffix %}-{{ suffix }}{% endif %}"
+      aria-label="{{ aria_label|default:'Sélectionner une entreprise' }}">
+    <svg class="company-combobox__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+    </svg>
+  </div>
+  <ul id="company-listbox{% if suffix %}-{{ suffix }}{% endif %}" class="company-combobox__listbox" role="listbox"
+    hidden></ul>
+</div>

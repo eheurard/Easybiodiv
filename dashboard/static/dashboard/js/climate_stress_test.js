@@ -424,59 +424,18 @@ function cstBindInputs() {
   });
 }
 
-/* ── Combobox entreprise (même mécanisme que physical_risk.js) ─────────── */
+/* ── Combobox entreprise (composant partagé company_combobox.js) ───────── */
 
 function cstInitCombobox(companies, initialData) {
-  const combobox = document.getElementById('company-combobox');
-  const input = document.getElementById('company-search');
-  const listbox = document.getElementById('company-listbox');
-  const chevron = combobox && combobox.querySelector('.company-combobox__chevron');
-  if (!combobox || !input || !listbox) return;
-
-  let selected = initialData ? initialData.company_id : null;
-  if (initialData) input.value = initialData.company_name;
-
-  function buildList(filter) {
-    const query = filter.toLowerCase();
-    listbox.innerHTML = companies
-      .filter((c) => c.name.toLowerCase().includes(query))
-      .map((c) =>
-        '<li role="option" data-id="' + c.id + '" class="company-combobox__option'
-        + (c.id === selected ? ' selected' : '') + '">' + escHtml(c.name) + '</li>')
-      .join('');
-  }
-  function openList() {
-    buildList(input.value);
-    listbox.removeAttribute('hidden');
-    combobox.setAttribute('aria-expanded', 'true');
-    if (chevron) chevron.style.transform = 'rotate(180deg)';
-  }
-  function closeList() {
-    listbox.setAttribute('hidden', '');
-    combobox.setAttribute('aria-expanded', 'false');
-    if (chevron) chevron.style.transform = '';
-  }
-
-  input.addEventListener('focus', openList);
-  input.addEventListener('input', () => { buildList(input.value); openList(); });
-
-  listbox.addEventListener('click', (event) => {
-    const option = event.target.closest('[role="option"]');
-    if (!option) return;
-    selected = parseInt(option.dataset.id, 10);
-    input.value = option.textContent;
-    closeList();
-    localStorage.setItem(CST_COMPANY_KEY, selected);
-    CST_STATE.companyId = selected;
-    CST_STATE.overrides = {};   // changer d'entreprise repart des valeurs par défaut
-    cstFetch();
-  });
-
-  document.addEventListener('click', (event) => {
-    if (!combobox.contains(event.target)) closeList();
-  });
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeList();
+  CompanyCombobox.init({
+    root: document.getElementById('company-combobox'),
+    companies,
+    selected: initialData,
+    onSelect: (id) => {
+      CST_STATE.companyId = id;
+      CST_STATE.overrides = {};   // changer d'entreprise repart des valeurs par défaut
+      cstFetch();
+    },
   });
 }
 

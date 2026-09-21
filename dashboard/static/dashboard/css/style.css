@@ -939,6 +939,11 @@ a.app-header__avatar {
   color: var(--color-primary);
 }
 
+.company-combobox__option[aria-selected="true"] {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
 /* ─── KPI row ────────────────────────────────────────────────────────────── */
 .kpi-row {
   display: flex;
@@ -2818,7 +2823,8 @@ a.app-header__avatar {
   background-color: var(--color-surface-container-lowest);
   border: var(--border-card);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  /* Pas d'overflow: hidden, il couperait la liste du sélecteur d'entreprise :
+     c'est la barre d'accent qui porte l'arrondi. */
   transition: box-shadow 0.2s;
 }
 
@@ -2832,6 +2838,7 @@ a.app-header__avatar {
 
 .compare-col-card__accent {
   height: 4px;
+  border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
   background: var(--compare-a);
 }
 
@@ -3228,9 +3235,6 @@ a.app-header__avatar {
 /* ── Conformité ESRS E4 ──────────────────────────────────────────── */
 
 .comp-page { display: flex; flex-direction: column; gap: 20px; }
-
-.comp-company-picker { display: flex; align-items: center; gap: 8px; }
-.comp-company-select { min-width: 220px; }
 
 .comp-section-title { font-size: 1rem; margin: 0 0 12px; }
 
@@ -4212,7 +4216,11 @@ a.app-header__avatar {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 150;
+  /* Au-dessus du rail (z-index 200) : le header forme un contexte
+     d'empilement, sans ça la liste du sélecteur d'entreprise passerait sous
+     les pastilles de navigation. Le rail démarre sous le header, les deux
+     ne se chevauchent que par cette liste. */
+  z-index: 250;
   background-color: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -4803,8 +4811,7 @@ button.sidebar__footer-icon-link {
   /* Le sélecteur de la page prend la place restante et peut rétrécir. */
   .app-layout .app-header__search,
   .app-layout .company-combobox,
-  .app-layout .pf-portfolio-picker,
-  .app-layout .comp-company-picker {
+  .app-layout .pf-portfolio-picker {
     flex: 1;
     min-width: 0;
     max-width: none;
@@ -4813,8 +4820,7 @@ button.sidebar__footer-icon-link {
   /* Libellés « Entreprise » / « Portefeuille » : les champs portent déjà
      un aria-label, la place manque. */
   .company-combobox__label,
-  .pf-portfolio-picker > .label-caps,
-  .comp-company-picker > .label-caps {
+  .pf-portfolio-picker > .label-caps {
     display: none;
   }
 
@@ -4822,8 +4828,7 @@ button.sidebar__footer-icon-link {
     padding: 4px;
   }
 
-  .company-combobox__input-wrap,
-  .comp-company-select {
+  .company-combobox__input-wrap {
     flex: 1;
     min-width: 0;
   }

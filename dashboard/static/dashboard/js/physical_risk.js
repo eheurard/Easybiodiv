@@ -33,58 +33,18 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// ── Combobox (mirrors transition_risk.js) ──────────────────────────────────
+// ── Combobox (composant partagé company_combobox.js) ───────────────────────
 function prInitCombobox(companies, initialData) {
-  const combobox = document.getElementById('company-combobox');
-  const input    = document.getElementById('company-search');
-  const listbox  = document.getElementById('company-listbox');
-  const chevron  = combobox && combobox.querySelector('.company-combobox__chevron');
-  if (!combobox || !input || !listbox) return;
-
-  let selected = initialData ? initialData.company_id : null;
-  if (initialData) input.value = initialData.company_name;
-
-  function buildList(filter) {
-    const q = filter.toLowerCase();
-    const matched = companies.filter(c => c.name.toLowerCase().includes(q));
-    listbox.innerHTML = matched.map(c =>
-      `<li role="option" data-id="${c.id}" class="company-combobox__option${c.id === selected ? ' selected' : ''}">${escHtml(c.name)}</li>`
-    ).join('');
-  }
-  function openList() {
-    buildList(input.value);
-    listbox.removeAttribute('hidden');
-    combobox.setAttribute('aria-expanded', 'true');
-    if (chevron) chevron.style.transform = 'rotate(180deg)';
-  }
-  function closeList() {
-    listbox.setAttribute('hidden', '');
-    combobox.setAttribute('aria-expanded', 'false');
-    if (chevron) chevron.style.transform = '';
-  }
-
-  input.addEventListener('focus', () => openList());
-  input.addEventListener('input', () => { buildList(input.value); openList(); });
-
-  listbox.addEventListener('click', (e) => {
-    const opt = e.target.closest('[role="option"]');
-    if (!opt) return;
-    const id = parseInt(opt.dataset.id, 10);
-    selected = id;
-    input.value = opt.textContent;
-    closeList();
-    localStorage.setItem(PR_COMPANY_KEY, id);
-    fetch(PHYSICAL_RISK_API_URL.replace('/0/', '/' + id + '/'))
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(data => prRender(data))
-      .catch(err => console.error('physical_risk fetch failed:', err));
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!combobox.contains(e.target)) closeList();
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeList();
+  CompanyCombobox.init({
+    root: document.getElementById('company-combobox'),
+    companies,
+    selected: initialData,
+    onSelect: (id) => {
+      fetch(PHYSICAL_RISK_API_URL.replace('/0/', '/' + id + '/'))
+        .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+        .then(data => prRender(data))
+        .catch(err => console.error('physical_risk fetch failed:', err));
+    },
   });
 }
 

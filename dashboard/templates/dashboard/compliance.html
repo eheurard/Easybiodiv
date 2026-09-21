@@ -6,15 +6,7 @@
 {% block nav_compliance %}active{% endblock %}
 
 {% block header_left %}
-<div class="comp-company-picker">
-  <label for="comp-company-select" class="label-caps">Entreprise</label>
-  <select id="comp-company-select" class="form-input comp-company-select"
-          aria-label="Sélectionner une entreprise">
-    {% for c in companies %}
-      <option value="{{ c.id }}">{{ c.name }}</option>
-    {% endfor %}
-  </select>
-</div>
+{% include "dashboard/_company_combobox.html" %}
 {% endblock header_left %}
 
 {% block content %}
