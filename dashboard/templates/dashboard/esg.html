@@ -74,9 +74,52 @@
 
     <!-- Land use -->
     <div class="esg-sub-panel" data-sub-panel="land-use" hidden>
-      <div class="card esg-coming">
-        <p class="esg-empty">Land use — à venir, aucune donnée disponible.</p>
-      </div>
+      <section class="card esg-land">
+        <div class="esg-chart__head">
+          <div>
+            <h3 class="esg-chart__title">Utilisation des terres</h3>
+            <p class="esg-chart__sub">Impact ReCiPe 2016 midpoint (m²a crop-eq) et emprise au sol des actifs détenus</p>
+          </div>
+        </div>
+        <div class="esg-chart__kpis">
+          <div class="esg-chart__kpi">
+            <span class="esg-chart__kpi-value" data-esg="land-impact">—</span>
+            <span class="esg-chart__kpi-label label-caps">Impact ReCiPe</span>
+          </div>
+          <div class="esg-chart__kpi">
+            <span class="esg-chart__kpi-value" data-esg="land-surface">—</span>
+            <span class="esg-chart__kpi-label label-caps">Emprise des actifs</span>
+          </div>
+          <div class="esg-chart__kpi">
+            <span class="esg-chart__kpi-value" data-esg="land-intensity">—</span>
+            <span class="esg-chart__kpi-label label-caps">m²a crop-eq / m² d'emprise</span>
+          </div>
+          <div class="esg-chart__kpi" data-esg="land-group" hidden>
+            <span class="esg-chart__kpi-value" data-esg="land-group-value">—</span>
+            <span class="esg-chart__kpi-label label-caps">Déclaré groupe</span>
+          </div>
+        </div>
+        <div class="esg-land__table-wrap">
+          <table class="esg-land__table">
+            <thead>
+              <tr>
+                <th scope="col">Actif</th>
+                <th scope="col">Pays</th>
+                <th scope="col" class="esg-land__num">Impact ReCiPe (m²a crop-eq)</th>
+                <th scope="col" class="esg-land__num">Emprise au sol (ha)</th>
+              </tr>
+            </thead>
+            <tbody id="esg-land-rows"></tbody>
+          </table>
+        </div>
+        <p class="esg-empty" id="esg-land-empty" hidden>Aucun actif détenu par cette entreprise.</p>
+        <p class="esg-land__note">
+          Impact = production de la dernière année × facteur de caractérisation ReCiPe 2016
+          « land use » régionalisé (région, sinon pays, sinon global). Actifs comptés à 100 %,
+          sans pondération par la part de détention. L'emprise déclarée au niveau du groupe
+          n'est pas ventilée par actif et n'entre pas dans le total des actifs.
+        </p>
+      </section>
     </div>
 
     <!-- Resource use -->

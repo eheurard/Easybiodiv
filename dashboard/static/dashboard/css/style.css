@@ -3462,6 +3462,22 @@ a.app-header__avatar {
 .esg-empty { font-size: 14px; color: var(--color-on-surface-variant); text-align: center; padding: 24px 0; margin: 0; }
 .esg-coming { padding: 40px; }
 
+/* Land use */
+.esg-land { --land-accent: #6B7B3A; }
+.esg-land__table-wrap { overflow-x: auto; }
+.esg-land__table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.esg-land__table th, .esg-land__table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--color-outline-variant); vertical-align: middle; }
+.esg-land__table thead th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--color-on-surface-variant); }
+.esg-land__table tbody th { font-weight: 600; color: var(--color-on-surface); }
+.esg-land__table td { color: var(--color-on-surface-variant); }
+.esg-land__table .esg-land__num { text-align: right; min-width: 160px; }
+.esg-land__value { display: block; font-variant-numeric: tabular-nums; color: var(--color-on-surface); }
+.esg-land__year { font-size: 11px; color: var(--color-on-surface-variant); }
+.esg-land__bar { display: block; height: 4px; margin: 6px 0 0 auto; border-radius: 2px; }
+.esg-land__bar--impact { background: var(--land-accent); }
+.esg-land__bar--surface { background: var(--land-accent); opacity: .4; }
+.esg-land__note { font-size: 12px; color: var(--color-on-surface-variant); line-height: 1.5; margin: 16px 0 0; }
+
 /* ── LEAP tabs ────────────────────────────────────────────────────────── */
 .leap-tabs {
   display: flex;

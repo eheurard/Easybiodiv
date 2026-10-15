@@ -1352,6 +1352,69 @@ def _get_esg_carbon(company):
     }
 
 
+ESG_LAND_USE_CATEGORY = 'impact_midpoint_ReCiPe2016_land_use'
+
+
+def _get_esg_land_use(company):
+    """Land use de l'onglet ESG : impact ReCiPe 2016 midpoint (production × CF
+    régionalisé) et emprise au sol mesurée, par actif détenu, chacun à sa
+    dernière année. Pas de pondération par la part de détention, comme la page
+    Comparer. L'emprise déclarée au niveau du groupe est rendue à part."""
+    assets = list(
+        Asset.objects.owned_by(company)
+        .select_related('country').distinct().order_by('name')
+    )
+    asset_ids = [a.pk for a in assets]
+    productions = flow_service.latest_productions(asset_ids)
+    cf_index = build_cf_index(
+        commodity_ids={p.what_id for p in productions},
+        category_keys=[ESG_LAND_USE_CATEGORY],
+    )
+    asset_map = {a.pk: a for a in assets}
+    impacts = {}
+    for p in productions:
+        asset = asset_map[p.from_asset_id]
+        impact = impacts.setdefault(asset.pk, {'value': 0.0, 'year': p.year})
+        impact['value'] += p.quantity * cf_value(
+            cf_index, p.what_id, ESG_LAND_USE_CATEGORY,
+            asset.subnational_region_id, asset.country_id,
+        )
+    surfaces = flow_service.latest_inventory(asset_ids, ['surface_area'])
+    surface_years = flow_service.latest_inventory_years(asset_ids, ['surface_area'])
+
+    rows = []
+    for asset in assets:
+        impact = impacts.get(asset.pk)
+        surface = surfaces.get(asset.pk, {}).get('surface_area')
+        rows.append({
+            'name': asset.name,
+            'country': asset.country.name if asset.country else None,
+            'impact': round(impact['value'], 2) if impact else None,
+            'impact_year': impact['year'] if impact else None,
+            'surface': round(surface['value'], 2) if surface else None,
+            'surface_year': surface_years.get(asset.pk),
+        })
+    rows.sort(key=lambda r: r['impact'] if r['impact'] is not None else -1, reverse=True)
+
+    impact_values = [r['impact'] for r in rows if r['impact'] is not None]
+    surface_values = [r['surface'] for r in rows if r['surface'] is not None]
+    total_impact = round(sum(impact_values), 2) if impact_values else None
+    total_surface = round(sum(surface_values), 2) if surface_values else None
+    intensity = (
+        total_impact / total_surface
+        if total_impact is not None and total_surface else None
+    )
+    return {
+        'assets': rows,
+        'total_impact': total_impact,
+        'total_surface': total_surface,
+        'intensity': intensity,
+        'declared_group': flow_service.latest_declared_consumption(company, 'surface_area'),
+        'impact_unit': 'm²a crop-eq',
+        'surface_unit': 'm²',
+    }
+
+
 def _get_esg_policies(company):
     policies_qs = (
         Company_Policy.objects.filter(company=company)
@@ -1405,6 +1468,7 @@ def _get_esg_data(company):
         'company_id': company.pk,
         'company_name': company.name,
         'carbon': _get_esg_carbon(company),
+        'land_use': _get_esg_land_use(company),
         'policies': _get_esg_policies(company),
         'market': get_market_data(company),
         'news': [],

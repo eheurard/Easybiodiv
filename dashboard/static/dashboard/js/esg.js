@@ -87,6 +87,7 @@ function esgInitSubTabs() {
 function esgRender(data) {
   ESG_STATE.data = data;
   esgRenderCarbon(data.carbon);
+  esgRenderLandUse(data.land_use);
   esgRenderFeatured(data.policies.featured);
   esgRenderFramework(data.policies.framework);
   esgRenderMarket(data.market);
@@ -117,6 +118,65 @@ function esgRenderCarbon(carbon) {
   }
 
   esgRenderChart(carbon);
+}
+
+
+const M2_PER_HA = 10000;
+
+
+function esgRenderLandUse(land) {
+  const setText = (key, text) => {
+    const el = document.querySelector('[data-esg="' + key + '"]');
+    if (el) el.textContent = text;
+  };
+  setText('land-impact', land.total_impact != null
+    ? esgFmtLand(land.total_impact) + ' m²a' : '—');
+  setText('land-surface', land.total_surface != null
+    ? esgFmtLand(land.total_surface / M2_PER_HA) + ' ha' : '—');
+  setText('land-intensity', land.intensity != null
+    ? land.intensity.toFixed(2) : '—');
+
+  const groupEl = document.querySelector('[data-esg="land-group"]');
+  if (groupEl) {
+    if (land.declared_group) {
+      setText('land-group-value', esgFmtLand(land.declared_group.value / M2_PER_HA) +
+        ' ha (' + land.declared_group.year + ')');
+      groupEl.removeAttribute('hidden');
+    } else {
+      groupEl.setAttribute('hidden', '');
+    }
+  }
+
+  const tbody = document.getElementById('esg-land-rows');
+  const empty = document.getElementById('esg-land-empty');
+  if (!tbody) return;
+  if (empty) empty.hidden = land.assets.length > 0;
+  const maxImpact = Math.max(0, ...land.assets.map(a => a.impact || 0));
+  const maxSurface = Math.max(0, ...land.assets.map(a => a.surface || 0));
+  tbody.innerHTML = land.assets.map(a =>
+    '<tr>' +
+    '<th scope="row">' + escHtml(a.name) + '</th>' +
+    '<td>' + escHtml(a.country || '—') + '</td>' +
+    esgLandCell(a.impact, a.impact_year, maxImpact, 1, 'impact') +
+    esgLandCell(a.surface, a.surface_year, maxSurface, M2_PER_HA, 'surface') +
+    '</tr>'
+  ).join('');
+}
+
+
+function esgFmtLand(val) {
+  return Math.abs(val) < 10 ? val.toFixed(1) : esgFmtNum(val);
+}
+
+
+function esgLandCell(value, year, max, divisor, variant) {
+  if (value == null) return '<td class="esg-land__num">—</td>';
+  const pct = max > 0 ? (value / max * 100).toFixed(1) : 0;
+  return '<td class="esg-land__num">' +
+    '<span class="esg-land__value">' + esgFmtLand(value / divisor) +
+    ' <span class="esg-land__year">' + year + '</span></span>' +
+    '<span class="esg-land__bar esg-land__bar--' + variant + '" style="width:' + pct + '%"></span>' +
+    '</td>';
 }
 
 

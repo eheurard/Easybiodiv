@@ -10,7 +10,10 @@ from .models import (
     Policy_Subcategory, Policy_Type, Sector, SubnationalRegion,
     SubSector,
 )
-from .testing import make_declared_emission, make_inventory, make_production, make_supply
+from .testing import (
+    make_declared_consumption, make_declared_emission, make_inventory, make_production,
+    make_supply,
+)
 from .views import _get_dette_ecologique_data
 from .services import market as market_service
 
@@ -1634,6 +1637,82 @@ class EsgDataPoliciesTests(TestCase):
         self.assertEqual(len(data['policies']['framework']), 2)
 
 
+class EsgDataLandUseTests(TestCase):
+
+    LAND_USE = 'impact_midpoint_ReCiPe2016_land_use'
+
+    def setUp(self):
+        self.company, self.country, self.region, self.soja, self.asset = _make_world()
+        _make_cf(self.soja, self.LAND_USE, 2.5)
+
+    def _land_use(self):
+        from .views import _get_esg_data
+        return _get_esg_data(self.company)['land_use']
+
+    def _second_asset(self, name):
+        asset = Asset.objects.create(
+            name=name, latitude=0, longitude=0,
+            country=self.country, subnational_region=self.region,
+        )
+        Ownership.objects.create(asset=asset, company=self.company, share=0.3)
+        return asset
+
+    def test_asset_impact_and_surface(self):
+        make_inventory(asset=self.asset, key='surface_area', year=2024, value=4000.0)
+        land = self._land_use()
+        self.assertEqual(len(land['assets']), 1)
+        row = land['assets'][0]
+        self.assertEqual(row['name'], 'Site Paris')
+        self.assertEqual(row['country'], 'France')
+        self.assertAlmostEqual(row['impact'], 250.0)
+        self.assertEqual(row['impact_year'], 2024)
+        self.assertAlmostEqual(row['surface'], 4000.0)
+        self.assertEqual(row['surface_year'], 2024)
+        self.assertAlmostEqual(land['total_impact'], 250.0)
+        self.assertAlmostEqual(land['total_surface'], 4000.0)
+        self.assertAlmostEqual(land['intensity'], 250.0 / 4000.0)
+
+    def test_ownership_share_is_not_applied(self):
+        other = self._second_asset('Site partiel')
+        make_production(asset=other, commodity=self.soja, year=2024, production=10.0)
+        rows = {r['name']: r for r in self._land_use()['assets']}
+        self.assertAlmostEqual(rows['Site partiel']['impact'], 25.0)
+
+    def test_asset_without_surface_or_production(self):
+        other = self._second_asset('Site vide')
+        make_inventory(asset=other, key='surface_area', year=2023, value=900.0)
+        land = self._land_use()
+        rows = {r['name']: r for r in land['assets']}
+        self.assertIsNone(rows['Site Paris']['surface'])
+        self.assertIsNone(rows['Site vide']['impact'])
+        self.assertAlmostEqual(rows['Site vide']['surface'], 900.0)
+        self.assertAlmostEqual(land['total_surface'], 900.0)
+
+    def test_assets_sorted_by_impact_desc(self):
+        other = self._second_asset('Gros site')
+        make_production(asset=other, commodity=self.soja, year=2024, production=1000.0)
+        names = [r['name'] for r in self._land_use()['assets']]
+        self.assertEqual(names, ['Gros site', 'Site Paris'])
+
+    def test_group_declared_surface_keeps_latest_year(self):
+        make_declared_consumption(
+            company=self.company, key='surface_area', year=2023, value=1.0e6)
+        make_declared_consumption(
+            company=self.company, key='surface_area', year=2024, value=1.2e6)
+        land = self._land_use()
+        self.assertEqual(land['declared_group'], {'value': 1.2e6, 'year': 2024})
+        self.assertIsNone(land['total_surface'])
+
+    def test_company_without_assets(self):
+        from .views import _get_esg_data
+        land = _get_esg_data(Company.objects.create(name='Vide'))['land_use']
+        self.assertEqual(land['assets'], [])
+        self.assertIsNone(land['total_impact'])
+        self.assertIsNone(land['total_surface'])
+        self.assertIsNone(land['intensity'])
+        self.assertIsNone(land['declared_group'])
+
+
 class EsgDataPlaceholdersTests(TestCase):
 
     def test_market_news_social_governance_present(self):
@@ -1671,6 +1750,13 @@ class EsgViewTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertIn('application/json', response['Content-Type'])
+
+    def test_land_use_panel_and_payload(self):
+        response = self.client.get(reverse('dashboard:esg'))
+        self.assertContains(response, 'id="esg-land-rows"')
+        self.assertNotContains(response, 'Land use — à venir')
+        url = reverse('dashboard:esg_data', kwargs={'pk': self.company.pk})
+        self.assertIn('land_use', self.client.get(url).json())
 
     def test_api_404_for_unknown_company(self):
         self.client.force_login(self.user)

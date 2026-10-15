@@ -44,15 +44,26 @@ def _inventory_asset_id(flow):
     return flow.from_asset_id
 
 
+def _latest_years(rows):
+    """{asset_id: année la plus récente} parmi des lignes d'inventaire."""
+    latest = {}
+    for flow in rows:
+        asset_id = _inventory_asset_id(flow)
+        latest[asset_id] = max(latest.get(asset_id, flow.year), flow.year)
+    return latest
+
+
+def latest_inventory_years(asset_ids, keys):
+    """{asset_id: année} retenue par latest_inventory() pour ces clés."""
+    return _latest_years(_inventory_rows(asset_ids).filter(what__key__in=keys))
+
+
 def latest_inventory(asset_ids, keys):
     """{asset_id: {key: {'value', 'unit'}}} : valeurs sommées par commodité
     technique, pour l'année la plus récente de chaque actif parmi les lignes des
     clés demandées. Une production plus récente ne décale pas l'inventaire."""
     rows = list(_inventory_rows(asset_ids).filter(what__key__in=keys))
-    latest = {}
-    for flow in rows:
-        asset_id = _inventory_asset_id(flow)
-        latest[asset_id] = max(latest.get(asset_id, flow.year), flow.year)
+    latest = _latest_years(rows)
     result = defaultdict(dict)
     for flow in rows:
         asset_id = _inventory_asset_id(flow)
@@ -70,6 +81,19 @@ def inventory_total(asset, theme, year):
         flow.quantity
         for flow in _inventory_rows([asset.pk]).filter(what__theme=theme, year=year)
     )
+
+
+def latest_declared_consumption(company, key):
+    """{'value', 'year'} de la consommation déclarée au niveau de l'entreprise
+    (vers `to_company`, sans ventilation par actif) pour la commodité technique
+    `key`, à sa dernière année ; None si rien n'est déclaré."""
+    rows = list(Flow.objects.filter(
+        kind=FlowKind.CONSUMPTION, to_company=company, what__key=key,
+    ))
+    if not rows:
+        return None
+    year = max(flow.year for flow in rows)
+    return {'value': sum(f.quantity for f in rows if f.year == year), 'year': year}
 
 
 def productions(asset_ids):

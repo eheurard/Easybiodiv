@@ -61,3 +61,12 @@ def make_declared_emission(*, company, year, scope, value):
         kind=FlowKind.EMISSION, what=Commodity.objects.technical('co2'),
         from_company=company, to_environment=True, scope=scope, year=year, quantity=value,
     )
+
+
+def make_declared_consumption(*, company, key, year, value):
+    """Consommation déclarée au niveau de l'entreprise (groupe), sans ventilation
+    par actif : prélevée dans le milieu, vers l'entreprise."""
+    return Flow.objects.create(
+        kind=FlowKind.CONSUMPTION, what=Commodity.objects.technical(key),
+        from_environment=True, to_company=company, year=year, quantity=value,
+    )
