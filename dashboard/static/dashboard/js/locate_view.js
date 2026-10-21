@@ -13,7 +13,8 @@ window.LocateView = (function () {
     VeryHigh: '#91452d',
   };
   const REVENUE_LABELS = {
-    Low: 'Faible', Moderate: 'Modéré', High: 'Élevé', VeryHigh: 'Très élevé',
+    Low: gettext('Faible'), Moderate: gettext('Modéré'), High: gettext('Élevé'),
+    VeryHigh: gettext('Très élevé'),
   };
 
   function revenueBand(ratio) {
@@ -62,7 +63,7 @@ window.LocateView = (function () {
       const [lng, lat] = f.geometry.coordinates;
       const badge = p.asset_type ? `<span class="ll-item__badge">${escHtml(p.asset_type)}</span>` : '';
       const own = p.ownership
-        ? `<div class="ll-item__meta">Détention : <strong>${escHtml(p.ownership)}</strong></div>` : '';
+        ? `<div class="ll-item__meta">${gettext('Détention :')} <strong>${escHtml(p.ownership)}</strong></div>` : '';
       const prods = parseList(p.productions);
       const prodHtml = prods.length
         ? `<div class="ll-item__prods">${prods.map(prodLine).join('')}</div>` : '';
@@ -74,7 +75,7 @@ window.LocateView = (function () {
         </div>
         ${own}
         ${prodHtml}
-        <div class="ll-item__revenue">Revenu associé&nbsp;: <strong>${euro(p.revenue_total)}</strong></div>
+        <div class="ll-item__revenue">${gettext('Revenu associé :')} <strong>${euro(p.revenue_total)}</strong></div>
       </div>`;
     }).join('');
   }
@@ -86,7 +87,7 @@ window.LocateView = (function () {
       ? `<span class="asset-popup__badge">${escHtml(p.asset_type)}</span>` : '';
     const own = p.ownership
       ? `<div class="asset-popup__rows"><div class="asset-popup__row">
-          <span class="asset-popup__row-label">Détention</span>
+          <span class="asset-popup__row-label">${gettext('Détention')}</span>
           <span class="asset-popup__row-value">${escHtml(p.ownership)}</span>
         </div></div>`
       : '';
@@ -97,7 +98,7 @@ window.LocateView = (function () {
             <span class="asset-popup__prod-name">${escHtml(prod.commodity)}</span>
             <span class="asset-popup__prod-qty">${fmtNum(prod.quantity)}&nbsp;${escHtml(prod.unit)}</span>
           </div>`).join('')
-      : '<p class="asset-popup__no-data">Aucune production</p>';
+      : `<p class="asset-popup__no-data">${gettext('Aucune production')}</p>`;
     return `
       <div class="asset-popup">
         <div class="asset-popup__header">
@@ -107,13 +108,13 @@ window.LocateView = (function () {
         </div>
         <div class="asset-popup__body">
           ${own}
-          <div class="asset-popup__section-title">Productions</div>
+          <div class="asset-popup__section-title">${gettext('Productions')}</div>
           ${prodHtml}
           <div class="asset-popup__divider"></div>
           <div class="asset-popup__metrics">
             <div class="asset-popup__metric">
               <div class="asset-popup__metric-value">${euro(p.revenue_total)}</div>
-              <div class="asset-popup__metric-label">Revenu associé</div>
+              <div class="asset-popup__metric-label">${gettext('Revenu associé')}</div>
             </div>
           </div>
         </div>
@@ -124,7 +125,7 @@ window.LocateView = (function () {
     const items = Object.keys(REVENUE_COLORS).map(k =>
       `<li><span class="map-legend__dot" style="background:${REVENUE_COLORS[k]}"></span>${REVENUE_LABELS[k]}</li>`
     ).join('');
-    return `<p class="map-legend__title">Revenu associé</p><ul class="map-legend__list">${items}</ul>`;
+    return `<p class="map-legend__title">${gettext('Revenu associé')}</p><ul class="map-legend__list">${items}</ul>`;
   }
 
   return { REVENUE_COLORS, revenueBand, styleFeatures, prodLine, listHtml, popupHtml, legendHtml };

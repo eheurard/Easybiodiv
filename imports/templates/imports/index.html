@@ -1,10 +1,10 @@
-{% load static %}
+{% load static i18n %}
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Import / export Excel — Easybiodiv</title>
+  <title>{% translate "Import / export Excel" %} — Easybiodiv</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'dashboard/img/favicon.svg' %}">
   <link rel="icon" type="image/x-icon" href="{% static 'dashboard/img/favicon.ico' %}">
   <link rel="apple-touch-icon" href="{% static 'dashboard/img/apple-touch-icon.png' %}">
@@ -152,9 +152,9 @@
 </head>
 <body>
 
-  <div id="page-loader" role="status" aria-live="polite" aria-label="Chargement en cours">
+  <div id="page-loader" role="status" aria-live="polite" aria-label="{% translate 'Chargement en cours' %}">
     <div class="pl-ring" aria-hidden="true"></div>
-    <span class="pl-text">Chargement…</span>
+    <span class="pl-text">{% translate "Chargement…" %}</span>
   </div>
   <script>
     (function(){function h(){var l=document.getElementById('page-loader');if(l)l.classList.add('is-hidden');}
@@ -163,8 +163,8 @@
   </script>
 
   <div class="page-header">
-    <h1>Import / export Excel</h1>
-    <p>Importez vos données de référence depuis un fichier Excel, ou exportez toute la base au même format.</p>
+    <h1>{% translate "Import / export Excel" %}</h1>
+    <p>{% translate "Importez vos données de référence depuis un fichier Excel, ou exportez toute la base au même format." %}</p>
   </div>
 
   {% if success %}
@@ -190,58 +190,64 @@
 
     <!-- Card 1 : Télécharger le template -->
     <div class="card">
-      <div class="card__step">Étape 1</div>
-      <h2 class="card__title">Télécharger le template</h2>
+      <div class="card__step">{% translate "Étape 1" %}</div>
+      <h2 class="card__title">{% translate "Télécharger le template" %}</h2>
       <p class="card__desc">
-        Téléchargez le fichier Excel modèle, remplissez-le avec vos données,
+        {% blocktranslate trimmed %}
+Téléchargez le fichier Excel modèle, remplissez-le avec vos données,
         puis revenez sur cette page pour l'importer.
+        {% endblocktranslate %}
       </p>
       <a href="{% url 'imports:download_template' %}" class="btn btn--outline" download>
         <svg class="icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
         </svg>
-        Télécharger le template (.xlsx)
+        {% translate "Télécharger le template (.xlsx)" %}
       </a>
     </div>
 
     <!-- Card 2 : Importer un fichier rempli -->
     <div class="card">
-      <div class="card__step">Étape 2</div>
-      <h2 class="card__title">Importer un fichier rempli</h2>
+      <div class="card__step">{% translate "Étape 2" %}</div>
+      <h2 class="card__title">{% translate "Importer un fichier rempli" %}</h2>
       <p class="card__desc">
-        Sélectionnez le fichier Excel complété (.xlsx) pour l'analyser et
+        {% blocktranslate trimmed %}
+Sélectionnez le fichier Excel complété (.xlsx) pour l'analyser et
         prévisualiser les données avant confirmation.
+        {% endblocktranslate %}
       </p>
       <form method="post" action="{% url 'imports:upload' %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="file-input-wrapper">
-          <label for="excel_file">Fichier Excel (.xlsx)</label>
+          <label for="excel_file">{% translate "Fichier Excel (.xlsx)" %}</label>
           <input type="file" id="excel_file" name="excel_file" accept=".xlsx" required>
         </div>
         <button type="submit" class="btn btn--primary">
           <svg class="icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
           </svg>
-          Analyser et prévisualiser
+          {% translate "Analyser et prévisualiser" %}
         </button>
       </form>
     </div>
 
     <!-- Card 3 : Exporter toute la base -->
     <div class="card">
-      <div class="card__step">Sauvegarde</div>
-      <h2 class="card__title">Exporter toutes les données</h2>
+      <div class="card__step">{% translate "Sauvegarde" %}</div>
+      <h2 class="card__title">{% translate "Exporter toutes les données" %}</h2>
       <p class="card__desc">
-        Télécharge toute la base au format du template, une feuille par table.
+        {% blocktranslate trimmed %}
+Télécharge toute la base au format du template, une feuille par table.
         Le fichier se réimporte tel quel, ici ou sur une autre instance.
         Utilisateurs, portefeuilles et évaluations ESRS E4 n'en font pas partie.
         Chaque export est journalisé.
+        {% endblocktranslate %}
       </p>
       <a href="{% url 'imports:export_all' %}" class="btn btn--outline" download>
         <svg class="icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
         </svg>
-        Exporter toutes les données (.xlsx)
+        {% translate "Exporter toutes les données (.xlsx)" %}
       </a>
     </div>
 

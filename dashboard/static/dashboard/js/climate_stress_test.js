@@ -23,13 +23,13 @@ function cstPct(value, digits) {
 
 function cstEuro(value) {
   if (value === null || value === undefined) return '—';
-  return Math.round(value).toLocaleString('fr-FR') + ' €';
+  return Math.round(value).toLocaleString(APP_LOCALE) + ' €';
 }
 
 function cstBps(value) {
   if (value === null || value === undefined) return '—';
   const sign = value > 0 ? '+' : '';
-  return sign + Math.round(value).toLocaleString('fr-FR') + ' pb';
+  return sign + Math.round(value).toLocaleString(APP_LOCALE) + ' ' + gettext('pb');
 }
 
 /* ── Rendu ─────────────────────────────────────────────────────────────── */
@@ -72,7 +72,9 @@ function cstRenderScenarios(data) {
       '<span class="cst-scenario__name">' + escHtml(scenario.name) + '</span>' +
       '<span class="cst-scenario__family">' + escHtml(scenario.family_label) + '</span>' +
       '<span class="cst-scenario__warming">' +
-      scenario.warming_c.toFixed(1).replace('.', ',') + ' °C</span>';
+      scenario.warming_c.toLocaleString(APP_LOCALE, {
+        minimumFractionDigits: 1, maximumFractionDigits: 1,
+      }) + ' °C</span>';
     card.title = scenario.narrative;
     card.addEventListener('click', () => {
       CST_STATE.overrides = { scenario: scenario.key };  // le scénario réinitialise
@@ -166,7 +168,8 @@ function cstRenderFields(data) {
 
   document.getElementById('cst-scope3').checked = selected.include_scope3;
   document.getElementById('cst-scope3-hint').textContent =
-    '(' + Math.round(selected.scope3_transmission * 100) + ' % du scope 3 amont retenu)';
+    interpolate(gettext('(%(pct)s % du scope 3 amont retenu)'),
+      { pct: Math.round(selected.scope3_transmission * 100) }, true);
 }
 
 function cstRenderKpis(data) {
@@ -187,9 +190,9 @@ function cstRenderChannels(data) {
   if (!data.channels) return;
 
   const rows = [
-    ['Transition (coût carbone)', data.channels.transition.cost_eur,
+    [gettext('Transition (coût carbone)'), data.channels.transition.cost_eur,
      data.channels.transition.pct_ebitda, data.channels.transition.shock_sigma],
-    ['Physique (dommages)', data.channels.physical.loss_eur,
+    [gettext('Physique (dommages)'), data.channels.physical.loss_eur,
      data.channels.physical.pct_ebitda, data.channels.physical.shock_sigma],
   ];
   rows.forEach((row) => {
@@ -254,7 +257,7 @@ function cstRenderWaterfall(data) {
       data: {
         labels: labels,
         datasets: [{
-          label: 'PD (%)',
+          label: gettext('PD (%)'),
           data: values,
           backgroundColor: [CST_COLORS.baseline, CST_COLORS.transition,
                             CST_COLORS.physical],
@@ -263,7 +266,7 @@ function cstRenderWaterfall(data) {
       options: {
         responsive: true,
         plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, title: { display: true, text: 'PD (%)' } } },
+        scales: { y: { beginAtZero: true, title: { display: true, text: gettext('PD (%)') } } },
       },
     }
   );
@@ -279,7 +282,7 @@ function cstRenderHorizonChart(data) {
       data: {
         labels: data.horizon_curve.map((point) => point.year),
         datasets: [{
-          label: 'PD stressée (%)',
+          label: gettext('PD stressée (%)'),
           data: data.horizon_curve.map(
             (point) => (point.pd === null ? null : point.pd * 100)
           ),
@@ -292,7 +295,7 @@ function cstRenderHorizonChart(data) {
       options: {
         responsive: true,
         plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, title: { display: true, text: 'PD (%)' } } },
+        scales: { y: { beginAtZero: true, title: { display: true, text: gettext('PD (%)') } } },
       },
     }
   );
@@ -309,7 +312,7 @@ function cstRenderComparison(data) {
       data: {
         labels: data.scenario_comparison.map((row) => row.name),
         datasets: [{
-          label: 'PD stressée (%)',
+          label: gettext('PD stressée (%)'),
           data: data.scenario_comparison.map(
             (row) => (row.pd === null ? null : row.pd * 100)
           ),
@@ -321,7 +324,7 @@ function cstRenderComparison(data) {
       options: {
         responsive: true,
         plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, title: { display: true, text: 'PD (%)' } } },
+        scales: { y: { beginAtZero: true, title: { display: true, text: gettext('PD (%)') } } },
       },
     }
   );
@@ -381,7 +384,7 @@ function cstFetch() {
     .catch(() => {
       const host = document.getElementById('cst-warnings');
       host.hidden = false;
-      host.textContent = 'Le calcul a échoué. Vérifiez les hypothèses saisies.';
+      host.textContent = gettext('Le calcul a échoué. Vérifiez les hypothèses saisies.');
     });
 }
 

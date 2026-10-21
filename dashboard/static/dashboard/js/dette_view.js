@@ -31,7 +31,7 @@ window.DetteView = (function () {
   function renderPointCount(data, mode) {
     const points = mode === 'asset' ? data.assets : data.regions;
     setText('de-point-count', points.length || '—');
-    setText('de-point-count-label', mode === 'asset' ? 'Assets' : 'Régions');
+    setText('de-point-count-label', mode === 'asset' ? gettext('Assets') : gettext('Régions'));
   }
 
   function legendItemsHtml(commodities, colors) {
@@ -71,7 +71,7 @@ window.DetteView = (function () {
               <div class="asset-popup__name">${escHtml(point.name)}</div>
             </div>
             <div class="asset-popup__body">
-              <div class="asset-popup__section-title">Principales commodités</div>
+              <div class="asset-popup__section-title">${gettext('Principales commodités')}</div>
               ${top3}
               <div class="asset-popup__divider"></div>
               <div class="asset-popup__metrics">
@@ -103,7 +103,7 @@ window.DetteView = (function () {
       <div class="ll-item ll-item--clickable" data-lng="${a.longitude}" data-lat="${a.latitude}">
         <div class="ll-item__top">
           <span class="ll-item__name">${escHtml(a.name)}</span>
-          <span class="ll-item__badge">${fmtPct(a.pct)} du total</span>
+          <span class="ll-item__badge">${interpolate(gettext('%(pct)s du total'), { pct: fmtPct(a.pct) }, true)}</span>
         </div>
         <div class="ll-item__prods">${comms}</div>
         <div class="ll-item__revenue">Lbiodiv&nbsp;: <strong>${fmtLbiodiv(a.total_lbiodiv)}</strong></div>

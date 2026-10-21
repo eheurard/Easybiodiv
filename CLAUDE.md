@@ -204,6 +204,28 @@ vues uniquement, sans trace d'import persistée).
 - **Pas de dépendance npm** sauf accord explicite (et alors documentée).
 - Accessibilité : attributs ARIA, contraste AA minimum, navigation clavier.
 
+### Internationalisation (FR / EN)
+- Interface bilingue : le **français est la langue source** (les msgid sont en français)
+  et la langue par défaut ; seul `locale/en/` existe. Le drapeau de l'en-tête
+  (`templates/includes/language_switch.html`) poste vers `set_language`, qui mémorise
+  le choix dans un cookie. Pas de préfixe `/en/` dans les URL.
+- **Tout texte visible ajouté doit être marqué** : `{% translate %}` /
+  `{% blocktranslate %}` dans les gabarits, `gettext_lazy` pour les constantes de
+  module et les `TextChoices`, `gettext` dans les fonctions, `gettext()` /
+  `interpolate(…, true)` / `ngettext()` côté JS (catalogue `/jsi18n/` chargé par
+  `base.html`). En JS, nombres via `toLocaleString(APP_LOCALE)` (défini dans `main.js`).
+- Pas de f-string dans un message traduit : placeholders nommés `%(nom)s`.
+  Un libellé paresseux utilisé comme **clé** JSON doit passer par `str()`.
+- Les données de la base (noms d'entreprises, pays, commodités…) ne sont pas traduites.
+- Mise à jour des catalogues (nécessite GNU gettext dans le PATH — sous Windows, les
+  binaires mlocati « static ») :
+  ```bash
+  python manage.py makemessages -l en -d django --ignore=venv/* --ignore=staticfiles/* --no-obsolete
+  python manage.py makemessages -l en -d djangojs --ignore=venv/* --ignore=staticfiles/* --no-obsolete
+  python manage.py compilemessages -l en --ignore=venv
+  ```
+  Les `.mo` compilés **sont commités** : le serveur cPanel n'a pas gettext.
+
 ### Git
 - Branches : `feat/<sujet>`, `fix/<sujet>`, `chore/<sujet>`.
 - Commits courts en français ou anglais, à l'impératif, **un commit = un sujet**.

@@ -224,7 +224,7 @@ class AdminThemeTests(TestCase):
         self.assertContains(self.response, 'Déconnexion')
 
     def test_la_langue_du_document_est_le_francais(self):
-        self.assertContains(self.response, 'lang="fr-fr"')
+        self.assertContains(self.response, 'lang="fr"')
 
     def test_le_mode_sombre_de_django_n_est_pas_charge(self):
         self.assertNotContains(self.response, 'dark_mode.css')

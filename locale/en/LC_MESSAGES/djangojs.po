@@ -1,0 +1,536 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Easybiodiv\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-21 20:58+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Easybiodiv\n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: .\dashboard\static\dashboard\js\climate_stress_test.js:32
+msgid "pb"
+msgstr "bp"
+
+#: .\dashboard\static\dashboard\js\climate_stress_test.js:171
+msgid "(%(pct)s % du scope 3 amont retenu)"
+msgstr "(%(pct)s % of upstream scope 3 included)"
+
+#: .\dashboard\static\dashboard\js\climate_stress_test.js:193
+msgid "Transition (coût carbone)"
+msgstr "Transition (carbon cost)"
+
+#: .\dashboard\static\dashboard\js\climate_stress_test.js:195
+msgid "Physique (dommages)"
+msgstr "Physical (damages)"
+
+#: .\dashboard\static\dashboard\js\climate_stress_test.js:260
+#: .\dashboard\static\dashboard\js\climate_stress_test.js:269
+#: .\dashboard\static\dashboard\js\climate_stress_test.js:298
+#: .\dashboard\static\dashboard\js\climate_stress_test.js:327
+msgid "PD (%)"
+msgstr "PD (%)"
+
+#: .\dashboard\static\dashboard\js\climate_stress_test.js:285
+#: .\dashboard\static\dashboard\js\climate_stress_test.js:315
+msgid "PD stressée (%)"
+msgstr "Stressed PD (%)"
+
+#: .\dashboard\static\dashboard\js\climate_stress_test.js:387
+msgid "Le calcul a échoué. Vérifiez les hypothèses saisies."
+msgstr "The calculation failed. Check the assumptions entered."
+
+#: .\dashboard\static\dashboard\js\compare.js:54 .\dashboard\static\dashboard\js\overview.js:346
+msgid "Chargement…"
+msgstr "Loading…"
+
+#: .\dashboard\static\dashboard\js\compare.js:68
+msgid "Erreur de chargement"
+msgstr "Loading error"
+
+#: .\dashboard\static\dashboard\js\compare.js:78 .\dashboard\static\dashboard\js\overview.js:552
+msgid "%(n)s actif"
+msgid_plural "%(n)s actifs"
+msgstr[0] "%(n)s asset"
+msgstr[1] "%(n)s assets"
+
+#: .\dashboard\static\dashboard\js\compare.js:117
+msgid "Supprimer l'indicateur"
+msgstr "Remove indicator"
+
+#: .\dashboard\static\dashboard\js\compare.js:198
+msgid "Filtrer…"
+msgstr "Filter…"
+
+#: .\dashboard\static\dashboard\js\compare.js:199
+msgid "Filtrer les indicateurs"
+msgstr "Filter indicators"
+
+#: .\dashboard\static\dashboard\js\compare.js:232
+msgid "Aucun résultat"
+msgstr "No results"
+
+#: .\dashboard\static\dashboard\js\compliance.js:89
+msgid "Aucune justification de non-matérialité saisie."
+msgstr "No non-materiality justification entered."
+
+#: .\dashboard\static\dashboard\js\compliance.js:106
+msgid "Conditionnel"
+msgstr "Conditional"
+
+#: .\dashboard\static\dashboard\js\compliance.js:108
+msgid "Suggestion auto :"
+msgstr "Auto suggestion:"
+
+#: .\dashboard\static\dashboard\js\compliance.js:113
+msgid "Aucune justification saisie"
+msgstr "No justification entered"
+
+#: .\dashboard\static\dashboard\js\compliance.js:123
+msgid "Référence :"
+msgstr "Reference:"
+
+#: .\dashboard\static\dashboard\js\dependencies.js:99
+msgid "Score :"
+msgstr "Score:"
+
+#: .\dashboard\static\dashboard\js\dependencies.js:110
+msgid "Aucune donnée de production disponible."
+msgstr "No production data available."
+
+#: .\dashboard\static\dashboard\js\dependencies.js:152
+#: .\dashboard\static\dashboard\js\leap_evaluate.js:93
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:148
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:74
+msgid "Aucune donnée disponible."
+msgstr "No data available."
+
+#: .\dashboard\static\dashboard\js\dependencies.js:194
+msgid "Valeurs indicatives basées sur le revenu total de l'entreprise."
+msgstr "Indicative values based on the company's total revenue."
+
+#: .\dashboard\static\dashboard\js\dependencies.js:206
+msgid "Aucune donnée de revenu par segment."
+msgstr "No revenue data by segment."
+
+#: .\dashboard\static\dashboard\js\dependencies.js:239
+msgid "%(amount)s à risque"
+msgstr "%(amount)s at risk"
+
+#: .\dashboard\static\dashboard\js\dependencies.js:248
+msgid "%(amount)s à risque (%(pct)s %)"
+msgstr "%(amount)s at risk (%(pct)s %)"
+
+#: .\dashboard\static\dashboard\js\dependencies.js:259
+msgid "Détail %(sector)s"
+msgstr "%(sector)s details"
+
+#: .\dashboard\static\dashboard\js\dependencies.js:294
+msgid "Md"
+msgstr "bn"
+
+#: .\dashboard\static\dashboard\js\dette_view.js:34 .\dashboard\static\dashboard\js\portfolio.js:615
+msgid "Assets"
+msgstr "Assets"
+
+#: .\dashboard\static\dashboard\js\dette_view.js:34 .\dashboard\static\dashboard\js\portfolio.js:614
+msgid "Régions"
+msgstr "Regions"
+
+#: .\dashboard\static\dashboard\js\dette_view.js:74
+msgid "Principales commodités"
+msgstr "Main commodities"
+
+#: .\dashboard\static\dashboard\js\dette_view.js:106
+msgid "%(pct)s du total"
+msgstr "%(pct)s of total"
+
+#: .\dashboard\static\dashboard\js\esg.js:356 .\dashboard\static\dashboard\js\leap_prepare.js:315
+#: .\dashboard\static\dashboard\js\leap_prepare.js:417
+msgid "Total"
+msgstr "Total"
+
+#: .\dashboard\static\dashboard\js\esg.js:363
+msgid "Projection"
+msgstr "Projection"
+
+#: .\dashboard\static\dashboard\js\esg.js:391 .\dashboard\static\dashboard\js\esg.js:421
+msgid "Aucune politique enregistrée."
+msgstr "No policy recorded."
+
+#: .\dashboard\static\dashboard\js\esg.js:487
+msgid "Période"
+msgstr "Period"
+
+#: .\dashboard\static\dashboard\js\esg.js:509
+msgid "Cours (%(ticker)s)"
+msgstr "Share price (%(ticker)s)"
+
+#: .\dashboard\static\dashboard\js\esg.js:517
+msgid "Capitalisation"
+msgstr "Market cap"
+
+#: .\dashboard\static\dashboard\js\esg.js:518
+msgid "Notation ESG"
+msgstr "ESG rating"
+
+#: .\dashboard\static\dashboard\js\esg.js:519
+msgid "Perf. relative"
+msgstr "Relative perf."
+
+#: .\dashboard\static\dashboard\js\esg.js:635 .\dashboard\static\dashboard\js\esg.js:648
+msgid "Historique"
+msgstr "History"
+
+#: .\dashboard\static\dashboard\js\esg.js:638 .\dashboard\static\dashboard\js\esg.js:650
+msgid "Projection 2030"
+msgstr "2030 projection"
+
+#: .\dashboard\static\dashboard\js\leap_evaluate.js:182
+msgid "Oui"
+msgstr "Yes"
+
+#: .\dashboard\static\dashboard\js\leap_evaluate.js:183
+msgid "Non"
+msgstr "No"
+
+#: .\dashboard\static\dashboard\js\leap_evaluate.js:199
+msgid "Consommation eau"
+msgstr "Water consumption"
+
+#: .\dashboard\static\dashboard\js\leap_evaluate.js:200
+msgid "Émissions CO₂"
+msgstr "CO₂ emissions"
+
+#: .\dashboard\static\dashboard\js\leap_evaluate.js:201
+msgid "Déchets générés"
+msgstr "Waste generated"
+
+#: .\dashboard\static\dashboard\js\leap_evaluate.js:202
+msgid "Zone sensible"
+msgstr "Sensitive area"
+
+#: .\dashboard\static\dashboard\js\leap_locate.js:196
+#: .\dashboard\static\dashboard\js\overview.js:679
+msgid "Aucun site."
+msgstr "No sites."
+
+#: .\dashboard\static\dashboard\js\leap_prepare.js:115
+msgid "Aucun asset à simuler."
+msgstr "No asset to simulate."
+
+#: .\dashboard\static\dashboard\js\leap_prepare.js:126
+msgid "Aucune commodité à simuler."
+msgstr "No commodity to simulate."
+
+#: .\dashboard\static\dashboard\js\leap_prepare.js:149
+msgid "Variation %(name)s"
+msgstr "%(name)s change"
+
+#: .\dashboard\static\dashboard\js\leap_prepare.js:151
+msgid "Valeur %(name)s"
+msgstr "%(name)s value"
+
+#: .\dashboard\static\dashboard\js\leap_prepare.js:250
+msgid "Mieux"
+msgstr "Better"
+
+#: .\dashboard\static\dashboard\js\leap_prepare.js:250
+msgid "Moins bien"
+msgstr "Worse"
+
+#: .\dashboard\static\dashboard\js\leap_prepare.js:417
+msgid "Par commodité"
+msgstr "By commodity"
+
+#: .\dashboard\static\dashboard\js\leap_prepare.js:438
+msgid "Aucune donnée à simuler."
+msgstr "No data to simulate."
+
+#: .\dashboard\static\dashboard\js\locate_view.js:16
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:16
+msgid "Faible"
+msgstr "Low"
+
+#: .\dashboard\static\dashboard\js\locate_view.js:16
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:16
+msgid "Modéré"
+msgstr "Moderate"
+
+#: .\dashboard\static\dashboard\js\locate_view.js:16
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:16
+msgid "Élevé"
+msgstr "High"
+
+#: .\dashboard\static\dashboard\js\locate_view.js:17
+msgid "Très élevé"
+msgstr "Very high"
+
+#: .\dashboard\static\dashboard\js\locate_view.js:66
+msgid "Détention :"
+msgstr "Ownership:"
+
+#: .\dashboard\static\dashboard\js\locate_view.js:78
+msgid "Revenu associé :"
+msgstr "Associated revenue:"
+
+#: .\dashboard\static\dashboard\js\locate_view.js:90
+msgid "Détention"
+msgstr "Ownership"
+
+#: .\dashboard\static\dashboard\js\locate_view.js:101
+msgid "Aucune production"
+msgstr "No production"
+
+#: .\dashboard\static\dashboard\js\locate_view.js:111
+#: .\dashboard\static\dashboard\js\overview.js:624
+msgid "Productions"
+msgstr "Production"
+
+#: .\dashboard\static\dashboard\js\locate_view.js:117
+#: .\dashboard\static\dashboard\js\locate_view.js:128
+msgid "Revenu associé"
+msgstr "Associated revenue"
+
+#: .\dashboard\static\dashboard\js\main.js:98 .\dashboard\static\dashboard\js\main.js:108
+msgid "Développer le menu"
+msgstr "Expand menu"
+
+#: .\dashboard\static\dashboard\js\main.js:98 .\dashboard\static\dashboard\js\main.js:108
+msgid "Réduire le menu"
+msgstr "Collapse menu"
+
+#: .\dashboard\static\dashboard\js\main.js:172
+msgid "Choisir le fond de carte"
+msgstr "Choose the base map"
+
+#: .\dashboard\static\dashboard\js\main.js:201
+msgid "Passer en mode jour"
+msgstr "Switch to light mode"
+
+#: .\dashboard\static\dashboard\js\main.js:201
+msgid "Passer en mode nuit"
+msgstr "Switch to dark mode"
+
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:86
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:581
+msgid "Commodité"
+msgstr "Commodity"
+
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:88
+msgid "Toutes"
+msgstr "All"
+
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:171
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:624
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:652
+#: .\dashboard\static\dashboard\js\overview.js:765
+msgid "Commodités"
+msgstr "Commodities"
+
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:171
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:607
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:642
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:651
+msgid "Actifs"
+msgstr "Assets"
+
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:172
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:582
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:623
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:650
+#: .\dashboard\static\dashboard\js\portfolio.js:615
+msgid "Pays"
+msgstr "Country"
+
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:186
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:339
+msgid "Aucune donnée à afficher."
+msgstr "No data to display."
+
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:581
+msgid "Actif"
+msgstr "Asset"
+
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:582
+#: .\dashboard\static\dashboard\js\portfolio.js:503
+msgid "Entreprise"
+msgstr "Company"
+
+#: .\dashboard\static\dashboard\js\overview.js:54
+msgid "Exposition par pays"
+msgstr "Exposure by country"
+
+#: .\dashboard\static\dashboard\js\overview.js:63
+msgid "Sites localisés"
+msgstr "Located sites"
+
+#: .\dashboard\static\dashboard\js\overview.js:72
+msgid "Classement des risques"
+msgstr "Risk ranking"
+
+#: .\dashboard\static\dashboard\js\overview.js:81 .\dashboard\static\dashboard\js\overview.js:634
+msgid "Dette écologique"
+msgstr "Ecological debt"
+
+#: .\dashboard\static\dashboard\js\overview.js:286
+msgid "Revenu croissant"
+msgstr "Revenue, low to high"
+
+#: .\dashboard\static\dashboard\js\overview.js:286
+msgid "Revenu décroissant"
+msgstr "Revenue, high to low"
+
+#: .\dashboard\static\dashboard\js\overview.js:355
+msgid "Session expirée — reconnectez-vous."
+msgstr "Session expired — please sign in again."
+
+#: .\dashboard\static\dashboard\js\overview.js:356
+msgid "Impossible de charger les données."
+msgstr "Unable to load the data."
+
+#: .\dashboard\static\dashboard\js\overview.js:536
+msgid "Aucun actif pour cette entreprise."
+msgstr "No assets for this company."
+
+#: .\dashboard\static\dashboard\js\overview.js:576
+msgid "Type d'actif"
+msgstr "Asset type"
+
+#: .\dashboard\static\dashboard\js\overview.js:607
+msgid "Aucune production enregistrée"
+msgstr "No production recorded"
+
+#: .\dashboard\static\dashboard\js\overview.js:630
+msgid "Empreinte biodiversité"
+msgstr "Biodiversity footprint"
+
+#: .\dashboard\static\dashboard\js\overview.js:667
+msgid "Tous les types"
+msgstr "All types"
+
+#: .\dashboard\static\dashboard\js\overview.js:686
+msgid "Aucun actif pour ce type."
+msgstr "No assets of this type."
+
+#: .\dashboard\static\dashboard\js\overview.js:760
+msgid "Aucun asset avec une dette calculable."
+msgstr "No asset with a computable debt."
+
+#: .\dashboard\static\dashboard\js\overview.js:862
+msgid "Sous-catégorie"
+msgstr "Subcategory"
+
+#: .\dashboard\static\dashboard\js\overview.js:862
+msgid "Niveau"
+msgstr "Level"
+
+#: .\dashboard\static\dashboard\js\overview.js:862
+msgid "Score"
+msgstr "Score"
+
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:17
+msgid "Critique"
+msgstr "Critical"
+
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:120
+msgid "Aucun actif."
+msgstr "No assets."
+
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:141
+msgid "Aucune politique renseignée"
+msgstr "No policy recorded"
+
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:146
+msgid "Détail de la vulnérabilité"
+msgstr "Vulnerability breakdown"
+
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:148
+msgid "Moyenne :"
+msgstr "Average:"
+
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:158
+msgid "Inventaire mesuré"
+msgstr "Measured inventory"
+
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:216
+msgid "Exposition"
+msgstr "Exposure"
+
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:224
+msgid "Risque"
+msgstr "Risk"
+
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:235
+msgid "Risque physique"
+msgstr "Physical risk"
+
+#: .\dashboard\static\dashboard\js\portfolio.js:200
+msgid "Détails financiers"
+msgstr "Financial details"
+
+#: .\dashboard\static\dashboard\js\portfolio.js:211
+msgid "Supprimer"
+msgstr "Delete"
+
+#: .\dashboard\static\dashboard\js\portfolio.js:283
+msgid "Détails"
+msgstr "Details"
+
+#: .\dashboard\static\dashboard\js\portfolio.js:349 .\dashboard\static\dashboard\js\portfolio.js:375
+msgid "Impact financé (%(unit)s)"
+msgstr "Financed impact (%(unit)s)"
+
+#: .\dashboard\static\dashboard\js\portfolio.js:356
+msgid "Poids dans le portefeuille (%)"
+msgstr "Weight in portfolio (%)"
+
+#: .\dashboard\static\dashboard\js\portfolio.js:382
+msgid "Poids (%)"
+msgstr "Weight (%)"
+
+#: .\dashboard\static\dashboard\js\portfolio.js:446
+msgid "Portefeuille"
+msgstr "Portfolio"
+
+#: .\dashboard\static\dashboard\js\portfolio.js:602 .\dashboard\static\dashboard\js\portfolio.js:605
+msgid "%(pct)s % vs benchmark"
+msgstr "%(pct)s % vs benchmark"
+
+#: .\dashboard\static\dashboard\js\portfolio.js:647
+msgid "Dette :"
+msgstr "Debt:"
+
+#: .\dashboard\static\dashboard\js\portfolio.js:732
+msgid "Portefeuille enregistré."
+msgstr "Portfolio saved."
+
+#: .\dashboard\static\dashboard\js\portfolio.js:738
+msgid "Erreur de validation. Vérifiez les champs."
+msgstr "Validation error. Check the fields."
+
+#: .\dashboard\static\dashboard\js\portfolio.js:759
+msgid "Portefeuille commun : lecture seule. Dupliquez-le pour le modifier."
+msgstr "Shared portfolio: read-only. Duplicate it to edit it."
+
+#: .\dashboard\static\dashboard\js\portfolio.js:794
+msgid "La duplication a échoué."
+msgstr "Duplication failed."
+
+#: .\dashboard\static\dashboard\js\portfolio.js:804
+msgid "Mes portefeuilles"
+msgstr "My portfolios"
+
+#: .\dashboard\static\dashboard\js\supply_chain.js:169
+msgid "Fournisseur"
+msgstr "Supplier"

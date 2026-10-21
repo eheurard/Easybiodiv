@@ -12,7 +12,10 @@ window.PhysicalRiskView = (function () {
     High:     '#af5d43',
     Critical: '#91452d',
   };
-  const BAND_LABELS = { Low: 'Faible', Moderate: 'Modéré', High: 'Élevé', Critical: 'Critique' };
+  const BAND_LABELS = {
+    Low: gettext('Faible'), Moderate: gettext('Modéré'), High: gettext('Élevé'),
+    Critical: gettext('Critique'),
+  };
 
   function band(score) {
     if (score >= 0.7) return 'Critical';
@@ -22,7 +25,7 @@ window.PhysicalRiskView = (function () {
   }
 
   function euro(v) {
-    return Math.round(v).toLocaleString('fr-FR') + ' €';
+    return Math.round(v).toLocaleString(APP_LOCALE) + ' €';
   }
 
   function hazard(data, key) {
@@ -68,7 +71,7 @@ window.PhysicalRiskView = (function () {
     const container = document.getElementById('pr-ranking');
     if (!container) return;
     if (!data.hazards || data.hazards.length === 0) {
-      container.innerHTML = '<p class="pr-empty">Aucune donnée disponible.</p>';
+      container.innerHTML = '<p class="pr-empty">' + gettext('Aucune donnée disponible.') + '</p>';
       return;
     }
     const maxRisk = data.hazards.reduce((m, h) => h.avg_risk > m ? h.avg_risk : m, 0) || 1;
@@ -114,7 +117,7 @@ window.PhysicalRiskView = (function () {
     if (hazardLabel) hazardLabel.textContent = current ? current.name : '—';
 
     if (!data || !current || data.assets.length === 0) {
-      body.innerHTML = '<tr><td colspan="5" class="pr-empty">Aucun actif.</td></tr>';
+      body.innerHTML = '<tr><td colspan="5" class="pr-empty">' + gettext('Aucun actif.') + '</td></tr>';
       return;
     }
 
@@ -135,24 +138,24 @@ window.PhysicalRiskView = (function () {
             <span class="pr-vuln-tooltip__val">${(d.value * 100).toFixed(1)}%</span>
           </span>`
         ).join('')
-      : '<span class="pr-vuln-tooltip__note">Aucune politique renseignée</span>';
+      : '<span class="pr-vuln-tooltip__note">' + gettext('Aucune politique renseignée') + '</span>';
 
     body.innerHTML = rows.map(r => {
       const tooltip = `
         <span class="pr-vuln-tooltip" role="tooltip">
-          <span class="pr-vuln-tooltip__title">Détail de la vulnérabilité</span>
+          <span class="pr-vuln-tooltip__title">${gettext('Détail de la vulnérabilité')}</span>
           ${detailRows}
-          <span class="pr-vuln-tooltip__result">Moyenne : ${(vuln * 100).toFixed(1)}%</span>
+          <span class="pr-vuln-tooltip__result">${gettext('Moyenne :')} ${(vuln * 100).toFixed(1)}%</span>
         </span>`;
       const invRows = r.inventory.map(e =>
         `<span class="pr-vuln-tooltip__row">
           <span class="pr-vuln-tooltip__policy">${escHtml(e.name)}</span>
-          <span class="pr-vuln-tooltip__val">${e.value.toLocaleString('fr-FR')} ${escHtml(e.unit)}</span>
+          <span class="pr-vuln-tooltip__val">${e.value.toLocaleString(APP_LOCALE)} ${escHtml(e.unit)}</span>
         </span>`).join('');
       const nameCell = r.inventory.length
         ? `<td class="pr-table__asset pr-table__asset--has-inv">${escHtml(r.name)}
             <span class="pr-inv-tooltip" role="tooltip">
-              <span class="pr-vuln-tooltip__title">Inventaire mesuré</span>
+              <span class="pr-vuln-tooltip__title">${gettext('Inventaire mesuré')}</span>
               ${invRows}
             </span></td>`
         : `<td>${escHtml(r.name)}</td>`;
@@ -210,7 +213,7 @@ window.PhysicalRiskView = (function () {
               <span class="asset-popup__row-value">${(Number(p.hazard) * 100).toFixed(1)}%</span>
             </div>
             <div class="asset-popup__row">
-              <span class="asset-popup__row-label">Exposition</span>
+              <span class="asset-popup__row-label">${gettext('Exposition')}</span>
               <span class="asset-popup__row-value">${euro(Number(p.exposition))}</span>
             </div>
           </div>
@@ -218,7 +221,7 @@ window.PhysicalRiskView = (function () {
           <div class="asset-popup__metrics">
             <div class="asset-popup__metric asset-popup__metric--risk">
               <div class="asset-popup__metric-value">${euro(Number(p.risk))}</div>
-              <div class="asset-popup__metric-label">Risque</div>
+              <div class="asset-popup__metric-label">${gettext('Risque')}</div>
             </div>
           </div>
         </div>
@@ -229,7 +232,7 @@ window.PhysicalRiskView = (function () {
     const items = Object.keys(BAND_COLORS).map(k =>
       `<li><span class="map-legend__dot" style="background:${BAND_COLORS[k]}"></span>${BAND_LABELS[k]}</li>`
     ).join('');
-    return `<p class="map-legend__title">Risque physique</p><ul class="map-legend__list">${items}</ul>`;
+    return `<p class="map-legend__title">${gettext('Risque physique')}</p><ul class="map-legend__list">${items}</ul>`;
   }
 
   return {

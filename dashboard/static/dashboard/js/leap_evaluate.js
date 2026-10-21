@@ -26,9 +26,9 @@ function leFmt(v) {
   v = Number(v) || 0;
   if (v === 0) return '0';
   const abs = Math.abs(v);
-  if (abs >= 1000) return v.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
-  if (abs >= 1)    return v.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
-  return v.toLocaleString('fr-FR', { maximumFractionDigits: 4 });
+  if (abs >= 1000) return v.toLocaleString(APP_LOCALE, { maximumFractionDigits: 0 });
+  if (abs >= 1)    return v.toLocaleString(APP_LOCALE, { maximumFractionDigits: 2 });
+  return v.toLocaleString(APP_LOCALE, { maximumFractionDigits: 4 });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -90,7 +90,7 @@ function leRenderRanking(data) {
   const container = document.getElementById('le-ranking');
   if (!container) return;
   if (!data.impacts || data.impacts.length === 0) {
-    container.innerHTML = '<p class="pr-empty">Aucune donnée disponible.</p>';
+    container.innerHTML = '<p class="pr-empty">' + gettext('Aucune donnée disponible.') + '</p>';
     return;
   }
   const maxTotal = data.impacts.reduce((m, i) => i.total > m ? i.total : m, 0) || 1;
@@ -179,8 +179,8 @@ function leAddSourceAndLayer(map) {
   map.on('click', 'le-assets-layer', (e) => {
     const p = e.features[0].properties;
     const sensitive = (String(p.near_sensitive_zone) === 'true')
-      ? `Oui${p.sensitive_zone_type ? ' — ' + escHtml(p.sensitive_zone_type) : ''}`
-      : 'Non';
+      ? `${gettext('Oui')}${p.sensitive_zone_type ? ' — ' + escHtml(p.sensitive_zone_type) : ''}`
+      : gettext('Non');
     const row = (label, value) =>
       `<div class="asset-popup__row">
         <span class="asset-popup__row-label">${label}</span>
@@ -196,10 +196,10 @@ function leAddSourceAndLayer(map) {
           </div>
           <div class="asset-popup__body">
             <div class="asset-popup__rows">
-              ${row('Consommation eau', leFmt(p.water_consumption))}
-              ${row('Émissions CO₂', leFmt(p.co2_emissions))}
-              ${row('Déchets générés', leFmt(p.waste_generated))}
-              ${row('Zone sensible', sensitive)}
+              ${row(gettext('Consommation eau'), leFmt(p.water_consumption))}
+              ${row(gettext('Émissions CO₂'), leFmt(p.co2_emissions))}
+              ${row(gettext('Déchets générés'), leFmt(p.waste_generated))}
+              ${row(gettext('Zone sensible'), sensitive)}
             </div>
             <div class="asset-popup__divider"></div>
             <div class="asset-popup__metrics">

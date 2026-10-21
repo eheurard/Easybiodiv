@@ -83,8 +83,9 @@ function buildCommodityPills(data) {
 
   const names = data.commodities.map(c => c.name);
 
-  let html = '<span class="label-caps">Commodité</span>';
-  html += '<button class="tr-tree-commodity-pill tr-tree-commodity-pill--active" data-commodity="">Toutes</button>';
+  let html = '<span class="label-caps">' + gettext('Commodité') + '</span>';
+  html += '<button class="tr-tree-commodity-pill tr-tree-commodity-pill--active" data-commodity="">' +
+    gettext('Toutes') + '</button>';
   names.forEach(name => {
     html += `<button class="tr-tree-commodity-pill" data-commodity="${escHtml(name)}">${escHtml(name)}</button>`;
   });
@@ -113,7 +114,7 @@ function renderTransitionRisk(data) {
 
   const kpiImpact = document.getElementById('tr-total-impact');
   if (kpiImpact) kpiImpact.textContent = data.total_impact
-    ? data.total_impact.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+    ? data.total_impact.toLocaleString(APP_LOCALE, { maximumFractionDigits: 2 })
     : '—';
 
   const kpiYear = document.getElementById('tr-year');
@@ -144,7 +145,7 @@ function renderBars(containerId, items) {
   if (!container) return;
 
   if (!items || items.length === 0) {
-    container.innerHTML = '<p class="tr-empty">Aucune donnée disponible.</p>';
+    container.innerHTML = '<p class="tr-empty">' + gettext('Aucune donnée disponible.') + '</p>';
     return;
   }
 
@@ -166,7 +167,10 @@ const TREE_NODE_W = 100;
 const TREE_NODE_H = 32;
 const TREE_NODE_GAP = 14;
 const TREE_COL_X = [20, 250, 470, 700];
-const TREE_COL_LABELS = ['COMMODITÉS', 'ACTIFS', 'PAYS', 'COMPANY'];
+const TREE_COL_LABELS = [
+  gettext('Commodités').toUpperCase(), gettext('Actifs').toUpperCase(),
+  gettext('Pays').toUpperCase(), 'COMPANY',
+];
 const TREE_COLORS = ['#4a7a5c', '#625a4e', '#865220', '#91452d'];
 const TREE_TOP = 28;
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -178,7 +182,8 @@ function renderSankey(data) {
   if (!svg) return;
 
   if (!data.sankey_links || data.sankey_links.length === 0) {
-    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" font-size="13" font-family="Inter,sans-serif" fill="#87736d">Aucune donnée à afficher.</text>';
+    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" font-size="13" font-family="Inter,sans-serif" fill="#87736d">' +
+      escHtml(gettext('Aucune donnée à afficher.')) + '</text>';
     svg.setAttribute('viewBox', '0 0 600 120');
     return;
   }
@@ -190,7 +195,7 @@ function renderSankey(data) {
   const AVAIL_H = H - TOP_MARGIN - 16;
 
   const COL_X = [60, 270, 500, 730];
-  const COL_LABELS = ['COMMODITÉS', 'ACTIFS', 'PAYS', 'COMPANY'];
+  const COL_LABELS = TREE_COL_LABELS;
 
   const nodes = {};
 
@@ -331,7 +336,7 @@ function renderTree(data) {
     t.setAttribute('font-size', '13');
     t.setAttribute('font-family', 'Inter,sans-serif');
     t.setAttribute('fill', '#87736d');
-    t.textContent = 'Aucune donnée à afficher.';
+    t.textContent = gettext('Aucune donnée à afficher.');
     svg.appendChild(t);
     return;
   }
@@ -572,7 +577,10 @@ function buildPanelHTML(nodeId, data) {
   const type  = nodeId.slice(0, colonIdx);
   const idVal = nodeId.slice(colonIdx + 1);
 
-  const typeLabels = { commodity: 'COMMODITÉ', asset: 'ACTIF', country: 'PAYS', company: 'ENTREPRISE' };
+  const typeLabels = {
+    commodity: gettext('Commodité').toUpperCase(), asset: gettext('Actif').toUpperCase(),
+    country: gettext('Pays').toUpperCase(), company: gettext('Entreprise').toUpperCase(),
+  };
   const typeColors = { commodity: '#865220',   asset: '#625a4e', country: '#4a7a5c', company: '#91452d' };
   const color = typeColors[type] || '#625a4e';
   const label = typeLabels[type] || type.toUpperCase();
@@ -596,7 +604,7 @@ function buildPanelHTML(nodeId, data) {
       .filter(Boolean)
       .sort((a, b) => b.pct - a.pct);
 
-    body = '<div class="tr-tree-panel__section">Actifs</div>' +
+    body = '<div class="tr-tree-panel__section">' + gettext('Actifs') + '</div>' +
       (assets.length
         ? assets.map(a => `<div class="tr-tree-panel__row"><span>${escHtml(a.name)}</span><b>${(a.pct * 100).toFixed(1)} %</b></div>`).join('')
         : '<div class="tr-tree-panel__row"><span>—</span></div>');
@@ -612,8 +620,8 @@ function buildPanelHTML(nodeId, data) {
       .filter(l => l.target === nodeId && l.source.startsWith('commodity:'))
       .map(l => l.source.slice('commodity:'.length));
 
-    body = `<div class="tr-tree-panel__row"><span>Pays</span><b>${escHtml(countryName)}</b></div>` +
-      '<div class="tr-tree-panel__section">Commodités</div>' +
+    body = `<div class="tr-tree-panel__row"><span>${gettext('Pays')}</span><b>${escHtml(countryName)}</b></div>` +
+      '<div class="tr-tree-panel__section">' + gettext('Commodités') + '</div>' +
       (commodities.length
         ? commodities.map(c => `<div class="tr-tree-panel__row"><span>${escHtml(c)}</span></div>`).join('')
         : '<div class="tr-tree-panel__row"><span>—</span></div>');
@@ -631,7 +639,7 @@ function buildPanelHTML(nodeId, data) {
       .filter(Boolean)
       .sort((a, b) => b.pct - a.pct);
 
-    body = '<div class="tr-tree-panel__section">Actifs</div>' +
+    body = '<div class="tr-tree-panel__section">' + gettext('Actifs') + '</div>' +
       (assets.length
         ? assets.map(a => `<div class="tr-tree-panel__row"><span>${escHtml(a.name)}</span><b>${(a.pct * 100).toFixed(1)} %</b></div>`).join('')
         : '<div class="tr-tree-panel__row"><span>—</span></div>');
@@ -639,9 +647,9 @@ function buildPanelHTML(nodeId, data) {
   } else if (type === 'company') {
     name = data.company_name;
     pct  = 1.0;
-    body = `<div class="tr-tree-panel__row"><span>Pays</span><b>${data.countries.length}</b></div>` +
-           `<div class="tr-tree-panel__row"><span>Actifs</span><b>${data.assets.length}</b></div>` +
-           `<div class="tr-tree-panel__row"><span>Commodités</span><b>${data.commodities.length}</b></div>`;
+    body = `<div class="tr-tree-panel__row"><span>${gettext('Pays')}</span><b>${data.countries.length}</b></div>` +
+           `<div class="tr-tree-panel__row"><span>${gettext('Actifs')}</span><b>${data.assets.length}</b></div>` +
+           `<div class="tr-tree-panel__row"><span>${gettext('Commodités')}</span><b>${data.commodities.length}</b></div>`;
   }
 
   const pctLine = pct !== null

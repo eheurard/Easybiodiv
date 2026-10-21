@@ -86,7 +86,7 @@ function compRender(data) {
   if (data.materiality.status === 'NOT_MATERIAL') {
     document.getElementById('comp-not-material-text').textContent =
       data.materiality.justification ||
-      'Aucune justification de non-matérialité saisie.';
+      gettext('Aucune justification de non-matérialité saisie.');
     notMat.hidden = false;
     drEl.hidden = true;
     drEl.innerHTML = '';
@@ -103,14 +103,14 @@ function compRender(data) {
     const card = document.createElement('article');
     card.className = 'comp-dr';
     const cond = dr.is_conditional
-      ? '<span class="comp-dr__cond">Conditionnel</span>' : '';
+      ? '<span class="comp-dr__cond">' + gettext('Conditionnel') + '</span>' : '';
     const sugg = (dr.auto_suggestion && dr.auto_suggestion !== dr.status)
-      ? '<p class="comp-dr__suggestion">Suggestion auto : ' +
+      ? '<p class="comp-dr__suggestion">' + gettext('Suggestion auto :') + ' ' +
         compEsc(dr.auto_suggestion_label || dr.auto_suggestion) + '</p>'
       : '';
     const justif = dr.justification
       ? compEsc(dr.justification)
-      : '<em>Aucune justification saisie</em>';
+      : '<em>' + gettext('Aucune justification saisie') + '</em>';
     card.innerHTML =
       '<header class="comp-dr__head">' +
         '<span class="comp-dr__code">' + compEsc(dr.code_label) + '</span>' +
@@ -120,7 +120,7 @@ function compRender(data) {
       '</header>' +
       '<h3 class="comp-dr__title">' + compEsc(dr.title) + '</h3>' +
       '<p class="comp-dr__desc">' + compEsc(dr.description) + '</p>' +
-      '<p class="comp-dr__ref">Référence : ' + compEsc(dr.reference) + '</p>' +
+      '<p class="comp-dr__ref">' + gettext('Référence :') + ' ' + compEsc(dr.reference) + '</p>' +
       '<p class="comp-dr__justif">' + justif + '</p>' +
       sugg;
     drEl.appendChild(card);

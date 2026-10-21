@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}Prepare — Easybiodiv{% endblock %}
+{% block title %}{% translate "Prepare" %} — Easybiodiv{% endblock %}
 
 {% block nav_mesure_empreinte %}active{% endblock %}
 
@@ -17,15 +17,15 @@
   <div class="kpi-row">
     <div class="kpi-card">
       <div class="kpi-card__value data-tabular" id="lp-impact-current">—</div>
-      <div class="kpi-card__label label-caps">Impact actuel</div>
+      <div class="kpi-card__label label-caps">{% translate "Impact actuel" %}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-card__value data-tabular" id="lp-impact-future">—</div>
-      <div class="kpi-card__label label-caps">Impact T+1 (simulé)</div>
+      <div class="kpi-card__label label-caps">{% translate "Impact T+1 (simulé)" %}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-card__value data-tabular" id="lp-variation">—</div>
-      <div class="kpi-card__label label-caps">Variation
+      <div class="kpi-card__label label-caps">{% translate "Variation" %}
         <span class="lp-pill" id="lp-variation-pill" hidden></span>
       </div>
     </div>
@@ -35,40 +35,40 @@
   <div class="lp-mid-row">
     <aside class="card lp-levers">
       <div class="lp-levers__head">
-        <span class="label-caps">Leviers</span>
-        <button type="button" class="lp-reset" id="lp-reset">Réinitialiser</button>
+        <span class="label-caps">{% translate "Leviers" %}</span>
+        <button type="button" class="lp-reset" id="lp-reset">{% translate "Réinitialiser" %}</button>
       </div>
 
       <div class="lp-levers__group">
-        <p class="lp-levers__title label-caps">Production par asset</p>
+        <p class="lp-levers__title label-caps">{% translate "Production par asset" %}</p>
         <div id="lp-prod-levers" class="lp-levers__list">
-          <p class="pr-empty">Sélectionnez une entreprise.</p>
+          <p class="pr-empty">{% translate "Sélectionnez une entreprise." %}</p>
         </div>
       </div>
 
       <div class="lp-levers__group">
-        <p class="lp-levers__title label-caps">Facteur d'impact par commodité</p>
+        <p class="lp-levers__title label-caps">{% translate "Facteur d'impact par commodité" %}</p>
         <div id="lp-impact-levers" class="lp-levers__list">
-          <p class="pr-empty">Sélectionnez une entreprise.</p>
+          <p class="pr-empty">{% translate "Sélectionnez une entreprise." %}</p>
         </div>
       </div>
     </aside>
 
     <div class="card lp-chart-card">
       <div class="lp-chart-card__head">
-        <span class="label-caps">Comparaison actuel → T+1</span>
+        <span class="label-caps">{% translate "Comparaison actuel → T+1" %}</span>
         <label class="lp-group-by">
-          <span class="label-caps">Détail</span>
+          <span class="label-caps">{% translate "Détail" %}</span>
           <select id="lp-group-by" class="lp-select">
-            <option value="asset">Par asset</option>
-            <option value="commodity">Par commodité</option>
+            <option value="asset">{% translate "Par asset" %}</option>
+            <option value="commodity">{% translate "Par commodité" %}</option>
           </select>
         </label>
       </div>
       <svg id="lp-dumbbell" class="lp-dumbbell" role="img"
-           aria-label="Comparaison de l'impact actuel et T+1"></svg>
+           aria-label="{% translate "Comparaison de l'impact actuel et T+1" %}"></svg>
       <div class="lp-total">
-        <span class="lp-total__label label-caps">Total entreprise</span>
+        <span class="lp-total__label label-caps">{% translate "Total entreprise" %}</span>
         <span class="lp-total__values data-tabular">
           <span id="lp-total-current">—</span>
           <span class="lp-total__arrow">→</span>
@@ -82,12 +82,12 @@
   <!-- Graphique évolution T → T+1 -->
   <div class="card lp-area-card">
     <div class="lp-area-card__head">
-      <span class="label-caps">Évolution de l'impact total</span>
+      <span class="label-caps">{% translate "Évolution de l'impact total" %}</span>
       <button type="button" class="lp-reset" id="lp-area-toggle"
-              aria-pressed="false">Par commodité</button>
+              aria-pressed="false">{% translate "Par commodité" %}</button>
     </div>
     <div class="lp-area-card__wrap">
-      <canvas id="lp-area-chart" aria-label="Graphique évolution impact T vers T+1"></canvas>
+      <canvas id="lp-area-chart" aria-label="{% translate 'Graphique évolution impact T vers T+1' %}"></canvas>
     </div>
   </div>
 </div>

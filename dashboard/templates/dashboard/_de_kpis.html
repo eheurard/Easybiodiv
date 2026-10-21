@@ -1,14 +1,14 @@
-{% comment %}
+{% load i18n %}{% comment %}
 KPI de la dette écologique. Inclus par la page Dette écologique et la Vue
 d'ensemble ; les identifiants sont ciblés par dette_view.js.
 {% endcomment %}
 <div class="kpi-row">
   <div class="kpi-card">
     <div class="kpi-card__value data-tabular" id="de-total-lbiodiv">—</div>
-    <div class="kpi-card__label label-caps">Lbiodiv total</div>
+    <div class="kpi-card__label label-caps">{% translate "Lbiodiv total" %}</div>
   </div>
   <div class="kpi-card">
     <div class="kpi-card__value data-tabular" id="de-year">—</div>
-    <div class="kpi-card__label label-caps">Année de référence</div>
+    <div class="kpi-card__label label-caps">{% translate "Année de référence" %}</div>
   </div>
 </div>

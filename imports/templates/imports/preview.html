@@ -1,10 +1,10 @@
-{% load static %}
+{% load static i18n %}
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aperçu de l'import — Easybiodiv</title>
+  <title>{% translate "Aperçu de l'import" %} — Easybiodiv</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'dashboard/img/favicon.svg' %}">
   <link rel="icon" type="image/x-icon" href="{% static 'dashboard/img/favicon.ico' %}">
   <link rel="apple-touch-icon" href="{% static 'dashboard/img/apple-touch-icon.png' %}">
@@ -191,9 +191,9 @@
 </head>
 <body>
 
-  <div id="page-loader" role="status" aria-live="polite" aria-label="Chargement en cours">
+  <div id="page-loader" role="status" aria-live="polite" aria-label="{% translate 'Chargement en cours' %}">
     <div class="pl-ring" aria-hidden="true"></div>
-    <span class="pl-text">Chargement…</span>
+    <span class="pl-text">{% translate "Chargement…" %}</span>
   </div>
   <script>
     (function(){function h(){var l=document.getElementById('page-loader');if(l)l.classList.add('is-hidden');}
@@ -202,8 +202,8 @@
   </script>
 
   <div class="page-header">
-    <h1>Aperçu de l'import</h1>
-    <p>Vérifiez les données avant de confirmer l'import définitif.</p>
+    <h1>{% translate "Aperçu de l'import" %}</h1>
+    <p>{% translate "Vérifiez les données avant de confirmer l'import définitif." %}</p>
   </div>
 
   <!-- Tab buttons -->
@@ -228,9 +228,9 @@
   >
     <!-- Counters -->
     <div class="counters">
-      <div class="counter counter--ok">{{ sheet.count_ok }} à importer</div>
-      <div class="counter counter--dup">{{ sheet.count_dup }} doublon(s)</div>
-      <div class="counter counter--error">{{ sheet.count_error }} erreur(s)</div>
+      <div class="counter counter--ok">{% blocktranslate with count=sheet.count_ok %}{{ count }} à importer{% endblocktranslate %}</div>
+      <div class="counter counter--dup">{% blocktranslate with count=sheet.count_dup %}{{ count }} doublon(s){% endblocktranslate %}</div>
+      <div class="counter counter--error">{% blocktranslate with count=sheet.count_error %}{{ count }} erreur(s){% endblocktranslate %}</div>
     </div>
 
     {% if sheet.rows %}
@@ -241,7 +241,7 @@
             {% for col in sheet.columns %}
             <th>{{ col }}</th>
             {% endfor %}
-            <th>Statut</th>
+            <th>{% translate "Statut" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -252,11 +252,11 @@
             {% endfor %}
             <td>
               {% if row.status == 'ok' %}
-                <span class="badge badge--ok">OK</span>
+                <span class="badge badge--ok">{% translate "OK" %}</span>
               {% elif row.status == 'dup' %}
-                <span class="badge badge--dup">Doublon</span>
+                <span class="badge badge--dup">{% translate "Doublon" %}</span>
               {% else %}
-                <span class="badge badge--error">Erreur{% if row.error %} — {{ row.error }}{% endif %}</span>
+                <span class="badge badge--error">{% translate "Erreur" %}{% if row.error %} — {{ row.error }}{% endif %}</span>
               {% endif %}
             </td>
           </tr>
@@ -265,7 +265,7 @@
       </table>
     </div>
     {% else %}
-    <p class="empty-notice">Aucune ligne dans cet onglet.</p>
+    <p class="empty-notice">{% translate "Aucune ligne dans cet onglet." %}</p>
     {% endif %}
   </div>
   {% endfor %}
@@ -275,10 +275,10 @@
     <form method="post" action="{% url 'imports:confirm' %}">
       {% csrf_token %}
       <button type="submit" class="btn btn--primary" {% if not has_importable %}disabled{% endif %}>
-        Confirmer l'import
+        {% translate "Confirmer l'import" %}
       </button>
     </form>
-    <a href="{% url 'imports:index' %}" class="btn btn--ghost">Annuler</a>
+    <a href="{% url 'imports:index' %}" class="btn btn--ghost">{% translate "Annuler" %}</a>
   </div>
 
   <script>

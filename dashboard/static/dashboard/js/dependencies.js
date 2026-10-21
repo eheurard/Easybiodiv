@@ -96,7 +96,7 @@ function renderKPIs(data) {
   }
   if (primaryScore) {
     primaryScore.textContent = data.primary_service
-      ? 'Score : ' + Math.round(data.primary_service.score * 100) + ' %'
+      ? gettext('Score :') + ' ' + Math.round(data.primary_service.score * 100) + ' %'
       : '';
   }
 }
@@ -107,7 +107,7 @@ function renderSupplyChain(tiers) {
   if (!body) return;
 
   if (!tiers || tiers.length === 0) {
-    body.innerHTML = '<p class="dep-empty">Aucune donnée de production disponible.</p>';
+    body.innerHTML = '<p class="dep-empty">' + gettext('Aucune donnée de production disponible.') + '</p>';
     return;
   }
 
@@ -149,7 +149,7 @@ function renderServiceExposure(serviceExposure) {
 
   const categories = serviceExposure.categories || [];
   if (categories.length === 0) {
-    body.innerHTML = '<p class="dep-empty">Aucune donnée disponible.</p>';
+    body.innerHTML = '<p class="dep-empty">' + gettext('Aucune donnée disponible.') + '</p>';
     return;
   }
 
@@ -190,7 +190,8 @@ function renderServiceExposure(serviceExposure) {
   }).join('');
 
   const note = serviceExposure.total_revenue != null
-    ? '<div class="dep-exposure-note">Valeurs indicatives basées sur le revenu total de l\'entreprise.</div>'
+    ? '<div class="dep-exposure-note">' +
+      gettext('Valeurs indicatives basées sur le revenu total de l\'entreprise.') + '</div>'
     : '';
 
   body.innerHTML = cats + note;
@@ -202,7 +203,7 @@ function renderRevenueSegments(segments) {
   if (!body) return;
 
   if (!segments || segments.length === 0) {
-    body.innerHTML = '<p class="dep-empty">Aucune donnée de revenu par segment.</p>';
+    body.innerHTML = '<p class="dep-empty">' + gettext('Aucune donnée de revenu par segment.') + '</p>';
     return;
   }
 
@@ -235,7 +236,7 @@ function renderRevenueSegments(segments) {
             <div class="dep-subsector-chips">${serviceChips || '<span class="dep-svc-chip dep-svc-chip--low">—</span>'}</div>
           </div>
           <span class="dep-subsector-revenue">${escHtml(subRevenueStr)}</span>
-          <span class="dep-subsector-atrisk dep-exposure-badge--${subLevelClass}">${escHtml(subAtRiskStr)} à risque</span>
+          <span class="dep-subsector-atrisk dep-exposure-badge--${subLevelClass}">${escHtml(interpolate(gettext('%(amount)s à risque'), { amount: subAtRiskStr }, true))}</span>
         </div>`;
     }).join('');
 
@@ -244,7 +245,8 @@ function renderRevenueSegments(segments) {
         ${REVENUE_ICON}
         <div class="dep-revenue-meta">
           <div class="dep-revenue-subsector">${escHtml(seg.sector)}</div>
-          <div class="dep-revenue-sector">${escHtml(atRiskStr)} à risque (${atRiskPct} %)</div>
+          <div class="dep-revenue-sector">${escHtml(interpolate(gettext('%(amount)s à risque (%(pct)s %)'),
+            { amount: atRiskStr, pct: atRiskPct }, true))}</div>
         </div>
         <div class="dep-revenue-bar-wrap">
           <div class="dep-revenue-bar-track">
@@ -254,7 +256,7 @@ function renderRevenueSegments(segments) {
         </div>
         <span class="dep-revenue-amount">${escHtml(revenueStr)}</span>
         <span class="dep-exposure-badge dep-exposure-badge--${levelClass}">${escHtml(seg.exposure_label)}</span>
-        <button class="dep-toggle-btn" aria-expanded="false" aria-controls="${detailId}" aria-label="Détail ${escHtml(seg.sector)}">
+        <button class="dep-toggle-btn" aria-expanded="false" aria-controls="${detailId}" aria-label="${escHtml(interpolate(gettext('Détail %(sector)s'), { sector: seg.sector }, true))}">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
@@ -289,8 +291,8 @@ function formatRevenue(amount, currency) {
   if (amount == null) return '—';
   const sym = currency === 'EUR' ? '€' : (currency ? currency + ' ' : '');
   const abs = Math.abs(amount);
-  if (abs >= 1e9) return sym + (amount / 1e9).toFixed(1) + 'Md';
+  if (abs >= 1e9) return sym + (amount / 1e9).toFixed(1) + gettext('Md');
   if (abs >= 1e6) return sym + (amount / 1e6).toFixed(1) + 'M';
   if (abs >= 1e3) return sym + (amount / 1e3).toFixed(0) + 'k';
-  return sym + amount.toLocaleString('fr-FR');
+  return sym + amount.toLocaleString(APP_LOCALE);
 }

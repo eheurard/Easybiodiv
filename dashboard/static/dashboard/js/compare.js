@@ -50,7 +50,8 @@ function initCompareCombobox(side, companies) {
 function fetchCompanyData(side, pk) {
   const infoEl = document.getElementById(`company-info-${side}`);
   const card   = document.getElementById(`compare-card-${side}`);
-  infoEl.innerHTML = '<p class="compare-company-info__loading"><span class="compare-loading-dot"></span>Chargement…</p>';
+  infoEl.innerHTML = '<p class="compare-company-info__loading"><span class="compare-loading-dot"></span>' +
+    gettext('Chargement…') + '</p>';
   card && card.classList.add('compare-col-card--loading');
 
   fetch(`${COMPARE_API_URL}${pk}/compare/`)
@@ -64,7 +65,7 @@ function fetchCompanyData(side, pk) {
     .catch((err) => {
       console.error('fetchCompanyData failed:', err);
       card && card.classList.remove('compare-col-card--loading');
-      infoEl.innerHTML = '<p class="compare-company-info__error">Erreur de chargement</p>';
+      infoEl.innerHTML = '<p class="compare-company-info__error">' + gettext('Erreur de chargement') + '</p>';
     });
 }
 
@@ -74,7 +75,8 @@ function renderCompanyInfo(side, data) {
   const el = document.getElementById(`company-info-${side}`);
   el.innerHTML = `
     <div class="compare-company-info__name compare-company-info__name--in">${escHtml(data.company_name)}</div>
-    <div class="compare-company-info__stat">${fmtNum(data.number_of_assets)} actif${data.number_of_assets !== 1 ? 's' : ''}</div>
+    <div class="compare-company-info__stat">${interpolate(ngettext('%(n)s actif', '%(n)s actifs', data.number_of_assets),
+      { n: fmtNum(data.number_of_assets) }, true)}</div>
   `;
 }
 
@@ -112,7 +114,7 @@ function createBlock(metricKey) {
           <path d="M2.5 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <button class="compare-block__remove" type="button" aria-label="Supprimer l'indicateur">
+      <button class="compare-block__remove" type="button" aria-label="${gettext('Supprimer l\'indicateur')}">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
           <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
@@ -193,7 +195,8 @@ function openDropdown(blockEl) {
         <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/>
         <path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
       </svg>
-      <input class="compare-metric-search" type="text" placeholder="Filtrer…" autocomplete="off" aria-label="Filtrer les indicateurs">
+      <input class="compare-metric-search" type="text" placeholder="${gettext('Filtrer…')}" autocomplete="off"
+        aria-label="${gettext('Filtrer les indicateurs')}">
     </div>
     <div class="compare-metric-options" role="listbox"></div>
   `;
@@ -226,7 +229,7 @@ function renderDropdownOptions(portal, currentKey, query) {
     : compareMetrics;
 
   if (filtered.length === 0) {
-    list.innerHTML = '<p class="compare-metric-empty">Aucun résultat</p>';
+    list.innerHTML = '<p class="compare-metric-empty">' + gettext('Aucun résultat') + '</p>';
     return;
   }
 
@@ -336,7 +339,7 @@ function formatMetricValue(key, value) {
   if (key === 'total_lbiodiv')          return fmtEuro(value);
   if (key.startsWith('total_impact_'))  return fmtFootprint(value);
   if (key.startsWith('avg_dependency_'))
-    return `${(value * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}&thinsp;%`;
+    return `${(value * 100).toLocaleString(APP_LOCALE, { maximumFractionDigits: 1 })}&thinsp;%`;
   return String(value);
 }
 

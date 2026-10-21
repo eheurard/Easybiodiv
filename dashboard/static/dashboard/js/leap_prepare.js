@@ -19,10 +19,10 @@ const LP_SVG_NS = 'http://www.w3.org/2000/svg';
 function lpFmt(v) {
   v = Number(v) || 0;
   const abs = Math.abs(v);
-  if (abs >= 1000) return v.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
-  if (abs >= 1)    return v.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+  if (abs >= 1000) return v.toLocaleString(APP_LOCALE, { maximumFractionDigits: 0 });
+  if (abs >= 1)    return v.toLocaleString(APP_LOCALE, { maximumFractionDigits: 2 });
   if (abs === 0)   return '0';
-  return v.toLocaleString('fr-FR', { maximumFractionDigits: 4 });
+  return v.toLocaleString(APP_LOCALE, { maximumFractionDigits: 4 });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -112,7 +112,7 @@ function lpRenderLevers() {
   // Production par asset : valeur de base = somme des qty des lignes de l'asset.
   const assets = data.assets || [];
   if (!assets.length) {
-    prodBox.innerHTML = '<p class="lp-empty">Aucun asset à simuler.</p>';
+    prodBox.innerHTML = '<p class="lp-empty">' + gettext('Aucun asset à simuler.') + '</p>';
   } else {
     prodBox.innerHTML = assets.map(a => {
       const base = a.lines.reduce((s, l) => s + l.qty, 0);
@@ -123,7 +123,7 @@ function lpRenderLevers() {
 
   const commodities = data.commodities || [];
   if (!commodities.length) {
-    impBox.innerHTML = '<p class="lp-empty">Aucune commodité à simuler.</p>';
+    impBox.innerHTML = '<p class="lp-empty">' + gettext('Aucune commodité à simuler.') + '</p>';
   } else {
     impBox.innerHTML = commodities.map(c =>
       lpLeverRow('impact', c.id, c.name, c.impact_factor, '', 4)
@@ -146,9 +146,9 @@ function lpLeverRow(kind, id, name, base, unit, digits) {
       </div>
       <div class="lp-lever__controls">
         <input type="range" class="lp-lever__slider" min="-100" max="100" step="1" value="0"
-               aria-label="Variation ${escHtml(name)}">
+               aria-label="${escHtml(interpolate(gettext('Variation %(name)s'), { name: name }, true))}">
         <input type="number" class="lp-lever__input" step="any" min="0" value="${val}"
-               data-digits="${digits}" aria-label="Valeur ${escHtml(name)}">
+               data-digits="${digits}" aria-label="${escHtml(interpolate(gettext('Valeur %(name)s'), { name: name }, true))}">
         ${unitHtml}
       </div>
     </div>`;
@@ -247,7 +247,7 @@ function lpRenderKpis(totalCur, totalFut) {
         } else {
           pill.hidden = false;
           const good = pct < 0;
-          pill.textContent = good ? 'Mieux' : 'Moins bien';
+          pill.textContent = good ? gettext('Mieux') : gettext('Moins bien');
           pill.className = 'lp-pill ' + (good ? 'lp-pill--good' : 'lp-pill--bad');
         }
       }
@@ -312,7 +312,7 @@ function lpCommByImpact() {
 function lpAreaDatasets(totalCur, totalFut) {
   if (LP_STATE.areaView === 'total') {
     return [{
-      label: 'Total',
+      label: gettext('Total'),
       data: [totalCur, totalFut],
       borderColor: LP_PALETTE[0],
       backgroundColor: lpHexAlpha(LP_PALETTE[0], 0.15),
@@ -413,7 +413,8 @@ function lpInitAreaToggle() {
   if (!btn) return;
   btn.addEventListener('click', () => {
     LP_STATE.areaView = LP_STATE.areaView === 'total' ? 'commodity' : 'total';
-    btn.textContent = LP_STATE.areaView === 'total' ? 'Par commodité' : 'Total';
+    btn.textContent = LP_STATE.areaView === 'total'
+      ? gettext('Par commodité') : gettext('Total');
     btn.setAttribute('aria-pressed', LP_STATE.areaView === 'commodity');
     if (LP_STATE.data) lpRecompute();
   });
@@ -434,7 +435,7 @@ function lpRenderDumbbell() {
     t.setAttribute('text-anchor', 'middle');
     t.setAttribute('font-size', '13'); t.setAttribute('fill', LP_GREY);
     t.setAttribute('font-family', 'Inter, sans-serif');
-    t.textContent = 'Aucune donnée à simuler.';
+    t.textContent = gettext('Aucune donnée à simuler.');
     svg.appendChild(t);
     return;
   }

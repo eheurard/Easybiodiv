@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import (
@@ -31,12 +32,12 @@ FLOW_SCOPE_LABELS = {s.value: s.label for s in FlowScope}
 SCORE_MAP = {'VL': 0.0, 'L': 0.2, 'M': 0.5, 'H': 0.7, 'VH': 1.0}
 
 SERVICES = [
-    {'key': 'water',                'name': 'Approvisionnement en eau', 'category': 'provisioning'},
-    {'key': 'soil_quality',         'name': 'Qualité des sols',         'category': 'provisioning'},
-    {'key': 'carbon_sequestration', 'name': 'Séquestration carbone',    'category': 'regulation'},
-    {'key': 'water_purification',   'name': "Épuration de l'eau",       'category': 'regulation'},
-    {'key': 'pest_control',         'name': 'Contrôle des ravageurs',   'category': 'regulation'},
-    {'key': 'pollination',          'name': 'Pollinisation',            'category': 'regulation'},
+    {'key': 'water', 'name': _('Approvisionnement en eau'), 'category': 'provisioning'},
+    {'key': 'soil_quality', 'name': _('Qualité des sols'), 'category': 'provisioning'},
+    {'key': 'carbon_sequestration', 'name': _('Séquestration carbone'), 'category': 'regulation'},
+    {'key': 'water_purification', 'name': _("Épuration de l'eau"), 'category': 'regulation'},
+    {'key': 'pest_control', 'name': _('Contrôle des ravageurs'), 'category': 'regulation'},
+    {'key': 'pollination', 'name': _('Pollinisation'), 'category': 'regulation'},
 ]
 
 _COMMODITY_DEP_FIELDS = {
@@ -60,9 +61,9 @@ _SUBSECTOR_DEP_FIELDS = {
 # Inventaire mesuré affiché (informatif) sur la vue risque : sous-ensemble de flux.
 _RISK_INVENTORY_KEYS = ('water', 'co2', 'surface_area')
 _RISK_INVENTORY_LABELS = {
-    'water': 'Consommation eau',
-    'co2': 'Émissions CO₂',
-    'surface_area': 'Usage des sols',
+    'water': _('Consommation eau'),
+    'co2': _('Émissions CO₂'),
+    'surface_area': _('Usage des sols'),
 }
 
 
@@ -168,9 +169,9 @@ def _get_dependencies_data(company):
 
     categories = []
     for cat_name, cat_keys in [
-        ('Services de provisionnement', ['water', 'soil_quality']),
-        ('Services de régulation',      ['carbon_sequestration', 'water_purification',
-                                          'pest_control', 'pollination']),
+        (_('Services de provisionnement'), ['water', 'soil_quality']),
+        (_('Services de régulation'), ['carbon_sequestration', 'water_purification',
+                                       'pest_control', 'pollination']),
     ]:
         svcs_out = []
         for key in cat_keys:
@@ -640,17 +641,17 @@ def _get_leap_locate_data(company):
 # Impacts midpoint ReCiPe 2016 portés par les commodités : étiquettes FR pour la
 # phase LEAP Evaluate (classement + sélecteur de dimensionnement des points).
 _EVALUATE_IMPACT_FIELDS = [
-    ('impact_midpoint_ReCiPe2016_water_consumption',          'Consommation eau'),
-    ('impact_midpoint_ReCiPe2016_climate_change',             'Changement climatique'),
-    ('impact_midpoint_ReCiPe2016_freshwater_ecotoxicity',     'Écotoxicité eau douce'),
-    ('impact_midpoint_ReCiPe2016_freshwater_eutrophication',  'Eutrophisation eau douce'),
-    ('impact_midpoint_ReCiPe2016_marine_eutrophication',      'Eutrophisation marine'),
-    ('impact_midpoint_ReCiPe2016_terrestrial_acidification',  'Acidification terrestre'),
-    ('impact_midpoint_ReCiPe2016_soil_acidification',         'Acidification des sols'),
-    ('impact_midpoint_ReCiPe2016_ozonedepletion',             "Appauvrissement de l'ozone"),
-    ('impact_midpoint_ReCiPe2016_resource_depletion_fossil',  'Épuisement ressources fossiles'),
-    ('impact_midpoint_ReCiPe2016_resource_depletion_minerals','Épuisement ressources minérales'),
-    ('impact_midpoint_ReCiPe2016_land_use',                   'Utilisation des terres'),
+    ('impact_midpoint_ReCiPe2016_water_consumption',          _('Consommation eau')),
+    ('impact_midpoint_ReCiPe2016_climate_change',             _('Changement climatique')),
+    ('impact_midpoint_ReCiPe2016_freshwater_ecotoxicity',     _('Écotoxicité eau douce')),
+    ('impact_midpoint_ReCiPe2016_freshwater_eutrophication',  _('Eutrophisation eau douce')),
+    ('impact_midpoint_ReCiPe2016_marine_eutrophication',      _('Eutrophisation marine')),
+    ('impact_midpoint_ReCiPe2016_terrestrial_acidification',  _('Acidification terrestre')),
+    ('impact_midpoint_ReCiPe2016_soil_acidification',         _('Acidification des sols')),
+    ('impact_midpoint_ReCiPe2016_ozonedepletion',             _("Appauvrissement de l'ozone")),
+    ('impact_midpoint_ReCiPe2016_resource_depletion_fossil',  _('Épuisement ressources fossiles')),
+    ('impact_midpoint_ReCiPe2016_resource_depletion_minerals',_('Épuisement ressources minérales')),
+    ('impact_midpoint_ReCiPe2016_land_use',                   _('Utilisation des terres')),
 ]
 
 
@@ -1027,37 +1028,40 @@ def _get_physical_risk_data(company):
 
 
 _IMPACT_FIELDS = [
-    ('impact_midpoint_ReCiPe2016_water_consumption',          'Conso. eau (ReCiPe midpoint)'),
-    ('impact_midpoint_ReCiPe2016_climate_change',             'Changement climatique (ReCiPe)'),
-    ('impact_midpoint_ReCiPe2016_freshwater_ecotoxicity',     'Écotoxicité eau douce (ReCiPe)'),
-    ('impact_midpoint_ReCiPe2016_freshwater_eutrophication',  'Eutrophisation eau douce (ReCiPe)'),
-    ('impact_midpoint_ReCiPe2016_marine_eutrophication',      'Eutrophisation marine (ReCiPe)'),
-    ('impact_midpoint_ReCiPe2016_terrestrial_acidification',  'Acidification terrestre (ReCiPe)'),
-    ('impact_midpoint_ReCiPe2016_soil_acidification',         'Acidification sols (ReCiPe)'),
-    ('impact_midpoint_ReCiPe2016_ozonedepletion',             'Dépletion ozone (ReCiPe)'),
-    ('impact_midpoint_ReCiPe2016_resource_depletion_fossil',  'Dépletion fossile (ReCiPe)'),
-    ('impact_midpoint_ReCiPe2016_resource_depletion_minerals','Dépletion minéraux (ReCiPe)'),
-    ('impact_midpoint_ReCiPe2016_land_use',                   "Utilisation des terres (ReCiPe)"),
-    ('impact_endpoint_ReCiPe2016_human_health',               'Santé humaine (ReCiPe endpoint)'),
-    ('impact_endpoint_ReCiPe2016_ecosystem_diversity',        'Diversité écosystèmes (ReCiPe endpoint)'),
-    ('impact_endpoint_ReCiPe2016_resource_availability',      'Disponibilité ressources (ReCiPe endpoint)'),
-    ('impact_endpoint_GBS_terrestrial_dynamic',               'Terrestre dynamique (GBS endpoint)'),
-    ('impact_endpoint_GBS_terrestrial_static',                'Terrestre statique (GBS endpoint)'),
+    ('impact_midpoint_ReCiPe2016_water_consumption',          _('Conso. eau (ReCiPe midpoint)')),
+    ('impact_midpoint_ReCiPe2016_climate_change',             _('Changement climatique (ReCiPe)')),
+    ('impact_midpoint_ReCiPe2016_freshwater_ecotoxicity',     _('Écotoxicité eau douce (ReCiPe)')),
+    ('impact_midpoint_ReCiPe2016_freshwater_eutrophication',
+     _('Eutrophisation eau douce (ReCiPe)')),
+    ('impact_midpoint_ReCiPe2016_marine_eutrophication',      _('Eutrophisation marine (ReCiPe)')),
+    ('impact_midpoint_ReCiPe2016_terrestrial_acidification', _('Acidification terrestre (ReCiPe)')),
+    ('impact_midpoint_ReCiPe2016_soil_acidification',         _('Acidification sols (ReCiPe)')),
+    ('impact_midpoint_ReCiPe2016_ozonedepletion',             _('Dépletion ozone (ReCiPe)')),
+    ('impact_midpoint_ReCiPe2016_resource_depletion_fossil',  _('Dépletion fossile (ReCiPe)')),
+    ('impact_midpoint_ReCiPe2016_resource_depletion_minerals',_('Dépletion minéraux (ReCiPe)')),
+    ('impact_midpoint_ReCiPe2016_land_use',                   _("Utilisation des terres (ReCiPe)")),
+    ('impact_endpoint_ReCiPe2016_human_health',               _('Santé humaine (ReCiPe endpoint)')),
+    ('impact_endpoint_ReCiPe2016_ecosystem_diversity',
+     _('Diversité écosystèmes (ReCiPe endpoint)')),
+    ('impact_endpoint_ReCiPe2016_resource_availability',
+     _('Disponibilité ressources (ReCiPe endpoint)')),
+    ('impact_endpoint_GBS_terrestrial_dynamic', _('Terrestre dynamique (GBS endpoint)')),
+    ('impact_endpoint_GBS_terrestrial_static', _('Terrestre statique (GBS endpoint)')),
 ]
 
 _DEPENDENCY_FIELDS = [
-    ('dependency_water',                "Dépendance eau"),
-    ('dependency_pollination',          'Dépendance pollinisation'),
-    ('dependency_soil_quality',         'Dépendance qualité sols'),
-    ('dependency_carbon_sequestration', 'Dépendance séquestration carbone'),
-    ('dependency_water_purification',   "Dépendance épuration eau"),
-    ('dependency_pest_control',         'Dépendance contrôle ravageurs'),
+    ('dependency_water',                _("Dépendance eau")),
+    ('dependency_pollination',          _('Dépendance pollinisation')),
+    ('dependency_soil_quality',         _('Dépendance qualité sols')),
+    ('dependency_carbon_sequestration', _('Dépendance séquestration carbone')),
+    ('dependency_water_purification',   _("Dépendance épuration eau")),
+    ('dependency_pest_control',         _('Dépendance contrôle ravageurs')),
 ]
 
 METRICS = (
     [
-        {'key': 'number_of_assets', 'label': "Nombre d'actifs"},
-        {'key': 'total_lbiodiv',    'label': 'Dette écologique (L biodiv)'},
+        {'key': 'number_of_assets', 'label': _("Nombre d'actifs")},
+        {'key': 'total_lbiodiv',    'label': _('Dette écologique (L biodiv)')},
     ]
     + [{'key': f'total_{f}', 'label': label} for f, label in _IMPACT_FIELDS]
     + [{'key': f'avg_{f}',   'label': label} for f, label in _DEPENDENCY_FIELDS]
@@ -1169,12 +1173,16 @@ def _build_leap(assessment, sensitive_sites_count, company):
     primary = dep.get('primary_service')
     emp = _get_mesure_empreinte_data(company)
     summaries = {
-        'locate': f"{sensitive_sites_count} site(s) en/près d'une zone sensible",
+        'locate': _("%(count)s site(s) en/près d'une zone sensible") % {
+            'count': sensitive_sites_count,
+        },
         'evaluate': (
-            f"Dépendance principale : {primary['name']}"
-            if primary else "Aucune dépendance évaluée"
+            _('Dépendance principale : %(name)s') % {'name': primary['name']}
+            if primary else _('Aucune dépendance évaluée')
         ),
-        'assess': f"Empreinte écosystèmes : {emp.get('total_impact', 0)}",
+        'assess': _('Empreinte écosystèmes : %(impact)s') % {
+            'impact': emp.get('total_impact', 0),
+        },
     }
     phases = [
         ('locate', 'Locate', 'leap_locate_status', 'leap_locate_notes'),
@@ -1319,7 +1327,8 @@ def _get_esg_carbon(company):
             'year': year,
             'total': round(sum(scopes.values()), 2),
             'scopes': {
-                FLOW_SCOPE_LABELS.get(scope, scope): round(value, 2)
+                # Clé JSON : le libellé paresseux doit être converti en str.
+                str(FLOW_SCOPE_LABELS.get(scope, scope)): round(value, 2)
                 for scope, value in scopes.items()
             },
         }
@@ -1760,14 +1769,14 @@ def portfolio_save(request):
     try:
         payload = json.loads(request.body)
     except (json.JSONDecodeError, TypeError, ValueError):
-        return JsonResponse({'errors': {'__all__': ['JSON invalide']}}, status=400)
+        return JsonResponse({'errors': {'__all__': [_('JSON invalide')]}}, status=400)
 
     instance = None
     if payload.get('id'):
         instance = _visible_portfolio(request, payload['id'])
         if not instance.can_be_edited_by(request.user):
             return JsonResponse(
-                {'errors': {'__all__': ['Portefeuille commun : lecture seule.']}},
+                {'errors': {'__all__': [_('Portefeuille commun : lecture seule.')]}},
                 status=403,
             )
 
@@ -1803,7 +1812,7 @@ def portfolio_save(request):
     if not form.is_valid() or any(holding_errors) or duplicate:
         errors = dict(form.errors)
         if duplicate:
-            errors['__all__'] = ["Une entreprise ne peut apparaître qu'une fois."]
+            errors['__all__'] = [_("Une entreprise ne peut apparaître qu'une fois.")]
         return JsonResponse({'errors': errors, 'holdings': holding_errors}, status=400)
 
     with transaction.atomic():
@@ -1859,7 +1868,7 @@ def portfolio_duplicate(request, pk):
     source = _visible_portfolio(request, pk)
     with transaction.atomic():
         copy = Portfolio.objects.create(
-            name=f'{source.name} (copie)'[:255],
+            name=(_('%(name)s (copie)') % {'name': source.name})[:255],
             size=source.size,
             currency=source.currency,
             benchmark=source.benchmark,
@@ -1967,15 +1976,15 @@ def portfolio_impact(request, pk):
 
 
 PHYSICAL_HAZARDS = [
-    ('water_stress', 'Stress hydrique', 'risk_water_stress'),
-    ('wildfire', 'Feux de forêt', 'risk_wildfire'),
-    ('cyclone', 'Cyclone', 'risk_cyclone'),
-    ('drought', 'Sécheresse', 'risk_drought'),
-    ('flood', 'Inondation', 'risk_flood'),
-    ('coastal_inundation', 'Submersion côtière', 'risk_coastal_inundation'),
-    ('heatwave', 'Vague de chaleur', 'risk_heatwave'),
-    ('temperature_variation', 'Variation de température', 'risk_temperature_variation'),
-    ('precipitation_variation', 'Variation des précipitations',
+    ('water_stress', _('Stress hydrique'), 'risk_water_stress'),
+    ('wildfire', _('Feux de forêt'), 'risk_wildfire'),
+    ('cyclone', _('Cyclone'), 'risk_cyclone'),
+    ('drought', _('Sécheresse'), 'risk_drought'),
+    ('flood', _('Inondation'), 'risk_flood'),
+    ('coastal_inundation', _('Submersion côtière'), 'risk_coastal_inundation'),
+    ('heatwave', _('Vague de chaleur'), 'risk_heatwave'),
+    ('temperature_variation', _('Variation de température'), 'risk_temperature_variation'),
+    ('precipitation_variation', _('Variation des précipitations'),
      'risk_precipitation_variation'),
 ]
 

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}Dette écologique — Easybiodiv{% endblock %}
+{% block title %}{% translate "Dette écologique" %} — Easybiodiv{% endblock %}
 
 {% block layout_class %}map-page{% endblock %}
 
@@ -17,20 +17,20 @@
 
 {% block content %}
 <div class="map-stage">
-  <div id="de-map" class="de-map map-stage__canvas" aria-label="Carte de la dette écologique"></div>
+  <div id="de-map" class="de-map map-stage__canvas" aria-label="{% translate 'Carte de la dette écologique' %}"></div>
 
   <div class="map-stage__bl">
-    <div class="de-legend" id="de-legend" aria-label="Légende commodités">
-      <div class="de-legend__title label-caps">Commodités</div>
+    <div class="de-legend" id="de-legend" aria-label="{% translate 'Légende commodités' %}">
+      <div class="de-legend__title label-caps">{% translate "Commodités" %}</div>
       <ul class="de-legend__list" id="de-legend-list"></ul>
     </div>
   </div>
 
-  <aside class="map-panel" id="de-panel" aria-label="Dette écologique">
+  <aside class="map-panel" id="de-panel" aria-label="{% translate 'Dette écologique' %}">
     <div class="map-panel__header">
-      <span class="label-caps map-panel__title">Dette écologique</span>
+      <span class="label-caps map-panel__title">{% translate "Dette écologique" %}</span>
       <button type="button" class="map-panel__toggle" aria-expanded="true"
-              aria-controls="de-panel" aria-label="Réduire le panneau">
+              aria-controls="de-panel" aria-label="{% translate 'Réduire le panneau' %}">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6"
                 stroke-linecap="round" stroke-linejoin="round"/>
@@ -42,12 +42,12 @@
       {% include "dashboard/_de_kpis.html" %}
 
       <div class="de-toggle-row">
-        <span class="label-caps de-toggle-label">Regrouper par :</span>
-        <div class="de-toggle" role="group" aria-label="Mode d'affichage">
+        <span class="label-caps de-toggle-label">{% translate "Regrouper par :" %}</span>
+        <div class="de-toggle" role="group" aria-label="{% translate "Mode d'affichage" %}">
           <button class="de-toggle__btn de-toggle__btn--active"
-                  data-mode="asset" aria-pressed="true">Par asset</button>
+                  data-mode="asset" aria-pressed="true">{% translate "Par asset" %}</button>
           <button class="de-toggle__btn"
-                  data-mode="region" aria-pressed="false">Par région subnational</button>
+                  data-mode="region" aria-pressed="false">{% translate "Par région subnational" %}</button>
         </div>
       </div>
 
@@ -55,7 +55,7 @@
   </aside>
 
   <button type="button" class="map-panel__reopen" aria-expanded="true" aria-controls="de-panel"
-          aria-label="Afficher le panneau de la dette écologique">
+          aria-label="{% translate 'Afficher le panneau de la dette écologique' %}">
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
       <path d="M3 4.5h12M3 9h12M3 13.5h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
     </svg>

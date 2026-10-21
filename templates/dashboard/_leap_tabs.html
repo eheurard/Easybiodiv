@@ -1,5 +1,5 @@
-{% comment %}Barre d'onglets LEAP. Usage : {% include "dashboard/_leap_tabs.html" with active="locate" %}{% endcomment %}
-<nav class="leap-tabs" aria-label="Phases LEAP">
+{% comment %}Barre d'onglets LEAP. Usage : {% include "dashboard/_leap_tabs.html" with active="locate" %}{% endcomment %}{% load i18n %}
+<nav class="leap-tabs" aria-label="{% translate 'Phases LEAP' %}">
   <a class="leap-tab {% if active == 'locate' %}leap-tab--active{% endif %}"
      href="{% url 'dashboard:leap_locate' %}"
      {% if active == 'locate' %}aria-current="page"{% endif %}>

@@ -4,6 +4,7 @@ Toute entrée utilisateur — y compris les query params d'un endpoint GET —
 passe par un formulaire, jamais par une lecture brute de `request.GET`.
 """
 from django import forms
+from django.utils.translation import gettext_lazy as _
 
 from .models import ClimateScenario, Portfolio, PortfolioHolding
 from .services.stress_test import HORIZONS, PD_MAX
@@ -34,7 +35,7 @@ class StressTestForm(forms.Form):
         try:
             return ClimateScenario.objects.get(key=key)
         except ClimateScenario.DoesNotExist:
-            raise forms.ValidationError('Scénario inconnu.')
+            raise forms.ValidationError(_('Scénario inconnu.'))
 
     def to_params(self):
         """Dict d'hypothèses consommable par `get_stress_test_data`."""
@@ -71,5 +72,5 @@ class PortfolioHoldingForm(forms.ModelForm):
     def clean_weight(self):
         weight = self.cleaned_data['weight']
         if weight < 0 or weight > 100:
-            raise forms.ValidationError('Le poids doit être compris entre 0 et 100.')
+            raise forms.ValidationError(_('Le poids doit être compris entre 0 et 100.'))
         return weight

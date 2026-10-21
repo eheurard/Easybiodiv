@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import F, Q
+from django.utils.translation import gettext_lazy as _
 
 UNDOCUMENTED_SCALE_HELP_TEXT = (
     'Échelle et unité non documentées à ce jour — vérifier le glossaire '
@@ -371,10 +372,10 @@ class Asset(models.Model):
 
     class SensitiveZoneType(models.TextChoices):
         NATURA_2000 = 'NATURA_2000', 'Natura 2000'
-        NATIONAL_PROTECTED = 'NATIONAL_PROTECTED', 'Aire protégée nationale'
-        UNESCO = 'UNESCO', 'Site UNESCO'
+        NATIONAL_PROTECTED = 'NATIONAL_PROTECTED', _('Aire protégée nationale')
+        UNESCO = 'UNESCO', _('Site UNESCO')
         IUCN_KBA = 'IUCN_KBA', 'IUCN Key Biodiversity Area'
-        OTHER = 'OTHER', 'Autre'
+        OTHER = 'OTHER', _('Autre')
 
     SENSITIVE_ZONE_HELP_TEXT = (
         'Renseigné seulement si « Proche d’une zone sensible » est coché.'
@@ -734,10 +735,10 @@ ALL_ENDPOINTS = LOCATED_ENDPOINTS + (ENDPOINT_ENVIRONMENT, None)
 
 class FlowKind(models.TextChoices):
     PRODUCTION = 'PRODUCTION', 'Production'
-    SUPPLY = 'SUPPLY', 'Approvisionnement'
-    CONSUMPTION = 'CONSUMPTION', 'Consommation'
-    EMISSION = 'EMISSION', 'Émission'
-    WASTE = 'WASTE', 'Déchet'
+    SUPPLY = 'SUPPLY', _('Approvisionnement')
+    CONSUMPTION = 'CONSUMPTION', _('Consommation')
+    EMISSION = 'EMISSION', _('Émission')
+    WASTE = 'WASTE', _('Déchet')
 
 
 class FlowScope(models.TextChoices):
@@ -746,7 +747,7 @@ class FlowScope(models.TextChoices):
     SCOPE_3 = 'Scope 3', 'Scope 3'
     SCOPE_1_2 = 'Scope 1+2', 'Scope 1+2'
     SCOPE_1_2_3 = 'Scope 1+2+3', 'Scope 1+2+3'
-    UNDEFINED = 'undefined', 'Non défini'
+    UNDEFINED = 'undefined', _('Non défini')
 
 
 FlowRule = namedtuple('FlowRule', ['origins', 'destinations', 'message'])
@@ -963,18 +964,18 @@ class E4Assessment(models.Model):
     """Dossier de conformité ESRS E4 d'une entreprise (verrou de matérialité + LEAP)."""
 
     class StandardVersion(models.TextChoices):
-        AMENDED_2025 = 'AMENDED_2025', 'ESRS E4 amendé (déc. 2025) — 5 DR'
-        ORIGINAL_2023 = 'ORIGINAL_2023', 'ESRS E4 original (2023) — 6 DR'
+        AMENDED_2025 = 'AMENDED_2025', _('ESRS E4 amendé (déc. 2025) — 5 DR')
+        ORIGINAL_2023 = 'ORIGINAL_2023', _('ESRS E4 original (2023) — 6 DR')
 
     class Materiality(models.TextChoices):
-        NOT_ASSESSED = 'NOT_ASSESSED', 'Non évaluée'
-        MATERIAL = 'MATERIAL', 'Matérielle'
-        NOT_MATERIAL = 'NOT_MATERIAL', 'Non matérielle'
+        NOT_ASSESSED = 'NOT_ASSESSED', _('Non évaluée')
+        MATERIAL = 'MATERIAL', _('Matérielle')
+        NOT_MATERIAL = 'NOT_MATERIAL', _('Non matérielle')
 
     class LeapStatus(models.TextChoices):
-        TODO = 'TODO', 'À faire'
-        IN_PROGRESS = 'IN_PROGRESS', 'En cours'
-        DONE = 'DONE', 'Fait'
+        TODO = 'TODO', _('À faire')
+        IN_PROGRESS = 'IN_PROGRESS', _('En cours')
+        DONE = 'DONE', _('Fait')
 
     LEAP_STATUS_HELP_TEXT = (
         'La phase Prepare est hors périmètre ESRS E4 : seules Locate, '
@@ -1045,11 +1046,11 @@ class DisclosureRequirement(models.Model):
         E4_6 = 'E4_6', 'E4-6'
 
     class Status(models.TextChoices):
-        NOT_STARTED = 'NOT_STARTED', 'Non commencé'
-        NON_COMPLIANT = 'NON_COMPLIANT', 'Non conforme'
-        PARTIAL = 'PARTIAL', 'Partiel'
-        COMPLIANT = 'COMPLIANT', 'Conforme'
-        NOT_APPLICABLE = 'NOT_APPLICABLE', 'Non applicable'
+        NOT_STARTED = 'NOT_STARTED', _('Non commencé')
+        NON_COMPLIANT = 'NON_COMPLIANT', _('Non conforme')
+        PARTIAL = 'PARTIAL', _('Partiel')
+        COMPLIANT = 'COMPLIANT', _('Conforme')
+        NOT_APPLICABLE = 'NOT_APPLICABLE', _('Non applicable')
 
     assessment = models.ForeignKey(
         E4Assessment, on_delete=models.CASCADE, related_name='disclosure_requirements',
@@ -1202,10 +1203,10 @@ class ClimateScenario(models.Model):
     """Scénario climatique de référence (NGFS Phase V)."""
 
     class Family(models.TextChoices):
-        ORDERLY = 'ORDERLY', 'Transition ordonnée'
-        DISORDERLY = 'DISORDERLY', 'Transition désordonnée'
-        TOO_LITTLE = 'TOO_LITTLE', 'Trop peu, trop tard'
-        HOT_HOUSE = 'HOT_HOUSE', 'Monde en surchauffe'
+        ORDERLY = 'ORDERLY', _('Transition ordonnée')
+        DISORDERLY = 'DISORDERLY', _('Transition désordonnée')
+        TOO_LITTLE = 'TOO_LITTLE', _('Trop peu, trop tard')
+        HOT_HOUSE = 'HOT_HOUSE', _('Monde en surchauffe')
 
     key = models.CharField(max_length=50, unique=True, verbose_name='Clé technique')
     name = models.CharField(max_length=255, verbose_name='Nom')
@@ -1237,8 +1238,8 @@ class ScenarioVariable(models.Model):
     """Point de trajectoire d'un scénario (prix carbone, multiplicateur d'aléa)."""
 
     class Key(models.TextChoices):
-        CARBON_PRICE = 'carbon_price', 'Prix du carbone (€/tCO₂e)'
-        HAZARD_MULTIPLIER = 'hazard_multiplier', "Multiplicateur d'aléa"
+        CARBON_PRICE = 'carbon_price', _('Prix du carbone (€/tCO₂e)')
+        HAZARD_MULTIPLIER = 'hazard_multiplier', _("Multiplicateur d'aléa")
 
     scenario = models.ForeignKey(
         ClimateScenario, on_delete=models.CASCADE, related_name='variables',
@@ -1362,8 +1363,8 @@ class Portfolio(models.Model):
 class PortfolioHolding(models.Model):
     """Position d'un portefeuille : une entreprise, un montant, un poids."""
     class Instrument(models.TextChoices):
-        EQUITY = 'EQUITY', 'Action (Equity)'
-        BOND = 'BOND', 'Obligation (Bond)'
+        EQUITY = 'EQUITY', _('Action (Equity)')
+        BOND = 'BOND', _('Obligation (Bond)')
 
     portfolio = models.ForeignKey(
         Portfolio, on_delete=models.CASCADE, related_name='holdings',

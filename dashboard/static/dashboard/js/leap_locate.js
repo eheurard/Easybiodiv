@@ -193,7 +193,7 @@ function llRenderList() {
   if (!el) return;
   const features = llFeatures();
   if (features.length === 0) {
-    el.innerHTML = '<p class="ll-empty">Aucun site.</p>';
+    el.innerHTML = '<p class="ll-empty">' + gettext('Aucun site.') + '</p>';
     return;
   }
   el.innerHTML = LocateView.listHtml(features);

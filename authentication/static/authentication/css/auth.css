@@ -315,3 +315,35 @@ body {
     padding: 28px 24px;
   }
 }
+
+/* ── Bascule de langue (drapeau FR / EN), en haut à droite ─────────────── */
+.auth-lang {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+}
+
+.lang-switch__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background-color: var(--color-surface-low);
+  border: 1px solid var(--color-outline);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.lang-switch__btn:hover,
+.lang-switch__btn:focus-visible {
+  border-color: var(--color-primary);
+}
+
+.lang-switch__flag {
+  display: block;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+}

@@ -1,6 +1,6 @@
-{% load static %}
+{% load static i18n %}
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
   <script>
     /* Meme logique que le dashboard : theme pose avant le rendu, a partir du
@@ -39,9 +39,11 @@
 </head>
 <body>
 
-  <div id="page-loader" role="status" aria-live="polite" aria-label="Chargement en cours">
+  {% include "includes/language_switch.html" with lang_switch_class="auth-lang" %}
+
+  <div id="page-loader" role="status" aria-live="polite" aria-label="{% translate 'Chargement en cours' %}">
     <div class="pl-ring" aria-hidden="true"></div>
-    <span class="pl-text">Chargement…</span>
+    <span class="pl-text">{% translate "Chargement…" %}</span>
   </div>
   <script>
     (function(){function h(){var l=document.getElementById('page-loader');if(l)l.classList.add('is-hidden');}
@@ -49,7 +51,7 @@
     window.addEventListener('pageshow',function(e){if(e.persisted)h();});})();
   </script>
 
-  <a href="{% url 'dashboard:index' %}" class="auth-brand" aria-label="Retour à l'accueil Easybiodiv">
+  <a href="{% url 'dashboard:index' %}" class="auth-brand" aria-label="{% translate "Retour à l'accueil Easybiodiv" %}">
     <div class="auth-brand__logo" aria-hidden="true">
       <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
         <path d="M16 6C10.477 6 6 10.477 6 16s4.477 10 10 10 10-4.477 10-10S21.523 6 16 6zm0 3a7 7 0 110 14A7 7 0 0116 9zm0 2a5 5 0 100 10A5 5 0 0016 11zm0 2a3 3 0 110 6 3 3 0 010-6z" fill="#fff"/>
@@ -57,7 +59,7 @@
     </div>
     <div class="auth-brand__text">
       <span class="auth-brand__name">Easybiodiv</span>
-      <span class="auth-brand__tagline">Biodiversité &amp; CSRD</span>
+      <span class="auth-brand__tagline">{% translate "Biodiversité &amp; CSRD" %}</span>
     </div>
   </a>
 
@@ -65,11 +67,11 @@
     {% block card %}{% endblock %}
   </main>
 
-  <a href="{% url 'dashboard:index' %}" class="auth-back" aria-label="Retour au dashboard">
+  <a href="{% url 'dashboard:index' %}" class="auth-back" aria-label="{% translate 'Retour au dashboard' %}">
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
       <path d="M9 11L5 7l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    Retour au dashboard
+    {% translate "Retour au dashboard" %}
   </a>
 
 </body>

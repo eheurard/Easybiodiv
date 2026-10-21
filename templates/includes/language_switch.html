@@ -1,0 +1,38 @@
+{% load i18n %}{% get_current_language as current_language %}
+{% comment %}
+  Bascule FR ⇄ EN. Le drapeau affiché est celui de la langue CIBLE : un clic
+  poste vers la vue set_language de Django, qui mémorise le choix dans un
+  cookie puis renvoie sur la page courante (`next`).
+  `lang_switch_class` permet au gabarit appelant d'ajouter une classe de
+  placement (en-tête du dashboard, pages d'authentification).
+{% endcomment %}
+<form class="lang-switch {{ lang_switch_class }}" method="post" action="{% url 'set_language' %}">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+  {% if current_language == 'en' %}
+  <input type="hidden" name="language" value="fr">
+  <button type="submit" class="lang-switch__btn" lang="fr" aria-label="Passer en français"
+    title="Français">
+    <svg class="lang-switch__flag" width="22" height="15" viewBox="0 0 3 2" aria-hidden="true">
+      <rect width="1" height="2" x="0" fill="#002654" />
+      <rect width="1" height="2" x="1" fill="#ffffff" />
+      <rect width="1" height="2" x="2" fill="#ce1126" />
+    </svg>
+  </button>
+  {% else %}
+  <input type="hidden" name="language" value="en">
+  <button type="submit" class="lang-switch__btn" lang="en" aria-label="Switch to English"
+    title="English">
+    <svg class="lang-switch__flag" width="22" height="15" viewBox="0 0 60 40" aria-hidden="true">
+      <clipPath id="lang-switch-uk-clip"><rect width="60" height="40" /></clipPath>
+      <g clip-path="url(#lang-switch-uk-clip)">
+        <rect width="60" height="40" fill="#012169" />
+        <path d="M0 0l60 40M60 0L0 40" stroke="#ffffff" stroke-width="8" />
+        <path d="M0 0l60 40M60 0L0 40" stroke="#c8102e" stroke-width="3" />
+        <path d="M30 0v40M0 20h60" stroke="#ffffff" stroke-width="12" />
+        <path d="M30 0v40M0 20h60" stroke="#c8102e" stroke-width="7" />
+      </g>
+    </svg>
+  </button>
+  {% endif %}
+</form>

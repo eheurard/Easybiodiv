@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}Mesure d'empreinte — Easybiodiv{% endblock %}
+{% block title %}{% translate "Mesure d'empreinte" %} — Easybiodiv{% endblock %}
 
 {% block nav_mesure_empreinte %}active{% endblock %}
 
@@ -17,68 +17,68 @@
   <div class="kpi-row">
     <div class="kpi-card">
       <div class="kpi-card__value data-tabular" id="tr-total-impact">—</div>
-      <div class="kpi-card__label label-caps">Impact écosystème total</div>
+      <div class="kpi-card__label label-caps">{% translate "Impact écosystème total" %}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-card__value data-tabular" id="tr-year">—</div>
-      <div class="kpi-card__label label-caps">Année de référence</div>
+      <div class="kpi-card__label label-caps">{% translate "Année de référence" %}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-card__value data-tabular" id="tr-commodity-count">—</div>
-      <div class="kpi-card__label label-caps">Commodités</div>
+      <div class="kpi-card__label label-caps">{% translate "Commodités" %}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-card__value data-tabular" id="tr-asset-count">—</div>
-      <div class="kpi-card__label label-caps">Actifs</div>
+      <div class="kpi-card__label label-caps">{% translate "Actifs" %}</div>
     </div>
   </div>
 
   <!-- Bar charts row -->
   <div class="tr-bars-row">
     <div class="card tr-bars-card">
-      <div class="label-caps tr-bars-card__title">Par commodité</div>
+      <div class="label-caps tr-bars-card__title">{% translate "Par commodité" %}</div>
       <div id="commodity-bars" class="tr-bars-list"></div>
     </div>
     <div class="card tr-bars-card">
-      <div class="label-caps tr-bars-card__title">Par actif</div>
+      <div class="label-caps tr-bars-card__title">{% translate "Par actif" %}</div>
       <div id="asset-bars" class="tr-bars-list"></div>
     </div>
     <div class="card tr-bars-card">
-      <div class="label-caps tr-bars-card__title">Par pays</div>
+      <div class="label-caps tr-bars-card__title">{% translate "Par pays" %}</div>
       <div id="country-bars" class="tr-bars-list"></div>
     </div>
   </div>
 
   <!-- Sankey diagram -->
   <div class="card tr-sankey-card" style="display:none">
-    <div class="label-caps tr-sankey-card__title">Décomposition de l'impact</div>
+    <div class="label-caps tr-sankey-card__title">{% translate "Décomposition de l'impact" %}</div>
     <div class="tr-sankey-wrap">
-      <svg id="sankey-svg" class="tr-sankey-svg" aria-label="Diagramme Sankey de l'impact"></svg>
+      <svg id="sankey-svg" class="tr-sankey-svg" aria-label="{% translate "Diagramme Sankey de l'impact" %}"></svg>
     </div>
   </div>
 
   <!-- Tree diagram -->
   <div class="card tr-tree-card">
-    <div class="label-caps tr-tree-card__title">Répartition hiérarchique</div>
+    <div class="label-caps tr-tree-card__title">{% translate "Répartition hiérarchique" %}</div>
 
     <div class="tr-tree-filters">
       <div class="tr-tree-filter-group">
-        <label class="label-caps" for="tree-threshold">Seuil</label>
+        <label class="label-caps" for="tree-threshold">{% translate "Seuil" %}</label>
         <input type="range" id="tree-threshold" min="0" max="30" value="0" step="1">
         <span id="tree-threshold-label">≥ 0 %</span>
       </div>
       <div class="tr-tree-filter-sep"></div>
       <div class="tr-tree-filter-group" id="tree-commodity-filters">
-        <span class="label-caps">Commodité</span>
+        <span class="label-caps">{% translate "Commodité" %}</span>
       </div>
     </div>
 
     <div class="tr-tree-body">
       <div class="tr-tree-wrap">
-        <svg id="tree-svg" class="tr-tree-svg" role="img" aria-label="Diagramme arborescent de l'impact"></svg>
+        <svg id="tree-svg" class="tr-tree-svg" role="img" aria-label="{% translate "Diagramme arborescent de l'impact" %}"></svg>
       </div>
       <div class="tr-tree-panel" id="tree-panel" hidden>
-        <button class="tr-tree-panel__close" id="tree-panel-close" aria-label="Fermer le panneau">×</button>
+        <button class="tr-tree-panel__close" id="tree-panel-close" aria-label="{% translate 'Fermer le panneau' %}">×</button>
         <div id="tree-panel-content"></div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-{% comment %}
+{% load i18n %}{% comment %}
 Panneau du risque physique : KPI (dont la perte projetée 5 / 10 ans) et
 classement des aléas. Inclus par la page Risque physique et la Vue d'ensemble ;
 les identifiants sont ciblés par physical_risk_view.js.
@@ -6,14 +6,14 @@ les identifiants sont ciblés par physical_risk_view.js.
 <div class="kpi-row">
   <div class="kpi-card">
     <div class="kpi-card__value data-tabular" id="pr-annual-loss">—</div>
-    <div class="kpi-card__label label-caps">Perte projetée</div>
-    <div class="pr-horizon" role="group" aria-label="Horizon de projection">
-      <button type="button" class="pr-horizon__btn active" data-years="5" aria-pressed="true">5 ans</button>
-      <button type="button" class="pr-horizon__btn" data-years="10" aria-pressed="false">10 ans</button>
+    <div class="kpi-card__label label-caps">{% translate "Perte projetée" %}</div>
+    <div class="pr-horizon" role="group" aria-label="{% translate 'Horizon de projection' %}">
+      <button type="button" class="pr-horizon__btn active" data-years="5" aria-pressed="true">{% translate "5 ans" %}</button>
+      <button type="button" class="pr-horizon__btn" data-years="10" aria-pressed="false">{% translate "10 ans" %}</button>
     </div>
   </div>
 </div>
 
 <div id="pr-ranking" class="pr-ranking-list">
-  <p class="pr-empty">Sélectionnez une entreprise.</p>
+  <p class="pr-empty">{% translate "Sélectionnez une entreprise." %}</p>
 </div>

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}Dépendances — Easybiodiv{% endblock %}
+{% block title %}{% translate "Dépendances" %} — Easybiodiv{% endblock %}
 
 {% block nav_dependencies %}active{% endblock %}
 
@@ -15,16 +15,16 @@
   <!-- KPI band -->
   <div class="kpi-row">
     <div class="kpi-card">
-      <div class="kpi-card__label label-caps">Score d'exposition global</div>
+      <div class="kpi-card__label label-caps">{% translate "Score d'exposition global" %}</div>
       <div class="kpi-card__value data-tabular" id="dep-global-score">—</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-card__label label-caps">Nœuds critiques</div>
+      <div class="kpi-card__label label-caps">{% translate "Nœuds critiques" %}</div>
       <div class="kpi-card__value data-tabular" id="dep-critical-nodes">—</div>
-      <div class="kpi-card__subtitle">points haute dépendance</div>
+      <div class="kpi-card__subtitle">{% translate "points haute dépendance" %}</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-card__label label-caps">Service principal</div>
+      <div class="kpi-card__label label-caps">{% translate "Service principal" %}</div>
       <div class="kpi-card__value" id="dep-primary-service" style="font-size:20px;line-height:1.2">—</div>
       <div class="kpi-card__subtitle" id="dep-primary-score"></div>
     </div>
@@ -36,20 +36,20 @@
     <!-- Supply Chain Reliance -->
     <div class="card dep-supply-chain">
       <div class="dep-section-header">
-        <span class="dep-section-title">Supply Chain Reliance</span>
+        <span class="dep-section-title">{% translate "Supply Chain Reliance" %}</span>
       </div>
       <div id="dep-supply-chain-body">
-        <p class="dep-empty">Aucune donnée disponible.</p>
+        <p class="dep-empty">{% translate "Aucune donnée disponible." %}</p>
       </div>
     </div>
 
     <!-- Service Exposure -->
     <div class="card dep-service-exposure">
       <div class="dep-section-header">
-        <span class="dep-section-title">Service Exposure</span>
+        <span class="dep-section-title">{% translate "Service Exposure" %}</span>
       </div>
       <div id="dep-service-exposure-body">
-        <p class="dep-empty">Aucune donnée disponible.</p>
+        <p class="dep-empty">{% translate "Aucune donnée disponible." %}</p>
       </div>
     </div>
 
@@ -58,10 +58,10 @@
   <!-- Revenue Dependence by Economic Segment -->
   <div class="card dep-revenue-segments">
     <div class="dep-section-header">
-      <span class="dep-section-title">Dépendance des revenus par segment économique</span>
+      <span class="dep-section-title">{% translate "Dépendance des revenus par segment économique" %}</span>
     </div>
     <div id="dep-revenue-segments-body">
-      <p class="dep-empty">Aucune donnée disponible.</p>
+      <p class="dep-empty">{% translate "Aucune donnée disponible." %}</p>
     </div>
   </div>
 

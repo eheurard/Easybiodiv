@@ -1,6 +1,6 @@
-{% load static %}
+{% load static i18n %}
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ LANGUAGE_CODE }}">
 
 <head>
   <script>
@@ -90,27 +90,27 @@
 <body>
 
   <!-- Écran de chargement (masqué au chargement complet par main.js) -->
-  <div id="page-loader" role="status" aria-live="polite" aria-label="Chargement en cours">
+  <div id="page-loader" role="status" aria-live="polite" aria-label="{% translate 'Chargement en cours' %}">
     <div class="pl-ring" aria-hidden="true"></div>
-    <span class="pl-text">Chargement…</span>
+    <span class="pl-text">{% translate "Chargement…" %}</span>
   </div>
 
   <div class="app-layout {% block layout_class %}{% endblock %}" id="app-layout">
 
     <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
-    <aside class="app-sidebar" id="app-sidebar" aria-label="Navigation principale">
+    <aside class="app-sidebar" id="app-sidebar" aria-label="{% translate 'Navigation principale' %}">
 
       <!-- En-tête du tiroir, visible uniquement sur mobile -->
       <div class="sidebar__mobile-head">
         <span class="sidebar__mobile-title">Easybiodiv</span>
-        <button type="button" class="sidebar__mobile-close" id="nav-close-btn" aria-label="Fermer le menu">
+        <button type="button" class="sidebar__mobile-close" id="nav-close-btn" aria-label="{% translate 'Fermer le menu' %}">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
             <path d="M4.5 4.5l9 9M13.5 4.5l-9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
           </svg>
         </button>
       </div>
 
-      <button class="sidebar__toggle" id="sidebar-toggle" aria-label="Réduire le menu" aria-expanded="true"
+      <button class="sidebar__toggle" id="sidebar-toggle" aria-label="{% translate 'Réduire le menu' %}" aria-expanded="true"
         aria-controls="app-sidebar">
         <svg class="toggle-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
           <path d="M13 15l-5-5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
@@ -118,40 +118,40 @@
         </svg>
       </button>
 
-      <nav class="sidebar__nav" aria-label="Menu principal">
+      <nav class="sidebar__nav" aria-label="{% translate 'Menu principal' %}">
         <ul class="sidebar__nav-list" role="list">
           <li>
             <a href="{% url 'dashboard:index' %}" class="sidebar__nav-link {% block nav_overview %}{% endblock %}"
-              aria-label="Vue d'ensemble">
+              aria-label="{% translate "Vue d'ensemble" %}">
               <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5" />
                 <rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5" />
                 <rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5" />
                 <rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5" />
               </svg>
-              <span class="sidebar__nav-label">Vue d'ensemble</span>
+              <span class="sidebar__nav-label">{% translate "Vue d'ensemble" %}</span>
             </a>
           </li>
           <li>
             <a href="{% url 'dashboard:esg' %}" class="sidebar__nav-link {% block nav_esg %}{% endblock %}"
-              aria-label="Données ESG">
+              aria-label="{% translate 'Données ESG' %}">
               <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <path d="M3 17V3M3 17h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                 <rect x="6" y="10" width="2.5" height="4" stroke="currentColor" stroke-width="1.3" />
                 <rect x="11" y="6" width="2.5" height="8" stroke="currentColor" stroke-width="1.3" />
               </svg>
-              <span class="sidebar__nav-label">Données ESG</span>
+              <span class="sidebar__nav-label">{% translate "Données ESG" %}</span>
             </a>
           </li>
           <li>
             <details class="sidebar__nav-details" id="nav-risks-group">
-              <summary class="sidebar__nav-link" aria-label="Analyse des risques">
+              <summary class="sidebar__nav-link" aria-label="{% translate 'Analyse des risques' %}">
                 <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none"
                   aria-hidden="true">
                   <path d="M10 3L18 17H2L10 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
                   <path d="M10 8v4M10 13.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                 </svg>
-                <span class="sidebar__nav-label">Analyse des risques</span>
+                <span class="sidebar__nav-label">{% translate "Analyse des risques" %}</span>
                 <svg class="sidebar__nav-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"
                   aria-hidden="true">
                   <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
@@ -162,15 +162,15 @@
                 <li>
                   <a href="{% url 'dashboard:leap_locate' %}"
                     class="sidebar__nav-sublink {% block nav_mesure_empreinte %}{% endblock %}"
-                    aria-label="Mesure d'empreinte">
-                    Mesure d'empreinte
+                    aria-label="{% translate "Mesure d'empreinte" %}">
+                    {% translate "Mesure d'empreinte" %}
                   </a>
                 </li>
                 <li>
                   <a href="{% url 'dashboard:climate_stress_test' %}"
                     class="sidebar__nav-sublink {% block nav_climate_stress_test %}{% endblock %}"
-                    aria-label="Stress test climatique">
-                    Stress test climatique
+                    aria-label="{% translate 'Stress test climatique' %}">
+                    {% translate "Stress test climatique" %}
                   </a>
                 </li>
               </ul>
@@ -178,7 +178,7 @@
           </li>
           <li>
             <a href="{% url 'dashboard:dependencies' %}"
-              class="sidebar__nav-link {% block nav_dependencies %}{% endblock %}" aria-label="Dépendances">
+              class="sidebar__nav-link {% block nav_dependencies %}{% endblock %}" aria-label="{% translate 'Dépendances' %}">
               <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5" />
                 <circle cx="3.5" cy="5" r="1.5" stroke="currentColor" stroke-width="1.5" />
@@ -188,16 +188,16 @@
                 <path d="M5 5.5L8 8.5M15 5.5L12 8.5M5 14.5L8 11.5M15 14.5L12 11.5" stroke="currentColor"
                   stroke-width="1.2" stroke-linecap="round" />
               </svg>
-              <span class="sidebar__nav-label">Dépendances</span>
+              <span class="sidebar__nav-label">{% translate "Dépendances" %}</span>
             </a>
           </li>
           <li>
             <a href="{% url 'dashboard:compare' %}" class="sidebar__nav-link {% block nav_compare %}{% endblock %}"
-              aria-label="Comparaison">
+              aria-label="{% translate 'Comparaison' %}">
               <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <path d="M4 4h5v12H4zM11 4h5v12h-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
               </svg>
-              <span class="sidebar__nav-label">Comparaison</span>
+              <span class="sidebar__nav-label">{% translate "Comparaison" %}</span>
             </a>
           </li>
           <li>
@@ -206,7 +206,7 @@
               class="sidebar__nav-link {% block nav_portfolio %}{% endblock %}" aria-label="Portfolio analysis">
               {% else %}
               <span class="sidebar__nav-link sidebar__nav-link--disabled" aria-disabled="true"
-                aria-label="Portfolio analysis (connexion requise)" title="Connexion requise">
+                aria-label="{% translate 'Portfolio analysis (connexion requise)' %}" title="{% translate 'Connexion requise' %}">
                 {% endif %}
                 <svg class="sidebar__nav-icon" width="20" height="20" viewBox="0 0 20 20" fill="none"
                   aria-hidden="true">
@@ -222,36 +222,36 @@
 
       <div class="sidebar__footer">
         {% if user.is_authenticated and user.role == 'CREATOR' %}
-        <a href="{% url 'imports:index' %}" class="sidebar__footer-link" aria-label="Import / export Excel">
+        <a href="{% url 'imports:index' %}" class="sidebar__footer-link" aria-label="{% translate 'Import / export Excel' %}">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M8 14V6M5 9l3-3 3 3M3 14h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
               stroke-linejoin="round" />
           </svg>
-          <span class="sidebar__footer-link-label">Import / export Excel</span>
+          <span class="sidebar__footer-link-label">{% translate "Import / export Excel" %}</span>
         </a>
         {% endif %}
         {% if user.is_superuser %}
-        <a href="{% url 'admin:index' %}" class="sidebar__footer-link" aria-label="Console de données">
+        <a href="{% url 'admin:index' %}" class="sidebar__footer-link" aria-label="{% translate 'Console de données' %}">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <ellipse cx="8" cy="3.5" rx="5" ry="2" stroke="currentColor" stroke-width="1.5" />
             <path d="M3 3.5v9c0 1.1 2.24 2 5 2s5-.9 5-2v-9" stroke="currentColor" stroke-width="1.5"
               stroke-linecap="round" />
             <path d="M3 8c0 1.1 2.24 2 5 2s5-.9 5-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
-          <span class="sidebar__footer-link-label">Console de données</span>
+          <span class="sidebar__footer-link-label">{% translate "Console de données" %}</span>
         </a>
         {% endif %}
-        <a href="#" class="sidebar__footer-link" aria-label="Exporter un rapport">
+        <a href="#" class="sidebar__footer-link" aria-label="{% translate 'Exporter un rapport' %}">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M8 2v8M5 7l3 3 3-3M3 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
               stroke-linejoin="round" />
           </svg>
-          <span class="sidebar__footer-link-label">Exporter rapport</span>
+          <span class="sidebar__footer-link-label">{% translate "Exporter rapport" %}</span>
         </a>
 
         <div class="sidebar__footer-actions">
           <button type="button" class="sidebar__footer-icon-link" id="theme-toggle" aria-pressed="false"
-            aria-label="Passer en mode nuit" title="Mode jour / nuit">
+            aria-label="{% translate 'Passer en mode nuit' %}" title="{% translate 'Mode jour / nuit' %}">
             <svg class="theme-icon theme-icon--sun" width="18" height="18" viewBox="0 0 18 18" fill="none"
               aria-hidden="true">
               <circle cx="9" cy="9" r="2.5" stroke="currentColor" stroke-width="1.4" />
@@ -265,7 +265,7 @@
                 stroke-linejoin="round" />
             </svg>
           </button>
-          <a href="#" class="sidebar__footer-icon-link" aria-label="Aide et support">
+          <a href="#" class="sidebar__footer-icon-link" aria-label="{% translate 'Aide et support' %}">
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <circle cx="9" cy="9" r="7.5" stroke="currentColor" stroke-width="1.4" />
               <path d="M6.5 6.5a2.5 2.5 0 015 0c0 1.5-1.5 2-2.5 3M9 13v.5" stroke="currentColor" stroke-width="1.4"
@@ -287,7 +287,7 @@
       <!-- Header -->
       <header class="app-header" role="banner">
         <!-- Bouton du menu, visible uniquement sur mobile -->
-        <button type="button" class="app-header__menu-btn" id="nav-open-btn" aria-label="Ouvrir le menu"
+        <button type="button" class="app-header__menu-btn" id="nav-open-btn" aria-label="{% translate 'Ouvrir le menu' %}"
           aria-expanded="false" aria-controls="app-sidebar">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
             <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
@@ -301,15 +301,17 @@
             <path d="M13 13l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
           <input type="search" class="app-header__search-input form-input"
-            placeholder="Rechercher sites, entreprises..." aria-label="Rechercher">
+            placeholder="{% translate 'Rechercher sites, entreprises...' %}" aria-label="{% translate 'Rechercher' %}">
         </div>
         {% endblock header_left %}
 
         <div class="app-header__actions">
 
+          {% include "includes/language_switch.html" %}
+
           {% if user.is_authenticated %}
           <div class="app-header__user-menu">
-            <button class="app-header__avatar" aria-label="Menu utilisateur" aria-haspopup="true" aria-expanded="false"
+            <button class="app-header__avatar" aria-label="{% translate 'Menu utilisateur' %}" aria-haspopup="true" aria-expanded="false"
               id="user-menu-btn">
               <span class="app-header__avatar-initials">{{ user.username|first|upper }}</span>
             </button>
@@ -317,12 +319,12 @@
               <span class="app-header__user-name">{{ user.username }}</span>
               <form method="post" action="{% url 'authentication:logout' %}">
                 {% csrf_token %}
-                <button type="submit" class="app-header__logout-btn">Se déconnecter</button>
+                <button type="submit" class="app-header__logout-btn">{% translate "Se déconnecter" %}</button>
               </form>
             </div>
           </div>
           {% else %}
-          <a href="{% url 'authentication:login' %}" class="app-header__avatar" aria-label="Se connecter">
+          <a href="{% url 'authentication:login' %}" class="app-header__avatar" aria-label="{% translate 'Se connecter' %}">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5" />
               <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" stroke-width="1.5"
@@ -344,6 +346,8 @@
 
   </div><!-- /.app-layout -->
 
+  <!-- Catalogue de traductions JS : définit gettext()/interpolate() avant les modules -->
+  <script src="{% url 'javascript-catalog' %}"></script>
   <script src="{% static 'dashboard/js/main.js' %}" defer></script>
   <script src="{% static 'dashboard/js/company_combobox.js' %}" defer></script>
   {% block extra_js %}{% endblock %}

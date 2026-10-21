@@ -16,6 +16,10 @@
   window.addEventListener('pageshow', (e) => { if (e.persisted) hideLoader(); });
 })();
 
+// Locale d'affichage des nombres, alignée sur la langue de l'interface
+// (<html lang>, posé par Django). Partagée par tous les scripts de page.
+const APP_LOCALE = document.documentElement.lang === 'en' ? 'en-GB' : 'fr-FR';
+
 const SATELLITE_STYLE = {
   version: 8,
   sources: {
@@ -91,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const collapsed = layout.classList.toggle('sidebar-collapsed');
       localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
       toggleBtn.setAttribute('aria-expanded', String(!collapsed));
-      toggleBtn.setAttribute('aria-label', collapsed ? 'Développer le menu' : 'Réduire le menu');
+      toggleBtn.setAttribute('aria-label', collapsed ? gettext('Développer le menu') : gettext('Réduire le menu'));
       if (collapsed) {
         document.querySelectorAll('.sidebar__nav-details').forEach(d => d.removeAttribute('open'));
       }
@@ -101,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!animate) layout.style.transition = 'none';
       layout.classList.toggle('sidebar-collapsed', collapsed);
       toggleBtn.setAttribute('aria-expanded', String(!collapsed));
-      toggleBtn.setAttribute('aria-label', collapsed ? 'Développer le menu' : 'Réduire le menu');
+      toggleBtn.setAttribute('aria-label', collapsed ? gettext('Développer le menu') : gettext('Réduire le menu'));
       if (collapsed) {
         document.querySelectorAll('.sidebar__nav-details').forEach(d => d.removeAttribute('open'));
       }
@@ -165,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const trigger = document.createElement('button');
     trigger.type = 'button';
     trigger.className = 'map-layer-toggle__trigger';
-    trigger.setAttribute('aria-label', 'Choisir le fond de carte');
+    trigger.setAttribute('aria-label', gettext('Choisir le fond de carte'));
     trigger.setAttribute('aria-expanded', 'false');
     trigger.innerHTML = LAYER_ICON;
     group.prepend(trigger);
@@ -194,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncBtn = () => {
       const dark = currentTheme() === 'dark';
       themeBtn.setAttribute('aria-pressed', String(dark));
-      themeBtn.setAttribute('aria-label', dark ? 'Passer en mode jour' : 'Passer en mode nuit');
+      themeBtn.setAttribute('aria-label', dark ? gettext('Passer en mode jour') : gettext('Passer en mode nuit'));
     };
     syncBtn();
 
@@ -255,20 +259,20 @@ function escHtml(s) {
 }
 
 function fmtNum(n) {
-  return Number(n).toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+  return Number(n).toLocaleString(APP_LOCALE, { maximumFractionDigits: 0 });
 }
 
 function fmtEuro(n) {
-  if (n >= 1e6) return `${(n / 1e6).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} M€`;
-  if (n >= 1e3) return `${(n / 1e3).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} k€`;
-  return `${n.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €`;
+  if (n >= 1e6) return `${(n / 1e6).toLocaleString(APP_LOCALE, { maximumFractionDigits: 2 })} M€`;
+  if (n >= 1e3) return `${(n / 1e3).toLocaleString(APP_LOCALE, { maximumFractionDigits: 1 })} k€`;
+  return `${n.toLocaleString(APP_LOCALE, { maximumFractionDigits: 2 })} €`;
 }
 
 function fmtFootprint(n) {
   if (n === 0) return '—';
-  if (n >= 1e3) return `${(n / 1e3).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} k`;
-  if (n >= 1) return n.toLocaleString('fr-FR', { maximumFractionDigits: 3 });
+  if (n >= 1e3) return `${(n / 1e3).toLocaleString(APP_LOCALE, { maximumFractionDigits: 2 })} k`;
+  if (n >= 1) return n.toLocaleString(APP_LOCALE, { maximumFractionDigits: 3 });
   const exp = Math.floor(Math.log10(Math.abs(n)));
-  const mantissa = (n / Math.pow(10, exp)).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+  const mantissa = (n / Math.pow(10, exp)).toLocaleString(APP_LOCALE, { maximumFractionDigits: 2 });
   return `${mantissa}×10<sup>${exp}</sup>`;
 }

@@ -1,0 +1,2293 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Easybiodiv\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-21 20:54+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Easybiodiv\n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: .\authentication\forms.py:9 .\authentication\templates\authentication\password_reset.html:16
+#: .\authentication\templates\authentication\register.html:35
+msgid "Adresse email"
+msgstr "Email address"
+
+#: .\authentication\templates\authentication\auth_base.html:44
+#: .\imports\templates\imports\index.html:155 .\imports\templates\imports\preview.html:194
+#: .\templates\base.html:93
+msgid "Chargement en cours"
+msgstr "Loading"
+
+#: .\authentication\templates\authentication\auth_base.html:46
+#: .\imports\templates\imports\index.html:157 .\imports\templates\imports\preview.html:196
+#: .\templates\base.html:95
+msgid "Chargement…"
+msgstr "Loading…"
+
+#: .\authentication\templates\authentication\auth_base.html:54
+msgid "Retour à l'accueil Easybiodiv"
+msgstr "Back to Easybiodiv home"
+
+#: .\authentication\templates\authentication\auth_base.html:62
+msgid "Biodiversité &amp; CSRD"
+msgstr "Biodiversity &amp; CSRD"
+
+#: .\authentication\templates\authentication\auth_base.html:70
+#: .\authentication\templates\authentication\auth_base.html:74
+#: .\authentication\templates\authentication\logged_out.html:13
+msgid "Retour au dashboard"
+msgstr "Back to dashboard"
+
+#: .\authentication\templates\authentication\logged_out.html:4
+msgid "Déconnecté"
+msgstr "Signed out"
+
+#: .\authentication\templates\authentication\logged_out.html:8
+msgid "Vous êtes déconnecté"
+msgstr "You are signed out"
+
+#: .\authentication\templates\authentication\logged_out.html:10
+msgid "À bientôt sur Easybiodiv."
+msgstr "See you soon on Easybiodiv."
+
+#: .\authentication\templates\authentication\logged_out.html:15
+msgid "Se reconnecter"
+msgstr "Sign in again"
+
+#: .\authentication\templates\authentication\login.html:4
+#: .\authentication\templates\authentication\login.html:7
+msgid "Connexion"
+msgstr "Sign in"
+
+#: .\authentication\templates\authentication\login.html:8
+msgid "Accédez à votre espace biodiversité"
+msgstr "Access your biodiversity workspace"
+
+#: .\authentication\templates\authentication\login.html:22
+#: .\authentication\templates\authentication\register.html:14
+msgid "Identifiant"
+msgstr "Username"
+
+#: .\authentication\templates\authentication\login.html:43
+#: .\authentication\templates\authentication\register.html:55
+msgid "Mot de passe"
+msgstr "Password"
+
+#: .\authentication\templates\authentication\login.html:62
+#: .\authentication\templates\authentication\password_reset.html:7
+msgid "Mot de passe oublié ?"
+msgstr "Forgot your password?"
+
+#: .\authentication\templates\authentication\login.html:65
+#: .\authentication\templates\authentication\password_reset_complete.html:18
+#: .\authentication\templates\authentication\register.html:99 .\templates\base.html:327
+msgid "Se connecter"
+msgstr "Sign in"
+
+#: .\authentication\templates\authentication\login.html:68
+#: .\authentication\templates\authentication\password_reset.html:38
+#: .\authentication\templates\authentication\register.html:95
+msgid "ou"
+msgstr "or"
+
+#: .\authentication\templates\authentication\login.html:71
+msgid "Pas encore de compte ?"
+msgstr "Don't have an account yet?"
+
+#: .\authentication\templates\authentication\login.html:72
+#: .\authentication\templates\authentication\register.html:4
+#: .\authentication\templates\authentication\register.html:7
+msgid "Créer un compte"
+msgstr "Create an account"
+
+#: .\authentication\templates\authentication\password_reset.html:4
+msgid "Réinitialiser le mot de passe"
+msgstr "Reset password"
+
+#: .\authentication\templates\authentication\password_reset.html:9
+msgid "Entrez votre adresse email et nous vous enverrons un lien de réinitialisation."
+msgstr "Enter your email address and we'll send you a reset link."
+
+#: .\authentication\templates\authentication\password_reset.html:35
+msgid "Envoyer le lien"
+msgstr "Send link"
+
+#: .\authentication\templates\authentication\password_reset.html:41
+#: .\authentication\templates\authentication\password_reset_done.html:21
+msgid "Retour à la connexion"
+msgstr "Back to sign in"
+
+#: .\authentication\templates\authentication\password_reset_complete.html:4
+msgid "Mot de passe réinitialisé"
+msgstr "Password reset"
+
+#: .\authentication\templates\authentication\password_reset_complete.html:13
+msgid "Mot de passe modifié"
+msgstr "Password changed"
+
+#: .\authentication\templates\authentication\password_reset_complete.html:15
+msgid "Votre mot de passe a bien été réinitialisé. Vous pouvez maintenant vous connecter."
+msgstr "Your password has been reset. You can now sign in."
+
+#: .\authentication\templates\authentication\password_reset_confirm.html:4
+#: .\authentication\templates\authentication\password_reset_confirm.html:7
+#: .\authentication\templates\authentication\password_reset_confirm.html:16
+msgid "Nouveau mot de passe"
+msgstr "New password"
+
+#: .\authentication\templates\authentication\password_reset_confirm.html:8
+msgid "Choisissez un mot de passe sécurisé."
+msgstr "Choose a secure password."
+
+#: .\authentication\templates\authentication\password_reset_confirm.html:37
+#: .\authentication\templates\authentication\register.html:74
+msgid "Confirmer le mot de passe"
+msgstr "Confirm password"
+
+#: .\authentication\templates\authentication\password_reset_confirm.html:55
+msgid "Enregistrer"
+msgstr "Save"
+
+#: .\authentication\templates\authentication\password_reset_confirm.html:60
+msgid "Ce lien est invalide ou a expiré."
+msgstr "This link is invalid or has expired."
+
+#: .\authentication\templates\authentication\password_reset_confirm.html:61
+msgid "Faire une nouvelle demande"
+msgstr "Request a new link"
+
+#: .\authentication\templates\authentication\password_reset_done.html:4
+#: .\authentication\templates\authentication\password_reset_done.html:13
+msgid "Email envoyé"
+msgstr "Email sent"
+
+#: .\authentication\templates\authentication\password_reset_done.html:15
+msgid ""
+"Si un compte est associé à cette adresse, vous recevrez un email avec un lien valable <strong>24 "
+"heures</strong> pour réinitialiser votre mot de passe."
+msgstr ""
+"If an account is linked to this address, you will receive an email with a link valid for "
+"<strong>24 hours</strong> to reset your password."
+
+#: .\authentication\templates\authentication\password_reset_email.html:1
+#, python-format
+msgid "Bonjour %(username)s,"
+msgstr "Hello %(username)s,"
+
+#: .\authentication\templates\authentication\password_reset_email.html:3
+msgid ""
+"Vous recevez cet email car vous (ou quelqu'un d'autre) avez demandé la réinitialisation du mot de "
+"passe de votre compte Easybiodiv."
+msgstr ""
+"You are receiving this email because you (or someone else) requested a password reset for your "
+"Easybiodiv account."
+
+#: .\authentication\templates\authentication\password_reset_email.html:8
+msgid "Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe :"
+msgstr "Click the link below to choose a new password:"
+
+#: .\authentication\templates\authentication\password_reset_email.html:12
+msgid "Ce lien est valable 24 heures. Si vous n'avez pas fait cette demande, ignorez cet email."
+msgstr "This link is valid for 24 hours. If you didn't make this request, ignore this email."
+
+#: .\authentication\templates\authentication\password_reset_email.html:14
+msgid "L'équipe Easybiodiv"
+msgstr "The Easybiodiv team"
+
+#: .\authentication\templates\authentication\password_reset_subject.txt:1
+msgid "Réinitialisation de votre mot de passe Easybiodiv"
+msgstr "Reset your Easybiodiv password"
+
+#: .\authentication\templates\authentication\register.html:8
+msgid "Rejoignez Easybiodiv gratuitement"
+msgstr "Join Easybiodiv for free"
+
+#: .\authentication\templates\authentication\register.html:92
+msgid "Créer mon compte"
+msgstr "Create my account"
+
+#: .\authentication\templates\authentication\register.html:98
+msgid "Déjà un compte ?"
+msgstr "Already have an account?"
+
+#: .\dashboard\compliance_catalog.py:10
+msgid "Plan de transition biodiversité"
+msgstr "Biodiversity transition plan"
+
+#: .\dashboard\compliance_catalog.py:12
+msgid ""
+"À publier uniquement si un plan de transition existe ou a été rendu public. S'il existe, décrire "
+"l'alignement avec le Cadre mondial Kunming-Montréal (stopper et inverser la perte de biodiversité "
+"d'ici 2030). Sinon, simple déclaration d'absence."
+msgstr ""
+"Disclose only if a transition plan exists or has been made public. If it exists, describe its "
+"alignment with the Kunming-Montreal Global Biodiversity Framework (halt and reverse biodiversity "
+"loss by 2030). Otherwise, a simple statement that there is none."
+
+#: .\dashboard\compliance_catalog.py:20 .\dashboard\templates\dashboard\index.html:102
+#: .\dashboard\templates\dashboard\index.html:104
+msgid "Politiques"
+msgstr "Policies"
+
+#: .\dashboard\compliance_catalog.py:22
+msgid ""
+"Politiques biodiversité couvrant la traçabilité des produits/matières à impact matériel et les "
+"sites proches de zones sensibles. Test clé : la politique couvre-t-elle les impacts matériels "
+"identifiés dans la DMA ?"
+msgstr ""
+"Biodiversity policies covering the traceability of products/materials with material impacts and "
+"sites near sensitive areas. Key test: does the policy cover the material impacts identified in the"
+" DMA?"
+
+#: .\dashboard\compliance_catalog.py:29
+msgid "Actions et ressources"
+msgstr "Actions and resources"
+
+#: .\dashboard\compliance_catalog.py:31
+msgid ""
+"Actions et moyens engagés. Focus sur les compensations (offsets) et leur place dans la hiérarchie "
+"d'atténuation (éviter → réduire → restaurer → compenser). Seules les actions engagées/financées "
+"comptent."
+msgstr ""
+"Actions taken and resources committed. Focus on offsets and their place in the mitigation "
+"hierarchy (avoid → reduce → restore → offset). Only committed/funded actions count."
+
+#: .\dashboard\compliance_catalog.py:38
+msgid "Cibles"
+msgstr "Targets"
+
+#: .\dashboard\compliance_catalog.py:40
+msgid ""
+"Cibles biodiversité : seuils écologiques et méthodo, alignement Kunming-Montréal / Stratégie UE "
+"Biodiversité 2030, usage d'offsets, portée géographique, niveau de la hiérarchie d'atténuation "
+"visé."
+msgstr ""
+"Biodiversity targets: ecological thresholds and methodology, alignment with Kunming-Montreal / EU "
+"Biodiversity Strategy 2030, use of offsets, geographic scope, targeted level of the mitigation "
+"hierarchy."
+
+#: .\dashboard\compliance_catalog.py:47
+msgid "Métriques d'impact"
+msgstr "Impact metrics"
+
+#: .\dashboard\compliance_catalog.py:49
+msgid ""
+"Métrique dure : nombre et surface (hectares) des sites situés dans/près de zones sensibles avec "
+"impacts négatifs (analyse géospatiale). Métriques additionnelles optionnelles : étendue/condition "
+"des écosystèmes, indicateurs d'espèces (IUCN/European Red List), connectivité des habitats."
+msgstr ""
+"Core metric: number and area (hectares) of sites located in/near sensitive areas with negative "
+"impacts (geospatial analysis). Optional additional metrics: ecosystem extent/condition, species "
+"indicators (IUCN/European Red List), habitat connectivity."
+
+#: .\dashboard\compliance_catalog.py:57
+msgid "Effets financiers anticipés"
+msgstr "Anticipated financial effects"
+
+#: .\dashboard\compliance_catalog.py:59
+msgid ""
+"Effets financiers anticipés des risques et opportunités biodiversité. Supprimé dans la version "
+"amendée (déc. 2025) — présent uniquement en mode ESRS E4 original 2023."
+msgstr ""
+"Anticipated financial effects of biodiversity risks and opportunities. Removed in the amended "
+"version (Dec. 2025) — only present in original ESRS E4 2023 mode."
+
+#: .\dashboard\forms.py:38
+msgid "Scénario inconnu."
+msgstr "Unknown scenario."
+
+#: .\dashboard\forms.py:75
+msgid "Le poids doit être compris entre 0 et 100."
+msgstr "Weight must be between 0 and 100."
+
+#: .\dashboard\models.py:375
+msgid "Aire protégée nationale"
+msgstr "National protected area"
+
+#: .\dashboard\models.py:376
+msgid "Site UNESCO"
+msgstr "UNESCO site"
+
+#: .\dashboard\models.py:378
+msgid "Autre"
+msgstr "Other"
+
+#: .\dashboard\models.py:738
+msgid "Approvisionnement"
+msgstr "Supply"
+
+#: .\dashboard\models.py:739
+msgid "Consommation"
+msgstr "Consumption"
+
+#: .\dashboard\models.py:740
+msgid "Émission"
+msgstr "Emission"
+
+#: .\dashboard\models.py:741
+msgid "Déchet"
+msgstr "Waste"
+
+#: .\dashboard\models.py:750
+msgid "Non défini"
+msgstr "Undefined"
+
+#: .\dashboard\models.py:967
+msgid "ESRS E4 amendé (déc. 2025) — 5 DR"
+msgstr "Amended ESRS E4 (Dec. 2025) — 5 DRs"
+
+#: .\dashboard\models.py:968
+msgid "ESRS E4 original (2023) — 6 DR"
+msgstr "Original ESRS E4 (2023) — 6 DRs"
+
+#: .\dashboard\models.py:971
+msgid "Non évaluée"
+msgstr "Not assessed"
+
+#: .\dashboard\models.py:972
+msgid "Matérielle"
+msgstr "Material"
+
+#: .\dashboard\models.py:973
+msgid "Non matérielle"
+msgstr "Not material"
+
+#: .\dashboard\models.py:976
+msgid "À faire"
+msgstr "To do"
+
+#: .\dashboard\models.py:977
+msgid "En cours"
+msgstr "In progress"
+
+#: .\dashboard\models.py:978
+msgid "Fait"
+msgstr "Done"
+
+#: .\dashboard\models.py:1049
+msgid "Non commencé"
+msgstr "Not started"
+
+#: .\dashboard\models.py:1050
+msgid "Non conforme"
+msgstr "Non-compliant"
+
+#: .\dashboard\models.py:1051
+msgid "Partiel"
+msgstr "Partial"
+
+#: .\dashboard\models.py:1052
+msgid "Conforme"
+msgstr "Compliant"
+
+#: .\dashboard\models.py:1053
+msgid "Non applicable"
+msgstr "Not applicable"
+
+#: .\dashboard\models.py:1206
+msgid "Transition ordonnée"
+msgstr "Orderly transition"
+
+#: .\dashboard\models.py:1207
+msgid "Transition désordonnée"
+msgstr "Disorderly transition"
+
+#: .\dashboard\models.py:1208
+msgid "Trop peu, trop tard"
+msgstr "Too little, too late"
+
+#: .\dashboard\models.py:1209
+msgid "Monde en surchauffe"
+msgstr "Hot house world"
+
+#: .\dashboard\models.py:1241 .\dashboard\templates\dashboard\climate_stress_test.html:44
+msgid "Prix du carbone (€/tCO₂e)"
+msgstr "Carbon price (€/tCO₂e)"
+
+#: .\dashboard\models.py:1242
+msgid "Multiplicateur d'aléa"
+msgstr "Hazard multiplier"
+
+#: .\dashboard\models.py:1366 .\dashboard\templates\dashboard\portfolio.html:242
+msgid "Action (Equity)"
+msgstr "Equity"
+
+#: .\dashboard\models.py:1367 .\dashboard\templates\dashboard\portfolio.html:243
+msgid "Obligation (Bond)"
+msgstr "Bond"
+
+#: .\dashboard\services\hazards.py:12
+msgid "Eau"
+msgstr "Water"
+
+#: .\dashboard\services\hazards.py:12 .\dashboard\services\hazards.py:13
+#: .\dashboard\services\hazards.py:15 .\dashboard\services\hazards.py:17
+#: .\dashboard\services\hazards.py:19 .\dashboard\services\hazards.py:21
+msgid "Services écosystémiques"
+msgstr "Ecosystem services"
+
+#: .\dashboard\services\hazards.py:13 .\dashboard\views.py:40
+msgid "Pollinisation"
+msgstr "Pollination"
+
+#: .\dashboard\services\hazards.py:14 .\dashboard\views.py:36
+msgid "Qualité des sols"
+msgstr "Soil quality"
+
+#: .\dashboard\services\hazards.py:16 .\dashboard\views.py:37
+msgid "Séquestration carbone"
+msgstr "Carbon sequestration"
+
+#: .\dashboard\services\hazards.py:18 .\dashboard\views.py:38
+msgid "Épuration de l'eau"
+msgstr "Water purification"
+
+#: .\dashboard\services\hazards.py:20 .\dashboard\views.py:39
+msgid "Contrôle des ravageurs"
+msgstr "Pest control"
+
+#: .\dashboard\services\hazards.py:22 .\dashboard\views.py:1979
+msgid "Stress hydrique"
+msgstr "Water stress"
+
+#: .\dashboard\services\hazards.py:22 .\dashboard\services\hazards.py:23
+#: .\dashboard\services\hazards.py:24 .\dashboard\services\hazards.py:25
+#: .\dashboard\services\hazards.py:26 .\dashboard\services\hazards.py:28
+#: .\dashboard\services\hazards.py:29 .\dashboard\services\hazards.py:31
+#: .\dashboard\services\hazards.py:33
+msgid "Aléas climatiques"
+msgstr "Climate hazards"
+
+#: .\dashboard\services\hazards.py:23
+msgid "Incendie"
+msgstr "Wildfire"
+
+#: .\dashboard\services\hazards.py:24 .\dashboard\views.py:1981
+msgid "Cyclone"
+msgstr "Cyclone"
+
+#: .\dashboard\services\hazards.py:25 .\dashboard\views.py:1982
+msgid "Sécheresse"
+msgstr "Drought"
+
+#: .\dashboard\services\hazards.py:26 .\dashboard\views.py:1983
+msgid "Inondation"
+msgstr "Flood"
+
+#: .\dashboard\services\hazards.py:27 .\dashboard\views.py:1984
+msgid "Submersion côtière"
+msgstr "Coastal flooding"
+
+#: .\dashboard\services\hazards.py:29
+msgid "Canicule"
+msgstr "Heatwave"
+
+#: .\dashboard\services\hazards.py:30 .\dashboard\views.py:1986
+msgid "Variation de température"
+msgstr "Temperature variation"
+
+#: .\dashboard\services\hazards.py:32 .\dashboard\views.py:1987
+msgid "Variation des précipitations"
+msgstr "Precipitation variation"
+
+#: .\dashboard\services\stress_test.py:239
+#, python-format
+msgid "Aucun mix sectoriel connu pour %(year)s : profil de crédit de repli appliqué."
+msgstr "No known sector mix for %(year)s: fallback credit profile applied."
+
+#: .\dashboard\services\stress_test.py:251
+#, python-format
+msgid ""
+"%(count)s secteur(s) sans profil de crédit : valeurs de repli utilisées pour cette part du chiffre"
+" d'affaires."
+msgstr ""
+"%(count)s sector(s) without a credit profile: fallback values used for this share of revenue."
+
+#: .\dashboard\services\stress_test.py:373 .\dashboard\services\stress_test.py:450
+#: .\dashboard\templates\dashboard\climate_stress_test.html:87
+msgid "PD initiale"
+msgstr "Baseline PD"
+
+#: .\dashboard\services\stress_test.py:374
+msgid "Transition"
+msgstr "Transition"
+
+#: .\dashboard\services\stress_test.py:376
+msgid "Physique"
+msgstr "Physical"
+
+#: .\dashboard\services\stress_test.py:416 .\dashboard\templates\dashboard\portfolio.html:46
+msgid "Scénario"
+msgstr "Scenario"
+
+#: .\dashboard\services\stress_test.py:418
+#: .\dashboard\templates\dashboard\climate_stress_test.html:37
+msgid "Horizon"
+msgstr "Horizon"
+
+#: .\dashboard\services\stress_test.py:420
+msgid "Prix du carbone à l’horizon"
+msgstr "Carbon price at horizon"
+
+#: .\dashboard\services\stress_test.py:423
+msgid "Prix du carbone de référence"
+msgstr "Reference carbon price"
+
+#: .\dashboard\services\stress_test.py:426
+msgid "Multiplicateur d'aléa physique"
+msgstr "Physical hazard multiplier"
+
+#: .\dashboard\services\stress_test.py:429
+msgid "Périmètre des émissions"
+msgstr "Emissions scope"
+
+#: .\dashboard\services\stress_test.py:431
+msgid "Choix utilisateur"
+msgstr "User choice"
+
+#: .\dashboard\services\stress_test.py:432
+msgid "Transmission du scope 3 amont"
+msgstr "Upstream scope 3 pass-through"
+
+#: .\dashboard\services\stress_test.py:434 .\dashboard\services\stress_test.py:438
+msgid "Constante Easybiodiv"
+msgstr "Easybiodiv constant"
+
+#: .\dashboard\services\stress_test.py:435
+msgid "Traitement Trucost CEaR / MSCI Climate VaR"
+msgstr "Trucost CEaR / MSCI Climate VaR treatment"
+
+#: .\dashboard\services\stress_test.py:436
+msgid "Coefficient de dommage physique"
+msgstr "Physical damage coefficient"
+
+#: .\dashboard\services\stress_test.py:439
+msgid ""
+"Fonction de dommage au sens MSCI Climate VaR / Trucost ; part du CA exposé perdue à sévérité 1"
+msgstr ""
+"Damage function as in MSCI Climate VaR / Trucost; share of exposed revenue lost at severity 1"
+
+#: .\dashboard\services\stress_test.py:441
+msgid "Répercussion du coût carbone"
+msgstr "Carbon cost pass-through"
+
+#: .\dashboard\services\stress_test.py:443 .\dashboard\services\stress_test.py:446
+msgid "Profil sectoriel ou choix utilisateur"
+msgstr "Sector profile or user choice"
+
+#: .\dashboard\services\stress_test.py:444
+msgid "Marge EBITDA"
+msgstr "EBITDA margin"
+
+#: .\dashboard\services\stress_test.py:447
+msgid "Volatilité d'EBITDA"
+msgstr "EBITDA volatility"
+
+#: .\dashboard\services\stress_test.py:449
+msgid "Profil sectoriel"
+msgstr "Sector profile"
+
+#: .\dashboard\services\stress_test.py:452
+msgid "Profil sectoriel pondéré ou choix utilisateur"
+msgstr "Weighted sector profile or user choice"
+
+#: .\dashboard\services\stress_test.py:475
+msgid "Aucun scénario climatique en base : appliquer les migrations."
+msgstr "No climate scenario in the database: apply the migrations."
+
+#: .\dashboard\services\stress_test.py:481
+msgid ""
+"Aucun chiffre d'affaires connu pour cette entreprise : le stress test ne peut pas être calculé."
+msgstr "No known revenue for this company: the stress test cannot be computed."
+
+#: .\dashboard\services\stress_test.py:504
+#, python-format
+msgid ""
+"Émissions %(year)s non ventilées par scope (Scope 1+2+3 ou non défini) : le canal transition est "
+"nul."
+msgstr ""
+"%(year)s emissions not broken down by scope (Scope 1+2+3 or undefined): the transition channel is "
+"zero."
+
+#: .\dashboard\services\stress_test.py:509
+#, python-format
+msgid "Aucune donnée d'émissions pour %(year)s : le canal transition est nul."
+msgstr "No emissions data for %(year)s: the transition channel is zero."
+
+#: .\dashboard\services\stress_test.py:514
+#, python-format
+msgid "Scopes 1 et 2 déclarés ensemble pour %(year)s (Scope 1+2) : comptés en scope 1."
+msgstr "Scopes 1 and 2 reported together for %(year)s (Scope 1+2): counted as scope 1."
+
+#: .\dashboard\services\stress_test.py:519
+msgid "Aucun actif rattaché à cette entreprise : le canal physique est nul."
+msgstr "No asset linked to this company: the physical channel is zero."
+
+#: .\dashboard\services\stress_test.py:541
+msgid "Le proxy d'EBITDA est nul ou négatif : ajuster la marge EBITDA."
+msgstr "The EBITDA proxy is zero or negative: adjust the EBITDA margin."
+
+#: .\dashboard\services\supply.py:11
+msgid "Opérations directes"
+msgstr "Direct operations"
+
+#: .\dashboard\services\supply.py:12
+msgid "Tier 1 : Chaîne d'approvisionnement"
+msgstr "Tier 1: Supply chain"
+
+#: .\dashboard\services\supply.py:13
+msgid "Tier 2 : Approvisionnement amont"
+msgstr "Tier 2: Upstream supply"
+
+#: .\dashboard\services\supply.py:14
+msgid "Matières premières"
+msgstr "Raw materials"
+
+#: .\dashboard\templates\dashboard\_company_combobox.html:10
+#: .\dashboard\templates\dashboard\portfolio.html:99
+msgid "Entreprise"
+msgstr "Company"
+
+#: .\dashboard\templates\dashboard\_company_combobox.html:10
+msgid "Sélectionner une entreprise"
+msgstr "Select a company"
+
+#: .\dashboard\templates\dashboard\_company_combobox.html:20
+msgid "Rechercher une entreprise…"
+msgstr "Search for a company…"
+
+#: .\dashboard\templates\dashboard\_de_kpis.html:8
+msgid "Lbiodiv total"
+msgstr "Total Lbiodiv"
+
+#: .\dashboard\templates\dashboard\_de_kpis.html:12
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:24
+msgid "Année de référence"
+msgstr "Reference year"
+
+#: .\dashboard\templates\dashboard\_pr_detail_drawer.html:7
+#: .\dashboard\templates\dashboard\_pr_detail_drawer.html:9
+msgid "Détail par actif"
+msgstr "Breakdown by asset"
+
+#: .\dashboard\templates\dashboard\_pr_detail_drawer.html:21
+#: .\dashboard\templates\dashboard\esg.html:106
+msgid "Actif"
+msgstr "Asset"
+
+#: .\dashboard\templates\dashboard\_pr_detail_drawer.html:23
+msgid "Exposition"
+msgstr "Exposure"
+
+#: .\dashboard\templates\dashboard\_pr_detail_drawer.html:24
+#, python-format
+msgid "Vulnérabilité (%%)"
+msgstr "Vulnerability (%%)"
+
+#: .\dashboard\templates\dashboard\_pr_panel.html:9
+msgid "Perte projetée"
+msgstr "Projected loss"
+
+#: .\dashboard\templates\dashboard\_pr_panel.html:10
+msgid "Horizon de projection"
+msgstr "Projection horizon"
+
+#: .\dashboard\templates\dashboard\_pr_panel.html:11
+msgid "5 ans"
+msgstr "5 years"
+
+#: .\dashboard\templates\dashboard\_pr_panel.html:12
+msgid "10 ans"
+msgstr "10 years"
+
+#: .\dashboard\templates\dashboard\_pr_panel.html:18
+#: .\dashboard\templates\dashboard\leap_evaluate.html:60
+#: .\dashboard\templates\dashboard\leap_locate.html:67
+#: .\dashboard\templates\dashboard\leap_prepare.html:45
+#: .\dashboard\templates\dashboard\leap_prepare.html:52
+msgid "Sélectionnez une entreprise."
+msgstr "Select a company."
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:4 .\templates\base.html:172
+#: .\templates\base.html:173
+msgid "Stress test climatique"
+msgstr "Climate stress test"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:20
+msgid "Scénario de référence"
+msgstr "Reference scenario"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:29
+msgid "Hypothèses"
+msgstr "Assumptions"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:31
+msgid "Réinitialiser aux valeurs du scénario"
+msgstr "Reset to scenario values"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:52
+msgid "Répercussion au client"
+msgstr "Pass-through to customers"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:59
+#, python-format
+msgid "Marge EBITDA (%%)"
+msgstr "EBITDA margin (%%)"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:67
+#, python-format
+msgid "PD initiale (%%)"
+msgstr "Baseline PD (%%)"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:76
+msgid "Inclure le scope 3 amont"
+msgstr "Include upstream scope 3"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:91
+msgid "PD stressée"
+msgstr "Stressed PD"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:95
+msgid "Écart"
+msgstr "Change"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:100
+msgid ""
+"Équivalence indicative dérivée de la probabilité de défaut modélisée, pas une notation attribuée "
+"par une agence de notation."
+msgstr ""
+"Indicative equivalent derived from the modelled probability of default, not a rating assigned by a"
+" credit rating agency."
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:101
+msgid "Équivalent notation indicatif"
+msgstr "Indicative rating equivalent"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:110
+msgid "Décomposition du choc"
+msgstr "Shock breakdown"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:112
+#: .\dashboard\templates\dashboard\climate_stress_test.html:113
+msgid ""
+"Attribution séquentielle : le canal transition est appliqué avant le canal physique. Le choc total"
+" est additif en écarts-types ; seule la répartition en points de base dépend de l'ordre."
+msgstr ""
+"Sequential attribution: the transition channel is applied before the physical channel. The total "
+"shock is additive in standard deviations; only the split in basis points depends on the order."
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:116
+msgid "Décomposition de la probabilité de défaut par canal"
+msgstr "Probability of default breakdown by channel"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:119
+msgid "PD par horizon"
+msgstr "PD by horizon"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:121
+msgid "Probabilité de défaut stressée par horizon"
+msgstr "Stressed probability of default by horizon"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:126
+msgid "Comparaison des scénarios"
+msgstr "Scenario comparison"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:128
+msgid "Probabilité de défaut stressée par scénario"
+msgstr "Stressed probability of default by scenario"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:135
+msgid "Canaux de risque"
+msgstr "Risk channels"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:137
+#: .\dashboard\templates\dashboard\climate_stress_test.html:138
+msgid ""
+"La perte physique est la sévérité moyenne des aléas de chaque actif, bornée par son exposition. "
+"Elle diffère volontairement du chiffre de la page Risque physique, qui somme les aléas."
+msgstr ""
+"Physical loss is the average hazard severity of each asset, capped by its exposure. It "
+"deliberately differs from the Physical risk page figure, which sums the hazards."
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:142
+msgid "Canal"
+msgstr "Channel"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:142
+#: .\dashboard\templates\dashboard\portfolio.html:100
+msgid "Montant"
+msgstr "Amount"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:143
+#, python-format
+msgid "%% EBITDA"
+msgstr "%% EBITDA"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:143
+msgid "Choc (σ)"
+msgstr "Shock (σ)"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:150
+msgid "Hypothèses retenues"
+msgstr "Assumptions used"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:153
+msgid "Hypothèse"
+msgstr "Assumption"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:153
+msgid "Valeur"
+msgstr "Value"
+
+#: .\dashboard\templates\dashboard\climate_stress_test.html:154
+msgid "Source"
+msgstr "Source"
+
+#: .\dashboard\templates\dashboard\compare.html:4 .\templates\base.html:196
+#: .\templates\base.html:200
+msgid "Comparaison"
+msgstr "Comparison"
+
+#: .\dashboard\templates\dashboard\compare.html:18
+msgid "A"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\compare.html:19
+msgid "Entreprise A"
+msgstr "Company A"
+
+#: .\dashboard\templates\dashboard\compare.html:19
+msgid "Sélectionner l'entreprise A"
+msgstr "Select company A"
+
+#: .\dashboard\templates\dashboard\compare.html:22 .\dashboard\templates\dashboard\compare.html:35
+msgid "Sélectionnez une entreprise"
+msgstr "Select a company"
+
+#: .\dashboard\templates\dashboard\compare.html:31
+msgid "B"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\compare.html:32
+msgid "Entreprise B"
+msgstr "Company B"
+
+#: .\dashboard\templates\dashboard\compare.html:32
+msgid "Sélectionner l'entreprise B"
+msgstr "Select company B"
+
+#: .\dashboard\templates\dashboard\compare.html:51
+msgid "Ajouter un indicateur"
+msgstr "Add an indicator"
+
+#: .\dashboard\templates\dashboard\compliance.html:4
+msgid "Conformité ESRS E4"
+msgstr "ESRS E4 compliance"
+
+#: .\dashboard\templates\dashboard\compliance.html:18
+msgid "Matérialité (DMA)"
+msgstr "Materiality (DMA)"
+
+#: .\dashboard\templates\dashboard\compliance.html:29
+msgid "Conformité globale"
+msgstr "Overall compliance"
+
+#: .\dashboard\templates\dashboard\compliance.html:33
+msgid "DR conformes"
+msgstr "Compliant DRs"
+
+#: .\dashboard\templates\dashboard\compliance.html:37
+msgid "Sites zone sensible (E4-5)"
+msgstr "Sensitive-area sites (E4-5)"
+
+#: .\dashboard\templates\dashboard\compliance.html:41
+msgid "Surface sensible (ha)"
+msgstr "Sensitive area (ha)"
+
+#: .\dashboard\templates\dashboard\compliance.html:47
+msgid "Approche LEAP"
+msgstr "LEAP approach"
+
+#: .\dashboard\templates\dashboard\compliance.html:53
+msgid "Conclusion de non-matérialité"
+msgstr "Non-materiality conclusion"
+
+#: .\dashboard\templates\dashboard\compliance.html:58
+msgid "Exigences de publication"
+msgstr "Disclosure requirements"
+
+#: .\dashboard\templates\dashboard\dependencies.html:4 .\templates\base.html:181
+#: .\templates\base.html:191
+msgid "Dépendances"
+msgstr "Dependencies"
+
+#: .\dashboard\templates\dashboard\dependencies.html:18
+msgid "Score d'exposition global"
+msgstr "Overall exposure score"
+
+#: .\dashboard\templates\dashboard\dependencies.html:22
+msgid "Nœuds critiques"
+msgstr "Critical nodes"
+
+#: .\dashboard\templates\dashboard\dependencies.html:24
+msgid "points haute dépendance"
+msgstr "high-dependency points"
+
+#: .\dashboard\templates\dashboard\dependencies.html:27
+msgid "Service principal"
+msgstr "Main service"
+
+#: .\dashboard\templates\dashboard\dependencies.html:39
+msgid "Supply Chain Reliance"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\dependencies.html:42
+#: .\dashboard\templates\dashboard\dependencies.html:52
+#: .\dashboard\templates\dashboard\dependencies.html:64
+msgid "Aucune donnée disponible."
+msgstr "No data available."
+
+#: .\dashboard\templates\dashboard\dependencies.html:49
+msgid "Service Exposure"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\dependencies.html:61
+msgid "Dépendance des revenus par segment économique"
+msgstr "Revenue dependency by business segment"
+
+#: .\dashboard\templates\dashboard\dette_ecologique.html:4
+#: .\dashboard\templates\dashboard\dette_ecologique.html:29
+#: .\dashboard\templates\dashboard\dette_ecologique.html:31
+#: .\dashboard\templates\dashboard\index.html:57
+msgid "Dette écologique"
+msgstr "Ecological debt"
+
+#: .\dashboard\templates\dashboard\dette_ecologique.html:20
+msgid "Carte de la dette écologique"
+msgstr "Ecological debt map"
+
+#: .\dashboard\templates\dashboard\dette_ecologique.html:23
+#: .\dashboard\templates\dashboard\portfolio.html:217
+msgid "Légende commodités"
+msgstr "Commodity legend"
+
+#: .\dashboard\templates\dashboard\dette_ecologique.html:24
+#: .\dashboard\templates\dashboard\leap_locate.html:40
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:28
+#: .\dashboard\templates\dashboard\portfolio.html:218
+msgid "Commodités"
+msgstr "Commodities"
+
+#: .\dashboard\templates\dashboard\dette_ecologique.html:33
+#: .\dashboard\templates\dashboard\index.html:45
+#: .\dashboard\templates\dashboard\leap_evaluate.html:51
+#: .\dashboard\templates\dashboard\leap_locate.html:59
+#: .\dashboard\templates\dashboard\physical_risk.html:38
+msgid "Réduire le panneau"
+msgstr "Collapse panel"
+
+#: .\dashboard\templates\dashboard\dette_ecologique.html:45
+#: .\dashboard\templates\dashboard\portfolio.html:204
+msgid "Regrouper par :"
+msgstr "Group by:"
+
+#: .\dashboard\templates\dashboard\dette_ecologique.html:46
+#: .\dashboard\templates\dashboard\portfolio.html:205
+msgid "Mode d'affichage"
+msgstr "Display mode"
+
+#: .\dashboard\templates\dashboard\dette_ecologique.html:48
+#: .\dashboard\templates\dashboard\leap_prepare.html:63
+#: .\dashboard\templates\dashboard\portfolio.html:207
+msgid "Par asset"
+msgstr "By asset"
+
+#: .\dashboard\templates\dashboard\dette_ecologique.html:50
+#: .\dashboard\templates\dashboard\portfolio.html:209
+msgid "Par région subnational"
+msgstr "By subnational region"
+
+#: .\dashboard\templates\dashboard\dette_ecologique.html:58
+msgid "Afficher le panneau de la dette écologique"
+msgstr "Show the ecological debt panel"
+
+#: .\dashboard\templates\dashboard\esg.html:4 .\templates\base.html:137 .\templates\base.html:143
+msgid "Données ESG"
+msgstr "ESG data"
+
+#: .\dashboard\templates\dashboard\esg.html:15
+msgid "Thème ESG"
+msgstr "ESG theme"
+
+#: .\dashboard\templates\dashboard\esg.html:16
+msgid "Environmental"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\esg.html:17
+msgid "Social"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\esg.html:18
+msgid "Governance"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\esg.html:24
+msgid "Thème environnemental"
+msgstr "Environmental theme"
+
+#: .\dashboard\templates\dashboard\esg.html:32
+msgid "Land use"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\esg.html:40
+msgid "Resource use"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\esg.html:49
+msgid "Climate change"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\esg.html:59
+msgid "Pollution"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\esg.html:70
+msgid "Invasive species"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\esg.html:80 .\dashboard\views.py:654
+msgid "Utilisation des terres"
+msgstr "Land use"
+
+#: .\dashboard\templates\dashboard\esg.html:81
+msgid "Impact ReCiPe 2016 midpoint (m²a crop-eq) et emprise au sol des actifs détenus"
+msgstr "ReCiPe 2016 midpoint impact (m²a crop-eq) and land footprint of owned assets"
+
+#: .\dashboard\templates\dashboard\esg.html:87
+msgid "Impact ReCiPe"
+msgstr "ReCiPe impact"
+
+#: .\dashboard\templates\dashboard\esg.html:91
+msgid "Emprise des actifs"
+msgstr "Asset footprint"
+
+#: .\dashboard\templates\dashboard\esg.html:95
+msgid "m²a crop-eq / m² d'emprise"
+msgstr "m²a crop-eq / m² of footprint"
+
+#: .\dashboard\templates\dashboard\esg.html:99
+msgid "Déclaré groupe"
+msgstr "Reported by group"
+
+#: .\dashboard\templates\dashboard\esg.html:107
+msgid "Pays"
+msgstr "Country"
+
+#: .\dashboard\templates\dashboard\esg.html:108
+msgid "Impact ReCiPe (m²a crop-eq)"
+msgstr "ReCiPe impact (m²a crop-eq)"
+
+#: .\dashboard\templates\dashboard\esg.html:109
+msgid "Emprise au sol (ha)"
+msgstr "Land footprint (ha)"
+
+#: .\dashboard\templates\dashboard\esg.html:115
+msgid "Aucun actif détenu par cette entreprise."
+msgstr "No asset owned by this company."
+
+#: .\dashboard\templates\dashboard\esg.html:117
+#, python-format
+msgid ""
+"Impact = production de la dernière année × facteur de caractérisation ReCiPe 2016 « land use » "
+"régionalisé (région, sinon pays, sinon global). Actifs comptés à 100 %%, sans pondération par la "
+"part de détention. L'emprise déclarée au niveau du groupe n'est pas ventilée par actif et n'entre "
+"pas dans le total des actifs."
+msgstr ""
+"Impact = latest-year production × regionalised ReCiPe 2016 \"land use\" characterisation factor "
+"(region, else country, else global). Assets counted at 100 %%, not weighted by ownership share. "
+"The footprint reported at group level is not broken down by asset and is not included in the asset"
+" total."
+
+#: .\dashboard\templates\dashboard\esg.html:130
+msgid "Resource use — à venir, aucune donnée disponible."
+msgstr "Resource use — coming soon, no data available."
+
+#: .\dashboard\templates\dashboard\esg.html:143
+msgid "Tendance des émissions carbone"
+msgstr "Carbon emissions trend"
+
+#: .\dashboard\templates\dashboard\esg.html:144
+msgid "Historique et projection"
+msgstr "History and projection"
+
+#: .\dashboard\templates\dashboard\esg.html:147
+msgid "Historique"
+msgstr "History"
+
+#: .\dashboard\templates\dashboard\esg.html:148
+msgid "Projection 2030"
+msgstr "2030 projection"
+
+#: .\dashboard\templates\dashboard\esg.html:150
+msgid "Afficher les émissions par scope"
+msgstr "Show emissions by scope"
+
+#: .\dashboard\templates\dashboard\esg.html:156
+msgid "Par scope"
+msgstr "By scope"
+
+#: .\dashboard\templates\dashboard\esg.html:162
+msgid "Dernier total"
+msgstr "Latest total"
+
+#: .\dashboard\templates\dashboard\esg.html:166
+msgid "Évolution"
+msgstr "Change"
+
+#: .\dashboard\templates\dashboard\esg.html:169
+msgid "Graphique des émissions carbone"
+msgstr "Carbon emissions chart"
+
+#: .\dashboard\templates\dashboard\esg.html:170
+msgid "Aucune donnée carbone disponible."
+msgstr "No carbon data available."
+
+#: .\dashboard\templates\dashboard\esg.html:174
+msgid "Politiques en avant"
+msgstr "Featured policies"
+
+#: .\dashboard\templates\dashboard\esg.html:178
+msgid "Cadre des politiques d'entreprise"
+msgstr "Corporate policy framework"
+
+#: .\dashboard\templates\dashboard\esg.html:189
+msgid "Market Intelligence"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\esg.html:190
+msgid "Démo"
+msgstr "Demo"
+
+#: .\dashboard\templates\dashboard\esg.html:197
+msgid "Latest ESG News"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\esg.html:200
+msgid "No news yet"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\esg.html:205
+msgid "Grounded Intelligence"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\esg.html:206
+msgid "Preserving Biodiversity"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\esg.html:217
+msgid "Pollution — à venir, aucune donnée disponible."
+msgstr "Pollution — coming soon, no data available."
+
+#: .\dashboard\templates\dashboard\esg.html:224
+msgid "Invasive species — à venir, aucune donnée disponible."
+msgstr "Invasive species — coming soon, no data available."
+
+#: .\dashboard\templates\dashboard\esg.html:233
+msgid "Social — à venir, aucune donnée disponible."
+msgstr "Social — coming soon, no data available."
+
+#: .\dashboard\templates\dashboard\esg.html:240
+msgid "Governance — à venir, aucune donnée disponible."
+msgstr "Governance — coming soon, no data available."
+
+#: .\dashboard\templates\dashboard\index.html:4 .\templates\base.html:125 .\templates\base.html:132
+msgid "Vue d'ensemble"
+msgstr "Overview"
+
+#: .\dashboard\templates\dashboard\index.html:20
+msgid "Carte des actifs"
+msgstr "Asset map"
+
+#: .\dashboard\templates\dashboard\index.html:23
+#: .\dashboard\templates\dashboard\leap_evaluate.html:28
+#: .\dashboard\templates\dashboard\leap_locate.html:27
+msgid "Style de carte"
+msgstr "Map style"
+
+#: .\dashboard\templates\dashboard\index.html:24
+#: .\dashboard\templates\dashboard\leap_evaluate.html:29
+#: .\dashboard\templates\dashboard\leap_locate.html:28
+msgid "Classique"
+msgstr "Classic"
+
+#: .\dashboard\templates\dashboard\index.html:25
+#: .\dashboard\templates\dashboard\leap_evaluate.html:30
+#: .\dashboard\templates\dashboard\leap_locate.html:29
+msgid "Gris"
+msgstr "Grey"
+
+#: .\dashboard\templates\dashboard\index.html:28 .\dashboard\templates\dashboard\leap_locate.html:33
+msgid "Fournisseurs"
+msgstr "Suppliers"
+
+#: .\dashboard\templates\dashboard\index.html:29 .\dashboard\templates\dashboard\leap_locate.html:34
+msgid "Supply chain"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\index.html:34
+msgid "Légende de la carte"
+msgstr "Map legend"
+
+#: .\dashboard\templates\dashboard\index.html:35
+msgid "Légende des flux fournisseurs"
+msgstr "Supplier flow legend"
+
+#: .\dashboard\templates\dashboard\index.html:36
+msgid "Flux fournisseurs"
+msgstr "Supplier flows"
+
+#: .\dashboard\templates\dashboard\index.html:41
+msgid "Panneau de la carte"
+msgstr "Map panel"
+
+#: .\dashboard\templates\dashboard\index.html:43
+msgid "Exposition par pays"
+msgstr "Exposure by country"
+
+#: .\dashboard\templates\dashboard\index.html:53
+msgid "Mode d'affichage de la carte"
+msgstr "Map display mode"
+
+#: .\dashboard\templates\dashboard\index.html:54
+msgid "Exposition pays"
+msgstr "Country exposure"
+
+#: .\dashboard\templates\dashboard\index.html:55
+msgid "Exposition asset"
+msgstr "Asset exposure"
+
+#: .\dashboard\templates\dashboard\index.html:56
+#: .\dashboard\templates\dashboard\physical_risk.html:4
+#: .\dashboard\templates\dashboard\physical_risk.html:24
+#: .\dashboard\templates\dashboard\portfolio.html:43
+msgid "Risque physique"
+msgstr "Physical risk"
+
+#: .\dashboard\templates\dashboard\index.html:65
+msgid "Sélectionnez une entreprise pour afficher l'exposition."
+msgstr "Select a company to display its exposure."
+
+#: .\dashboard\templates\dashboard\index.html:70
+msgid "Filtrer par type d'actif"
+msgstr "Filter by asset type"
+
+#: .\dashboard\templates\dashboard\index.html:71
+msgid "Tous les types"
+msgstr "All types"
+
+#: .\dashboard\templates\dashboard\index.html:74
+msgid "Revenu décroissant"
+msgstr "Revenue, high to low"
+
+#: .\dashboard\templates\dashboard\index.html:96
+msgid "Afficher le panneau de la carte"
+msgstr "Show the map panel"
+
+#: .\dashboard\templates\dashboard\leap_evaluate.html:4
+msgid "Evaluate"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\leap_evaluate.html:21
+msgid "Carte des sites par impact (Evaluate)"
+msgstr "Site map by impact (Evaluate)"
+
+#: .\dashboard\templates\dashboard\leap_evaluate.html:36
+msgid "Légende de l'impact"
+msgstr "Impact legend"
+
+#: .\dashboard\templates\dashboard\leap_evaluate.html:37
+msgid "Impact sélectionné"
+msgstr "Selected impact"
+
+#: .\dashboard\templates\dashboard\leap_evaluate.html:39
+#: .\dashboard\templates\dashboard\leap_locate.html:47
+#: .\dashboard\templates\dashboard\physical_risk.html:26
+msgid "Faible"
+msgstr "Low"
+
+#: .\dashboard\templates\dashboard\leap_evaluate.html:40
+#: .\dashboard\templates\dashboard\leap_locate.html:48
+#: .\dashboard\templates\dashboard\physical_risk.html:27
+msgid "Modéré"
+msgstr "Moderate"
+
+#: .\dashboard\templates\dashboard\leap_evaluate.html:41
+#: .\dashboard\templates\dashboard\leap_locate.html:49
+#: .\dashboard\templates\dashboard\physical_risk.html:28
+msgid "Élevé"
+msgstr "High"
+
+#: .\dashboard\templates\dashboard\leap_evaluate.html:42
+#: .\dashboard\templates\dashboard\leap_locate.html:50
+msgid "Très élevé"
+msgstr "Very high"
+
+#: .\dashboard\templates\dashboard\leap_evaluate.html:47
+#: .\dashboard\templates\dashboard\leap_evaluate.html:49
+msgid "Classement des impacts"
+msgstr "Impact ranking"
+
+#: .\dashboard\templates\dashboard\leap_evaluate.html:66
+msgid "Afficher le classement des impacts"
+msgstr "Show the impact ranking"
+
+#: .\dashboard\templates\dashboard\leap_locate.html:4
+msgid "Locate"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\leap_locate.html:20
+msgid "Carte des sites (Locate)"
+msgstr "Site map (Locate)"
+
+#: .\dashboard\templates\dashboard\leap_locate.html:39
+msgid "Légende des commodités"
+msgstr "Commodity legend"
+
+#: .\dashboard\templates\dashboard\leap_locate.html:44
+msgid "Légende"
+msgstr "Legend"
+
+#: .\dashboard\templates\dashboard\leap_locate.html:45
+msgid "Revenu associé"
+msgstr "Associated revenue"
+
+#: .\dashboard\templates\dashboard\leap_locate.html:55
+#: .\dashboard\templates\dashboard\leap_locate.html:57
+msgid "Sites localisés"
+msgstr "Located sites"
+
+#: .\dashboard\templates\dashboard\leap_locate.html:72
+msgid "Afficher la liste des sites"
+msgstr "Show the site list"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:4
+msgid "Prepare"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:20
+msgid "Impact actuel"
+msgstr "Current impact"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:24
+msgid "Impact T+1 (simulé)"
+msgstr "T+1 impact (simulated)"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:28
+msgid "Variation"
+msgstr "Change"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:38
+msgid "Leviers"
+msgstr "Levers"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:39
+msgid "Réinitialiser"
+msgstr "Reset"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:43
+msgid "Production par asset"
+msgstr "Production by asset"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:50
+msgid "Facteur d'impact par commodité"
+msgstr "Impact factor by commodity"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:59
+msgid "Comparaison actuel → T+1"
+msgstr "Current → T+1 comparison"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:61
+msgid "Détail"
+msgstr "Details"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:64
+#: .\dashboard\templates\dashboard\leap_prepare.html:87
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:39
+msgid "Par commodité"
+msgstr "By commodity"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:69
+msgid "Comparaison de l'impact actuel et T+1"
+msgstr "Comparison of current and T+1 impact"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:71
+msgid "Total entreprise"
+msgstr "Company total"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:85
+msgid "Évolution de l'impact total"
+msgstr "Total impact trend"
+
+#: .\dashboard\templates\dashboard\leap_prepare.html:90
+msgid "Graphique évolution impact T vers T+1"
+msgstr "Chart of impact change from T to T+1"
+
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:4 .\templates\base.html:165
+#: .\templates\base.html:166
+msgid "Mesure d'empreinte"
+msgstr "Footprint measurement"
+
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:20
+msgid "Impact écosystème total"
+msgstr "Total ecosystem impact"
+
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:32
+msgid "Actifs"
+msgstr "Assets"
+
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:43
+msgid "Par actif"
+msgstr "By asset"
+
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:47
+#: .\dashboard\templates\dashboard\portfolio.html:211
+msgid "Par pays"
+msgstr "By country"
+
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:54
+msgid "Décomposition de l'impact"
+msgstr "Impact breakdown"
+
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:56
+msgid "Diagramme Sankey de l'impact"
+msgstr "Impact Sankey diagram"
+
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:62
+msgid "Répartition hiérarchique"
+msgstr "Hierarchical breakdown"
+
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:66
+msgid "Seuil"
+msgstr "Threshold"
+
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:72
+msgid "Commodité"
+msgstr "Commodity"
+
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:78
+msgid "Diagramme arborescent de l'impact"
+msgstr "Impact tree diagram"
+
+#: .\dashboard\templates\dashboard\mesure_empreinte.html:81
+msgid "Fermer le panneau"
+msgstr "Close panel"
+
+#: .\dashboard\templates\dashboard\physical_risk.html:20
+msgid "Carte des actifs par risque physique"
+msgstr "Asset map by physical risk"
+
+#: .\dashboard\templates\dashboard\physical_risk.html:23
+msgid "Légende des niveaux de risque"
+msgstr "Risk level legend"
+
+#: .\dashboard\templates\dashboard\physical_risk.html:29
+msgid "Critique"
+msgstr "Critical"
+
+#: .\dashboard\templates\dashboard\physical_risk.html:34
+msgid "Synthèse du risque physique"
+msgstr "Physical risk summary"
+
+#: .\dashboard\templates\dashboard\physical_risk.html:36
+msgid "Classement des risques"
+msgstr "Risk ranking"
+
+#: .\dashboard\templates\dashboard\physical_risk.html:51
+msgid "Afficher le classement des risques"
+msgstr "Show the risk ranking"
+
+#: .\dashboard\templates\dashboard\portfolio.html:4
+msgid "Portfolio analysis"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\portfolio.html:10
+msgid "Portefeuille"
+msgstr "Portfolio"
+
+#: .\dashboard\templates\dashboard\portfolio.html:11
+msgid "Charger un portefeuille"
+msgstr "Load a portfolio"
+
+#: .\dashboard\templates\dashboard\portfolio.html:12
+msgid "— Nouveau —"
+msgstr "— New —"
+
+#: .\dashboard\templates\dashboard\portfolio.html:14
+msgid "Mes portefeuilles"
+msgstr "My portfolios"
+
+#: .\dashboard\templates\dashboard\portfolio.html:21
+msgid "Portefeuilles communs"
+msgstr "Shared portfolios"
+
+#: .\dashboard\templates\dashboard\portfolio.html:28
+msgid "Nouveau portefeuille"
+msgstr "New portfolio"
+
+#: .\dashboard\templates\dashboard\portfolio.html:29
+msgid "Dupliquer"
+msgstr "Duplicate"
+
+#: .\dashboard\templates\dashboard\portfolio.html:40
+msgid "Analyse de portefeuille"
+msgstr "Portfolio analysis"
+
+#: .\dashboard\templates\dashboard\portfolio.html:41
+msgid "Création"
+msgstr "Setup"
+
+#: .\dashboard\templates\dashboard\portfolio.html:42
+msgid "Impact"
+msgstr "Impact"
+
+#: .\dashboard\templates\dashboard\portfolio.html:44
+msgid "Risque de transition"
+msgstr "Transition risk"
+
+#: .\dashboard\templates\dashboard\portfolio.html:45
+msgid "Risque composite"
+msgstr "Composite risk"
+
+#: .\dashboard\templates\dashboard\portfolio.html:53
+msgid "Paramètres du fonds"
+msgstr "Fund settings"
+
+#: .\dashboard\templates\dashboard\portfolio.html:56
+msgid "Nom du fonds"
+msgstr "Fund name"
+
+#: .\dashboard\templates\dashboard\portfolio.html:57
+msgid "Mon fonds"
+msgstr "My fund"
+
+#: .\dashboard\templates\dashboard\portfolio.html:60
+msgid "Taille du fonds"
+msgstr "Fund size"
+
+#: .\dashboard\templates\dashboard\portfolio.html:64
+msgid "Devise"
+msgstr "Currency"
+
+#: .\dashboard\templates\dashboard\portfolio.html:68
+msgid "Benchmark"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\portfolio.html:70
+msgid "Aucun"
+msgstr "None"
+
+#: .\dashboard\templates\dashboard\portfolio.html:75
+msgid "Utiliser ce fonds comme benchmark"
+msgstr "Use this fund as a benchmark"
+
+#: .\dashboard\templates\dashboard\portfolio.html:80
+msgid "Portefeuille commun (visible par tous)"
+msgstr "Shared portfolio (visible to everyone)"
+
+#: .\dashboard\templates\dashboard\portfolio.html:87
+msgid "Composition"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\portfolio.html:91
+msgid "Rechercher une entreprise à ajouter…"
+msgstr "Search for a company to add…"
+
+#: .\dashboard\templates\dashboard\portfolio.html:101
+#, python-format
+msgid "Poids (%%)"
+msgstr "Weight (%%)"
+
+#: .\dashboard\templates\dashboard\portfolio.html:102
+msgid "Détails"
+msgstr "Details"
+
+#: .\dashboard\templates\dashboard\portfolio.html:103
+msgid "Supprimer"
+msgstr "Delete"
+
+#: .\dashboard\templates\dashboard\portfolio.html:109
+msgid "Total"
+msgstr "Total"
+
+#: .\dashboard\templates\dashboard\portfolio.html:117
+msgid "Aucune entreprise ajoutée."
+msgstr "No company added."
+
+#: .\dashboard\templates\dashboard\portfolio.html:121
+msgid "Enregistrer le portefeuille"
+msgstr "Save portfolio"
+
+#: .\dashboard\templates\dashboard\portfolio.html:129
+msgid "Enregistrez le portefeuille pour voir son impact."
+msgstr "Save the portfolio to see its impact."
+
+#: .\dashboard\templates\dashboard\portfolio.html:133
+msgid "Rapport d'impact"
+msgstr "Impact report"
+
+#: .\dashboard\templates\dashboard\portfolio.html:134
+msgid "Méthode d'impact"
+msgstr "Impact method"
+
+#: .\dashboard\templates\dashboard\portfolio.html:136
+msgid "ReCiPe"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\portfolio.html:138
+msgid "GBS"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\portfolio.html:143
+msgid "Impact total du portefeuille"
+msgstr "Total portfolio impact"
+
+#: .\dashboard\templates\dashboard\portfolio.html:146
+msgid "PDF.m²"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\portfolio.html:148
+msgid "Impact financé (impact entreprise × poids dans le portefeuille)."
+msgstr "Financed impact (company impact × weight in the portfolio)."
+
+#: .\dashboard\templates\dashboard\portfolio.html:152
+msgid "Impact par entreprise"
+msgstr "Impact by company"
+
+#: .\dashboard\templates\dashboard\portfolio.html:154
+msgid "Impact pondéré et poids par entreprise"
+msgstr "Weighted impact and weight by company"
+
+#: .\dashboard\templates\dashboard\portfolio.html:160
+msgid "Enregistrez le portefeuille pour voir son risque physique."
+msgstr "Save the portfolio to see its physical risk."
+
+#: .\dashboard\templates\dashboard\portfolio.html:164
+msgid "Empreinte de risque physique"
+msgstr "Physical risk footprint"
+
+#: .\dashboard\templates\dashboard\portfolio.html:165
+msgid "Profil pondéré par le montant investi, par aléa climatique."
+msgstr "Profile weighted by amount invested, by climate hazard."
+
+#: .\dashboard\templates\dashboard\portfolio.html:167
+msgid "Profil de risque physique du portefeuille"
+msgstr "Portfolio physical risk profile"
+
+#: .\dashboard\templates\dashboard\portfolio.html:172
+msgid "Risque par entreprise et aléa"
+msgstr "Risk by company and hazard"
+
+#: .\dashboard\templates\dashboard\portfolio.html:180
+msgid "Enregistrez le portefeuille pour voir son risque de transition."
+msgstr "Save the portfolio to see its transition risk."
+
+#: .\dashboard\templates\dashboard\portfolio.html:186
+msgid "Dette financée totale"
+msgstr "Total financed debt"
+
+#: .\dashboard\templates\dashboard\portfolio.html:191
+msgid "Entreprises"
+msgstr "Companies"
+
+#: .\dashboard\templates\dashboard\portfolio.html:195
+msgid "Assets"
+msgstr ""
+
+#: .\dashboard\templates\dashboard\portfolio.html:199
+msgid "Top commodité"
+msgstr "Top commodity"
+
+#: .\dashboard\templates\dashboard\portfolio.html:226
+msgid "Risque composite — à venir, aucune donnée disponible."
+msgstr "Composite risk — coming soon, no data available."
+
+#: .\dashboard\templates\dashboard\portfolio.html:229
+msgid "Scénario — à venir, aucune donnée disponible."
+msgstr "Scenario — coming soon, no data available."
+
+#: .\dashboard\templates\dashboard\portfolio.html:237
+msgid "Détails financiers"
+msgstr "Financial details"
+
+#: .\dashboard\templates\dashboard\portfolio.html:240
+msgid "Type d'instrument"
+msgstr "Instrument type"
+
+#: .\dashboard\templates\dashboard\portfolio.html:249
+msgid "Maturité"
+msgstr "Maturity"
+
+#: .\dashboard\templates\dashboard\portfolio.html:253
+#, python-format
+msgid "Taux de coupon (%%)"
+msgstr "Coupon rate (%%)"
+
+#: .\dashboard\templates\dashboard\portfolio.html:257
+msgid "Valeur nominale"
+msgstr "Face value"
+
+#: .\dashboard\templates\dashboard\portfolio.html:263 .\imports\templates\imports\preview.html:281
+msgid "Annuler"
+msgstr "Cancel"
+
+#: .\dashboard\templates\dashboard\portfolio.html:264
+msgid "Valider"
+msgstr "Confirm"
+
+#: .\dashboard\views.py:35
+msgid "Approvisionnement en eau"
+msgstr "Water supply"
+
+#: .\dashboard\views.py:64 .\dashboard\views.py:644
+msgid "Consommation eau"
+msgstr "Water consumption"
+
+#: .\dashboard\views.py:65
+msgid "Émissions CO₂"
+msgstr "CO₂ emissions"
+
+#: .\dashboard\views.py:66
+msgid "Usage des sols"
+msgstr "Land use"
+
+#: .\dashboard\views.py:172
+msgid "Services de provisionnement"
+msgstr "Provisioning services"
+
+#: .\dashboard\views.py:173
+msgid "Services de régulation"
+msgstr "Regulating services"
+
+#: .\dashboard\views.py:645
+msgid "Changement climatique"
+msgstr "Climate change"
+
+#: .\dashboard\views.py:646
+msgid "Écotoxicité eau douce"
+msgstr "Freshwater ecotoxicity"
+
+#: .\dashboard\views.py:647
+msgid "Eutrophisation eau douce"
+msgstr "Freshwater eutrophication"
+
+#: .\dashboard\views.py:648
+msgid "Eutrophisation marine"
+msgstr "Marine eutrophication"
+
+#: .\dashboard\views.py:649
+msgid "Acidification terrestre"
+msgstr "Terrestrial acidification"
+
+#: .\dashboard\views.py:650
+msgid "Acidification des sols"
+msgstr "Soil acidification"
+
+#: .\dashboard\views.py:651
+msgid "Appauvrissement de l'ozone"
+msgstr "Ozone depletion"
+
+#: .\dashboard\views.py:652
+msgid "Épuisement ressources fossiles"
+msgstr "Fossil resource depletion"
+
+#: .\dashboard\views.py:653
+msgid "Épuisement ressources minérales"
+msgstr "Mineral resource depletion"
+
+#: .\dashboard\views.py:1031
+msgid "Conso. eau (ReCiPe midpoint)"
+msgstr "Water consumption (ReCiPe midpoint)"
+
+#: .\dashboard\views.py:1032
+msgid "Changement climatique (ReCiPe)"
+msgstr "Climate change (ReCiPe)"
+
+#: .\dashboard\views.py:1033
+msgid "Écotoxicité eau douce (ReCiPe)"
+msgstr "Freshwater ecotoxicity (ReCiPe)"
+
+#: .\dashboard\views.py:1035
+msgid "Eutrophisation eau douce (ReCiPe)"
+msgstr "Freshwater eutrophication (ReCiPe)"
+
+#: .\dashboard\views.py:1036
+msgid "Eutrophisation marine (ReCiPe)"
+msgstr "Marine eutrophication (ReCiPe)"
+
+#: .\dashboard\views.py:1037
+msgid "Acidification terrestre (ReCiPe)"
+msgstr "Terrestrial acidification (ReCiPe)"
+
+#: .\dashboard\views.py:1038
+msgid "Acidification sols (ReCiPe)"
+msgstr "Soil acidification (ReCiPe)"
+
+#: .\dashboard\views.py:1039
+msgid "Dépletion ozone (ReCiPe)"
+msgstr "Ozone depletion (ReCiPe)"
+
+#: .\dashboard\views.py:1040
+msgid "Dépletion fossile (ReCiPe)"
+msgstr "Fossil depletion (ReCiPe)"
+
+#: .\dashboard\views.py:1041
+msgid "Dépletion minéraux (ReCiPe)"
+msgstr "Mineral depletion (ReCiPe)"
+
+#: .\dashboard\views.py:1042
+msgid "Utilisation des terres (ReCiPe)"
+msgstr "Land use (ReCiPe)"
+
+#: .\dashboard\views.py:1043
+msgid "Santé humaine (ReCiPe endpoint)"
+msgstr "Human health (ReCiPe endpoint)"
+
+#: .\dashboard\views.py:1045
+msgid "Diversité écosystèmes (ReCiPe endpoint)"
+msgstr "Ecosystem diversity (ReCiPe endpoint)"
+
+#: .\dashboard\views.py:1047
+msgid "Disponibilité ressources (ReCiPe endpoint)"
+msgstr "Resource availability (ReCiPe endpoint)"
+
+#: .\dashboard\views.py:1048
+msgid "Terrestre dynamique (GBS endpoint)"
+msgstr "Terrestrial dynamic (GBS endpoint)"
+
+#: .\dashboard\views.py:1049
+msgid "Terrestre statique (GBS endpoint)"
+msgstr "Terrestrial static (GBS endpoint)"
+
+#: .\dashboard\views.py:1053
+msgid "Dépendance eau"
+msgstr "Water dependency"
+
+#: .\dashboard\views.py:1054
+msgid "Dépendance pollinisation"
+msgstr "Pollination dependency"
+
+#: .\dashboard\views.py:1055
+msgid "Dépendance qualité sols"
+msgstr "Soil quality dependency"
+
+#: .\dashboard\views.py:1056
+msgid "Dépendance séquestration carbone"
+msgstr "Carbon sequestration dependency"
+
+#: .\dashboard\views.py:1057
+msgid "Dépendance épuration eau"
+msgstr "Water purification dependency"
+
+#: .\dashboard\views.py:1058
+msgid "Dépendance contrôle ravageurs"
+msgstr "Pest control dependency"
+
+#: .\dashboard\views.py:1063
+msgid "Nombre d'actifs"
+msgstr "Number of assets"
+
+#: .\dashboard\views.py:1064
+msgid "Dette écologique (L biodiv)"
+msgstr "Ecological debt (L biodiv)"
+
+#: .\dashboard\views.py:1176
+#, python-format
+msgid "%(count)s site(s) en/près d'une zone sensible"
+msgstr "%(count)s site(s) in/near a sensitive area"
+
+#: .\dashboard\views.py:1180
+#, python-format
+msgid "Dépendance principale : %(name)s"
+msgstr "Main dependency: %(name)s"
+
+#: .\dashboard\views.py:1181
+msgid "Aucune dépendance évaluée"
+msgstr "No dependency assessed"
+
+#: .\dashboard\views.py:1183
+#, python-format
+msgid "Empreinte écosystèmes : %(impact)s"
+msgstr "Ecosystem footprint: %(impact)s"
+
+#: .\dashboard\views.py:1772
+msgid "JSON invalide"
+msgstr "Invalid JSON"
+
+#: .\dashboard\views.py:1779
+msgid "Portefeuille commun : lecture seule."
+msgstr "Shared portfolio: read-only."
+
+#: .\dashboard\views.py:1815
+msgid "Une entreprise ne peut apparaître qu'une fois."
+msgstr "A company can only appear once."
+
+#: .\dashboard\views.py:1871
+#, python-format
+msgid "%(name)s (copie)"
+msgstr "%(name)s (copy)"
+
+#: .\dashboard\views.py:1980
+msgid "Feux de forêt"
+msgstr "Wildfires"
+
+#: .\dashboard\views.py:1985
+msgid "Vague de chaleur"
+msgstr "Heatwave"
+
+#: .\imports\services\excel_parser.py:39
+#, python-format
+msgid "La feuille %(sheet)s n'existe plus : utilisez la feuille Flow."
+msgstr "The %(sheet)s sheet no longer exists: use the Flow sheet."
+
+#: .\imports\services\excel_parser.py:164
+#, python-format
+msgid "Valeur invalide pour '%(col)s' : '%(val)s' (attendu : %(allowed)s)"
+msgstr "Invalid value for '%(col)s': '%(val)s' (expected: %(allowed)s)"
+
+#: .\imports\services\excel_parser.py:222
+#, python-format
+msgid "Clé déjà utilisée par une autre commodité : '%(key)s'"
+msgstr "Key already used by another commodity: '%(key)s'"
+
+#: .\imports\services\excel_parser.py:233
+#, python-format
+msgid "Part invalide pour 'share' : '%(share)s' (attendu : 0.75 ou 75%%, au plus 1)"
+msgstr "Invalid value for 'share': '%(share)s' (expected: 0.75 or 75%%, at most 1)"
+
+#: .\imports\services\excel_parser.py:241
+#, python-format
+msgid "Année invalide pour '%(column)s' : '%(value)s'"
+msgstr "Invalid year for '%(column)s': '%(value)s'"
+
+#: .\imports\services\excel_parser.py:247
+msgid "L'année de début ('start_year') doit précéder l'année de fin ('end_year')"
+msgstr "The start year ('start_year') must precede the end year ('end_year')"
+
+#: .\imports\services\excel_parser.py:279
+#, python-format
+msgid "Nombre invalide pour '%(field)s' : '%(value)s'"
+msgstr "Invalid number for '%(field)s': '%(value)s'"
+
+#: .\imports\services\excel_parser.py:289
+#, python-format
+msgid "Commodité introuvable pour 'what' : '%(what)s' (nom ou clé)"
+msgstr "Commodity not found for 'what': '%(what)s' (name or key)"
+
+#: .\imports\services\excel_parser.py:300
+msgid "vide"
+msgstr "empty"
+
+#: .\imports\services\excel_parser.py:301
+#, python-format
+msgid "'%(side)s_name' doit rester vide quand '%(side)s_type' vaut « %(shown)s »"
+msgstr "'%(side)s_name' must be empty when '%(side)s_type' is \"%(shown)s\""
+
+#: .\imports\services\excel_parser.py:305
+#, python-format
+msgid "'%(side)s_name' est obligatoire quand '%(side)s_type' vaut « %(type)s »"
+msgstr "'%(side)s_name' is required when '%(side)s_type' is \"%(type)s\""
+
+#: .\imports\services\excel_parser.py:309 .\imports\services\excel_parser.py:479
+#, python-format
+msgid "Valeur introuvable pour '%(col)s' : '%(val)s'"
+msgstr "Value not found for '%(col)s': '%(val)s'"
+
+#: .\imports\services\excel_parser.py:455
+#, python-format
+msgid "Champs obligatoires manquants : %(fields)s"
+msgstr "Missing required fields: %(fields)s"
+
+#: .\imports\services\excel_parser.py:467
+#, python-format
+msgid "Renseignez au moins l'un de : %(fields)s"
+msgstr "Fill in at least one of: %(fields)s"
+
+#: .\imports\templates\imports\index.html:7 .\imports\templates\imports\index.html:166
+#: .\templates\base.html:225 .\templates\base.html:230
+msgid "Import / export Excel"
+msgstr "Excel import / export"
+
+#: .\imports\templates\imports\index.html:167
+msgid ""
+"Importez vos données de référence depuis un fichier Excel, ou exportez toute la base au même "
+"format."
+msgstr ""
+"Import your reference data from an Excel file, or export the whole database in the same format."
+
+#: .\imports\templates\imports\index.html:193
+msgid "Étape 1"
+msgstr "Step 1"
+
+#: .\imports\templates\imports\index.html:194
+msgid "Télécharger le template"
+msgstr "Download the template"
+
+#: .\imports\templates\imports\index.html:196
+msgid ""
+"Téléchargez le fichier Excel modèle, remplissez-le avec vos données, puis revenez sur cette page "
+"pour l'importer."
+msgstr ""
+"Download the Excel template, fill it in with your data, then come back to this page to import it."
+
+#: .\imports\templates\imports\index.html:205
+msgid "Télécharger le template (.xlsx)"
+msgstr "Download the template (.xlsx)"
+
+#: .\imports\templates\imports\index.html:211
+msgid "Étape 2"
+msgstr "Step 2"
+
+#: .\imports\templates\imports\index.html:212
+msgid "Importer un fichier rempli"
+msgstr "Import a completed file"
+
+#: .\imports\templates\imports\index.html:214
+msgid ""
+"Sélectionnez le fichier Excel complété (.xlsx) pour l'analyser et prévisualiser les données avant "
+"confirmation."
+msgstr ""
+"Select the completed Excel file (.xlsx) to analyse it and preview the data before confirming."
+
+#: .\imports\templates\imports\index.html:222
+msgid "Fichier Excel (.xlsx)"
+msgstr "Excel file (.xlsx)"
+
+#: .\imports\templates\imports\index.html:229
+msgid "Analyser et prévisualiser"
+msgstr "Analyse and preview"
+
+#: .\imports\templates\imports\index.html:236
+msgid "Sauvegarde"
+msgstr "Backup"
+
+#: .\imports\templates\imports\index.html:237
+msgid "Exporter toutes les données"
+msgstr "Export all data"
+
+#: .\imports\templates\imports\index.html:239
+msgid ""
+"Télécharge toute la base au format du template, une feuille par table. Le fichier se réimporte tel"
+" quel, ici ou sur une autre instance. Utilisateurs, portefeuilles et évaluations ESRS E4 n'en font"
+" pas partie. Chaque export est journalisé."
+msgstr ""
+"Downloads the whole database in the template format, one sheet per table. The file can be re-"
+"imported as is, here or on another instance. Users, portfolios and ESRS E4 assessments are not "
+"included. Every export is logged."
+
+#: .\imports\templates\imports\index.html:250
+msgid "Exporter toutes les données (.xlsx)"
+msgstr "Export all data (.xlsx)"
+
+#: .\imports\templates\imports\preview.html:7 .\imports\templates\imports\preview.html:205
+msgid "Aperçu de l'import"
+msgstr "Import preview"
+
+#: .\imports\templates\imports\preview.html:206
+msgid "Vérifiez les données avant de confirmer l'import définitif."
+msgstr "Check the data before confirming the final import."
+
+#: .\imports\templates\imports\preview.html:231
+#, python-format
+msgid "%(count)s à importer"
+msgstr "%(count)s to import"
+
+#: .\imports\templates\imports\preview.html:232
+#, python-format
+msgid "%(count)s doublon(s)"
+msgstr "%(count)s duplicate(s)"
+
+#: .\imports\templates\imports\preview.html:233
+#, python-format
+msgid "%(count)s erreur(s)"
+msgstr "%(count)s error(s)"
+
+#: .\imports\templates\imports\preview.html:244
+msgid "Statut"
+msgstr "Status"
+
+#: .\imports\templates\imports\preview.html:255
+msgid "OK"
+msgstr ""
+
+#: .\imports\templates\imports\preview.html:257
+msgid "Doublon"
+msgstr "Duplicate"
+
+#: .\imports\templates\imports\preview.html:259
+msgid "Erreur"
+msgstr "Error"
+
+#: .\imports\templates\imports\preview.html:268
+msgid "Aucune ligne dans cet onglet."
+msgstr "No rows in this tab."
+
+#: .\imports\templates\imports\preview.html:278
+msgid "Confirmer l'import"
+msgstr "Confirm import"
+
+#: .\imports\views.py:64
+msgid "Aucun fichier fourni."
+msgstr "No file provided."
+
+#: .\imports\views.py:69
+msgid "Format invalide. Utilisez un fichier .xlsx."
+msgstr "Invalid format. Use an .xlsx file."
+
+#: .\imports\views.py:76
+msgid "Fichier invalide ou corrompu. Vérifiez que le fichier est un .xlsx valide."
+msgstr "Invalid or corrupted file. Check that the file is a valid .xlsx."
+
+#: .\imports\views.py:149
+#, python-format
+msgid "%(total)s enregistrement(s) importé(s) avec succès."
+msgstr "%(total)s record(s) imported successfully."
+
+#: .\templates\404.html:7 .\templates\404.html:84
+msgid "Page introuvable"
+msgstr "Page not found"
+
+#: .\templates\404.html:86
+msgid ""
+"La page que vous recherchez n'existe pas ou a été déplacée. Vérifiez l'adresse ou retournez au "
+"tableau de bord."
+msgstr ""
+"The page you are looking for doesn't exist or has been moved. Check the address or go back to the "
+"dashboard."
+
+#: .\templates\404.html:91
+msgid "Retour au tableau de bord"
+msgstr "Back to dashboard"
+
+#: .\templates\admin\app_list.html:10
+#, python-format
+msgid "Models in the %(name)s application"
+msgstr ""
+
+#: .\templates\admin\app_list.html:18
+msgid "Model name"
+msgstr ""
+
+#: .\templates\admin\app_list.html:19
+msgid "Add link"
+msgstr ""
+
+#: .\templates\admin\app_list.html:20
+msgid "Change or view list link"
+msgstr ""
+
+#: .\templates\admin\app_list.html:35
+msgid "Add"
+msgstr ""
+
+#: .\templates\admin\app_list.html:42
+msgid "View"
+msgstr ""
+
+#: .\templates\admin\app_list.html:44
+msgid "Change"
+msgstr ""
+
+#: .\templates\admin\app_list.html:56
+msgid "You don’t have permission to view or edit anything."
+msgstr ""
+
+#: .\templates\admin\base_site.html:4
+msgid "Console de données Easybiodiv"
+msgstr "Easybiodiv data console"
+
+#: .\templates\admin\base_site.html:8 .\templates\base.html:234 .\templates\base.html:241
+msgid "Console de données"
+msgstr "Data console"
+
+#: .\templates\base.html:101
+msgid "Navigation principale"
+msgstr "Main navigation"
+
+#: .\templates\base.html:106
+msgid "Fermer le menu"
+msgstr "Close menu"
+
+#: .\templates\base.html:113
+msgid "Réduire le menu"
+msgstr "Collapse menu"
+
+#: .\templates\base.html:121
+msgid "Menu principal"
+msgstr "Main menu"
+
+#: .\templates\base.html:148 .\templates\base.html:154
+msgid "Analyse des risques"
+msgstr "Risk analysis"
+
+#: .\templates\base.html:209
+msgid "Portfolio analysis (connexion requise)"
+msgstr "Portfolio analysis (sign-in required)"
+
+#: .\templates\base.html:209
+msgid "Connexion requise"
+msgstr "Sign-in required"
+
+#: .\templates\base.html:244
+msgid "Exporter un rapport"
+msgstr "Export a report"
+
+#: .\templates\base.html:249
+msgid "Exporter rapport"
+msgstr "Export report"
+
+#: .\templates\base.html:254
+msgid "Passer en mode nuit"
+msgstr "Switch to dark mode"
+
+#: .\templates\base.html:254
+msgid "Mode jour / nuit"
+msgstr "Light / dark mode"
+
+#: .\templates\base.html:268
+msgid "Aide et support"
+msgstr "Help and support"
+
+#: .\templates\base.html:290
+msgid "Ouvrir le menu"
+msgstr "Open menu"
+
+#: .\templates\base.html:304
+msgid "Rechercher sites, entreprises..."
+msgstr "Search sites, companies..."
+
+#: .\templates\base.html:304
+msgid "Rechercher"
+msgstr "Search"
+
+#: .\templates\base.html:314
+msgid "Menu utilisateur"
+msgstr "User menu"
+
+#: .\templates\base.html:322
+msgid "Se déconnecter"
+msgstr "Sign out"
+
+#: .\templates\dashboard\_leap_tabs.html:3
+msgid "Phases LEAP"
+msgstr "LEAP phases"

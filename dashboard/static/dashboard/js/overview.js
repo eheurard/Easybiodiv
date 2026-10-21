@@ -51,7 +51,7 @@ const OV = {
 // ('policy' ou 'risque') ; popupHtml : null si le mode n'a pas de popup.
 const OV_MODES = {
   pays: {
-    title: 'Exposition par pays',
+    title: gettext('Exposition par pays'),
     source: 'company',
     drawer: 'policy',
     renderPanel: ovRenderCountries,
@@ -60,7 +60,7 @@ const OV_MODES = {
     popupHtml: ovPaysPopupHtml,
   },
   asset: {
-    title: 'Sites localisés',
+    title: gettext('Sites localisés'),
     source: 'locate',
     drawer: 'policy',
     renderPanel: ovRenderAssetPanel,
@@ -69,7 +69,7 @@ const OV_MODES = {
     popupHtml: (p) => LocateView.popupHtml(p),
   },
   risque: {
-    title: 'Classement des risques',
+    title: gettext('Classement des risques'),
     source: 'risque',
     drawer: 'risque',
     renderPanel: ovRenderRisquePanel,
@@ -78,7 +78,7 @@ const OV_MODES = {
     popupHtml: (p) => PhysicalRiskView.popupHtml(p),
   },
   dette: {
-    title: 'Dette écologique',
+    title: gettext('Dette écologique'),
     source: 'dette',
     drawer: 'policy',
     pies: true,          // camemberts (marqueurs DOM) au lieu des cercles
@@ -283,7 +283,7 @@ function ovInitControls() {
       const asc = OV.assetSortDir === 'asc';
       sortBtn.setAttribute('aria-pressed', String(asc));
       document.getElementById('asset-sort-label').textContent =
-        asc ? 'Revenu croissant' : 'Revenu décroissant';
+        asc ? gettext('Revenu croissant') : gettext('Revenu décroissant');
       ovRenderAssetList();
     });
   }
@@ -343,7 +343,7 @@ function ovRenderMode() {
   }
   if (!OV.cache.company || !OV.cache[cfg.source]) {
     ovClearModeDisplay();
-    ovShowStatus('Chargement…');
+    ovShowStatus(gettext('Chargement…'));
   }
   Promise.all([ovCompanyReady(), ovLoad(cfg.source)])
     .then(([, data]) => { if (OV.mode === mode) ovApplyMode(mode, data); })
@@ -352,8 +352,8 @@ function ovRenderMode() {
       console.error(`overview : chargement du mode « ${mode} » impossible`, err);
       if (OV.mode !== mode) return;
       ovShowStatus(err && err.kind === 'session'
-        ? 'Session expirée — reconnectez-vous.'
-        : 'Impossible de charger les données.', true);
+        ? gettext('Session expirée — reconnectez-vous.')
+        : gettext('Impossible de charger les données.'), true);
     });
 }
 
@@ -532,7 +532,8 @@ function ovRenderCountries(data) {
   const list = document.getElementById('country-list');
   if (!list) return;
   if (data.countries.length === 0) {
-    list.innerHTML = '<p class="country-panel__empty">Aucun actif pour cette entreprise.</p>';
+    list.innerHTML = '<p class="country-panel__empty">' +
+      gettext('Aucun actif pour cette entreprise.') + '</p>';
     return;
   }
   list.innerHTML = data.countries
@@ -547,7 +548,8 @@ function ovRenderCountries(data) {
         <div class="country-item${hasCoords ? ' country-item--clickable' : ''}" data-country="${escHtml(c.name)}">
           <div class="country-item__top">
             <span class="country-item__name">${escHtml(c.name)}</span>
-            <span class="country-item__count">${c.asset_count} actif${c.asset_count > 1 ? 's' : ''}</span>
+            <span class="country-item__count">${interpolate(
+              ngettext('%(n)s actif', '%(n)s actifs', c.asset_count), { n: c.asset_count }, true)}</span>
           </div>
           <div class="country-item__tags">${tags}</div>
         </div>`;
@@ -571,7 +573,7 @@ function ovPaysLegendHtml(data) {
   const items = Object.keys(ASSET_TYPE_COLORS).filter((t) => present.has(t));
   if (items.length === 0) return '';
   return `
-    <p class="map-legend__title">Type d'actif</p>
+    <p class="map-legend__title">${gettext('Type d\'actif')}</p>
     <ul class="map-legend__list">
       ${items.map((t) => `
         <li>
@@ -602,7 +604,7 @@ function ovPaysPopupHtml(p) {
           <span class="asset-popup__prod-qty">${fmtNum(prod.quantity)}&nbsp;${escHtml(prod.unit)}</span>
         </div>`
       ).join('')
-    : '<p class="asset-popup__no-data">Aucune production enregistrée</p>';
+    : `<p class="asset-popup__no-data">${gettext('Aucune production enregistrée')}</p>`;
 
   const footprintVal = (typeof p.footprint === 'number' && p.footprint > 0)
     ? fmtFootprint(p.footprint)
@@ -619,17 +621,17 @@ function ovPaysPopupHtml(p) {
         <div class="asset-popup__meta">${metaParts.map(escHtml).join(' · ')}</div>
       </div>
       <div class="asset-popup__body">
-        <div class="asset-popup__section-title">Productions${yearLabel}</div>
+        <div class="asset-popup__section-title">${gettext('Productions')}${yearLabel}</div>
         ${prodsHtml}
         <div class="asset-popup__divider"></div>
         <div class="asset-popup__metrics">
           <div class="asset-popup__metric">
             <div class="asset-popup__metric-value">${footprintVal}</div>
-            <div class="asset-popup__metric-label">Empreinte biodiversité</div>
+            <div class="asset-popup__metric-label">${gettext('Empreinte biodiversité')}</div>
           </div>
           <div class="asset-popup__metric asset-popup__metric--risk">
             <div class="asset-popup__metric-value">${detteVal}</div>
-            <div class="asset-popup__metric-label">Dette écologique</div>
+            <div class="asset-popup__metric-label">${gettext('Dette écologique')}</div>
           </div>
         </div>
       </div>
@@ -662,7 +664,7 @@ function ovPopulateTypeFilter(features) {
   present.forEach((t) => { if (!types.includes(t)) types.push(t); });
 
   if (OV.assetFilter && !present.has(OV.assetFilter)) OV.assetFilter = '';
-  select.innerHTML = '<option value="">Tous les types</option>' +
+  select.innerHTML = '<option value="">' + gettext('Tous les types') + '</option>' +
     types.map((t) => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
   select.value = OV.assetFilter;
 }
@@ -674,14 +676,14 @@ function ovRenderAssetList() {
 
   const all = ovFeatureList(data.geojson);
   if (all.length === 0) {
-    el.innerHTML = '<p class="ll-empty">Aucun site.</p>';
+    el.innerHTML = '<p class="ll-empty">' + gettext('Aucun site.') + '</p>';
     return;
   }
   const features = OV.assetFilter
     ? all.filter((f) => f.properties.type === OV.assetFilter)
     : all;
   if (features.length === 0) {
-    el.innerHTML = '<p class="ll-empty">Aucun actif pour ce type.</p>';
+    el.innerHTML = '<p class="ll-empty">' + gettext('Aucun actif pour ce type.') + '</p>';
     return;
   }
   const dir = OV.assetSortDir === 'asc' ? 1 : -1;
@@ -755,12 +757,12 @@ function ovRenderDettePanel(data) {
   if (!list) return;
   list.innerHTML = data.assets.length
     ? DetteView.assetListHtml(data.assets, ovDetteColors(data))
-    : '<p class="ll-empty">Aucun asset avec une dette calculable.</p>';
+    : '<p class="ll-empty">' + gettext('Aucun asset avec une dette calculable.') + '</p>';
 }
 
 function ovDetteLegendHtml(data) {
   if (!data.commodities.length) return '';
-  return '<p class="map-legend__title">Commodités</p>' +
+  return '<p class="map-legend__title">' + gettext('Commodités') + '</p>' +
     `<ul class="map-legend__list">${DetteView.legendItemsHtml(data.commodities, ovDetteColors(data))}</ul>`;
 }
 
@@ -857,7 +859,7 @@ function ovRenderPolicies(data) {
           </button>
           <div class="policy-accordion-body" hidden>
             <table class="policy-table">
-              <thead><tr><th>Sous-catégorie</th><th>Niveau</th><th>Score</th></tr></thead>
+              <thead><tr><th>${gettext('Sous-catégorie')}</th><th>${gettext('Niveau')}</th><th>${gettext('Score')}</th></tr></thead>
               <tbody>${rows}</tbody>
             </table>
           </div>

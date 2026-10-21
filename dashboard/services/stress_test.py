@@ -161,6 +161,8 @@ def interpolate_trajectory(points, year):
 #
 # Tout ce qui suit touche la base. Le noyau ci-dessus reste pur.
 
+from django.utils.translation import gettext as _  # noqa: E402
+
 from ..models import ScenarioVariable  # noqa: E402  (import après le noyau pur)
 from ..models import Company_Revenue_Sector, SectorCreditProfile  # noqa: E402
 from ..models import (  # noqa: E402
@@ -234,8 +236,8 @@ def resolve_credit_profile(company, year):
     total = sum(weights.values())
     if not total:
         return dict(DEFAULT_CREDIT_PROFILE), [
-            f"Aucun mix sectoriel connu pour {year} : profil de crédit de repli "
-            f"appliqué."
+            _("Aucun mix sectoriel connu pour %(year)s : profil de crédit de repli "
+              "appliqué.") % {'year': year}
         ]
 
     profiles = {
@@ -246,8 +248,8 @@ def resolve_credit_profile(company, year):
     missing = [sector_id for sector_id in weights if sector_id not in profiles]
     if missing:
         warnings.append(
-            f"{len(missing)} secteur(s) sans profil de crédit : valeurs de repli "
-            f"utilisées pour cette part du chiffre d'affaires."
+            _("%(count)s secteur(s) sans profil de crédit : valeurs de repli "
+              "utilisées pour cette part du chiffre d'affaires.") % {'count': len(missing)}
         )
 
     resolved = {}
@@ -368,10 +370,10 @@ def _evaluate(snapshot, options, delta_price, hazard_multiplier):
             'shock_sigma': round(sigma_physical, 4),
         },
         'waterfall': [
-            {'label': 'PD initiale', 'pd': round(pd0, 6), 'delta_bps': 0.0},
-            {'label': 'Transition', 'pd': round(pd_transition, 6),
+            {'label': _('PD initiale'), 'pd': round(pd0, 6), 'delta_bps': 0.0},
+            {'label': _('Transition'), 'pd': round(pd_transition, 6),
              'delta_bps': round((pd_transition - pd0) * 10_000, 1)},
-            {'label': 'Physique', 'pd': round(pd_total, 6),
+            {'label': _('Physique'), 'pd': round(pd_total, 6),
              'delta_bps': round((pd_total - pd_transition) * 10_000, 1)},
         ],
     }
@@ -411,43 +413,43 @@ def _assumptions(scenario, horizon, options, carbon_price, reference_price,
     scenario_source = scenario.source
     scenario_reference = scenario.reference
     return [
-        {'label': 'Scénario', 'value': scenario.name,
+        {'label': _('Scénario'), 'value': scenario.name,
          'source': scenario_source, 'reference': scenario_reference},
-        {'label': 'Horizon', 'value': str(horizon),
+        {'label': _('Horizon'), 'value': str(horizon),
          'source': '', 'reference': ''},
-        {'label': 'Prix du carbone à l’horizon',
+        {'label': _('Prix du carbone à l’horizon'),
          'value': f'{carbon_price:,.0f} €/tCO₂e'.replace(',', ' '),
          'source': scenario_source, 'reference': scenario_reference},
-        {'label': 'Prix du carbone de référence',
+        {'label': _('Prix du carbone de référence'),
          'value': f'{reference_price:,.0f} €/tCO₂e'.replace(',', ' '),
          'source': scenario_source, 'reference': scenario_reference},
-        {'label': "Multiplicateur d'aléa physique",
+        {'label': _("Multiplicateur d'aléa physique"),
          'value': f'{hazard_multiplier:.2f}',
          'source': scenario_source, 'reference': scenario_reference},
-        {'label': 'Périmètre des émissions',
+        {'label': _('Périmètre des émissions'),
          'value': 'Scopes 1+2+3' if options['include_scope3'] else 'Scopes 1+2',
-         'source': 'Choix utilisateur', 'reference': ''},
-        {'label': 'Transmission du scope 3 amont',
+         'source': _('Choix utilisateur'), 'reference': ''},
+        {'label': _('Transmission du scope 3 amont'),
          'value': f'{SCOPE3_TRANSMISSION:.0%}',
-         'source': 'Constante Easybiodiv',
-         'reference': 'Traitement Trucost CEaR / MSCI Climate VaR'},
-        {'label': 'Coefficient de dommage physique',
+         'source': _('Constante Easybiodiv'),
+         'reference': _('Traitement Trucost CEaR / MSCI Climate VaR')},
+        {'label': _('Coefficient de dommage physique'),
          'value': f'{PHYSICAL_DAMAGE_FACTOR:.0%}',
-         'source': 'Constante Easybiodiv',
-         'reference': "Fonction de dommage au sens MSCI Climate VaR / Trucost ; "
-                      "part du CA exposé perdue à sévérité 1"},
-        {'label': 'Répercussion du coût carbone',
+         'source': _('Constante Easybiodiv'),
+         'reference': _("Fonction de dommage au sens MSCI Climate VaR / Trucost ; "
+                        "part du CA exposé perdue à sévérité 1")},
+        {'label': _('Répercussion du coût carbone'),
          'value': f"{options['pass_through']:.0%}",
-         'source': 'Profil sectoriel ou choix utilisateur', 'reference': ''},
-        {'label': 'Marge EBITDA',
+         'source': _('Profil sectoriel ou choix utilisateur'), 'reference': ''},
+        {'label': _('Marge EBITDA'),
          'value': f"{options['ebitda_margin']:.1%}",
-         'source': 'Profil sectoriel ou choix utilisateur', 'reference': ''},
-        {'label': "Volatilité d'EBITDA",
+         'source': _('Profil sectoriel ou choix utilisateur'), 'reference': ''},
+        {'label': _("Volatilité d'EBITDA"),
          'value': f"{options['ebitda_volatility']:.0%}",
-         'source': 'Profil sectoriel', 'reference': ''},
-        {'label': 'PD initiale',
+         'source': _('Profil sectoriel'), 'reference': ''},
+        {'label': _('PD initiale'),
          'value': f"{options['pd_baseline']:.2%}",
-         'source': 'Profil sectoriel pondéré ou choix utilisateur',
+         'source': _('Profil sectoriel pondéré ou choix utilisateur'),
          'reference': ''},
     ]
 
@@ -470,14 +472,14 @@ def get_stress_test_data(company, params=None):
 
     if not scenarios:
         warnings.append(
-            'Aucun scénario climatique en base : appliquer les migrations.'
+            _('Aucun scénario climatique en base : appliquer les migrations.')
         )
         return _empty_payload(company, reference_year, scenarios, warnings)
 
     if revenue_row is None or revenue_row.revenue <= 0:
         warnings.append(
-            "Aucun chiffre d'affaires connu pour cette entreprise : le stress "
-            "test ne peut pas être calculé."
+            _("Aucun chiffre d'affaires connu pour cette entreprise : le stress "
+              "test ne peut pas être calculé.")
         )
         return _empty_payload(company, reference_year, scenarios, warnings)
 
@@ -499,22 +501,22 @@ def get_stress_test_data(company, params=None):
     snapshot = company_snapshot(company, reference_year)
     if snapshot['unsplit_total']:
         warnings.append(
-            f"Émissions {reference_year} non ventilées par scope (Scope 1+2+3 ou "
-            f"non défini) : le canal transition est nul."
+            _("Émissions %(year)s non ventilées par scope (Scope 1+2+3 ou "
+              "non défini) : le canal transition est nul.") % {'year': reference_year}
         )
     elif snapshot['scope1'] + snapshot['scope2'] + snapshot['scope3'] == 0:
         warnings.append(
-            f"Aucune donnée d'émissions pour {reference_year} : le canal "
-            f"transition est nul."
+            _("Aucune donnée d'émissions pour %(year)s : le canal "
+              "transition est nul.") % {'year': reference_year}
         )
     if snapshot['scope12_combined']:
         warnings.append(
-            f"Scopes 1 et 2 déclarés ensemble pour {reference_year} (Scope 1+2) : "
-            f"comptés en scope 1."
+            _("Scopes 1 et 2 déclarés ensemble pour %(year)s (Scope 1+2) : "
+              "comptés en scope 1.") % {'year': reference_year}
         )
     if snapshot['asset_count'] == 0:
         warnings.append(
-            'Aucun actif rattaché à cette entreprise : le canal physique est nul.'
+            _('Aucun actif rattaché à cette entreprise : le canal physique est nul.')
         )
 
     reference_price = scenario_value(
@@ -536,7 +538,7 @@ def get_stress_test_data(company, params=None):
     result = _evaluate(snapshot, options, delta_price, hazard_multiplier)
     if result is None:
         warnings.append(
-            "Le proxy d'EBITDA est nul ou négatif : ajuster la marge EBITDA."
+            _("Le proxy d'EBITDA est nul ou négatif : ajuster la marge EBITDA.")
         )
         return _empty_payload(company, reference_year, scenarios, warnings)
 

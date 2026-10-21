@@ -166,7 +166,7 @@ window.SupplyChain = (function () {
               <div class="asset-popup__header">
                 <div class="asset-popup__name">${escHtml(p.name)}</div>
                 <div class="asset-popup__meta">${escHtml(p.country || '')}</div>
-                <span class="asset-popup__badge">Fournisseur</span>
+                <span class="asset-popup__badge">${gettext('Fournisseur')}</span>
               </div>
               ${list}
             </div>`)

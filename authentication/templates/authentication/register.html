@@ -1,16 +1,17 @@
 {% extends "authentication/auth_base.html" %}
+{% load i18n %}
 
-{% block title %}Créer un compte — Easybiodiv{% endblock %}
+{% block title %}{% translate "Créer un compte" %} — Easybiodiv{% endblock %}
 
 {% block card %}
-  <h1 class="auth-card__title">Créer un compte</h1>
-  <p class="auth-card__subtitle">Rejoignez Easybiodiv gratuitement</p>
+  <h1 class="auth-card__title">{% translate "Créer un compte" %}</h1>
+  <p class="auth-card__subtitle">{% translate "Rejoignez Easybiodiv gratuitement" %}</p>
 
   <form method="post" novalidate>
     {% csrf_token %}
 
     <div class="auth-form__group">
-      <label class="auth-form__label" for="{{ form.username.id_for_label }}">Identifiant</label>
+      <label class="auth-form__label" for="{{ form.username.id_for_label }}">{% translate "Identifiant" %}</label>
       <input
         class="auth-form__input"
         type="text"
@@ -31,7 +32,7 @@
     </div>
 
     <div class="auth-form__group">
-      <label class="auth-form__label" for="{{ form.email.id_for_label }}">Adresse email</label>
+      <label class="auth-form__label" for="{{ form.email.id_for_label }}">{% translate "Adresse email" %}</label>
       <input
         class="auth-form__input"
         type="email"
@@ -51,7 +52,7 @@
     </div>
 
     <div class="auth-form__group">
-      <label class="auth-form__label" for="{{ form.password1.id_for_label }}">Mot de passe</label>
+      <label class="auth-form__label" for="{{ form.password1.id_for_label }}">{% translate "Mot de passe" %}</label>
       <input
         class="auth-form__input"
         type="password"
@@ -70,7 +71,7 @@
     </div>
 
     <div class="auth-form__group">
-      <label class="auth-form__label" for="{{ form.password2.id_for_label }}">Confirmer le mot de passe</label>
+      <label class="auth-form__label" for="{{ form.password2.id_for_label }}">{% translate "Confirmer le mot de passe" %}</label>
       <input
         class="auth-form__input"
         type="password"
@@ -88,13 +89,13 @@
       {% endif %}
     </div>
 
-    <button class="auth-btn auth-btn--primary" type="submit">Créer mon compte</button>
+    <button class="auth-btn auth-btn--primary" type="submit">{% translate "Créer mon compte" %}</button>
   </form>
 
-  <div class="auth-divider">ou</div>
+  <div class="auth-divider">{% translate "ou" %}</div>
 
   <p class="auth-link-row">
-    Déjà un compte ?
-    <a href="{% url 'authentication:login' %}">Se connecter</a>
+    {% translate "Déjà un compte ?" %}
+    <a href="{% url 'authentication:login' %}">{% translate "Se connecter" %}</a>
   </p>
 {% endblock %}

@@ -7,6 +7,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 
 from .decorators import creator_required
@@ -60,19 +61,20 @@ def export_all(request):
 @require_http_methods(['POST'])
 def upload(request):
     if 'excel_file' not in request.FILES:
-        return render(request, 'imports/index.html', {'error': 'Aucun fichier fourni.'})
+        return render(request, 'imports/index.html', {'error': _('Aucun fichier fourni.')})
 
     f = request.FILES['excel_file']
     if not f.name.lower().endswith('.xlsx'):
         return render(request, 'imports/index.html', {
-            'error': 'Format invalide. Utilisez un fichier .xlsx.',
+            'error': _('Format invalide. Utilisez un fichier .xlsx.'),
         })
 
     try:
         parsed = parse_file(f)
     except Exception:
         return render(request, 'imports/index.html', {
-            'error': 'Fichier invalide ou corrompu. Vérifiez que le fichier est un .xlsx valide.',
+            'error': _('Fichier invalide ou corrompu. '
+                       'Vérifiez que le fichier est un .xlsx valide.'),
         })
 
     tmp_dir = os.path.join(settings.MEDIA_ROOT, 'imports', 'tmp')
@@ -144,6 +146,6 @@ def confirm(request):
 
     total = sum(counts.values())
     return render(request, 'imports/index.html', {
-        'success': f"{total} enregistrement(s) importé(s) avec succès.",
+        'success': _('%(total)s enregistrement(s) importé(s) avec succès.') % {'total': total},
         'counts': counts,
     })

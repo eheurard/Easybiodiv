@@ -353,13 +353,14 @@ function esgInitChartTooltip(canvas, svg, hist, proj, unit, allScopes, scopeColo
           '</div>';
       });
       html += '<hr class="esg-chart__tooltip-sep">';
-      html += '<div class="esg-chart__tooltip-total"><span>Total</span><span>' +
+      html += '<div class="esg-chart__tooltip-total"><span>' + gettext('Total') + '</span><span>' +
         esgFmtNum(total) + ' ' + escHtml(unitStr) + '</span></div>';
     } else {
       html += '<div class="esg-chart__tooltip-row"><span>' +
         esgFmtNum(total) + ' ' + escHtml(unitStr) + '</span></div>';
       if (nearest.isProj) {
-        html += '<div style="font-size:11px;color:var(--color-on-surface-variant);margin-top:4px">Projection</div>';
+        html += '<div style="font-size:11px;color:var(--color-on-surface-variant);margin-top:4px">' +
+          gettext('Projection') + '</div>';
       }
     }
 
@@ -387,7 +388,7 @@ function esgRenderFeatured(featured) {
   const wrap = document.getElementById('esg-featured');
   if (!wrap) return;
   if (!featured || !featured.length) {
-    wrap.innerHTML = '<p class="esg-empty">Aucune politique enregistrée.</p>';
+    wrap.innerHTML = '<p class="esg-empty">' + gettext('Aucune politique enregistrée.') + '</p>';
     return;
   }
   wrap.innerHTML = featured.map(p => {
@@ -417,7 +418,7 @@ function esgRenderFramework(framework) {
   if (!list) return;
   const filtered = (framework || []).filter(p => ESG_ENV_POLICY_TYPES.includes(p.type));
   if (!filtered.length) {
-    list.innerHTML = '<p class="esg-empty">Aucune politique enregistrée.</p>';
+    list.innerHTML = '<p class="esg-empty">' + gettext('Aucune politique enregistrée.') + '</p>';
     return;
   }
   list.innerHTML = filtered.map((p, i) => {
@@ -482,7 +483,8 @@ const ESG_RANGES = [['3mo', '3M'], ['6mo', '6M'], ['ytd', 'YTD'], ['5y', '5Y']];
 
 
 function esgRangeButtons(active) {
-  return '<div class="esg-market__ranges" role="group" aria-label="Période">' +
+  return '<div class="esg-market__ranges" role="group" aria-label="' +
+    gettext('Période') + '">' +
     ESG_RANGES.map(([key, label]) =>
       '<button type="button" class="esg-market__range' +
       (key === active ? ' esg-market__range--active' : '') +
@@ -503,16 +505,18 @@ function esgRenderMarket(market) {
 
   body.innerHTML =
     '<div class="esg-market__price-row">' +
-    '<div><p class="esg-market__price-label label-caps">Cours (' + escHtml(market.ticker || '—') + ')</p>' +
+    '<div><p class="esg-market__price-label label-caps">' +
+    escHtml(interpolate(gettext('Cours (%(ticker)s)'), { ticker: market.ticker || '—' }, true)) +
+    '</p>' +
     '<p class="esg-market__price">' + esgFmtMoney(market.price, market.currency) + '</p></div>' +
     '<div class="esg-market__change" id="esg-market-change"></div>' +
     '</div>' +
     esgRangeButtons(active) +
     '<div id="esg-market-spark">' + esgSparkline(market.sparkline || []) + '</div>' +
     '<div class="esg-market__stats">' +
-    esgStatRow('Capitalisation', market.market_cap) +
-    esgStatRow('Notation ESG', market.esg_rating) +
-    esgStatRow('Perf. relative', market.relative_perf) +
+    esgStatRow(gettext('Capitalisation'), market.market_cap) +
+    esgStatRow(gettext('Notation ESG'), market.esg_rating) +
+    esgStatRow(gettext('Perf. relative'), market.relative_perf) +
     esgStatRow('ISIN', market.isin) +
     '</div>';
 
@@ -628,10 +632,10 @@ function esgUpdateLegend(allScopes, scopeColorMap) {
       '</span>'
     ).join('') +
     '<span class="esg-chart__legend-item" style="opacity:.5">' +
-    '<span class="esg-chart__line esg-chart__line--solid"></span>Historique' +
+    '<span class="esg-chart__line esg-chart__line--solid"></span>' + gettext('Historique') +
     '</span>' +
     '<span class="esg-chart__legend-item" style="opacity:.5">' +
-    '<span class="esg-chart__line esg-chart__line--dashed"></span>Projection 2030' +
+    '<span class="esg-chart__line esg-chart__line--dashed"></span>' + gettext('Projection 2030') +
     '</span>';
 }
 
@@ -640,8 +644,10 @@ function esgResetLegend() {
   const legendEl = document.querySelector('.esg-chart__legend');
   if (!legendEl) return;
   legendEl.innerHTML =
-    '<span class="esg-chart__legend-item"><span class="esg-chart__line esg-chart__line--solid"></span>Historique</span>' +
-    '<span class="esg-chart__legend-item"><span class="esg-chart__line esg-chart__line--dashed"></span>Projection 2030</span>';
+    '<span class="esg-chart__legend-item"><span class="esg-chart__line esg-chart__line--solid"></span>' +
+    gettext('Historique') + '</span>' +
+    '<span class="esg-chart__legend-item"><span class="esg-chart__line esg-chart__line--dashed"></span>' +
+    gettext('Projection 2030') + '</span>';
 }
 
 

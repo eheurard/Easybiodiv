@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}Stress test climatique — Easybiodiv{% endblock %}
+{% block title %}{% translate "Stress test climatique" %} — Easybiodiv{% endblock %}
 
 {% block nav_climate_stress_test %}active{% endblock %}
 
@@ -17,7 +17,7 @@
   <!-- Scénarios -->
   <section class="card cst-scenarios" aria-labelledby="cst-scenarios-title">
     <h2 class="label-caps cst-section-title" id="cst-scenarios-title">
-      Scénario de référence
+      {% translate "Scénario de référence" %}
     </h2>
     <div class="cst-scenario-grid" id="cst-scenarios"
          role="radiogroup" aria-labelledby="cst-scenarios-title"></div>
@@ -26,22 +26,22 @@
   <!-- Hypothèses -->
   <section class="card cst-assumptions" aria-labelledby="cst-hypotheses-title">
     <div class="cst-assumptions__head">
-      <h2 class="label-caps cst-section-title" id="cst-hypotheses-title">Hypothèses</h2>
+      <h2 class="label-caps cst-section-title" id="cst-hypotheses-title">{% translate "Hypothèses" %}</h2>
       <button type="button" class="cst-reset" id="cst-reset">
-        Réinitialiser aux valeurs du scénario
+        {% translate "Réinitialiser aux valeurs du scénario" %}
       </button>
     </div>
 
     <div class="cst-fields">
       <div class="cst-field">
-        <span class="cst-field__label" id="cst-horizon-label">Horizon</span>
+        <span class="cst-field__label" id="cst-horizon-label">{% translate "Horizon" %}</span>
         <div class="cst-segmented" role="radiogroup" aria-labelledby="cst-horizon-label"
              id="cst-horizon"></div>
       </div>
 
       <div class="cst-field">
         <label class="cst-field__label" for="cst-carbon-price">
-          Prix du carbone (€/tCO₂e)
+          {% translate "Prix du carbone (€/tCO₂e)" %}
         </label>
         <input type="number" id="cst-carbon-price" class="form-input"
                min="0" step="5" inputmode="numeric">
@@ -49,14 +49,14 @@
 
       <div class="cst-field">
         <label class="cst-field__label" for="cst-pass-through">
-          Répercussion au client — <output id="cst-pass-through-value">30 %</output>
+          {% translate "Répercussion au client" %} — <output id="cst-pass-through-value">30 %</output>
         </label>
         <input type="range" id="cst-pass-through" min="0" max="100" step="5" value="30">
       </div>
 
       <div class="cst-field">
         <label class="cst-field__label" for="cst-ebitda-margin">
-          Marge EBITDA (%)
+          {% translate "Marge EBITDA (%)" %}
         </label>
         <input type="number" id="cst-ebitda-margin" class="form-input"
                min="0.1" max="100" step="0.5" inputmode="decimal">
@@ -64,7 +64,7 @@
 
       <div class="cst-field">
         <label class="cst-field__label" for="cst-pd-baseline">
-          PD initiale (%)
+          {% translate "PD initiale (%)" %}
         </label>
         <input type="number" id="cst-pd-baseline" class="form-input"
                min="0.001" max="99" step="0.05" inputmode="decimal">
@@ -73,7 +73,7 @@
       <div class="cst-field cst-field--check">
         <input type="checkbox" id="cst-scope3">
         <label for="cst-scope3">
-          Inclure le scope 3 amont
+          {% translate "Inclure le scope 3 amont" %}
           <span class="cst-hint" id="cst-scope3-hint"></span>
         </label>
       </div>
@@ -84,21 +84,21 @@
   <div class="kpi-row" id="cst-kpis" role="status" aria-live="polite">
     <div class="kpi-card">
       <div class="kpi-card__value data-tabular" id="cst-pd-baseline-kpi">—</div>
-      <div class="kpi-card__label label-caps">PD initiale</div>
+      <div class="kpi-card__label label-caps">{% translate "PD initiale" %}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-card__value data-tabular" id="cst-pd-stressed-kpi">—</div>
-      <div class="kpi-card__label label-caps">PD stressée</div>
+      <div class="kpi-card__label label-caps">{% translate "PD stressée" %}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-card__value data-tabular" id="cst-delta-kpi">—</div>
-      <div class="kpi-card__label label-caps">Écart</div>
+      <div class="kpi-card__label label-caps">{% translate "Écart" %}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-card__value data-tabular" id="cst-rating-kpi">—</div>
       <div class="kpi-card__label label-caps"
-           title="Équivalence indicative dérivée de la probabilité de défaut modélisée, pas une notation attribuée par une agence de notation.">
-        Équivalent notation indicatif
+           title="{% translate 'Équivalence indicative dérivée de la probabilité de défaut modélisée, pas une notation attribuée par une agence de notation.' %}">
+        {% translate "Équivalent notation indicatif" %}
       </div>
     </div>
   </div>
@@ -107,51 +107,51 @@
   <div class="cst-charts">
     <div class="card cst-chart-card">
       <h2 class="label-caps cst-section-title">
-        Décomposition du choc
+        {% translate "Décomposition du choc" %}
         <span class="cst-tooltip" tabindex="0"
-              title="Attribution séquentielle : le canal transition est appliqué avant le canal physique. Le choc total est additif en écarts-types ; seule la répartition en points de base dépend de l'ordre."
-              aria-label="Attribution séquentielle : le canal transition est appliqué avant le canal physique. Le choc total est additif en écarts-types ; seule la répartition en points de base dépend de l'ordre.">ⓘ</span>
+              title="{% translate "Attribution séquentielle : le canal transition est appliqué avant le canal physique. Le choc total est additif en écarts-types ; seule la répartition en points de base dépend de l'ordre." %}"
+              aria-label="{% translate "Attribution séquentielle : le canal transition est appliqué avant le canal physique. Le choc total est additif en écarts-types ; seule la répartition en points de base dépend de l'ordre." %}">ⓘ</span>
       </h2>
       <canvas id="cst-waterfall" height="220"
-              aria-label="Décomposition de la probabilité de défaut par canal"></canvas>
+              aria-label="{% translate 'Décomposition de la probabilité de défaut par canal' %}"></canvas>
     </div>
     <div class="card cst-chart-card">
-      <h2 class="label-caps cst-section-title">PD par horizon</h2>
+      <h2 class="label-caps cst-section-title">{% translate "PD par horizon" %}</h2>
       <canvas id="cst-horizon-chart" height="220"
-              aria-label="Probabilité de défaut stressée par horizon"></canvas>
+              aria-label="{% translate 'Probabilité de défaut stressée par horizon' %}"></canvas>
     </div>
   </div>
 
   <div class="card cst-chart-card">
-    <h2 class="label-caps cst-section-title">Comparaison des scénarios</h2>
+    <h2 class="label-caps cst-section-title">{% translate "Comparaison des scénarios" %}</h2>
     <canvas id="cst-comparison" height="200"
-            aria-label="Probabilité de défaut stressée par scénario"></canvas>
+            aria-label="{% translate 'Probabilité de défaut stressée par scénario' %}"></canvas>
   </div>
 
   <!-- Canaux + hypothèses -->
   <div class="cst-bottom">
     <div class="card cst-channels-card">
       <h2 class="label-caps cst-section-title">
-        Canaux de risque
+        {% translate "Canaux de risque" %}
         <span class="cst-tooltip" tabindex="0"
-              title="La perte physique est la sévérité moyenne des aléas de chaque actif, bornée par son exposition. Elle diffère volontairement du chiffre de la page Risque physique, qui somme les aléas."
-              aria-label="La perte physique est la sévérité moyenne des aléas de chaque actif, bornée par son exposition. Elle diffère volontairement du chiffre de la page Risque physique, qui somme les aléas.">ⓘ</span>
+              title="{% translate 'La perte physique est la sévérité moyenne des aléas de chaque actif, bornée par son exposition. Elle diffère volontairement du chiffre de la page Risque physique, qui somme les aléas.' %}"
+              aria-label="{% translate 'La perte physique est la sévérité moyenne des aléas de chaque actif, bornée par son exposition. Elle diffère volontairement du chiffre de la page Risque physique, qui somme les aléas.' %}">ⓘ</span>
       </h2>
       <table class="cst-table">
         <thead>
-          <tr><th scope="col">Canal</th><th scope="col">Montant</th>
-              <th scope="col">% EBITDA</th><th scope="col">Choc (σ)</th></tr>
+          <tr><th scope="col">{% translate "Canal" %}</th><th scope="col">{% translate "Montant" %}</th>
+              <th scope="col">{% translate "% EBITDA" %}</th><th scope="col">{% translate "Choc (σ)" %}</th></tr>
         </thead>
         <tbody id="cst-channels"></tbody>
       </table>
     </div>
 
     <div class="card cst-assumptions-card">
-      <h2 class="label-caps cst-section-title">Hypothèses retenues</h2>
+      <h2 class="label-caps cst-section-title">{% translate "Hypothèses retenues" %}</h2>
       <table class="cst-table">
         <thead>
-          <tr><th scope="col">Hypothèse</th><th scope="col">Valeur</th>
-              <th scope="col">Source</th></tr>
+          <tr><th scope="col">{% translate "Hypothèse" %}</th><th scope="col">{% translate "Valeur" %}</th>
+              <th scope="col">{% translate "Source" %}</th></tr>
         </thead>
         <tbody id="cst-assumptions"></tbody>
       </table>

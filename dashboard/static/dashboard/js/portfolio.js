@@ -197,7 +197,7 @@
       var gear = document.createElement('button');
       gear.type = 'button';
       gear.className = 'pf-gear';
-      gear.title = 'Détails financiers';
+      gear.title = gettext('Détails financiers');
       gear.textContent = '⚙';
       if (r.instrument === 'BOND') { gear.classList.add('pf-gear--filled'); }
       gear.addEventListener('click', function () { openDialog(i); });
@@ -208,7 +208,7 @@
       var del = document.createElement('button');
       del.type = 'button';
       del.className = 'pf-del';
-      del.title = 'Supprimer';
+      del.title = gettext('Supprimer');
       del.textContent = '🗑';
       del.addEventListener('click', function () { removeRow(i); });
       tdDel.appendChild(del);
@@ -280,7 +280,7 @@
   function openDialog(i) {
     dialogRowIndex = i;
     var r = rows[i];
-    $('pf-dialog-company').textContent = 'Détails — ' + r.companyName;
+    $('pf-dialog-company').textContent = gettext('Détails') + ' — ' + r.companyName;
     $('pf-dlg-instrument').value = r.instrument;
     $('pf-dlg-bond-fields').hidden = r.instrument !== 'BOND';
     $('pf-dlg-maturity').value = r.maturity || '';
@@ -291,7 +291,7 @@
 
   // ── Impact tab ───────────────────────────────────────────────────
   function fmtNumber(v) {
-    return Number(v || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+    return Number(v || 0).toLocaleString(APP_LOCALE, { maximumFractionDigits: 2 });
   }
 
   function clearImpact() {
@@ -346,14 +346,14 @@
         labels: names,
         datasets: [
           {
-            label: 'Impact financé (' + m.unit + ')',
+            label: interpolate(gettext('Impact financé (%(unit)s)'), { unit: m.unit }, true),
             data: impacts,
             backgroundColor: '#af5d43',
             xAxisID: 'x',
             order: 2,
           },
           {
-            label: 'Poids dans le portefeuille (%)',
+            label: gettext('Poids dans le portefeuille (%)'),
             type: 'scatter',
             data: weights,
             backgroundColor: '#865220',
@@ -372,14 +372,14 @@
           x: {
             position: 'bottom',
             beginAtZero: true,
-            title: { display: true, text: 'Impact financé (' + m.unit + ')' },
+            title: { display: true, text: interpolate(gettext('Impact financé (%(unit)s)'), { unit: m.unit }, true) },
           },
           xWeight: {
             position: 'top',
             beginAtZero: true,
             suggestedMax: 100,
             grid: { drawOnChartArea: false },
-            title: { display: true, text: 'Poids (%)' },
+            title: { display: true, text: gettext('Poids (%)') },
           },
           y: { type: 'category' },
         },
@@ -443,7 +443,7 @@
     if (!canvas || typeof Chart === 'undefined') { return; }
     var labels = data.hazards.map(function (h) { return h.label; });
     var datasets = [{
-      label: data.name || 'Portefeuille',
+      label: data.name || gettext('Portefeuille'),
       data: data.portfolio,
       backgroundColor: 'rgba(175, 93, 67, 0.25)',
       borderColor: '#91452d',
@@ -500,7 +500,7 @@
     var htr = document.createElement('tr');
     var corner = document.createElement('th');
     corner.scope = 'col';
-    corner.textContent = 'Entreprise';
+    corner.textContent = gettext('Entreprise');
     htr.appendChild(corner);
     hazards.forEach(function (h) {
       var th = document.createElement('th');
@@ -599,10 +599,10 @@
     el.classList.remove('pf-trans-delta--worse', 'pf-trans-delta--better');
     if (delta > 0) {
       el.classList.add('pf-trans-delta--worse');
-      el.textContent = '▲ +' + pct + ' % vs benchmark';
+      el.textContent = '▲ +' + interpolate(gettext('%(pct)s % vs benchmark'), { pct: pct }, true);
     } else if (delta < 0) {
       el.classList.add('pf-trans-delta--better');
-      el.textContent = '▼ −' + pct + ' % vs benchmark';
+      el.textContent = '▼ −' + interpolate(gettext('%(pct)s % vs benchmark'), { pct: pct }, true);
     } else {
       el.textContent = '= benchmark';
     }
@@ -611,8 +611,8 @@
   function transUpdatePointsKpi() {
     var points = transPoints();
     $('pf-trans-points').textContent = points.length || '—';
-    var label = TRANS_MODE === 'region' ? 'Régions'
-      : (TRANS_MODE === 'country' ? 'Pays' : 'Assets');
+    var label = TRANS_MODE === 'region' ? gettext('Régions')
+      : (TRANS_MODE === 'country' ? gettext('Pays') : gettext('Assets'));
     $('pf-trans-points-label').textContent = label;
   }
 
@@ -644,7 +644,7 @@
     if (!tip) { return; }
     var top3 = point.commodities.slice(0, 3);
     tip.innerHTML = '<strong>' + transEsc(point.name) + '</strong><br>' +
-      'Dette : ' + transFmt(point.total_lbiodiv) + '<br>' +
+      gettext('Dette :') + ' ' + transFmt(point.total_lbiodiv) + '<br>' +
       top3.map(function (c) {
         return '<span class="de-tooltip__swatch" style="background:' +
           (TRANS_COLORS[c.name] || '#ccc') + '"></span>' +
@@ -729,13 +729,13 @@
       var status = $('pf-status');
       if (res.ok) {
         currentId = res.data.id;
-        status.textContent = 'Portefeuille enregistré.';
+        status.textContent = gettext('Portefeuille enregistré.');
         status.className = 'pf-status pf-status--ok';
         fetchImpact(currentId);
         fetchPhysical(currentId);
         fetchTransition(currentId);
       } else {
-        status.textContent = 'Erreur de validation. Vérifiez les champs.';
+        status.textContent = gettext('Erreur de validation. Vérifiez les champs.');
         status.className = 'pf-status pf-status--err';
       }
     });
@@ -756,7 +756,7 @@
         var status = $('pf-status');
         status.textContent = canEdit
           ? ''
-          : 'Portefeuille commun : lecture seule. Dupliquez-le pour le modifier.';
+          : gettext('Portefeuille commun : lecture seule. Dupliquez-le pour le modifier.');
         status.className = 'pf-status';
         rows = data.holdings.map(function (h) {
           return {
@@ -791,17 +791,18 @@
       loadPortfolio(data.id);
     }).catch(function () {
       var status = $('pf-status');
-      status.textContent = 'La duplication a échoué.';
+      status.textContent = gettext('La duplication a échoué.');
       status.className = 'pf-status pf-status--err';
     });
   }
 
   function addOwnedOption(id, name) {
     var select = $('pf-portfolio-select');
-    var group = select.querySelector('optgroup[label="Mes portefeuilles"]');
+    var group = select.querySelector('optgroup[data-group="owned"]');
     if (!group) {
       group = document.createElement('optgroup');
-      group.label = 'Mes portefeuilles';
+      group.label = gettext('Mes portefeuilles');
+      group.dataset.group = 'owned';
       select.insertBefore(group, select.children[1] || null);
     }
     var option = document.createElement('option');

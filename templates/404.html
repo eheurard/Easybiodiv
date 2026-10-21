@@ -1,10 +1,10 @@
-{% load static %}
+{% load static i18n %}
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Page introuvable — Easybiodiv</title>
+  <title>{% translate "Page introuvable" %} — Easybiodiv</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'dashboard/img/favicon.svg' %}">
   <link rel="icon" type="image/x-icon" href="{% static 'dashboard/img/favicon.ico' %}">
   <link rel="apple-touch-icon" href="{% static 'dashboard/img/apple-touch-icon.png' %}">
@@ -81,12 +81,14 @@
       </svg>
     </div>
     <p class="error-page__code">404</p>
-    <h1 class="error-page__title">Page introuvable</h1>
+    <h1 class="error-page__title">{% translate "Page introuvable" %}</h1>
     <p class="error-page__text">
+      {% blocktranslate trimmed %}
       La page que vous recherchez n'existe pas ou a été déplacée.
       Vérifiez l'adresse ou retournez au tableau de bord.
+      {% endblocktranslate %}
     </p>
-    <a href="{% url 'dashboard:index' %}" class="error-page__link">Retour au tableau de bord</a>
+    <a href="{% url 'dashboard:index' %}" class="error-page__link">{% translate "Retour au tableau de bord" %}</a>
   </div>
 </body>
 </html>

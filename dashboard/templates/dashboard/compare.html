@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}Comparaison — Easybiodiv{% endblock %}
+{% block title %}{% translate "Comparaison" %} — Easybiodiv{% endblock %}
 
 {% block nav_compare %}active{% endblock %}
 
@@ -15,11 +15,11 @@
       <div class="compare-col-card__accent"></div>
       <div class="compare-col-card__body">
         <div class="compare-col-card__top">
-          <span class="compare-badge compare-badge--a">A</span>
-          {% include "dashboard/_company_combobox.html" with suffix="left" label="Entreprise A" aria_label="Sélectionner l'entreprise A" %}
+          <span class="compare-badge compare-badge--a">{% translate "A" %}</span>
+          {% include "dashboard/_company_combobox.html" with suffix="left" label=_("Entreprise A") aria_label=_("Sélectionner l'entreprise A") %}
         </div>
         <div class="compare-company-info" id="company-info-left">
-          <p class="compare-company-info__empty">Sélectionnez une entreprise</p>
+          <p class="compare-company-info__empty">{% translate "Sélectionnez une entreprise" %}</p>
         </div>
       </div>
     </div>
@@ -28,11 +28,11 @@
       <div class="compare-col-card__accent"></div>
       <div class="compare-col-card__body">
         <div class="compare-col-card__top">
-          <span class="compare-badge compare-badge--b">B</span>
-          {% include "dashboard/_company_combobox.html" with suffix="right" label="Entreprise B" aria_label="Sélectionner l'entreprise B" %}
+          <span class="compare-badge compare-badge--b">{% translate "B" %}</span>
+          {% include "dashboard/_company_combobox.html" with suffix="right" label=_("Entreprise B") aria_label=_("Sélectionner l'entreprise B") %}
         </div>
         <div class="compare-company-info" id="company-info-right">
-          <p class="compare-company-info__empty">Sélectionnez une entreprise</p>
+          <p class="compare-company-info__empty">{% translate "Sélectionnez une entreprise" %}</p>
         </div>
       </div>
     </div>
@@ -48,7 +48,7 @@
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
         <path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
-      Ajouter un indicateur
+      {% translate "Ajouter un indicateur" %}
     </button>
   </div>
 

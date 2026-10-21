@@ -1,6 +1,8 @@
 from collections import defaultdict
 
+from django.utils.translation import gettext as _
 import openpyxl
+
 from dashboard.models import (
     Asset, CharacterizationFactor, ClimateScenario,
     Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
@@ -34,7 +36,8 @@ def parse_file(source):
             result[sheet_name] = [{
                 'status': 'error',
                 'message': (
-                    f"La feuille {sheet_name} n'existe plus : utilisez la feuille Flow."
+                    _("La feuille %(sheet)s n'existe plus : utilisez la feuille Flow.")
+                    % {'sheet': sheet_name}
                 ),
                 'data': {},
             }]
@@ -158,7 +161,9 @@ def _choice_error(sheet_name, data):
     for col, allowed in CHOICE_FIELDS.get(sheet_name, {}).items():
         val = data.get(col, '')
         if val and val.lower() not in {a.lower() for a in allowed}:
-            return f"Valeur invalide pour '{col}' : '{val}' (attendu : {', '.join(allowed)})"
+            return _("Valeur invalide pour '%(col)s' : '%(val)s' (attendu : %(allowed)s)") % {
+                'col': col, 'val': val, 'allowed': ', '.join(allowed),
+            }
     return None
 
 
@@ -214,7 +219,9 @@ def _commodity_row_error(data, context):
     for owners in (context['commodity_key_owner'], context['file_commodity_key_owner']):
         owner = owners.get(key)
         if owner is not None and owner != name:
-            return f"Clé déjà utilisée par une autre commodité : '{data['key']}'"
+            return _("Clé déjà utilisée par une autre commodité : '%(key)s'") % {
+                'key': data['key'],
+            }
     context['file_commodity_key_owner'].setdefault(key, name)
     return None
 
@@ -223,18 +230,22 @@ def _ownership_row_error(data, context):
     """Part lisible dans ]0, 1] et années cohérentes (spec §6.2)."""
     if parse_share(data.get('share')) is None:
         return (
-            f"Part invalide pour 'share' : '{data.get('share')}' "
-            "(attendu : 0.75 ou 75%, au plus 1)"
+            _("Part invalide pour 'share' : '%(share)s' "
+              "(attendu : 0.75 ou 75%%, au plus 1)") % {'share': data.get('share')}
         )
     years = {}
     for column in ('start_year', 'end_year'):
         try:
             years[column] = parse_optional_year(data.get(column))
         except ValueError:
-            return f"Année invalide pour '{column}' : '{data.get(column)}'"
+            return _("Année invalide pour '%(column)s' : '%(value)s'") % {
+                'column': column, 'value': data.get(column),
+            }
     start, end = years['start_year'], years['end_year']
     if start is not None and end is not None and start > end:
-        return "L'année de début ('start_year') doit précéder l'année de fin ('end_year')"
+        return _(
+            "L'année de début ('start_year') doit précéder l'année de fin ('end_year')"
+        )
     return None
 
 
@@ -265,7 +276,9 @@ def _flow_number_error(data):
         try:
             parser(value)
         except ValueError:
-            return f"Nombre invalide pour '{field}' : '{value}'"
+            return _("Nombre invalide pour '%(field)s' : '%(value)s'") % {
+                'field': field, 'value': value,
+            }
     return None
 
 
@@ -273,7 +286,9 @@ def _flow_row_error(data, context):
     """Contrôles de la feuille Flow (spec §6.1) : commodité, nombres, extrémités,
     puis règles FLOW_RULES avec le message même de la contrainte en base."""
     if data['what'].strip().lower() not in context['commodity_names']:
-        return f"Commodité introuvable pour 'what' : '{data['what']}' (nom ou clé)"
+        return _("Commodité introuvable pour 'what' : '%(what)s' (nom ou clé)") % {
+            'what': data['what'],
+        }
     number_error = _flow_number_error(data)
     if number_error:
         return number_error
@@ -282,14 +297,18 @@ def _flow_row_error(data, context):
         name = data.get(f'{side}_name', '').strip()
         if endpoint_type in ('', 'milieu'):
             if name:
-                shown = endpoint_type or 'vide'
-                return f"'{side}_name' doit rester vide quand '{side}_type' vaut « {shown} »"
+                shown = endpoint_type or _('vide')
+                return _("'%(side)s_name' doit rester vide quand '%(side)s_type' "
+                         "vaut « %(shown)s »") % {'side': side, 'shown': shown}
             continue
         if not name:
-            return f"'{side}_name' est obligatoire quand '{side}_type' vaut « {endpoint_type} »"
+            return _("'%(side)s_name' est obligatoire quand '%(side)s_type' "
+                     "vaut « %(type)s »") % {'side': side, 'type': endpoint_type}
         model_key = ENDPOINT_TYPE_MODEL_KEYS[endpoint_type]
         if not _can_resolve(model_key, name, context['file_names'], context['db_name_cache']):
-            return f"Valeur introuvable pour '{side}_name' : '{name}'"
+            return _("Valeur introuvable pour '%(col)s' : '%(val)s'") % {
+                'col': f'{side}_name', 'val': name,
+            }
     kind = data['kind'].strip().upper()
     rule = FLOW_RULES[kind]
     origin = _sheet_endpoint(data.get('from_type'))
@@ -433,7 +452,9 @@ def _parse_sheet(ws, sheet_name, file_names, db_name_cache, context):
         if missing:
             rows_out.append({
                 'status': 'error',
-                'message': f"Champs obligatoires manquants : {', '.join(missing)}",
+                'message': _('Champs obligatoires manquants : %(fields)s') % {
+                    'fields': ', '.join(missing),
+                },
                 'data': data,
             })
             continue
@@ -443,7 +464,9 @@ def _parse_sheet(ws, sheet_name, file_names, db_name_cache, context):
         if group and not any(data.get(f, '') for f in group):
             rows_out.append({
                 'status': 'error',
-                'message': f"Renseignez au moins l'un de : {', '.join(group)}",
+                'message': _("Renseignez au moins l'un de : %(fields)s") % {
+                    'fields': ', '.join(group),
+                },
                 'data': data,
             })
             continue
@@ -453,7 +476,9 @@ def _parse_sheet(ws, sheet_name, file_names, db_name_cache, context):
         for fk_col, model_key in fk_fields.items():
             val = data.get(fk_col, '')
             if val and not _can_resolve(model_key, val, file_names, db_name_cache):
-                fk_error = f"Valeur introuvable pour '{fk_col}' : '{val}'"
+                fk_error = _("Valeur introuvable pour '%(col)s' : '%(val)s'") % {
+                    'col': fk_col, 'val': val,
+                }
                 break
         if fk_error:
             rows_out.append({'status': 'error', 'message': fk_error, 'data': data})

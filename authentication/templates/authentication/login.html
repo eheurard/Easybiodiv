@@ -1,10 +1,11 @@
 {% extends "authentication/auth_base.html" %}
+{% load i18n %}
 
-{% block title %}Connexion — Easybiodiv{% endblock %}
+{% block title %}{% translate "Connexion" %} — Easybiodiv{% endblock %}
 
 {% block card %}
-  <h1 class="auth-card__title">Connexion</h1>
-  <p class="auth-card__subtitle">Accédez à votre espace biodiversité</p>
+  <h1 class="auth-card__title">{% translate "Connexion" %}</h1>
+  <p class="auth-card__subtitle">{% translate "Accédez à votre espace biodiversité" %}</p>
 
   {% if form.non_field_errors %}
     <ul class="auth-form__global-errors" role="alert">
@@ -18,7 +19,7 @@
     {% csrf_token %}
 
     <div class="auth-form__group">
-      <label class="auth-form__label" for="{{ form.username.id_for_label }}">Identifiant</label>
+      <label class="auth-form__label" for="{{ form.username.id_for_label }}">{% translate "Identifiant" %}</label>
       <input
         class="auth-form__input"
         type="text"
@@ -39,7 +40,7 @@
     </div>
 
     <div class="auth-form__group">
-      <label class="auth-form__label" for="{{ form.password.id_for_label }}">Mot de passe</label>
+      <label class="auth-form__label" for="{{ form.password.id_for_label }}">{% translate "Mot de passe" %}</label>
       <input
         class="auth-form__input"
         type="password"
@@ -58,16 +59,16 @@
     </div>
 
     <a href="{% url 'authentication:password_reset' %}" class="auth-form__forgot">
-      Mot de passe oublié ?
+      {% translate "Mot de passe oublié ?" %}
     </a>
 
-    <button class="auth-btn auth-btn--primary" type="submit">Se connecter</button>
+    <button class="auth-btn auth-btn--primary" type="submit">{% translate "Se connecter" %}</button>
   </form>
 
-  <div class="auth-divider">ou</div>
+  <div class="auth-divider">{% translate "ou" %}</div>
 
   <p class="auth-link-row">
-    Pas encore de compte ?
-    <a href="{% url 'authentication:register' %}">Créer un compte</a>
+    {% translate "Pas encore de compte ?" %}
+    <a href="{% url 'authentication:register' %}">{% translate "Créer un compte" %}</a>
   </p>
 {% endblock %}
