@@ -3492,21 +3492,79 @@ a.app-header__avatar {
 .esg-empty { font-size: 14px; color: var(--color-on-surface-variant); text-align: center; padding: 24px 0; margin: 0; }
 .esg-coming { padding: 40px; }
 
-/* Land use */
-.esg-land { --land-accent: #6B7B3A; }
-.esg-land__table-wrap { overflow-x: auto; }
-.esg-land__table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.esg-land__table th, .esg-land__table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--color-outline-variant); vertical-align: middle; }
-.esg-land__table thead th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--color-on-surface-variant); }
-.esg-land__table tbody th { font-weight: 600; color: var(--color-on-surface); }
-.esg-land__table td { color: var(--color-on-surface-variant); }
-.esg-land__table .esg-land__num { text-align: right; min-width: 160px; }
-.esg-land__value { display: block; font-variant-numeric: tabular-nums; color: var(--color-on-surface); }
-.esg-land__year { font-size: 11px; color: var(--color-on-surface-variant); }
-.esg-land__bar { display: block; height: 4px; margin: 6px 0 0 auto; border-radius: 2px; }
-.esg-land__bar--impact { background: var(--land-accent); }
-.esg-land__bar--surface { background: var(--land-accent); opacity: .4; }
-.esg-land__note { font-size: 12px; color: var(--color-on-surface-variant); line-height: 1.5; margin: 16px 0 0; }
+/* Onglets environnementaux (Land use, Resource use, Pollution, Invasive
+   species). Chaque carte reprend l'accent de son sous-onglet pour les barres
+   et l'indicateur sélectionné : couleurs de data-viz, identiques dans les
+   deux thèmes (DESIGN.md). */
+.esg-land                { --bar-accent: #6B7B3A; }
+.esg-env--resource       { --bar-accent: #2B7A9E; }
+.esg-env--pollution      { --bar-accent: #7A5E9A; }
+.esg-env--invasive       { --bar-accent: #3D8B5C; }
+
+/* Tableau par actif, avec barre proportionnelle sous chaque valeur */
+.esg-table__wrap { overflow-x: auto; }
+.esg-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.esg-table th, .esg-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--color-outline-variant); vertical-align: middle; }
+.esg-table thead th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--color-on-surface-variant); }
+.esg-table thead th .esg-table__unit { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.esg-table tbody th { font-weight: 600; color: var(--color-on-surface); }
+.esg-table td { color: var(--color-on-surface-variant); }
+.esg-table .esg-table__num { text-align: right; min-width: 140px; }
+.esg-table__value { display: block; font-variant-numeric: tabular-nums; color: var(--color-on-surface); }
+.esg-table__year { font-size: 11px; color: var(--color-on-surface-variant); }
+.esg-table__bar { display: block; height: 4px; margin: 6px 0 0 auto; border-radius: 2px; background: var(--bar-accent, var(--color-primary)); }
+.esg-table__bar--muted { opacity: .4; }
+.esg-table__share { font-variant-numeric: tabular-nums; }
+.esg-table .esg-table__none { text-align: center; font-style: italic; padding: 20px 12px; }
+.esg-note { font-size: 12px; color: var(--color-on-surface-variant); line-height: 1.5; margin: 16px 0 0; }
+
+.esg-env__section { color: var(--color-on-surface-variant); margin: 24px 0 8px; }
+.esg-env__breakdown { margin-top: 8px; }
+.esg-env__breakdown-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.esg-env__breakdown-head .esg-env__section { margin-bottom: 8px; }
+.esg-chart__kpis--wrap { flex-wrap: wrap; row-gap: 16px; }
+
+/* Pastille « indicatif » en tête de carte */
+.esg-badge { flex-shrink: 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 4px 10px; border-radius: 999px; background: var(--tint-sand); color: var(--color-on-surface-variant); }
+
+/* Contrôle segmenté (ventilation par actif / par commodité) */
+.esg-seg { display: inline-flex; border: 1px solid var(--color-outline-variant); border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+.esg-seg__btn { padding: 6px 12px; border: 0; background: transparent; color: var(--color-on-surface-variant); font: 500 12px var(--font-family); cursor: pointer; transition: background .15s, color .15s; }
+.esg-seg__btn + .esg-seg__btn { border-left: 1px solid var(--color-outline-variant); }
+.esg-seg__btn:hover { background: var(--color-surface-container); }
+.esg-seg__btn[aria-pressed="true"] { background: var(--color-primary); color: var(--color-on-primary); }
+
+/* Tuiles de KPI (Resource use) */
+.esg-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 8px; }
+.esg-kpi { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border: 1px solid var(--color-outline-variant); border-radius: 8px; border-top: 3px solid var(--bar-accent); }
+.esg-kpi--modelled { border-top-style: dashed; }
+.esg-kpi__value { font-size: 20px; font-weight: 600; color: var(--color-on-surface); font-variant-numeric: tabular-nums; }
+.esg-kpi__unit { font-size: 12px; font-weight: 500; color: var(--color-on-surface-variant); margin-left: 4px; }
+.esg-kpi__label { color: var(--color-on-surface-variant); }
+.esg-kpi__sub { font-size: 12px; color: var(--color-on-surface-variant); }
+
+/* Milieux récepteurs (Pollution) : une colonne par milieu, un bouton par indicateur */
+.esg-media { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 8px; }
+@media (max-width: 900px) { .esg-media { grid-template-columns: 1fr; } }
+.esg-media__group { display: flex; flex-direction: column; gap: 8px; }
+.esg-media__title { display: flex; align-items: center; gap: 8px; color: var(--color-on-surface-variant); margin: 0; }
+.esg-media__title svg { color: var(--bar-accent); }
+.esg-indicator { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 12px 14px; text-align: left; border: 1px solid var(--color-outline-variant); border-left: 3px solid transparent; border-radius: 8px; background: transparent; color: var(--color-on-surface); font-family: var(--font-family); cursor: pointer; transition: background .15s, border-color .15s; }
+.esg-indicator:hover { background: var(--color-surface-container-low); }
+.esg-indicator[aria-pressed="true"] { border-left-color: var(--bar-accent); background: var(--color-surface-container-low); }
+.esg-indicator:disabled { cursor: default; opacity: .6; }
+.esg-indicator__name { font-size: 13px; color: var(--color-on-surface-variant); }
+.esg-indicator__value { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.esg-indicator__unit { font-size: 12px; font-weight: 500; color: var(--color-on-surface-variant); margin-left: 4px; }
+
+/* Exposition (Invasive species) */
+.esg-flag { display: inline-flex; align-items: center; gap: 6px; }
+.esg-flag::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--bar-accent); flex-shrink: 0; }
+.esg-flag__detail { font-size: 12px; color: var(--color-on-surface-variant); }
+.esg-level { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.esg-level--low { background: var(--tint-slate); color: var(--color-on-surface-variant); }
+.esg-level--moderate { background: var(--tint-amber); color: #92400e; }
+.esg-level--high { background: var(--tint-red); color: #991b1b; }
 
 /* ── LEAP tabs ────────────────────────────────────────────────────────── */
 .leap-tabs {
@@ -4742,6 +4800,8 @@ a.app-header__avatar {
 :root[data-theme="dark"] .comp-badge--compliant     { color: #6ee7b7; }
 :root[data-theme="dark"] .comp-badge--partial       { color: #fcd34d; }
 :root[data-theme="dark"] .comp-badge--non_compliant { color: #fca5a5; }
+:root[data-theme="dark"] .esg-level--moderate       { color: #fcd34d; }
+:root[data-theme="dark"] .esg-level--high           { color: #fca5a5; }
 :root[data-theme="dark"] .comp-dr__cond             { color: #c4b5fd; }
 :root[data-theme="dark"] .comp-dr__suggestion       { color: #fcd34d; }
 :root[data-theme="dark"] .risk-pill--high           { color: #ffcaa8; }

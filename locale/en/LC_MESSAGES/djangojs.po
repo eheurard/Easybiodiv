@@ -3,12 +3,11 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: Easybiodiv\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 20:58+0200\n"
+"POT-Creation-Date: 2026-10-21 21:34+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Easybiodiv\n"
 "Language-Team: English\n"
@@ -155,50 +154,110 @@ msgstr "Main commodities"
 msgid "%(pct)s du total"
 msgstr "%(pct)s of total"
 
-#: .\dashboard\static\dashboard\js\esg.js:356 .\dashboard\static\dashboard\js\leap_prepare.js:315
+#: .\dashboard\static\dashboard\js\esg.js:327 .\dashboard\static\dashboard\js\esg.js:393
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:581
+msgid "Actif"
+msgstr "Asset"
+
+#: .\dashboard\static\dashboard\js\esg.js:327 .\dashboard\static\dashboard\js\mesure_empreinte.js:86
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:581
+msgid "Commodité"
+msgstr "Commodity"
+
+#: .\dashboard\static\dashboard\js\esg.js:328 .\dashboard\static\dashboard\js\esg.js:393
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:172
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:582
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:623
+#: .\dashboard\static\dashboard\js\mesure_empreinte.js:650
+#: .\dashboard\static\dashboard\js\portfolio.js:615
+msgid "Pays"
+msgstr "Country"
+
+#: .\dashboard\static\dashboard\js\esg.js:329
+msgid "Pression"
+msgstr "Pressure"
+
+#: .\dashboard\static\dashboard\js\esg.js:330
+msgid "Part"
+msgstr "Share"
+
+#: .\dashboard\static\dashboard\js\esg.js:370
+msgid "Déclaré groupe :"
+msgstr "Reported by group:"
+
+#: .\dashboard\static\dashboard\js\esg.js:373
+msgid "Mesuré, somme des actifs"
+msgstr "Measured, sum of assets"
+
+#: .\dashboard\static\dashboard\js\esg.js:373
+#| msgid "Aucune donnée à simuler."
+msgid "Aucune donnée mesurée"
+msgstr "No measured data"
+
+#: .\dashboard\static\dashboard\js\esg.js:377
+msgid "Modélisé, ReCiPe 2016"
+msgstr "Modelled, ReCiPe 2016"
+
+#: .\dashboard\static\dashboard\js\esg.js:412
+msgid "Aucune mesure par actif : seules des valeurs consolidées sont déclarées."
+msgstr "No measurement by asset: only consolidated values are reported."
+
+#: .\dashboard\static\dashboard\js\esg.js:419
+msgid "Aucun facteur de raréfaction pour les productions de ces actifs."
+msgstr "No scarcity factor for these assets' production."
+
+#: .\dashboard\static\dashboard\js\esg.js:444
+msgid "Importations"
+msgstr "Imports"
+
+#: .\dashboard\static\dashboard\js\esg.js:445
+msgid "Plateforme de transport"
+msgstr "Transport hub"
+
+#: .\dashboard\static\dashboard\js\esg.js:452 .\dashboard\static\dashboard\js\leap_evaluate.js:182
+msgid "Oui"
+msgstr "Yes"
+
+#: .\dashboard\static\dashboard\js\esg.js:633 .\dashboard\static\dashboard\js\leap_prepare.js:315
 #: .\dashboard\static\dashboard\js\leap_prepare.js:417
 msgid "Total"
 msgstr "Total"
 
-#: .\dashboard\static\dashboard\js\esg.js:363
+#: .\dashboard\static\dashboard\js\esg.js:640
 msgid "Projection"
 msgstr "Projection"
 
-#: .\dashboard\static\dashboard\js\esg.js:391 .\dashboard\static\dashboard\js\esg.js:421
+#: .\dashboard\static\dashboard\js\esg.js:668 .\dashboard\static\dashboard\js\esg.js:698
 msgid "Aucune politique enregistrée."
 msgstr "No policy recorded."
 
-#: .\dashboard\static\dashboard\js\esg.js:487
+#: .\dashboard\static\dashboard\js\esg.js:764
 msgid "Période"
 msgstr "Period"
 
-#: .\dashboard\static\dashboard\js\esg.js:509
+#: .\dashboard\static\dashboard\js\esg.js:786
 msgid "Cours (%(ticker)s)"
 msgstr "Share price (%(ticker)s)"
 
-#: .\dashboard\static\dashboard\js\esg.js:517
+#: .\dashboard\static\dashboard\js\esg.js:794
 msgid "Capitalisation"
 msgstr "Market cap"
 
-#: .\dashboard\static\dashboard\js\esg.js:518
+#: .\dashboard\static\dashboard\js\esg.js:795
 msgid "Notation ESG"
 msgstr "ESG rating"
 
-#: .\dashboard\static\dashboard\js\esg.js:519
+#: .\dashboard\static\dashboard\js\esg.js:796
 msgid "Perf. relative"
 msgstr "Relative perf."
 
-#: .\dashboard\static\dashboard\js\esg.js:635 .\dashboard\static\dashboard\js\esg.js:648
+#: .\dashboard\static\dashboard\js\esg.js:912 .\dashboard\static\dashboard\js\esg.js:925
 msgid "Historique"
 msgstr "History"
 
-#: .\dashboard\static\dashboard\js\esg.js:638 .\dashboard\static\dashboard\js\esg.js:650
+#: .\dashboard\static\dashboard\js\esg.js:915 .\dashboard\static\dashboard\js\esg.js:927
 msgid "Projection 2030"
 msgstr "2030 projection"
-
-#: .\dashboard\static\dashboard\js\leap_evaluate.js:182
-msgid "Oui"
-msgstr "Yes"
 
 #: .\dashboard\static\dashboard\js\leap_evaluate.js:183
 msgid "Non"
@@ -322,11 +381,6 @@ msgstr "Switch to light mode"
 msgid "Passer en mode nuit"
 msgstr "Switch to dark mode"
 
-#: .\dashboard\static\dashboard\js\mesure_empreinte.js:86
-#: .\dashboard\static\dashboard\js\mesure_empreinte.js:581
-msgid "Commodité"
-msgstr "Commodity"
-
 #: .\dashboard\static\dashboard\js\mesure_empreinte.js:88
 msgid "Toutes"
 msgstr "All"
@@ -345,22 +399,10 @@ msgstr "Commodities"
 msgid "Actifs"
 msgstr "Assets"
 
-#: .\dashboard\static\dashboard\js\mesure_empreinte.js:172
-#: .\dashboard\static\dashboard\js\mesure_empreinte.js:582
-#: .\dashboard\static\dashboard\js\mesure_empreinte.js:623
-#: .\dashboard\static\dashboard\js\mesure_empreinte.js:650
-#: .\dashboard\static\dashboard\js\portfolio.js:615
-msgid "Pays"
-msgstr "Country"
-
 #: .\dashboard\static\dashboard\js\mesure_empreinte.js:186
 #: .\dashboard\static\dashboard\js\mesure_empreinte.js:339
 msgid "Aucune donnée à afficher."
 msgstr "No data to display."
-
-#: .\dashboard\static\dashboard\js\mesure_empreinte.js:581
-msgid "Actif"
-msgstr "Asset"
 
 #: .\dashboard\static\dashboard\js\mesure_empreinte.js:582
 #: .\dashboard\static\dashboard\js\portfolio.js:503

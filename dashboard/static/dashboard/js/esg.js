@@ -2,7 +2,7 @@
 
 const ESG_COMPANY_KEY = 'selected-company-id';
 
-const ESG_STATE = { data: null };
+const ESG_STATE = { data: null, pollutionKey: null, pollutionView: 'assets' };
 
 let esgScopeView = false;
 const SCOPE_COLORS = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc948'];
@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   esgInitThemeTabs();
   esgInitSubTabs();
+  esgInitPollutionView();
 
   const scopeToggle = document.getElementById('esg-scope-toggle');
   if (scopeToggle) {
@@ -88,6 +89,9 @@ function esgRender(data) {
   ESG_STATE.data = data;
   esgRenderCarbon(data.carbon);
   esgRenderLandUse(data.land_use);
+  esgRenderPollution(data.pollution);
+  esgRenderResourceUse(data.resource_use);
+  esgRenderInvasive(data.invasive_species);
   esgRenderFeatured(data.policies.featured);
   esgRenderFramework(data.policies.framework);
   esgRenderMarket(data.market);
@@ -170,13 +174,286 @@ function esgFmtLand(val) {
 
 
 function esgLandCell(value, year, max, divisor, variant) {
-  if (value == null) return '<td class="esg-land__num">—</td>';
+  if (value == null) return '<td class="esg-table__num">—</td>';
   const pct = max > 0 ? (value / max * 100).toFixed(1) : 0;
-  return '<td class="esg-land__num">' +
-    '<span class="esg-land__value">' + esgFmtLand(value / divisor) +
-    ' <span class="esg-land__year">' + year + '</span></span>' +
-    '<span class="esg-land__bar esg-land__bar--' + variant + '" style="width:' + pct + '%"></span>' +
+  const muted = variant === 'surface' ? ' esg-table__bar--muted' : '';
+  return '<td class="esg-table__num">' +
+    '<span class="esg-table__value">' + esgFmtLand(value / divisor) +
+    ' <span class="esg-table__year">' + year + '</span></span>' +
+    '<span class="esg-table__bar' + muted + '" style="width:' + pct + '%"></span>' +
     '</td>';
+}
+
+
+// ── Pollution, Resource use, Invasive species ──────────────────────────────
+
+function esgSetText(key, text) {
+  const el = document.querySelector('[data-esg="' + key + '"]');
+  if (el) el.textContent = text;
+}
+
+
+// Quantité compacte, en HTML : k / M / G au-delà de 10 000, notation ×10ⁿ sous
+// 0,01 (les pressions de pollution s'étalent de 1e-6 à 1e9).
+function esgFmtQty(val) {
+  if (val == null) return '—';
+  const abs = Math.abs(val);
+  const loc = (v, digits) => v.toLocaleString(APP_LOCALE, { maximumFractionDigits: digits });
+  if (abs === 0) return '0';
+  if (abs >= 1e9) return loc(val / 1e9, 1) + ' G';
+  if (abs >= 1e6) return loc(val / 1e6, 1) + ' M';
+  if (abs >= 1e4) return loc(val / 1e3, 1) + ' k';
+  if (abs >= 1) return loc(val, abs >= 100 ? 0 : 1);
+  if (abs >= 0.01) return loc(val, 3);
+  const exp = Math.floor(Math.log10(abs));
+  return loc(val / Math.pow(10, exp), 2) + '×10<sup>' + exp + '</sup>';
+}
+
+
+function esgFmtShare(value, total) {
+  if (!total) return '—';
+  return (value / total * 100).toLocaleString(APP_LOCALE, {
+    minimumFractionDigits: 1, maximumFractionDigits: 1,
+  }) + ' %';
+}
+
+
+function esgHeadCell(label, unit, numeric) {
+  return '<th scope="col"' + (numeric ? ' class="esg-table__num"' : '') + '>' + escHtml(label) +
+    (unit ? ' <span class="esg-table__unit">(' + escHtml(unit) + ')</span>' : '') + '</th>';
+}
+
+
+// Cellule numérique avec barre proportionnelle au maximum de la colonne.
+function esgQtyCell(value, max, year) {
+  if (value == null) return '<td class="esg-table__num">—</td>';
+  const pct = max > 0 ? (value / max * 100).toFixed(1) : 0;
+  return '<td class="esg-table__num">' +
+    '<span class="esg-table__value">' + esgFmtQty(value) +
+    (year ? ' <span class="esg-table__year">' + year + '</span>' : '') + '</span>' +
+    '<span class="esg-table__bar" style="width:' + pct + '%"></span>' +
+    '</td>';
+}
+
+
+function esgEmptyRow(colspan, message) {
+  return '<tr><td colspan="' + colspan + '" class="esg-table__none">' + escHtml(message) + '</td></tr>';
+}
+
+
+// Pictogrammes des milieux récepteurs (trait 1,3 px, comme les sous-onglets).
+const ESG_MEDIA_ICONS = {
+  air: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">' +
+    '<path d="M1.5 5h7.5a2 2 0 10-2-2M1.5 8.5h10a1.8 1.8 0 11-1.8 1.8M1.5 12h5" ' +
+    'stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+  water: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">' +
+    '<path d="M7 1.5L4 6.5a3.5 3.5 0 107 0L7 1.5z" stroke="currentColor" stroke-width="1.3" ' +
+    'stroke-linejoin="round"/></svg>',
+  soil: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">' +
+    '<path d="M1.5 5.5h11M1.5 9h11M1.5 12.5h11" stroke="currentColor" stroke-width="1.3" ' +
+    'stroke-linecap="round"/><path d="M7 5.5V2M5.5 3.5L7 2l1.5 1.5" stroke="currentColor" ' +
+    'stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+
+
+function esgPollutionIndicators(pollution) {
+  return pollution.media.reduce((all, medium) => all.concat(medium.indicators), []);
+}
+
+
+function esgRenderPollution(pollution) {
+  const mediaEl = document.getElementById('esg-pollution-media');
+  if (!mediaEl || !pollution) return;
+
+  const withData = esgPollutionIndicators(pollution).filter(i => i.total != null);
+  const empty = document.getElementById('esg-pollution-empty');
+  const breakdown = document.getElementById('esg-pollution-breakdown');
+  if (empty) empty.hidden = withData.length > 0;
+  if (breakdown) breakdown.hidden = withData.length === 0;
+
+  // L'indicateur choisi survit au changement d'entreprise s'il y a des données.
+  if (!withData.some(i => i.key === ESG_STATE.pollutionKey)) {
+    ESG_STATE.pollutionKey = withData.length ? withData[0].key : null;
+  }
+
+  mediaEl.innerHTML = pollution.media.map(medium =>
+    '<div class="esg-media__group">' +
+    '<h4 class="esg-media__title label-caps">' + (ESG_MEDIA_ICONS[medium.key] || '') +
+    escHtml(medium.name) + '</h4>' +
+    medium.indicators.map(i =>
+      '<button type="button" class="esg-indicator" data-key="' + escHtml(i.key) + '"' +
+      ' aria-pressed="' + (i.key === ESG_STATE.pollutionKey) + '"' +
+      (i.total == null ? ' disabled' : '') + '>' +
+      '<span class="esg-indicator__name">' + escHtml(i.name) + '</span>' +
+      '<span class="esg-indicator__value">' + esgFmtQty(i.total) +
+      (i.total != null ? '<span class="esg-indicator__unit">' + escHtml(i.unit) + '</span>' : '') +
+      '</span></button>'
+    ).join('') +
+    '</div>'
+  ).join('');
+
+  mediaEl.querySelectorAll('.esg-indicator').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ESG_STATE.pollutionKey = btn.dataset.key;
+      mediaEl.querySelectorAll('.esg-indicator').forEach(b => {
+        b.setAttribute('aria-pressed', String(b === btn));
+      });
+      esgRenderPollutionBreakdown();
+    });
+  });
+  esgRenderPollutionBreakdown();
+}
+
+
+function esgRenderPollutionBreakdown() {
+  const pollution = ESG_STATE.data && ESG_STATE.data.pollution;
+  const head = document.getElementById('esg-pollution-head');
+  const rows = document.getElementById('esg-pollution-rows');
+  const title = document.getElementById('esg-pollution-selected');
+  if (!pollution || !head || !rows) return;
+
+  const indicator = esgPollutionIndicators(pollution).find(i => i.key === ESG_STATE.pollutionKey);
+  if (!indicator) {
+    head.innerHTML = '';
+    rows.innerHTML = '';
+    return;
+  }
+  if (title) title.textContent = indicator.name;
+
+  const byAsset = ESG_STATE.pollutionView === 'assets';
+  const items = byAsset ? indicator.assets : indicator.commodities;
+  const max = Math.max(0, ...items.map(r => r.value));
+  head.innerHTML = '<tr>' +
+    esgHeadCell(byAsset ? gettext('Actif') : gettext('Commodité')) +
+    (byAsset ? esgHeadCell(gettext('Pays')) : '') +
+    esgHeadCell(gettext('Pression'), indicator.unit, true) +
+    esgHeadCell(gettext('Part'), '', true) +
+    '</tr>';
+  rows.innerHTML = items.map(r =>
+    '<tr>' +
+    '<th scope="row">' + escHtml(r.name) + '</th>' +
+    (byAsset ? '<td>' + escHtml(r.country || '—') + '</td>' : '') +
+    esgQtyCell(r.value, max, byAsset ? r.year : null) +
+    '<td class="esg-table__num esg-table__share">' + esgFmtShare(r.value, indicator.total) + '</td>' +
+    '</tr>'
+  ).join('');
+}
+
+
+function esgInitPollutionView() {
+  const buttons = document.querySelectorAll('[data-pollution-view]');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      ESG_STATE.pollutionView = btn.dataset.pollutionView;
+      buttons.forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+      esgRenderPollutionBreakdown();
+    });
+  });
+}
+
+
+function esgRenderResourceUse(resource) {
+  const kpis = document.getElementById('esg-resource-kpis');
+  if (!kpis || !resource) return;
+
+  const tile = (label, total, unit, sub, modelled) =>
+    '<div class="esg-kpi' + (modelled ? ' esg-kpi--modelled' : '') + '">' +
+    '<span class="esg-kpi__label label-caps">' + escHtml(label) + '</span>' +
+    '<span class="esg-kpi__value">' + esgFmtQty(total) +
+    (total != null ? '<span class="esg-kpi__unit">' + escHtml(unit) + '</span>' : '') + '</span>' +
+    '<span class="esg-kpi__sub">' + sub + '</span>' +
+    '</div>';
+  kpis.innerHTML =
+    resource.inventory.map(i => tile(
+      i.name, i.total, i.unit,
+      i.declared_group
+        ? escHtml(gettext('Déclaré groupe :')) + ' ' + esgFmtQty(i.declared_group.value) + ' ' +
+          escHtml(i.unit) + ' (' + i.declared_group.year + ')'
+        : escHtml(i.total != null
+          ? gettext('Mesuré, somme des actifs') : gettext('Aucune donnée mesurée')),
+      false,
+    )).join('') +
+    resource.scarcity.map(s => tile(
+      s.name, s.total, s.unit, escHtml(gettext('Modélisé, ReCiPe 2016')), true,
+    )).join('');
+
+  const assets = resource.assets;
+  const empty = document.getElementById('esg-resource-empty');
+  if (empty) empty.hidden = assets.length > 0;
+
+  const table = (headId, rowsId, columns, valueOf, yearOf, noneMessage) => {
+    const head = document.getElementById(headId);
+    const rows = document.getElementById(rowsId);
+    if (!head || !rows) return;
+    if (!assets.length) {
+      head.innerHTML = '';
+      rows.innerHTML = '';
+      return;
+    }
+    head.innerHTML = '<tr>' + esgHeadCell(gettext('Actif')) + esgHeadCell(gettext('Pays')) +
+      columns.map(c => esgHeadCell(c.name, c.unit, true)).join('') + '</tr>';
+    const maxes = columns.map(c => Math.max(0, ...assets.map(a => valueOf(a, c.key) || 0)));
+    const measured = assets.some(a => columns.some(c => valueOf(a, c.key) != null));
+    rows.innerHTML = measured
+      ? assets.map(a =>
+          '<tr>' +
+          '<th scope="row">' + escHtml(a.name) + '</th>' +
+          '<td>' + escHtml(a.country || '—') + '</td>' +
+          columns.map((c, idx) => esgQtyCell(valueOf(a, c.key), maxes[idx], yearOf(a, c.key))).join('') +
+          '</tr>'
+        ).join('')
+      : esgEmptyRow(columns.length + 2, noneMessage);
+  };
+
+  table(
+    'esg-resource-inventory-head', 'esg-resource-inventory-rows', resource.inventory,
+    (a, key) => (a[key] ? a[key].value : null),
+    (a, key) => (a[key] ? a[key].year : null),
+    gettext('Aucune mesure par actif : seules des valeurs consolidées sont déclarées.'),
+  );
+  table(
+    'esg-resource-scarcity-head', 'esg-resource-scarcity-rows', resource.scarcity,
+    // Zéro = aucun facteur de caractérisation pour les productions de l'actif.
+    (a, key) => (a.scarcity && a.scarcity[key] ? a.scarcity[key] : null),
+    (a) => a.scarcity_year,
+    gettext('Aucun facteur de raréfaction pour les productions de ces actifs.'),
+  );
+}
+
+
+function esgRenderInvasive(ias) {
+  const tbody = document.getElementById('esg-ias-rows');
+  if (!tbody || !ias) return;
+
+  esgSetText('ias-screened', ias.counts.screened);
+  esgSetText('ias-pathway', ias.counts.with_pathway);
+  esgSetText('ias-high', ias.counts.high);
+  esgSetText('ias-sensitive', ias.counts.sensitive);
+
+  const empty = document.getElementById('esg-ias-empty');
+  if (empty) empty.hidden = ias.assets.length > 0;
+
+  const flag = (label, detail) =>
+    '<span class="esg-flag">' + escHtml(label) + '</span>' +
+    (detail ? '<br><span class="esg-flag__detail">' + escHtml(detail) + '</span>' : '');
+
+  tbody.innerHTML = ias.assets.map(a => {
+    let trade = '—';
+    if (a.trade) {
+      trade = a.trade_origins.length
+        ? flag(gettext('Importations'), a.trade_origins.join(', '))
+        : flag(gettext('Plateforme de transport'));
+    }
+    return '<tr>' +
+      '<th scope="row">' + escHtml(a.name) + '</th>' +
+      '<td>' + escHtml(a.country || '—') + '</td>' +
+      '<td>' + trade + '</td>' +
+      '<td>' + (a.activity ? flag(a.activity_label) : '—') + '</td>' +
+      '<td>' + (a.sensitive ? flag(a.sensitive_label || gettext('Oui')) : '—') + '</td>' +
+      '<td class="esg-table__num"><span class="esg-level esg-level--' + escHtml(a.level) + '">' +
+      escHtml(a.level_label) + '</span></td>' +
+      '</tr>';
+  }).join('');
 }
 
 

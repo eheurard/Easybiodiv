@@ -99,21 +99,21 @@
             <span class="esg-chart__kpi-label label-caps">{% translate "Déclaré groupe" %}</span>
           </div>
         </div>
-        <div class="esg-land__table-wrap">
-          <table class="esg-land__table">
+        <div class="esg-table__wrap">
+          <table class="esg-table">
             <thead>
               <tr>
                 <th scope="col">{% translate "Actif" %}</th>
                 <th scope="col">{% translate "Pays" %}</th>
-                <th scope="col" class="esg-land__num">{% translate "Impact ReCiPe (m²a crop-eq)" %}</th>
-                <th scope="col" class="esg-land__num">{% translate "Emprise au sol (ha)" %}</th>
+                <th scope="col" class="esg-table__num">{% translate "Impact ReCiPe (m²a crop-eq)" %}</th>
+                <th scope="col" class="esg-table__num">{% translate "Emprise au sol (ha)" %}</th>
               </tr>
             </thead>
             <tbody id="esg-land-rows"></tbody>
           </table>
         </div>
         <p class="esg-empty" id="esg-land-empty" hidden>{% translate "Aucun actif détenu par cette entreprise." %}</p>
-        <p class="esg-land__note">
+        <p class="esg-note">
           {% blocktranslate trimmed %}
           Impact = production de la dernière année × facteur de caractérisation ReCiPe 2016
           « land use » régionalisé (région, sinon pays, sinon global). Actifs comptés à 100 %,
@@ -126,9 +126,41 @@
 
     <!-- Resource use -->
     <div class="esg-sub-panel" data-sub-panel="resource-use" hidden>
-      <div class="card esg-coming">
-        <p class="esg-empty">{% translate "Resource use — à venir, aucune donnée disponible." %}</p>
-      </div>
+      <section class="card esg-env esg-env--resource">
+        <div class="esg-chart__head">
+          <div>
+            <h3 class="esg-chart__title">{% translate "Utilisation des ressources" %}</h3>
+            <p class="esg-chart__sub">{% translate "Consommations mesurées des actifs détenus et raréfaction des ressources (ReCiPe 2016 midpoint)" %}</p>
+          </div>
+        </div>
+        <div class="esg-kpi-grid" id="esg-resource-kpis"></div>
+
+        <h4 class="esg-env__section label-caps">{% translate "Inventaire mesuré par actif" %}</h4>
+        <div class="esg-table__wrap">
+          <table class="esg-table">
+            <thead id="esg-resource-inventory-head"></thead>
+            <tbody id="esg-resource-inventory-rows"></tbody>
+          </table>
+        </div>
+
+        <h4 class="esg-env__section label-caps">{% translate "Raréfaction des ressources par actif" %}</h4>
+        <div class="esg-table__wrap">
+          <table class="esg-table">
+            <thead id="esg-resource-scarcity-head"></thead>
+            <tbody id="esg-resource-scarcity-rows"></tbody>
+          </table>
+        </div>
+        <p class="esg-empty" id="esg-resource-empty" hidden>{% translate "Aucun actif détenu par cette entreprise." %}</p>
+        <p class="esg-note">
+          {% blocktranslate trimmed %}
+          Inventaire : flux mesurés de chaque actif à sa dernière année (eau et énergie consommées,
+          déchets générés). Raréfaction : production de la dernière année × facteurs ReCiPe 2016
+          « fossil » et « mineral resource scarcity » régionalisés. Actifs comptés à 100 %, sans
+          pondération par la part de détention. Les consommations déclarées au niveau du groupe ne
+          sont pas ventilées par actif et sont affichées à part.
+          {% endblocktranslate %}
+        </p>
+      </section>
     </div>
 
     <!-- Climate change -->
@@ -213,16 +245,99 @@
 
     <!-- Pollution -->
     <div class="esg-sub-panel" data-sub-panel="pollution" hidden>
-      <div class="card esg-coming">
-        <p class="esg-empty">{% translate "Pollution — à venir, aucune donnée disponible." %}</p>
-      </div>
+      <section class="card esg-env esg-env--pollution">
+        <div class="esg-chart__head">
+          <div>
+            <h3 class="esg-chart__title">{% translate "Pressions de pollution" %}</h3>
+            <p class="esg-chart__sub">{% translate "Impacts ReCiPe 2016 midpoint des actifs détenus, par milieu récepteur" %}</p>
+          </div>
+        </div>
+        <div class="esg-media" id="esg-pollution-media" role="group" aria-label="{% translate 'Indicateur de pollution' %}"></div>
+
+        <div class="esg-env__breakdown" id="esg-pollution-breakdown">
+          <div class="esg-env__breakdown-head">
+            <h4 class="esg-env__section label-caps" id="esg-pollution-selected">—</h4>
+            <div class="esg-seg" role="group" aria-label="{% translate 'Ventilation' %}">
+              <button type="button" class="esg-seg__btn" data-pollution-view="assets" aria-pressed="true">{% translate "Par actif" %}</button>
+              <button type="button" class="esg-seg__btn" data-pollution-view="commodities" aria-pressed="false">{% translate "Par commodité" %}</button>
+            </div>
+          </div>
+          <div class="esg-table__wrap">
+            <table class="esg-table">
+              <thead id="esg-pollution-head"></thead>
+              <tbody id="esg-pollution-rows"></tbody>
+            </table>
+          </div>
+        </div>
+        <p class="esg-empty" id="esg-pollution-empty" hidden>{% translate "Aucune pression de pollution modélisée pour cette entreprise." %}</p>
+        <p class="esg-note">
+          {% blocktranslate trimmed %}
+          Pression = production de la dernière année × facteur de caractérisation ReCiPe 2016
+          midpoint régionalisé (région, sinon pays, sinon global). Milieu récepteur selon ESRS E2 :
+          l'acidification terrestre et l'appauvrissement de l'ozone résultent d'émissions dans
+          l'air. Actifs comptés à 100 %, sans pondération par la part de détention. Ces valeurs
+          sont modélisées, non mesurées.
+          {% endblocktranslate %}
+        </p>
+      </section>
     </div>
 
     <!-- Invasive species -->
     <div class="esg-sub-panel" data-sub-panel="invasive-species" hidden>
-      <div class="card esg-coming">
-        <p class="esg-empty">{% translate "Invasive species — à venir, aucune donnée disponible." %}</p>
-      </div>
+      <section class="card esg-env esg-env--invasive">
+        <div class="esg-chart__head">
+          <div>
+            <h3 class="esg-chart__title">{% translate "Espèces exotiques envahissantes" %}</h3>
+            <p class="esg-chart__sub">{% translate "Exposition des actifs détenus aux voies d'introduction" %}</p>
+          </div>
+          <span class="esg-badge">{% translate "Criblage indicatif" %}</span>
+        </div>
+        <div class="esg-chart__kpis esg-chart__kpis--wrap">
+          <div class="esg-chart__kpi">
+            <span class="esg-chart__kpi-value" data-esg="ias-screened">—</span>
+            <span class="esg-chart__kpi-label label-caps">{% translate "Actifs criblés" %}</span>
+          </div>
+          <div class="esg-chart__kpi">
+            <span class="esg-chart__kpi-value" data-esg="ias-pathway">—</span>
+            <span class="esg-chart__kpi-label label-caps">{% translate "Avec voie d'introduction" %}</span>
+          </div>
+          <div class="esg-chart__kpi">
+            <span class="esg-chart__kpi-value" data-esg="ias-high">—</span>
+            <span class="esg-chart__kpi-label label-caps">{% translate "Exposition élevée" %}</span>
+          </div>
+          <div class="esg-chart__kpi">
+            <span class="esg-chart__kpi-value" data-esg="ias-sensitive">—</span>
+            <span class="esg-chart__kpi-label label-caps">{% translate "Près d'une zone sensible" %}</span>
+          </div>
+        </div>
+        <div class="esg-table__wrap">
+          <table class="esg-table">
+            <thead>
+              <tr>
+                <th scope="col">{% translate "Actif" %}</th>
+                <th scope="col">{% translate "Pays" %}</th>
+                <th scope="col">{% translate "Commerce international" %}</th>
+                <th scope="col">{% translate "Activité" %}</th>
+                <th scope="col">{% translate "Zone sensible" %}</th>
+                <th scope="col" class="esg-table__num">{% translate "Exposition" %}</th>
+              </tr>
+            </thead>
+            <tbody id="esg-ias-rows"></tbody>
+          </table>
+        </div>
+        <p class="esg-empty" id="esg-ias-empty" hidden>{% translate "Aucun actif détenu par cette entreprise." %}</p>
+        <p class="esg-note">
+          {% blocktranslate trimmed %}
+          Criblage des voies d'introduction de la CBD (2014) : commerce international
+          (approvisionnements venant d'un autre pays, plateformes de transport), activité
+          (cultures et plantations, sols mis à nu par l'extraction). Une voie donne une
+          exposition modérée, deux une exposition élevée ; la proximité d'une zone sensible
+          relève l'exposition d'un niveau. Ce criblage ne mesure pas la présence d'espèces
+          envahissantes : il oriente les inventaires de terrain et la consultation des
+          registres (GRIIS).
+          {% endblocktranslate %}
+        </p>
+      </section>
     </div>
 
   </div>

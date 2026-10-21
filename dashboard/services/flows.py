@@ -136,7 +136,8 @@ def supplies_to(asset_ids, company=None):
     rows = list(
         Flow.objects.filter(kind=FlowKind.SUPPLY).filter(destination)
         .select_related(
-            'what', 'from_asset__country', 'from_region__country', 'to_asset',
+            'what', 'from_asset__country', 'from_region__country', 'from_country',
+            'to_asset',
         )
         .order_by('pk')
     )

@@ -19,6 +19,7 @@ from .services.impacts import build_cf_index, cf_value, CAT_ECOSYSTEM_DIVERSITY
 from .services.supply import TIER_LABELS, TIER_TO_SCOPE
 from .services.hazards import PHYSICAL_RISKS
 from .services.stress_test import get_stress_test_data
+from .services import esg_environment
 from .services import flows as flow_service
 
 from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
@@ -1369,25 +1370,11 @@ def _get_esg_land_use(company):
     régionalisé) et emprise au sol mesurée, par actif détenu, chacun à sa
     dernière année. Pas de pondération par la part de détention, comme la page
     Comparer. L'emprise déclarée au niveau du groupe est rendue à part."""
-    assets = list(
-        Asset.objects.owned_by(company)
-        .select_related('country').distinct().order_by('name')
-    )
+    assets = esg_environment.owned_assets(company)
     asset_ids = [a.pk for a in assets]
-    productions = flow_service.latest_productions(asset_ids)
-    cf_index = build_cf_index(
-        commodity_ids={p.what_id for p in productions},
-        category_keys=[ESG_LAND_USE_CATEGORY],
+    impacts, _by_commodity = esg_environment.owned_asset_impacts(
+        assets, [ESG_LAND_USE_CATEGORY],
     )
-    asset_map = {a.pk: a for a in assets}
-    impacts = {}
-    for p in productions:
-        asset = asset_map[p.from_asset_id]
-        impact = impacts.setdefault(asset.pk, {'value': 0.0, 'year': p.year})
-        impact['value'] += p.quantity * cf_value(
-            cf_index, p.what_id, ESG_LAND_USE_CATEGORY,
-            asset.subnational_region_id, asset.country_id,
-        )
     surfaces = flow_service.latest_inventory(asset_ids, ['surface_area'])
     surface_years = flow_service.latest_inventory_years(asset_ids, ['surface_area'])
 
@@ -1398,7 +1385,7 @@ def _get_esg_land_use(company):
         rows.append({
             'name': asset.name,
             'country': asset.country.name if asset.country else None,
-            'impact': round(impact['value'], 2) if impact else None,
+            'impact': round(impact[ESG_LAND_USE_CATEGORY], 2) if impact else None,
             'impact_year': impact['year'] if impact else None,
             'surface': round(surface['value'], 2) if surface else None,
             'surface_year': surface_years.get(asset.pk),
@@ -1478,6 +1465,9 @@ def _get_esg_data(company):
         'company_name': company.name,
         'carbon': _get_esg_carbon(company),
         'land_use': _get_esg_land_use(company),
+        'pollution': esg_environment.get_pollution(company),
+        'resource_use': esg_environment.get_resource_use(company),
+        'invasive_species': esg_environment.get_invasive_species(company),
         'policies': _get_esg_policies(company),
         'market': get_market_data(company),
         'news': [],
