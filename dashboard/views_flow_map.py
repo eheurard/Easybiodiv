@@ -51,6 +51,7 @@ def flow_map(request):
         'initial_data': initial_data,
         'flow_rules': _flow_rules(),
         'kinds': [{'value': value, 'label': str(label)} for value, label in FlowKind.choices],
+        'scopes': [{'value': value, 'label': str(label)} for value, label in Flow.Scope.choices],
         'can_edit': bool(user.is_authenticated and user.role == 'CREATOR'),
     })
 

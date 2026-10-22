@@ -1,0 +1,124 @@
+{% load i18n %}
+{# Panneau latéral de saisie d'un flux (Créateurs) : rempli par js/flow_map_panel.js. #}
+<aside class="fm-panel" id="flow-map-panel" aria-labelledby="fm-panel-title" tabindex="-1" hidden>
+  <header class="fm-panel__head">
+    <h2 class="fm-panel__title" id="fm-panel-title"></h2>
+    <button type="button" class="fm-panel__close" id="fm-panel-close"
+            aria-label="{% translate 'Fermer sans enregistrer' %}"
+            title="{% translate 'Fermer sans enregistrer' %}">✕</button>
+  </header>
+
+  <fieldset class="fm-panel__flows" id="fm-panel-flows" hidden>
+    <legend class="label-caps">{% translate "Flux de cette flèche" %}</legend>
+    <div class="fm-panel__flow-list" id="fm-panel-flow-list"></div>
+  </fieldset>
+
+  <form class="fm-panel__form" id="fm-panel-form" novalidate>
+    <p class="fm-panel__route" id="fm-panel-route"></p>
+    <p class="fm-panel__error fm-panel__error--all" id="fm-error-__all__" role="alert"
+       tabindex="-1" hidden></p>
+
+    <fieldset class="fm-panel__field">
+      <legend class="form-label">{% translate "Nature" %}</legend>
+      <div class="fm-panel__kinds" id="fm-panel-kinds"></div>
+      <p class="fm-panel__error" id="fm-error-kind" hidden></p>
+    </fieldset>
+
+    <div class="fm-panel__field fm-combo">
+      <label class="form-label" for="fm-what">{% translate "Commodité" %}</label>
+      <input type="text" class="form-input" id="fm-what" autocomplete="off" role="combobox"
+             aria-autocomplete="list" aria-expanded="false" aria-controls="fm-what-list"
+             aria-describedby="fm-error-what"
+             placeholder="{% translate 'Rechercher (2 caractères minimum)' %}">
+      <ul class="fm-combo__list" id="fm-what-list" role="listbox"
+          aria-label="{% translate 'Commodités trouvées' %}" hidden></ul>
+      <div class="fm-combo__create" id="fm-what-create" hidden>
+        <label class="form-label" for="fm-what-unit" id="fm-what-unit-label"></label>
+        <div class="fm-combo__create-row">
+          <input type="text" class="form-input" id="fm-what-unit" maxlength="255"
+                 placeholder="{% translate 'tonnes' %}">
+          <button type="button" class="btn btn--primary fm-panel__small" id="fm-what-create-ok">
+            {% translate "Créer" %}
+          </button>
+          <button type="button" class="btn btn--secondary fm-panel__small"
+                  id="fm-what-create-cancel">{% translate "Annuler" %}</button>
+        </div>
+      </div>
+      <p class="fm-panel__error" id="fm-error-what" hidden></p>
+    </div>
+
+    <div class="fm-panel__row">
+      <div class="fm-panel__field fm-panel__field--wide">
+        <label class="form-label" for="fm-quantity">{% translate "Quantité" %}</label>
+        <input type="text" class="form-input" id="fm-quantity" inputmode="decimal"
+               autocomplete="off" aria-describedby="fm-error-quantity">
+        <p class="fm-panel__error" id="fm-error-quantity" hidden></p>
+      </div>
+      <div class="fm-panel__field">
+        <span class="form-label" id="fm-unit-label">{% translate "Unité" %}</span>
+        <output class="fm-panel__unit" id="fm-unit" aria-labelledby="fm-unit-label">—</output>
+      </div>
+      <div class="fm-panel__field">
+        <label class="form-label" for="fm-year">{% translate "Année" %}</label>
+        <input type="number" class="form-input" id="fm-year" min="1900" max="2100" step="1"
+               inputmode="numeric" aria-describedby="fm-error-year">
+        <p class="fm-panel__error" id="fm-error-year" hidden></p>
+      </div>
+    </div>
+
+    <details class="fm-panel__more" id="fm-panel-more">
+      <summary>{% translate "Facultatif" %}</summary>
+      <div class="fm-panel__row">
+        <div class="fm-panel__field">
+          <label class="form-label" for="fm-tier">{% translate "Tier" %}</label>
+          <select class="form-input" id="fm-tier" aria-describedby="fm-error-tier">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+          <p class="fm-panel__error" id="fm-error-tier" hidden></p>
+        </div>
+        <div class="fm-panel__field fm-panel__field--wide" id="fm-scope-field" hidden>
+          <label class="form-label" for="fm-scope">{% translate "Scope GES" %}</label>
+          <select class="form-input" id="fm-scope" aria-describedby="fm-error-scope">
+            {% for scope in scopes %}
+            <option value="{{ scope.value }}">{{ scope.label }}</option>
+            {% endfor %}
+          </select>
+          <p class="fm-panel__error" id="fm-error-scope" hidden></p>
+        </div>
+      </div>
+      <div class="fm-panel__row">
+        <div class="fm-panel__field fm-panel__field--wide">
+          <label class="form-label" for="fm-source">{% translate "Source" %}</label>
+          <input type="text" class="form-input" id="fm-source" maxlength="255"
+                 aria-describedby="fm-error-source">
+          <p class="fm-panel__error" id="fm-error-source" hidden></p>
+        </div>
+        <div class="fm-panel__field fm-panel__field--wide">
+          <label class="form-label" for="fm-reference">{% translate "Référence" %}</label>
+          <input type="text" class="form-input" id="fm-reference" maxlength="255"
+                 aria-describedby="fm-error-reference">
+          <p class="fm-panel__error" id="fm-error-reference" hidden></p>
+        </div>
+      </div>
+    </details>
+
+    <div class="fm-panel__actions">
+      <button type="submit" class="btn btn--primary" id="fm-save">
+        {% translate "Enregistrer" %}
+      </button>
+      <button type="button" class="btn btn--secondary" id="fm-cancel">
+        {% translate "Annuler" %}
+      </button>
+      <button type="button" class="btn fm-panel__delete" id="fm-delete" hidden>
+        {% translate "Supprimer" %}
+      </button>
+    </div>
+  </form>
+
+  <button type="button" class="fm-panel__add" id="fm-panel-add" hidden>
+    {% translate "+ Ajouter un flux entre ces deux blocs" %}
+  </button>
+</aside>

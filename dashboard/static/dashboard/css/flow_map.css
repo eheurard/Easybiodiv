@@ -119,8 +119,10 @@
 .flow-map__swatch--production  { background: var(--fm-production); }
 
 /* ── Plateau ──────────────────────────────────────────────────────────────── */
+/* Le panneau de saisie (Créateurs) s'ouvre à droite, dans le plateau. */
 .flow-map__board {
   position: relative;
+  display: flex;
   height: max(420px, calc(100vh - var(--header-height) - 200px));
   height: max(420px, calc(100dvh - var(--header-height) - 200px));
   background: var(--color-surface-container-lowest);
@@ -136,7 +138,8 @@
 
 .flow-map__svg {
   display: block;
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   height: 100%;
   cursor: grab;
   touch-action: none;
@@ -146,6 +149,15 @@
 
 .flow-map__svg.is-panning {
   cursor: grabbing;
+}
+
+.flow-map__svg:focus {
+  outline: none;
+}
+
+.flow-map__svg.is-tracing,
+.flow-map__svg.is-tracing .fm-block {
+  cursor: crosshair;
 }
 
 .flow-map__empty {
@@ -381,4 +393,530 @@
 /* Lien du pied de barre latérale, page en cours. */
 .sidebar__footer-link.active {
   box-shadow: inset 0 0 0 2px var(--color-on-primary);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SAISIE DES FLUX — js/flow_map_panel.js (Créateurs)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── « + » des blocs ──────────────────────────────────────────────────────── */
+.fm-port {
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.fm-block:hover .fm-port,
+.fm-block:focus-within .fm-port,
+.fm-block.is-trace-source .fm-port,
+.fm-port:focus {
+  opacity: 1;
+}
+
+.fm-port circle {
+  fill: var(--color-surface-container-lowest);
+  stroke: var(--color-primary);
+  stroke-width: 1.5;
+}
+
+.fm-port text {
+  fill: var(--color-primary);
+  font-size: 15px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.fm-port:hover circle,
+.fm-port:focus-visible circle {
+  fill: var(--color-primary);
+}
+
+.fm-port:hover text,
+.fm-port:focus-visible text {
+  fill: var(--color-on-primary);
+}
+
+.fm-port:focus,
+.fm-edge:focus {
+  outline: none;
+}
+
+.fm-edge:focus-visible .fm-edge__hit {
+  stroke: var(--fm-kind);
+  stroke-opacity: 0.3;
+}
+
+.fm-block.is-trace-source .fm-block__card {
+  stroke: var(--color-primary);
+  stroke-width: 2;
+  stroke-dasharray: 6 3;
+}
+
+.flow-map__svg.is-tracing .fm-block:not(.is-trace-source):hover .fm-block__card,
+.flow-map__svg.is-tracing .fm-block:focus-visible .fm-block__card {
+  stroke: var(--color-primary);
+  stroke-width: 2;
+}
+
+/* ── Bandeaux : tracé en cours, message ───────────────────────────────────── */
+.flow-map__trace,
+.flow-map__notice {
+  position: absolute;
+  left: 50%;
+  z-index: 5;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(40rem, calc(100% - 32px));
+  margin: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  font-size: var(--text-body-sm-size);
+}
+
+/* Tracé en cours : en bas (la carte est cadrée par le haut) ; message : sous le bandeau. */
+.flow-map__trace {
+  bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  background: var(--scrim-panel);
+  border: 1px solid var(--color-primary);
+  color: var(--color-on-surface);
+}
+
+.flow-map__notice {
+  top: 72px;
+  padding: 10px 16px;
+  background: var(--color-inverse-surface);
+  color: var(--color-inverse-on-surface);
+}
+
+.flow-map__trace[hidden],
+.flow-map__notice[hidden] {
+  display: none;
+}
+
+/* ── Panneau latéral ──────────────────────────────────────────────────────── */
+.fm-panel {
+  position: relative;
+  z-index: 6;
+  flex: 0 0 min(380px, 45%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+  background: var(--color-surface-container-lowest);
+  border-left: 1px solid var(--color-outline-variant);
+  font-size: var(--text-body-sm-size);
+  color: var(--color-on-surface);
+}
+
+.fm-panel[hidden] {
+  display: none;
+}
+
+.fm-panel:focus {
+  outline: none;
+}
+
+.fm-panel__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.fm-panel__title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--text-body-lg-size);
+  font-weight: 600;
+}
+
+.fm-panel__close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--color-on-surface-variant);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.fm-panel__close:hover,
+.fm-panel__close:focus-visible {
+  border-color: var(--color-outline-variant);
+  background: var(--color-surface-container-high);
+  outline: none;
+}
+
+.fm-panel__route {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+}
+
+.fm-panel__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fm-panel fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.fm-panel__field {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fm-panel__field[hidden] {
+  display: none;
+}
+
+.fm-panel__field--wide {
+  flex: 2;
+}
+
+.fm-panel__row {
+  display: flex;
+  gap: 10px;
+}
+
+.fm-panel .form-input {
+  width: 100%;
+  padding: 8px 10px;
+}
+
+.fm-panel .form-input[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.fm-panel__unit {
+  padding: 8px 0;
+  color: var(--color-on-surface-variant);
+  overflow-wrap: anywhere;
+}
+
+.fm-panel__error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-error);
+}
+
+.fm-panel__error[hidden] {
+  display: none;
+}
+
+.fm-panel__error--all {
+  padding: 8px 10px;
+  border-radius: var(--radius-base);
+  background: var(--color-error-container);
+  color: var(--color-on-error-container);
+  font-size: var(--text-body-sm-size);
+}
+
+.fm-panel__error--all:focus {
+  outline: 2px solid var(--color-error);
+}
+
+/* Natures : pastilles à choix unique */
+.fm-panel__kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.fm-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px dashed var(--color-outline);
+  border-radius: var(--radius-md);
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+}
+
+.fm-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fm-chip:has(input:checked) {
+  border: 1px solid var(--color-primary);
+  background: var(--tint-primary);
+  color: var(--color-on-surface);
+  font-weight: 600;
+}
+
+.fm-chip:has(input:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.fm-chip__swatch {
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.fm-chip--supply .fm-chip__swatch      { background: var(--fm-supply); }
+.fm-chip--consumption .fm-chip__swatch { background: var(--fm-consumption); }
+.fm-chip--emission .fm-chip__swatch    { background: var(--fm-emission); }
+.fm-chip--waste .fm-chip__swatch       { background: var(--fm-waste); }
+.fm-chip--production .fm-chip__swatch  { background: var(--fm-production); }
+
+/* Liste des flux d'une flèche */
+.fm-panel__flows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fm-panel__flows[hidden] {
+  display: none;
+}
+
+.fm-panel__flow-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+}
+
+.fm-panel__flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--color-outline-variant);
+  cursor: pointer;
+}
+
+.fm-panel__flow:last-child {
+  border-bottom: none;
+}
+
+.fm-panel__flow:has(input:checked) {
+  background: var(--tint-primary);
+  font-weight: 600;
+}
+
+.fm-panel__flow input {
+  accent-color: var(--color-primary);
+}
+
+.fm-panel__flow-member {
+  flex-basis: 100%;
+  padding-left: 22px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-on-surface-variant);
+}
+
+/* Commodité : liste de suggestions et création */
+.fm-combo {
+  position: relative;
+}
+
+.fm-combo__list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  max-height: 14rem;
+  margin: -2px 0 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+}
+
+.fm-combo__list[hidden],
+.fm-combo__create[hidden] {
+  display: none;
+}
+
+.fm-combo__option {
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.fm-combo__option:hover,
+.fm-combo__option.is-active {
+  background: var(--color-surface-container-high);
+}
+
+.fm-combo__option--create {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.fm-combo__create {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border: 1px dashed var(--color-primary);
+  border-radius: var(--radius-lg);
+}
+
+.fm-combo__create-row {
+  display: flex;
+  gap: 6px;
+}
+
+.fm-panel__small {
+  flex: none;
+  padding: 8px 12px;
+  font-size: var(--text-body-sm-size);
+}
+
+.fm-panel__more summary {
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+}
+
+.fm-panel__more[open] summary {
+  margin-bottom: 8px;
+}
+
+.fm-panel__more .fm-panel__row + .fm-panel__row {
+  margin-top: 8px;
+}
+
+/* Boutons toujours visibles en bas du panneau, même quand il défile. */
+.fm-panel__actions {
+  position: sticky;
+  bottom: -16px;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px -16px 0;
+  padding: 12px 16px 16px;
+  background: var(--color-surface-container-lowest);
+  border-top: 1px solid var(--color-outline-variant);
+}
+
+.fm-panel__actions .btn {
+  padding: 0.625rem 1rem;
+  font-size: var(--text-body-sm-size);
+}
+
+.fm-panel__delete {
+  margin-left: auto;
+  background: none;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+.fm-panel__delete:hover {
+  background: var(--color-error-container);
+  color: var(--color-on-error-container);
+}
+
+.fm-panel__add {
+  padding: 8px 10px;
+  border: 1px dashed var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  background: none;
+  color: var(--color-primary);
+  font-family: var(--font-family);
+  font-size: var(--text-body-sm-size);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fm-panel__add[hidden] {
+  display: none;
+}
+
+.fm-panel__add:hover,
+.fm-panel__add:focus-visible {
+  border-color: var(--color-primary);
+  background: var(--tint-primary);
+}
+
+.fm-panel button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Écran étroit : le panneau recouvre la carte. */
+@media (max-width: 720px) {
+  .fm-panel {
+    position: absolute;
+    inset: 0;
+    border-left: none;
+  }
+}
+
+/* ── Fenêtre de confirmation ──────────────────────────────────────────────── */
+.fm-dialog {
+  margin: auto;   /* la remise à zéro globale des marges décentrerait la fenêtre */
+  width: calc(100% - 32px);
+  max-width: 26rem;
+  padding: 24px;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-container-lowest);
+  color: var(--color-on-surface);
+  box-shadow: var(--shadow-modal);
+}
+
+.fm-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.fm-dialog__message {
+  margin: 0;
+  font-size: var(--text-body-md-size);
+  line-height: 1.5;
+}
+
+.fm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.fm-dialog__ok {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.fm-dialog__ok--danger {
+  background: var(--color-error);
+  color: var(--color-on-error);
+}
+
+.fm-dialog .btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }

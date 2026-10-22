@@ -6,9 +6,12 @@
 //   FlowMapDraw.render(svg, model, state) -> {nodes, edges, bounds}
 //     model  : réponse de build_flow_map (blocks, groups, flows, company, year…)
 //     state  : {expanded: Set<groupKey>, hidden: Set<blockKey>,
-//               positions: Map<key, {x, y}>, selectedEdge: string|null}
+//               positions: Map<key, {x, y}>, selectedEdge: string|null,
+//               editable: bool (« + » des blocs, flèches activables au clavier),
+//               trace: {key, port}|null (tracé d'un flux en cours depuis ce bloc)}
 //     nodes  : blocs dessinés [{key, type, name, owned, column, x, y, …}]
-//     edges  : courbes dessinées (aggregateEdges + width, label)
+//     edges  : courbes dessinées (aggregateEdges + width, label, et la géométrie :
+//              p0, p3 (pointe), d (chemin), lane (voie d'une courbe du bandeau))
 //     bounds : rectangle englobant {x, y, width, height}, pour cadrer la vue
 //   FlowMapDraw.aggregateEdges(flows, model, state)
 //     -> [{key, from, to, kind, flows: [flow], total}]
@@ -17,6 +20,8 @@
 // Dans le SVG : chaque bloc est un <g class="fm-block" data-key>, chaque courbe
 // un <g class="fm-edge" data-key>, le bandeau un <g class="fm-band"
 // data-key="environment">, le cadre d'un groupe déplié un <g class="fm-frame">.
+// Si state.editable, les « + » d'un bloc sont des <g class="fm-port"
+// data-port="out|in|env"> (droite : sortant, gauche : entrant, haut : milieu).
 window.FlowMapDraw = (function () {
   var NS = 'http://www.w3.org/2000/svg';
   var ENV = 'environment';
@@ -474,7 +479,7 @@ window.FlowMapDraw = (function () {
     return lines.join('\n');
   }
 
-  function drawEdge(layer, edge, selected, title) {
+  function drawEdge(layer, edge, selected, title, editable) {
     var w = edge.width;
     var half = 3.5 + w * 0.75;
     var base = edge.base;
@@ -484,6 +489,12 @@ window.FlowMapDraw = (function () {
       class: 'fm-edge fm-edge--' + kindClass(edge.kind) + (selected ? ' is-selected' : ''),
       'data-key': edge.key,
     }, layer);
+    if (editable) {
+      g.setAttribute('tabindex', '0');
+      g.setAttribute('role', 'button');
+      g.setAttribute('aria-label', interpolate(gettext('Modifier : %(title)s'),
+        { title: title.split('\n')[0] }, true));
+    }
     text('title', {}, title, g);
     el('path', { class: 'fm-edge__hit', d: edge.d, 'stroke-width': w + 12 }, g);
     el('path', { class: 'fm-edge__line', d: edge.d, 'stroke-width': w }, g);
@@ -511,16 +522,51 @@ window.FlowMapDraw = (function () {
     }
   }
 
-  function drawBlock(layer, node, focusKey) {
+  // « + » d'un bloc : pas sur un groupe replié ni sur un bloc inconnu ; celui du
+  // haut (milieu) seulement sur un actif ou une entreprise.
+  var PORTS = [
+    { port: 'in', x: 0, y: BLOCK_H / 2 },
+    { port: 'out', x: BLOCK_W, y: BLOCK_H / 2 },
+    { port: 'env', x: BLOCK_W / 2, y: 0 },
+  ];
+
+  function portLabel(port) {
+    if (port === 'in') return gettext('Ajouter un flux entrant vers %(name)s');
+    if (port === 'out') return gettext('Ajouter un flux sortant de %(name)s');
+    return gettext('Ajouter un flux avec le milieu pour %(name)s');
+  }
+
+  function drawPorts(g, node) {
+    if (node.type === 'group' || node.type === 'unknown') return;
+    PORTS.forEach(function (p) {
+      if (p.port === 'env' && node.type !== 'asset' && node.type !== 'company') return;
+      var label = interpolate(portLabel(p.port), { name: node.name }, true);
+      var port = el('g', {
+        class: 'fm-port fm-port--' + p.port, 'data-port': p.port, tabindex: '0',
+        role: 'button', 'aria-label': label,
+      }, g);
+      text('title', {}, label, port);
+      el('circle', { cx: p.x, cy: p.y, r: 9 }, port);
+      text('text', { x: p.x, y: p.y + 4, 'text-anchor': 'middle' }, '+', port);
+    });
+  }
+
+  function drawBlock(layer, node, focusKey, state) {
     var classes = ['fm-block', 'fm-block--' + node.type];
     if (node.owned) classes.push('is-owned');
     if (node.key === focusKey) classes.push('is-focus');
+    if (state.trace && state.trace.key === node.key) classes.push('is-trace-source');
     var g = el('g', {
       class: classes.join(' '), 'data-key': node.key,
       transform: 'translate(' + pt([node.x, node.y]) + ')',
     }, layer);
     var type = typeLabel(node);
     text('title', {}, type ? type + ' — ' + node.name : node.name, g);
+    if (state.trace && node.type !== 'group') {
+      // Tracé en cours : chaque bloc se choisit au clavier comme autre extrémité.
+      g.setAttribute('tabindex', '0');
+      g.setAttribute('role', 'button');
+    }
     if (node.type === 'group') {
       g.setAttribute('tabindex', '0');
       g.setAttribute('role', 'button');
@@ -548,6 +594,7 @@ window.FlowMapDraw = (function () {
       el('circle', { cx: BLOCK_W - 16, cy: 17, r: 10 }, menu);
       text('text', { x: BLOCK_W - 16, y: 21, 'text-anchor': 'middle' }, '⋯', menu);
     }
+    if (state.editable) drawPorts(g, node);
   }
 
   function drawFrame(layer, group, members) {
@@ -648,10 +695,11 @@ window.FlowMapDraw = (function () {
     drawBand(bandLayer, bounds);
 
     edges.forEach(function (e) {
-      drawEdge(edgeLayer, e, e.key === state.selectedEdge, edgeTitle(e, idx, name));
+      drawEdge(edgeLayer, e, e.key === state.selectedEdge, edgeTitle(e, idx, name),
+        !!state.editable);
     });
     var focusKey = 'company:' + model.company.id;
-    nodes.forEach(function (n) { drawBlock(blockLayer, n, focusKey); });
+    nodes.forEach(function (n) { drawBlock(blockLayer, n, focusKey, state); });
 
     return { nodes: nodes, edges: edges, bounds: bounds };
   }

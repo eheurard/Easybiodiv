@@ -750,12 +750,18 @@ class FlowMapPageTests(TestCase):
         self.assertEqual([k['value'] for k in kinds], list(FlowKind.values))
         self.assertTrue(all(isinstance(k['label'], str) for k in kinds))
         self.assertContains(r, '"destinations": [null]')
+        scopes = r.context['scopes']
+        self.assertEqual([s['value'] for s in scopes], list(Flow.Scope.values))
+        self.assertNotContains(r, 'id="flow-map-panel"')
 
     def test_page_can_edit_for_creator(self):
         User = get_user_model()
         self.client.force_login(User.objects.create_user('c', password='pw', role='CREATOR'))
         r = self.client.get(reverse('dashboard:flow_map'))
         self.assertTrue(r.context['can_edit'])
+        self.assertContains(r, 'id="flow-map-panel"')
+        self.assertContains(r, 'id="flow-map-confirm"')
+        self.assertContains(r, '<option value="undefined">')
 
     def test_page_without_company(self):
         Flow.objects.all().delete()

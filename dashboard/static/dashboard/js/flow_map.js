@@ -12,11 +12,18 @@
 //   FlowMap.canEdit      vrai pour un Créateur
 //   FlowMap.svg          l'élément <svg> de la carte
 //   FlowMap.redraw()     redessine sans recharger ; renvoie le résultat de render
-//   FlowMap.reload()     recharge l'entreprise et l'année affichées (Promise)
+//   FlowMap.reload()     recharge l'entreprise et l'année affichées, sans recadrer
 //   FlowMap.load(id, y)  charge une entreprise / une année (y null : par défaut)
 //   FlowMap.menuActions  entrées du menu « ⋯ » d'un bloc :
 //                        {id, label: string, visible(node): bool, run(node)}
 //   FlowMap.onRender     fonctions appelées après chaque dessin, avec le résultat
+//   FlowMap.onTap        fonctions appelées pour un clic sans glisser (ou Entrée) :
+//                        fn({type, key, port, keyboard}) -> true si traité (le
+//                        comportement par défaut, déplier / replier, est alors sauté).
+//                        type : 'block', 'frame', 'edge', 'port', 'band', 'background'
+//   FlowMap.lastRender() dernier résultat de FlowMapDraw.render (ou null)
+// Événements sur document : « flowmap:loaded » (detail : données) après chaque
+// chargement ; « flowmap:changed », émis après une écriture, recharge la carte.
 window.FlowMap = (function () {
   var MIN_SCALE = 0.2;        // unités SVG par pixel écran (zoom avant maximal)
   var MAX_SCALE = 6;          // zoom arrière maximal
@@ -31,7 +38,9 @@ window.FlowMap = (function () {
     svg: null,
     menuActions: [],
     onRender: [],
+    onTap: [],
     model: function () { return current; },
+    lastRender: function () { return last; },
     redraw: redraw,
     reload: function () { return reload(); },
     load: load,
@@ -43,6 +52,7 @@ window.FlowMap = (function () {
   var pending = null;         // AbortController de la demande en cours
   var last = null;            // dernier résultat de FlowMapDraw.render
   var view = null;            // viewBox {x, y, width, height}
+  var viewPx = null;          // taille en pixels pour laquelle `view` a été calculée
   var frame = 0;
   var els = {};
 
@@ -56,6 +66,7 @@ window.FlowMap = (function () {
     api.state.hidden.clear();
     api.state.positions.clear();
     api.state.selectedEdge = null;
+    api.state.trace = null;
   }
 
   // ── Chargement ───────────────────────────────────────────────────────────
@@ -105,6 +116,7 @@ window.FlowMap = (function () {
     current = data;
     target = { companyId: data.company.id, year: data.year };
     api.canEdit = !!data.can_edit;
+    api.state.editable = api.canEdit;
     closeMenu();
     renderYears(data);
     redraw();
@@ -182,6 +194,7 @@ window.FlowMap = (function () {
 
   // ── Vue : cadrage, zoom, déplacement ─────────────────────────────────────
   function applyView() {
+    viewPx = size();
     els.svg.setAttribute('viewBox', [view.x, view.y, view.width, view.height].join(' '));
     stretchBand();
   }
@@ -215,8 +228,10 @@ window.FlowMap = (function () {
     applyView();
   }
 
+  // Unités SVG par pixel. Mesurée sur la taille d'origine de la vue : après un
+  // redimensionnement (panneau ouvert), onResize garde cette échelle.
   function scale() {
-    return view.width / size().width;
+    return view.width / (viewPx || size()).width;
   }
 
   function toSvg(event) {
@@ -243,8 +258,8 @@ window.FlowMap = (function () {
 
   function onResize() {
     if (!view) return;
-    var s = size();
     var k = scale();
+    var s = size();
     view.width = s.width * k;
     view.height = s.height * k;
     applyView();
@@ -261,20 +276,27 @@ window.FlowMap = (function () {
     if (event.button !== 0 || !view) return;
     closeMenu();
     if (event.target.closest('.fm-block__menu')) return;
+    var port = event.target.closest('.fm-port');
     var block = event.target.closest('.fm-block');
     var frameEl = event.target.closest('.fm-frame');
+    var edge = event.target.closest('.fm-edge');
     var start = { x: event.clientX, y: event.clientY };
-    if (block) {
+    if (port) {
+      drag = { type: 'port', key: block.dataset.key, port: port.dataset.port, start: start };
+    } else if (block) {
       var node = nodeOf(block.dataset.key);
       drag = {
         type: 'block', key: block.dataset.key, start: start, origin: { x: node.x, y: node.y },
       };
     } else if (frameEl) {
       drag = { type: 'frame', key: frameEl.dataset.key, start: start };
-    } else if (!event.target.closest('.fm-edge')) {
-      drag = { type: 'view', start: start, origin: { x: view.x, y: view.y } };
+    } else if (edge) {
+      drag = { type: 'edge', key: edge.dataset.key, start: start };
     } else {
-      return;
+      drag = {
+        type: 'view', start: start, origin: { x: view.x, y: view.y },
+        band: !!event.target.closest('.fm-band'),
+      };
     }
     drag.moved = false;
     els.svg.setPointerCapture(event.pointerId);
@@ -306,8 +328,16 @@ window.FlowMap = (function () {
     els.svg.classList.remove('is-panning', 'is-dragging');
     if (els.svg.hasPointerCapture(event.pointerId)) els.svg.releasePointerCapture(event.pointerId);
     if (done.moved) return;
+    var type = done.type === 'view' ? (done.band ? 'band' : 'background') : done.type;
+    if (tap({ type: type, key: done.key || null, port: done.port || null, keyboard: false })) {
+      return;
+    }
     if (done.type === 'block' && done.key.indexOf('group:') === 0) toggleGroup(done.key, true);
     else if (done.type === 'frame') toggleGroup(done.key, false);
+  }
+
+  function tap(info) {
+    return api.onTap.some(function (fn) { return fn(info); });
   }
 
   function toggleGroup(key, expand) {
@@ -323,17 +353,32 @@ window.FlowMap = (function () {
     if (event.key === 'Escape') { closeMenu(); return; }
     if (event.key !== 'Enter' && event.key !== ' ') return;
     var target = event.target;
-    if (target.classList.contains('fm-block__menu')) {
+    var classes = target.classList;
+    if (!classes) return;
+    if (classes.contains('fm-block__menu')) {
       event.preventDefault();
       var rect = target.getBoundingClientRect();
       openMenu(target.closest('.fm-block').dataset.key, rect.left, rect.bottom);
-    } else if (target.classList.contains('fm-block--group')) {
-      event.preventDefault();
-      toggleGroup(target.dataset.key, true);
-    } else if (target.classList.contains('fm-frame')) {
-      event.preventDefault();
-      toggleGroup(target.dataset.key, false);
+      return;
     }
+    var info = null;
+    if (classes.contains('fm-port')) {
+      info = { type: 'port', key: target.closest('.fm-block').dataset.key,
+        port: target.dataset.port };
+    } else if (classes.contains('fm-block')) {
+      info = { type: 'block', key: target.dataset.key };
+    } else if (classes.contains('fm-frame')) {
+      info = { type: 'frame', key: target.dataset.key };
+    } else if (classes.contains('fm-edge')) {
+      info = { type: 'edge', key: target.dataset.key };
+    }
+    if (!info) return;
+    event.preventDefault();
+    info.keyboard = true;
+    info.port = info.port || null;
+    if (tap(info)) return;
+    if (classes.contains('fm-block--group')) toggleGroup(target.dataset.key, true);
+    else if (classes.contains('fm-frame')) toggleGroup(target.dataset.key, false);
   }
 
   // ── Menu « ⋯ » d'un bloc ─────────────────────────────────────────────────
@@ -422,6 +467,9 @@ window.FlowMap = (function () {
       if (!els.menu.contains(event.target) && !els.svg.contains(event.target)) closeMenu();
     });
     window.addEventListener('resize', onResize);
+    // Le panneau latéral rétrécit le plateau : garder l'échelle de la vue.
+    if (window.ResizeObserver) new ResizeObserver(onResize).observe(els.svg);
+    document.addEventListener('flowmap:changed', function () { reload(); });
     els.fit.addEventListener('click', fitView);
     els.chip.addEventListener('click', function () {
       api.state.hidden.clear();
@@ -444,6 +492,7 @@ window.FlowMap = (function () {
       yearOther: document.getElementById('flow-map-year-other'),
     };
     api.svg = els.svg;
+    els.svg.setAttribute('tabindex', '-1');   // repli du focus quand le panneau se ferme
     api.rules = readJson('flow-rules') || {};
     api.kinds = readJson('flow-kinds') || [];
     api.canEdit = root.dataset.canEdit === '1';
