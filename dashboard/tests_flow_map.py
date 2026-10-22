@@ -15,8 +15,8 @@ from .models import (
     REVENUE_PRODUCTION_ONLY_MESSAGE, SubnationalRegion,
 )
 from .services.flow_map import (
-    assign_columns, build_flow_map, endpoint_fields, endpoint_key, flow_key, latest_flows,
-    owned_assets_in_range, parse_key, unlink, unlink_preview,
+    assign_columns, build_flow_map, delete_flow_years, endpoint_fields, endpoint_key, flow_key,
+    flow_years, latest_flows, owned_assets_in_range, parse_key, unlink, unlink_preview,
 )
 from .services.flows import perimeter_flows, perimeter_years, range_perimeter_flows
 from .testing import make_declared_emission, make_inventory, make_production, make_supply
@@ -533,22 +533,28 @@ class UnlinkTests(TestCase):
                             origin=self.cargill, destination=self.vevey)
 
     def test_preview_counts_only_displayed_year(self):
-        self.assertEqual(unlink_preview(self.acme, 2024, f'company:{self.cargill.pk}'),
-                         {'flows': 2, 'ownership': False, 'co_owners': []})
+        self.assertEqual(
+            unlink_preview(self.acme, 2024, 2024, f'company:{self.cargill.pk}'),
+            {'years': [{'year': 2024, 'flows': 2}], 'ownership': False,
+             'ownership_year': 2024, 'co_owners': []})
 
     def test_preview_flags_owned_asset(self):
-        self.assertEqual(unlink_preview(self.acme, 2024, f'asset:{self.vevey.pk}'),
-                         {'flows': 2, 'ownership': True, 'co_owners': []})
+        self.assertEqual(
+            unlink_preview(self.acme, 2024, 2024, f'asset:{self.vevey.pk}'),
+            {'years': [{'year': 2024, 'flows': 2}], 'ownership': True,
+             'ownership_year': 2024, 'co_owners': []})
 
     def test_unlink_external_company_keeps_company_and_other_years(self):
-        unlink(self.acme, 2024, f'company:{self.cargill.pk}')
+        unlink(self.acme, 2024, 2024, f'company:{self.cargill.pk}', years=[2024],
+               ownership_year=None)
         self.assertTrue(Company.objects.filter(pk=self.cargill.pk).exists())
         self.assertEqual(Flow.objects.filter(year=2023).count(), 1)
         self.assertEqual(Flow.objects.filter(year=2024).count(), 0)
 
     def test_unlink_owned_asset_ends_ownership_previous_year(self):
-        result = unlink(self.acme, 2024, f'asset:{self.vevey.pk}')
-        self.assertEqual(result, {'flows': 2, 'ownership': True, 'co_owners': []})
+        result = unlink(self.acme, 2024, 2024, f'asset:{self.vevey.pk}', years=[2024],
+                        ownership_year=2024)
+        self.assertEqual(result, {'flows': 2, 'ownership': True})
         self.ownership.refresh_from_db()
         self.assertEqual(self.ownership.end_year, 2023)
         self.assertTrue(Asset.objects.filter(pk=self.vevey.pk).exists())
@@ -556,18 +562,21 @@ class UnlinkTests(TestCase):
     def test_preview_lists_co_owners_and_unlink_keeps_their_ownership(self):
         other = Ownership.objects.create(
             asset=self.vevey, company=self.cargill, share=0.5, start_year=2020)
-        expected = {'flows': 2, 'ownership': True, 'co_owners': ['Cargill']}
-        self.assertEqual(unlink_preview(self.acme, 2024, f'asset:{self.vevey.pk}'), expected)
-        self.assertEqual(unlink(self.acme, 2024, f'asset:{self.vevey.pk}'), expected)
+        key = f'asset:{self.vevey.pk}'
+        self.assertEqual(unlink_preview(self.acme, 2024, 2024, key)['co_owners'], ['Cargill'])
+        self.assertEqual(unlink(self.acme, 2024, 2024, key, years=[2024], ownership_year=2024),
+                         {'flows': 2, 'ownership': True})
         other.refresh_from_db()
         self.assertIsNone(other.end_year)
         self.assertEqual(
-            unlink_preview(self.acme, 2024, f'company:{self.cargill.pk}')['co_owners'], [])
+            unlink_preview(self.acme, 2024, 2024, f'company:{self.cargill.pk}')['co_owners'],
+            [])
 
     def test_unlink_ownership_starting_that_year_is_deleted(self):
         self.ownership.start_year = 2024
         self.ownership.save()
-        unlink(self.acme, 2024, f'asset:{self.vevey.pk}')
+        unlink(self.acme, 2024, 2024, f'asset:{self.vevey.pk}', years=[2024],
+               ownership_year=2024)
         self.assertFalse(Ownership.objects.filter(pk=self.ownership.pk).exists())
 
     def test_unlink_keeps_later_ownership(self):
@@ -575,7 +584,8 @@ class UnlinkTests(TestCase):
         self.ownership.save()
         later = Ownership.objects.create(
             asset=self.vevey, company=self.acme, share=1, start_year=2025, end_year=None)
-        unlink(self.acme, 2021, f'asset:{self.vevey.pk}')
+        unlink(self.acme, 2021, 2021, f'asset:{self.vevey.pk}', years=[],
+               ownership_year=2021)
         self.ownership.refresh_from_db()
         later.refresh_from_db()
         self.assertEqual(self.ownership.end_year, 2020)
@@ -584,21 +594,184 @@ class UnlinkTests(TestCase):
     def test_unlink_keeps_group_membership(self):
         group = AssetGroup.objects.create(name='G', company=self.acme)
         group.set_members([self.vevey.pk])
-        unlink(self.acme, 2024, f'asset:{self.vevey.pk}')
+        unlink(self.acme, 2024, 2024, f'asset:{self.vevey.pk}', years=[2024],
+               ownership_year=2024)
         self.assertTrue(AssetGroup.objects.filter(pk=group.pk).exists())
         self.assertEqual(group.members.count(), 1)
 
     def test_unlink_refuses_the_company_itself(self):
         with self.assertRaises(ValueError):
-            unlink(self.acme, 2024, f'company:{self.acme.pk}')
+            unlink(self.acme, 2024, 2024, f'company:{self.acme.pk}', years=[2024],
+                   ownership_year=None)
+        self.assertEqual(Flow.objects.count(), 3)
 
     def test_refuses_groups_environment_and_unknown(self):
         for key in ('group:1', 'environment', 'unknown-in', 'unknown-out'):
             with self.subTest(key=key):
                 with self.assertRaises(ValueError):
-                    unlink_preview(self.acme, 2024, key)
+                    unlink_preview(self.acme, 2024, 2024, key)
                 with self.assertRaises(ValueError):
-                    unlink(self.acme, 2024, key)
+                    unlink(self.acme, 2024, 2024, key, years=[2024], ownership_year=None)
+
+
+class RangeDeletionTests(TestCase):
+    """Suppression par années et retrait de liens sur une plage (spec §10.3)."""
+
+    def setUp(self):
+        self.acme = Company.objects.create(name='Acme')
+        self.cargill = Company.objects.create(name='Cargill')
+        self.brazil = Country.objects.create(
+            name='Brésil', water_ownership='Public', land_ownership='Private')
+        self.soja = Commodity.objects.create(name='Soja', unit='t')
+        self.vevey, self.bale = (
+            Asset.objects.create(name=name, latitude=1.0, longitude=2.0, country=self.brazil)
+            for name in ('Vevey', 'Bâle')
+        )
+        self.ownership = Ownership.objects.create(
+            asset=self.vevey, company=self.acme, share=1, start_year=2015, end_year=None)
+
+    def _supply(self, year, origin=None):
+        return make_supply(what=self.soja, year=year, quantity=5,
+                           origin=origin or self.cargill, destination=self.vevey)
+
+    def _remaining(self):
+        return set(Flow.objects.values_list('pk', flat=True))
+
+    def test_flow_years_lists_years_with_counts(self):
+        old = self._supply(2021)
+        new = self._supply(2023)
+        self._supply(2023, origin=self.brazil)  # autre clé : autre origine
+        self._supply(2019)  # hors plage
+        expected = [{'year': 2021, 'count': 1}, {'year': 2023, 'count': 1}]
+        self.assertEqual(flow_years(self.acme, 2020, 2024, new), expected)
+        self.assertEqual(flow_years(self.acme, 2020, 2024, old), expected)
+
+    def test_flow_years_counts_rows_of_same_year(self):
+        new = self._supply(2023)
+        self._supply(2023)
+        self.assertEqual(flow_years(self.acme, 2020, 2024, new), [{'year': 2023, 'count': 2}])
+
+    def test_flow_years_skip_years_outside_perimeter(self):
+        self.ownership.start_year = 2022
+        self.ownership.save()
+        self._supply(2021)  # Vevey pas encore détenu
+        new = self._supply(2023)
+        self.assertEqual(flow_years(self.acme, 2020, 2024, new), [{'year': 2023, 'count': 1}])
+
+    def test_delete_flow_years_only_checked(self):
+        old = self._supply(2021)
+        new = self._supply(2023)
+        other = self._supply(2021, origin=self.brazil)
+        before = self._supply(2019)
+        self.assertEqual(delete_flow_years(self.acme, 2020, 2024, new, [2021]), 1)
+        self.assertNotIn(old.pk, self._remaining())
+        self.assertEqual(self._remaining(), {new.pk, other.pk, before.pk})
+
+    def test_delete_flow_years_spares_rows_outside_perimeter(self):
+        self.ownership.start_year = 2022
+        self.ownership.save()
+        old = self._supply(2021)  # hors périmètre : Vevey pas encore détenu
+        new = self._supply(2023)
+        self.assertEqual(delete_flow_years(self.acme, 2020, 2024, new, [2021, 2023]), 1)
+        self.assertEqual(self._remaining(), {old.pk})
+
+    def test_delete_flow_years_rejects_out_of_range(self):
+        self._supply(2021)
+        new = self._supply(2023)
+        for years in ([], [2019], [2021, 2025]):
+            with self.subTest(years=years):
+                with self.assertRaises(ValueError):
+                    delete_flow_years(self.acme, 2020, 2024, new, years)
+        self.assertEqual(Flow.objects.count(), 2)
+
+    def test_unlink_preview_range(self):
+        self._supply(2021)
+        self._supply(2023)
+        self._supply(2023)
+        self._supply(2022, origin=self.brazil)
+        self._supply(2019)  # hors plage
+        zeta, bunge = (Company.objects.create(name=name) for name in ('Zeta', 'Bunge'))
+        Ownership.objects.create(
+            asset=self.vevey, company=self.cargill, share=0.2, start_year=2010, end_year=2020)
+        Ownership.objects.create(asset=self.vevey, company=zeta, share=0.2, start_year=2024)
+        Ownership.objects.create(  # se termine avant la plage
+            asset=self.vevey, company=bunge, share=0.2, start_year=2010, end_year=2019)
+        self.assertEqual(unlink_preview(self.acme, 2020, 2024, f'asset:{self.vevey.pk}'), {
+            'years': [{'year': 2021, 'flows': 1}, {'year': 2022, 'flows': 1},
+                      {'year': 2023, 'flows': 2}],
+            'ownership': True, 'ownership_year': 2021, 'co_owners': ['Cargill', 'Zeta'],
+        })
+        self.assertEqual(
+            unlink_preview(self.acme, 2020, 2024, f'company:{self.cargill.pk}'), {
+                'years': [{'year': 2021, 'flows': 1}, {'year': 2023, 'flows': 2}],
+                'ownership': False, 'ownership_year': 2021, 'co_owners': [],
+            })
+
+    def test_unlink_preview_without_flows(self):
+        self.assertEqual(
+            unlink_preview(self.acme, 2020, 2024, f'asset:{self.vevey.pk}'),
+            {'years': [], 'ownership': True, 'ownership_year': 2020, 'co_owners': []})
+        self.assertEqual(
+            unlink_preview(self.acme, 2020, 2024, f'asset:{self.bale.pk}'),
+            {'years': [], 'ownership': False, 'ownership_year': None, 'co_owners': []})
+
+    def test_unlink_selected_years_only(self):
+        f2021 = self._supply(2021)
+        self._supply(2023)
+        f2019 = self._supply(2019)
+        result = unlink(self.acme, 2020, 2024, f'company:{self.cargill.pk}', years=[2023],
+                        ownership_year=None)
+        self.assertEqual(result, {'flows': 1, 'ownership': False})
+        self.assertEqual(self._remaining(), {f2021.pk, f2019.pk})
+
+    def test_unlink_with_ownership_option(self):
+        self.ownership.end_year = 2022
+        self.ownership.save()
+        short = Ownership.objects.create(
+            asset=self.vevey, company=self.acme, share=1, start_year=2023, end_year=2023)
+        later = Ownership.objects.create(
+            asset=self.vevey, company=self.acme, share=1, start_year=2026, end_year=None)
+        self._supply(2022)
+        f2023 = self._supply(2023)
+        result = unlink(self.acme, 2020, 2024, f'asset:{self.vevey.pk}', years=[2022],
+                        ownership_year=2022)
+        self.assertEqual(result, {'flows': 1, 'ownership': True})
+        self.ownership.refresh_from_db()
+        self.assertEqual((self.ownership.start_year, self.ownership.end_year), (2015, 2021))
+        self.assertFalse(Ownership.objects.filter(pk=short.pk).exists())
+        later.refresh_from_db()
+        self.assertEqual((later.start_year, later.end_year), (2026, None))
+        self.assertEqual(self._remaining(), {f2023.pk})
+        self.assertTrue(Asset.objects.filter(pk=self.vevey.pk).exists())
+
+    def test_unlink_without_ownership_option_keeps_ownership(self):
+        self._supply(2022)
+        self._supply(2023)
+        result = unlink(self.acme, 2020, 2024, f'asset:{self.vevey.pk}', years=[2022, 2023],
+                        ownership_year=None)
+        self.assertEqual(result, {'flows': 2, 'ownership': False})
+        self.assertEqual(Flow.objects.count(), 0)
+        self.ownership.refresh_from_db()
+        self.assertEqual((self.ownership.start_year, self.ownership.end_year), (2015, None))
+
+    def test_unlink_nothing_selected_raises(self):
+        self._supply(2022)
+        vevey, cargill = f'asset:{self.vevey.pk}', f'company:{self.cargill.pk}'
+        refused = [
+            (vevey, [], None),  # rien de coché
+            (vevey, [2019], None),  # année hors plage
+            (vevey, [2022], 2025),  # fin de détention hors plage
+            (cargill, [2022], 2022),  # pas un actif détenu
+            (f'asset:{self.bale.pk}', [], 2022),  # actif non détenu sur la plage
+        ]
+        for key, years, ownership_year in refused:
+            with self.subTest(key=key, years=years, ownership_year=ownership_year):
+                with self.assertRaises(ValueError):
+                    unlink(self.acme, 2020, 2024, key, years=years,
+                           ownership_year=ownership_year)
+        self.assertEqual(Flow.objects.count(), 1)
+        self.ownership.refresh_from_db()
+        self.assertIsNone(self.ownership.end_year)
 
 
 class FlowWriteApiTests(TestCase):

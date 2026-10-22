@@ -356,6 +356,27 @@ def flow_map_group_delete(request, pk):
     return JsonResponse({'deleted': pk})
 
 
+def _single_year_preview(company, year, key):
+    """Aperçu d'un retrait limité à `year`, au format de l'API d'une seule année."""
+    preview = unlink_preview(company, year, year, key)
+    return {
+        'flows': sum(entry['flows'] for entry in preview['years']),
+        'ownership': preview['ownership'],
+        'co_owners': preview['co_owners'],
+    }
+
+
+def _single_year_unlink(company, year, key):
+    """Retire les liens du bloc pour `year` seulement : tous ses flux de l'année et,
+    pour un actif détenu, sa détention à partir de cette année."""
+    with transaction.atomic():
+        result = _single_year_preview(company, year, key)
+        if result['flows'] or result['ownership']:
+            unlink(company, year, year, key, years=[year] if result['flows'] else [],
+                   ownership_year=year if result['ownership'] else None)
+    return result
+
+
 def _run_unlink(request, action):
     """Applique `action(company, year, key)` aux paramètres `year` et `block`."""
     company = Company.objects.filter(pk=request.resolver_match.kwargs['company_pk']).first()
@@ -372,7 +393,7 @@ def _run_unlink(request, action):
 
 @creator_required_json
 def _unlink_apply(request):
-    return _run_unlink(request, unlink)
+    return _run_unlink(request, _single_year_unlink)
 
 
 @require_http_methods(['GET', 'POST'])
@@ -380,4 +401,4 @@ def flow_map_unlink(request, company_pk):
     """GET : aperçu du retrait (ouvert) ; POST : retrait effectif (Créateur)."""
     if request.method == 'POST':
         return _unlink_apply(request)
-    return _run_unlink(request, unlink_preview)
+    return _run_unlink(request, _single_year_preview)

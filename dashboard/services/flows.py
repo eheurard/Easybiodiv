@@ -57,13 +57,17 @@ def perimeter_flows(company, year, touching=None):
     return _touching(flows, touching)
 
 
-def ownerships_in_range(company, start, end):
-    """Détentions de `company` valides au moins une année de [start, end]."""
+def ownerships_overlapping(start, end):
+    """Détentions, toutes entreprises, valides au moins une année de [start, end]."""
     return Ownership.objects.filter(
         Q(start_year__isnull=True) | Q(start_year__lte=end),
         Q(end_year__isnull=True) | Q(end_year__gte=start),
-        company=company,
     )
+
+
+def ownerships_in_range(company, start, end):
+    """Détentions de `company` valides au moins une année de [start, end]."""
+    return ownerships_overlapping(start, end).filter(company=company)
 
 
 def range_perimeter_flows(company, start, end, touching=None):
@@ -93,6 +97,16 @@ def range_perimeter_flows(company, start, end, touching=None):
         if company.pk in (flow.from_company_id, flow.to_company_id)
         or owned(flow.from_asset_id, flow.year) or owned(flow.to_asset_id, flow.year)
     ]
+
+
+def delete_flows(flows):
+    """Supprime ces flux (déjà sélectionnés, par exemple par range_perimeter_flows)
+    et renvoie le nombre de lignes Flow supprimées."""
+    pks = [flow.pk for flow in flows]
+    if not pks:
+        return 0
+    _, deleted = Flow.objects.filter(pk__in=pks).delete()
+    return deleted.get(Flow._meta.label, 0)
 
 
 def perimeter_years(company):

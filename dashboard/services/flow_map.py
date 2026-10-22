@@ -9,6 +9,7 @@ Clés de blocs (contrat partagé avec le JS) : `company:<id>`, `asset:<id>`,
 """
 import datetime
 import re
+from collections import Counter
 
 from django.db import transaction
 from django.utils.translation import gettext
@@ -18,7 +19,8 @@ from dashboard.models import (
     Company, Ownership,
 )
 from dashboard.services.flows import (
-    ownerships_in_range, perimeter_flows, perimeter_years, range_perimeter_flows,
+    delete_flows, ownerships_in_range, ownerships_overlapping, perimeter_years,
+    range_perimeter_flows,
 )
 
 ENVIRONMENT_KEY = ENDPOINT_ENVIRONMENT
@@ -296,6 +298,58 @@ def build_flow_map(company, start, end, user):
     }
 
 
+def _check_range(start, end):
+    if start > end:
+        raise ValueError(f'Plage inversée : {start} > {end}')
+
+
+def _checked_years(start, end, years):
+    """Années demandées, toutes dans [start, end] ; ValueError sinon."""
+    _check_range(start, end)
+    years = set(years)
+    outside = sorted(year for year in years if not start <= year <= end)
+    if outside:
+        raise ValueError(f'Années hors de la plage {start}–{end} : {outside}')
+    return years
+
+
+def _flow_anchor(flow):
+    """(extrémité, pk) d'un côté du flux porté par une clé étrangère, pour
+    restreindre la lecture aux flux qui le touchent ; None s'il n'y en a pas."""
+    for side in _SIDES:
+        endpoint, pk = parse_key(endpoint_key(flow, side))
+        if endpoint in _ENDPOINT_FIELD_SUFFIX:
+            return endpoint, pk
+    return None
+
+
+def _same_flow_rows(company, start, end, flow):
+    """Lignes du périmètre sur [start, end] de même flow_key() que `flow`."""
+    key = flow_key(flow)
+    candidates = range_perimeter_flows(company, start, end, touching=_flow_anchor(flow))
+    return [row for row in candidates if flow_key(row) == key]
+
+
+def flow_years(company, start, end, flow):
+    """[{'year', 'count'}] croissant : années de [start, end] où le même flux que
+    `flow` figure dans le périmètre, avec le nombre de lignes (spec §10.3)."""
+    _check_range(start, end)
+    counts = Counter(row.year for row in _same_flow_rows(company, start, end, flow))
+    return [{'year': year, 'count': counts[year]} for year in sorted(counts)]
+
+
+def delete_flow_years(company, start, end, flow, years):
+    """Supprime les lignes du même flux que `flow` des années `years`, parmi celles
+    du périmètre sur [start, end] ; renvoie le nombre supprimé. `years` vide ou
+    contenant une année hors plage : ValueError, rien n'est supprimé."""
+    years = _checked_years(start, end, years)
+    if not years:
+        raise ValueError('Aucune année à supprimer')
+    with transaction.atomic():
+        rows = _same_flow_rows(company, start, end, flow)
+        return delete_flows([row for row in rows if row.year in years])
+
+
 def _unlink_target(company, key):
     """(extrémité, pk) du bloc dont on retire les liens ; ValueError pour l'entreprise
     elle-même, un groupe, le milieu ou une extrémité inconnue."""
@@ -307,49 +361,76 @@ def _unlink_target(company, key):
     return endpoint, pk
 
 
-def _owned_ownerships(company, year, endpoint, pk):
-    if endpoint != ENDPOINT_ASSET:
-        return Ownership.objects.none()
-    return Ownership.objects.valid_in(year).filter(company=company, asset_id=pk)
+def _is_owned_in_range(company, start, end, endpoint, pk):
+    return (
+        endpoint == ENDPOINT_ASSET
+        and owned_assets_in_range(company, start, end).filter(pk=pk).exists()
+    )
 
 
-def unlink_preview(company, year, key):
-    """Effet d'un retrait des liens du bloc `key` pour `year` : nombre de flux
-    supprimés, si une détention de `company` prendrait fin et noms des autres
-    entreprises détentrices de l'actif cette année-là (leurs flux disparaissent aussi)."""
+def unlink_preview(company, start, end, key):
+    """Effet d'un retrait des liens du bloc `key` sur [start, end] (spec §10.3) :
+    années ayant des flux entre ce bloc et le périmètre, avec leur nombre ; si
+    l'actif est détenu sur la plage ; année proposée pour la fin de détention ;
+    noms des autres entreprises détentrices de l'actif sur la plage."""
     endpoint, pk = _unlink_target(company, key)
+    _check_range(start, end)
+    counts = Counter(
+        flow.year for flow in range_perimeter_flows(company, start, end, touching=(endpoint, pk))
+    )
+    years = [{'year': year, 'flows': counts[year]} for year in sorted(counts)]
+    ownership = _is_owned_in_range(company, start, end, endpoint, pk)
+    if years:
+        ownership_year = years[0]['year']
+    else:
+        ownership_year = start if ownership else None
     co_owners = []
     if endpoint == ENDPOINT_ASSET:
+        others = ownerships_overlapping(start, end).filter(asset_id=pk).exclude(company=company)
         co_owners = list(
-            Company.objects.filter(
-                pk__in=Ownership.objects.valid_in(year).filter(asset_id=pk)
-                .exclude(company=company).values('company_id'),
-            ).order_by('name').values_list('name', flat=True))
+            Company.objects.filter(pk__in=others.values('company_id'))
+            .order_by('name').values_list('name', flat=True))
     return {
-        'flows': perimeter_flows(company, year, touching=(endpoint, pk)).count(),
-        'ownership': _owned_ownerships(company, year, endpoint, pk).exists(),
+        'years': years, 'ownership': ownership, 'ownership_year': ownership_year,
         'co_owners': co_owners,
     }
 
 
-def end_ownership(company, asset, year):
-    """Met fin aux détentions de `asset` par `company` valides en `year` : supprimées
-    si elles commencent cette année-là, sinon arrêtées l'année précédente."""
-    for ownership in Ownership.objects.valid_in(year).filter(company=company, asset=asset):
-        if ownership.start_year == year:
-            ownership.delete()
-        else:
-            ownership.end_year = year - 1
-            ownership.save()
-
-
-def unlink(company, year, key):
-    """Retire les liens du bloc `key` pour `year` : supprime ses flux du périmètre
-    et, pour un actif détenu, met fin à la détention. Le bloc et les groupes restent."""
-    endpoint, pk = _unlink_target(company, key)
+def end_ownership(company, asset, year, until):
+    """Met fin à la détention de `asset` par `company` à partir de `year` (spec
+    §10.3) : les détentions valides en `year` sont supprimées si elles commencent
+    cette année-là, sinon arrêtées en `year` − 1 ; celles qui commencent après
+    `year` et au plus tard en `until` sont supprimées ; les suivantes restent."""
+    mine = Ownership.objects.filter(company=company, asset=asset)
     with transaction.atomic():
-        result = unlink_preview(company, year, key)
-        perimeter_flows(company, year, touching=(endpoint, pk)).delete()
-        if result['ownership']:
-            end_ownership(company, Asset.objects.get(pk=pk), year)
-    return result
+        for ownership in mine.valid_in(year):
+            if ownership.start_year == year:
+                ownership.delete()
+            else:
+                ownership.end_year = year - 1
+                ownership.save()
+        mine.filter(start_year__gt=year, start_year__lte=until).delete()
+
+
+def unlink(company, start, end, key, years, ownership_year):
+    """Retire les liens du bloc `key` sur [start, end] (spec §10.3) : supprime ses
+    flux du périmètre des années `years` et, si `ownership_year` est donné, met fin
+    à la détention de l'actif à partir de cette année. Le bloc et les groupes
+    restent. ValueError, sans rien modifier : rien de demandé, année hors plage,
+    ou fin de détention pour un bloc qui n'est pas un actif détenu sur la plage."""
+    endpoint, pk = _unlink_target(company, key)
+    years = _checked_years(start, end, years)
+    if ownership_year is not None:
+        _checked_years(start, end, [ownership_year])
+    elif not years:
+        raise ValueError('Rien à retirer : aucune année ni fin de détention')
+    with transaction.atomic():
+        if ownership_year is not None and not _is_owned_in_range(
+                company, start, end, endpoint, pk):
+            raise ValueError(f"Ce bloc n'est pas un actif détenu sur la plage : {key!r}")
+        # Flux lus avant de toucher aux détentions, qui définissent le périmètre.
+        flows = range_perimeter_flows(company, start, end, touching=(endpoint, pk))
+        deleted = delete_flows([flow for flow in flows if flow.year in years])
+        if ownership_year is not None:
+            end_ownership(company, Asset.objects.get(pk=pk), ownership_year, end)
+    return {'flows': deleted, 'ownership': ownership_year is not None}
