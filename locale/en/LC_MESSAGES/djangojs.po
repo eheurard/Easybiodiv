@@ -710,3 +710,322 @@ msgstr "My portfolios"
 #: .\dashboard\static\dashboard\js\supply_chain.js:169
 msgid "Fournisseur"
 msgstr "Supplier"
+
+msgid "Impossible de charger la carte des flux."
+msgstr "Unable to load the flow map."
+
+#, python-format
+msgid "Aucun flux pour %(year)s. Ajoutez un bloc pour commencer la carte."
+msgstr "No flows for %(year)s. Add a block to start the map."
+
+#, python-format
+msgid "Aucun flux enregistré pour %(year)s."
+msgstr "No flows recorded for %(year)s."
+
+#, python-format
+msgid "%(n)s bloc masqué"
+msgid_plural "%(n)s blocs masqués"
+msgstr[0] "%(n)s block hidden"
+msgstr[1] "%(n)s blocks hidden"
+
+msgid "Masquer"
+msgstr "Hide"
+
+msgid "Ajouter un pays"
+msgstr "Add a country"
+
+msgid "Ajouter une région"
+msgstr "Add a region"
+
+msgid "Ajouter une entreprise"
+msgstr "Add a company"
+
+msgid "Ajouter un actif"
+msgstr "Add an asset"
+
+msgid "Région"
+msgstr "Region"
+
+#, python-format
+msgid "Détenu par %(company)s"
+msgstr "Owned by %(company)s"
+
+#, python-format
+msgid "La détention commence en %(year)s, sans année de fin."
+msgstr "Ownership starts in %(year)s, with no end year."
+
+msgid "Créer et ajouter"
+msgstr "Create and add"
+
+msgid "Ajouter à la carte"
+msgstr "Add to the map"
+
+msgid "Indiquez une part entre 0 et 100 %."
+msgstr "Enter a share between 0 and 100%."
+
+msgid "Choisissez un élément dans la liste, ou créez-le."
+msgstr "Choose an item from the list, or create it."
+
+msgid "Choisissez un élément dans la liste."
+msgstr "Choose an item from the list."
+
+#, python-format
+msgid "« %(name)s » a été créé ; recherchez-le pour l’ajouter."
+msgstr "\"%(name)s\" has been created; search for it to add it."
+
+msgid "Erreur inattendue du serveur."
+msgstr "Unexpected server error."
+
+msgid "Le serveur est injoignable. Réessayez."
+msgstr "The server is unreachable. Try again."
+
+msgid "Choisissez un pays dans la liste."
+msgstr "Choose a country from the list."
+
+msgid "Choisissez une région dans la liste, ou laissez vide."
+msgstr "Choose a region from the list, or leave it empty."
+
+#, python-format
+msgid "« %(name)s » est déjà détenu par %(company)s en %(year)s."
+msgstr "\"%(name)s\" is already owned by %(company)s in %(year)s."
+
+#, python-format
+msgid "« %(name)s » est déjà sur la carte."
+msgstr "\"%(name)s\" is already on the map."
+
+#, python-format
+msgid ""
+"« %(name)s » ajouté pour cette session : tracez un flux pour l’enregistrer."
+msgstr "\"%(name)s\" added for this session: draw a flow to save it."
+
+#, python-format
+msgid "« %(name)s » ajouté au périmètre de %(company)s."
+msgstr "\"%(name)s\" added to the scope of %(company)s."
+
+msgid "Carte indisponible : saisissez la latitude et la longitude."
+msgstr "Map unavailable: enter the latitude and longitude."
+
+msgid "Modifier le groupe"
+msgstr "Edit the group"
+
+msgid "Nouveau groupe d’actifs"
+msgstr "New asset group"
+
+msgid "Aucun actif sur la carte. Ajoutez d’abord des actifs."
+msgstr "No assets on the map. Add some assets first."
+
+#, python-format
+msgid "déjà dans « %(group)s »"
+msgstr "already in \"%(group)s\""
+
+#, python-format
+msgid "%(n)s autre actif du groupe, hors de cette liste, est conservé."
+msgid_plural ""
+"%(n)s autres actifs du groupe, hors de cette liste, sont conservés."
+msgstr[0] "%(n)s other asset of the group, outside this list, is kept."
+msgstr[1] "%(n)s other assets of the group, outside this list, are kept."
+
+msgid "Cochez au moins un actif."
+msgstr "Select at least one asset."
+
+msgid "Ce groupe n’existe plus."
+msgstr "This group no longer exists."
+
+msgid "Groupe enregistré."
+msgstr "Group saved."
+
+msgid "Groupe créé."
+msgstr "Group created."
+
+#, python-format
+msgid ""
+"Supprimer le groupe « %(name)s » ? Ses actifs et leurs flux restent sur la "
+"carte."
+msgstr ""
+"Delete the group \"%(name)s\"? Its assets and their flows stay on the map."
+
+msgid "Groupe supprimé."
+msgstr "Group deleted."
+
+#, python-format
+msgid "%(n)s flux"
+msgid_plural "%(n)s flux"
+msgstr[0] "%(n)s flow"
+msgstr[1] "%(n)s flows"
+
+#, python-format
+msgid ""
+"Êtes-vous sûr de vouloir supprimer %(flows)s et 1 détention de « %(name)s » "
+"en %(year)s ? L’actif ne sera plus détenu par %(company)s à partir de "
+"%(year)s."
+msgstr ""
+"Are you sure you want to delete %(flows)s and 1 ownership of \"%(name)s\" in"
+" %(year)s? The asset will no longer be owned by %(company)s from %(year)s "
+"onwards."
+
+#, python-format
+msgid ""
+"Êtes-vous sûr de vouloir supprimer la détention de « %(name)s » ? L’actif ne"
+" sera plus détenu par %(company)s à partir de %(year)s."
+msgstr ""
+"Are you sure you want to delete the ownership of \"%(name)s\"? The asset "
+"will no longer be owned by %(company)s from %(year)s onwards."
+
+#, python-format
+msgid ""
+"Êtes-vous sûr de vouloir supprimer %(flows)s entre « %(name)s » et "
+"%(company)s en %(year)s ? « %(name)s » reste disponible dans la recherche."
+msgstr ""
+"Are you sure you want to delete %(flows)s between \"%(name)s\" and "
+"%(company)s in %(year)s? \"%(name)s\" remains available in the search."
+
+#, python-format
+msgid "« %(name)s » n’a aucun lien à supprimer en %(year)s."
+msgstr "\"%(name)s\" has no links to delete in %(year)s."
+
+#, python-format
+msgid "Liens de « %(name)s » supprimés."
+msgstr "Links of \"%(name)s\" deleted."
+
+msgid "Supprimer les liens"
+msgstr "Delete links"
+
+msgid "Retirer de la carte"
+msgstr "Remove from the map"
+
+#, python-format
+msgid "« %(name)s » retiré de la carte."
+msgstr "\"%(name)s\" removed from the map."
+
+msgid "Supprimer le groupe"
+msgstr "Delete the group"
+
+#, python-format
+msgid "%(name)s +%(count)s"
+msgstr "%(name)s +%(count)s"
+
+#, python-format
+msgid "%(kind)s : %(from)s → %(to)s"
+msgstr "%(kind)s: %(from)s → %(to)s"
+
+#, python-format
+msgid "… et %(n)s autre flux"
+msgid_plural "… et %(n)s autres flux"
+msgstr[0] "… and %(n)s other flow"
+msgstr[1] "… and %(n)s other flows"
+
+#, python-format
+msgid "Modifier : %(title)s"
+msgstr "Edit: %(title)s"
+
+#, python-format
+msgid "Groupe · %(n)s actif"
+msgid_plural "Groupe · %(n)s actifs"
+msgstr[0] "Group · %(n)s asset"
+msgstr[1] "Group · %(n)s assets"
+
+#, python-format
+msgid "Ajouter un flux entrant vers %(name)s"
+msgstr "Add an incoming flow to %(name)s"
+
+#, python-format
+msgid "Ajouter un flux sortant de %(name)s"
+msgstr "Add an outgoing flow from %(name)s"
+
+#, python-format
+msgid "Ajouter un flux avec le milieu pour %(name)s"
+msgstr "Add a flow with the environment for %(name)s"
+
+msgid "déplier"
+msgstr "expand"
+
+#, python-format
+msgid "Actions du bloc %(name)s"
+msgstr "Actions for block %(name)s"
+
+#, python-format
+msgid "Groupe %(name)s : cliquer pour replier"
+msgstr "Group %(name)s: click to collapse"
+
+msgid "replier"
+msgstr "collapse"
+
+msgid "Environnement — milieu naturel (eau, air, sol)"
+msgstr "Environment — natural medium (water, air, soil)"
+
+msgid "Environnement"
+msgstr "Environment"
+
+msgid "Origine inconnue"
+msgstr "Unknown origin"
+
+msgid "Destination inconnue"
+msgstr "Unknown destination"
+
+#, python-format
+msgid "%(from)s → %(to)s"
+msgstr "%(from)s → %(to)s"
+
+msgid ""
+"Cliquez le bloc de destination, le bandeau Environnement, ou le fond pour "
+"une destination inconnue. Échap : annuler."
+msgstr ""
+"Click the destination block, the Environment banner, or the background for "
+"an unknown destination. Esc: cancel."
+
+msgid ""
+"Cliquez le bloc d’origine, le bandeau Environnement, ou le fond pour une "
+"origine inconnue. Échap : annuler."
+msgstr ""
+"Click the origin block, the Environment banner, or the background for an "
+"unknown origin. Esc: cancel."
+
+msgid "Groupe déplié : choisissez l’un de ses actifs."
+msgstr "Group expanded: choose one of its assets."
+
+#, python-format
+msgid "Aucune nature de flux n’est possible de « %(from)s » vers « %(to)s »."
+msgstr "No flow kind is possible from \"%(from)s\" to \"%(to)s\"."
+
+msgid "Nouveau flux"
+msgstr "New flow"
+
+msgid "Modifier le flux"
+msgstr "Edit the flow"
+
+msgid "Ce flux n’existe plus."
+msgstr "This flow no longer exists."
+
+msgid "Choisissez une commodité dans la liste, ou créez-la."
+msgstr "Choose a commodity from the list, or create it."
+
+msgid "Flux créé."
+msgstr "Flow created."
+
+msgid "Flux enregistré."
+msgstr "Flow saved."
+
+#, python-format
+msgid ""
+"Supprimer le flux « %(what)s » (%(quantity)s %(unit)s, %(year)s) ? Cette "
+"suppression est définitive."
+msgstr ""
+"Delete the flow \"%(what)s\" (%(quantity)s %(unit)s, %(year)s)? This "
+"deletion is permanent."
+
+msgid "Flux supprimé."
+msgstr "Flow deleted."
+
+#, python-format
+msgid "Unité de la nouvelle commodité « %(name)s »"
+msgstr "Unit of the new commodity \"%(name)s\""
+
+msgid "Confirmer"
+msgstr "Confirm"
+
+#, python-format
+msgid "+ Créer « %(name)s »…"
+msgstr "+ Create \"%(name)s\"…"
+
+msgid "Aucun résultat."
+msgstr "No results."

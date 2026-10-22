@@ -82,6 +82,7 @@ easybiodiv/
 │   ├── tests_admin_console.py
 │   ├── tests_backup.py
 │   ├── tests_flow.py
+│   ├── tests_flow_map.py
 │   ├── tests_ownership.py
 │   └── tests_stress_test.py
 ├── imports/                 # Upload Excel, parsing, validation, mapping
@@ -137,6 +138,10 @@ vues uniquement, sans trace d'import persistée).
   EMISSION, WASTE ; les extrémités autorisées par nature sont dans `FLOW_RULES`,
   qui génère les contraintes en base. Lecture **uniquement** via
   `dashboard/services/flows.py`.
+- `AssetGroup` / `AssetGroupMember` : groupes d'actifs propres à une entreprise (nom +
+  membres). Un actif appartient à **un seul groupe par entreprise** (contrainte
+  `company, asset` unique). Utilisés par la page *Carte des flux*
+  (`dashboard/views_flow_map.py`, `services/flow_map.py`) pour replier des actifs en un bloc.
 - `Company_Revenue` / `Company_Revenue_Sector` : chiffre d'affaires, global et
   ventilé par `SubSector`.
 - `Policy_Type` → `Policy_Subcategory` → `Policy_Level`, appliqués via
@@ -240,7 +245,8 @@ vues uniquement, sans trace d'import persistée).
 - Organisation : un dossier `tests/` par app pour `authentication` et `imports`
   (`test_models.py`, `test_views.py`, `test_forms.py`…). `dashboard` utilise encore
   des fichiers plats à la racine de l'app (`tests.py`, `tests_admin_console.py`,
-  `tests_stress_test.py`, `tests_flow.py`, `tests_ownership.py`, `tests_backup.py`)
+  `tests_stress_test.py`, `tests_flow.py`, `tests_flow_map.py`, `tests_ownership.py`,
+  `tests_backup.py`)
   — d'où le `python_files` élargi dans `pytest.ini`. `dashboard/testing.py` porte
   les fabriques `make_*` utilisées par ces tests ; il ne correspond à aucun de ces
   motifs et n'est donc jamais collecté comme fichier de tests.

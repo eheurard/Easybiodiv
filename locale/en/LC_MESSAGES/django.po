@@ -2514,3 +2514,204 @@ msgstr "Sign out"
 #: .\templates\dashboard\_leap_tabs.html:3
 msgid "Phases LEAP"
 msgstr "LEAP phases"
+
+msgid "Quantité invalide."
+msgstr "Invalid quantity."
+
+msgid "La quantité doit être positive."
+msgstr "The quantity must be positive."
+
+msgid "La latitude doit être comprise entre -90 et 90."
+msgstr "Latitude must be between -90 and 90."
+
+msgid "La longitude doit être comprise entre -180 et 180."
+msgstr "Longitude must be between -180 and 180."
+
+#, python-format
+msgid "« %(asset)s » appartient déjà au groupe « %(group)s »."
+msgstr "\"%(asset)s\" already belongs to the group \"%(group)s\"."
+
+msgid "Ce flux n'existe plus."
+msgstr "This flow no longer exists."
+
+msgid "Type de recherche inconnu."
+msgstr "Unknown search type."
+
+msgid "Cette entreprise n'existe plus."
+msgstr "This company no longer exists."
+
+msgid "Ce groupe n'existe plus."
+msgstr "This group no longer exists."
+
+msgid "Extrémité de flux invalide."
+msgstr "Invalid flow endpoint."
+
+msgid "Année invalide."
+msgstr "Invalid year."
+
+msgid "Bloc invalide."
+msgstr "Invalid block."
+
+msgid "Origine inconnue"
+msgstr "Unknown origin"
+
+msgid "Destination inconnue"
+msgstr "Unknown destination"
+
+msgid "Accès réservé aux créateurs."
+msgstr "Access restricted to creators."
+
+msgid "Carte des flux"
+msgstr "Flow map"
+
+msgid "Année"
+msgstr "Year"
+
+msgid "Autre année"
+msgstr "Other year"
+
+msgid "Tout réafficher"
+msgstr "Show all again"
+
+msgid "Recentrer la carte"
+msgstr "Recenter the map"
+
+msgid "Recentrer"
+msgstr "Recenter"
+
+msgid "Ajouter à la carte"
+msgstr "Add to the map"
+
+msgid "+ Pays"
+msgstr "+ Country"
+
+msgid "+ Région"
+msgstr "+ Region"
+
+msgid "+ Entreprise"
+msgstr "+ Company"
+
+msgid "+ Actif"
+msgstr "+ Asset"
+
+msgid "+ Groupe d’actifs"
+msgstr "+ Asset group"
+
+msgid "Natures de flux"
+msgstr "Flow kinds"
+
+msgid "Carte des flux de l’entreprise"
+msgstr "Company flow map"
+
+msgid "Aucune entreprise n’est encore enregistrée."
+msgstr "No company has been registered yet."
+
+msgid "Confirmer"
+msgstr "Confirm"
+
+msgid ""
+"Molette : zoom · glisser le fond : déplacer la vue · glisser un bloc : le "
+"déplacer pour la session."
+msgstr ""
+"Wheel: zoom · drag the background: pan the view · drag a block: move it for "
+"the session."
+
+msgid ""
+"« + » d’un bloc : tracer un flux · clic sur une flèche : modifier ses flux."
+msgstr "\"+\" on a block: draw a flow · click an arrow: edit its flows."
+
+msgid "Fermer sans enregistrer"
+msgstr "Close without saving"
+
+msgid "Flux de cette flèche"
+msgstr "Flows on this arrow"
+
+msgid "Nature"
+msgstr "Kind"
+
+msgid "Rechercher (2 caractères minimum)"
+msgstr "Search (at least 2 characters)"
+
+msgid "Commodités trouvées"
+msgstr "Commodities found"
+
+msgid "tonnes"
+msgstr "tonnes"
+
+msgid "Créer"
+msgstr "Create"
+
+msgid "Quantité"
+msgstr "Quantity"
+
+msgid "Unité"
+msgstr "Unit"
+
+msgid "Facultatif"
+msgstr "Optional"
+
+msgid "Tier"
+msgstr "Tier"
+
+msgid "Scope GES"
+msgstr "GHG scope"
+
+msgid "Référence"
+msgstr "Reference"
+
+msgid "+ Ajouter un flux entre ces deux blocs"
+msgstr "+ Add a flow between these two blocks"
+
+msgid "Nouvelle entreprise"
+msgstr "New company"
+
+msgid "Nom"
+msgstr "Name"
+
+msgid "ISIN (facultatif)"
+msgstr "ISIN (optional)"
+
+msgid "Ticker (facultatif)"
+msgstr "Ticker (optional)"
+
+msgid "Nouvel actif"
+msgstr "New asset"
+
+msgid "Région (facultatif)"
+msgstr "Region (optional)"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Position"
+msgstr "Position"
+
+msgid "Cliquez sur la carte, ou saisissez la latitude et la longitude."
+msgstr "Click on the map, or enter the latitude and longitude."
+
+msgid "Latitude"
+msgstr "Latitude"
+
+msgid "Longitude"
+msgstr "Longitude"
+
+msgid "Détention"
+msgstr "Ownership"
+
+msgid "Part détenue (%)"
+msgstr "Share owned (%)"
+
+msgid "Nom du groupe"
+msgstr "Group name"
+
+msgid "Actifs du groupe"
+msgstr "Group assets"
+
+msgid "Filtrer les actifs"
+msgstr "Filter assets"
+
+msgid "Filtrer les actifs de la carte"
+msgstr "Filter the assets on the map"
+
+msgid "Supprimer le groupe"
+msgstr "Delete the group"
