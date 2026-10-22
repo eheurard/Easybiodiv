@@ -3557,6 +3557,34 @@ a.app-header__avatar {
 .esg-indicator__value { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .esg-indicator__unit { font-size: 12px; font-weight: 500; color: var(--color-on-surface-variant); margin-left: 4px; }
 
+/* Comparaison à une ville (Land use) : contrôles à gauche, carte à droite */
+.esg-city { --bar-accent: #6B7B3A; margin-top: 24px; }
+.esg-city--portfolio { --bar-accent: #af5d43; }
+.pf-impact .esg-city { margin-top: 0; }
+.esg-city__layout { display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); gap: 24px; }
+@media (max-width: 900px) { .esg-city__layout { grid-template-columns: 1fr; } }
+.esg-city__controls { display: flex; flex-direction: column; gap: 16px; }
+.esg-city__field { display: flex; flex-direction: column; gap: 6px; color: var(--color-on-surface-variant); }
+.esg-city__select { width: 100%; }
+.esg-city__measures { display: flex; flex-direction: column; gap: 6px; }
+.esg-city__measure { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; width: 100%; padding: 8px 12px; text-align: left; border: 1px solid var(--color-outline-variant); border-left: 3px solid transparent; border-radius: 6px; background: transparent; color: var(--color-on-surface-variant); font: 13px var(--font-family); cursor: pointer; transition: background .15s, border-color .15s; }
+.esg-city__measure:hover { background: var(--color-surface-container-low); }
+.esg-city__measure[aria-pressed="true"] { border-left-color: var(--bar-accent); background: var(--color-surface-container-low); color: var(--color-on-surface); }
+.esg-city__measure-value { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--color-on-surface); }
+.esg-city__none { font-size: 13px; font-style: italic; color: var(--color-on-surface-variant); margin: 0; }
+.esg-city__facts { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; margin: 0; font-size: 13px; }
+.esg-city__facts dt { color: var(--color-on-surface-variant); }
+.esg-city__facts dd { margin: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-on-surface); }
+.esg-city__ratio { margin: 0; padding-top: 12px; border-top: 1px solid var(--color-outline-variant); font-size: 16px; font-weight: 600; color: var(--bar-accent); }
+.esg-city__ratio:empty { display: none; }
+.esg-city__map-wrap { position: relative; }
+.esg-city__map { height: 400px; border-radius: 8px; overflow: hidden; border: 1px solid var(--color-outline-variant); }
+.esg-city__legend { position: absolute; left: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 8px 10px; list-style: none; border-radius: 6px; background: var(--scrim-chip); font-size: 12px; color: var(--color-on-surface); }
+.esg-city__legend li { display: flex; align-items: center; gap: 8px; }
+.esg-city__swatch { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+.esg-city__swatch--company { background: color-mix(in srgb, var(--bar-accent) 60%, transparent); border: 2px solid var(--bar-accent); }
+.esg-city__swatch--city { border: 1.5px dashed var(--color-outline); }
+
 /* Exposition (Invasive species) */
 .esg-flag { display: inline-flex; align-items: center; gap: 6px; }
 .esg-flag::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--bar-accent); flex-shrink: 0; }
@@ -4802,6 +4830,8 @@ a.app-header__avatar {
 :root[data-theme="dark"] .comp-badge--non_compliant { color: #fca5a5; }
 :root[data-theme="dark"] .esg-level--moderate       { color: #fcd34d; }
 :root[data-theme="dark"] .esg-level--high           { color: #fca5a5; }
+:root[data-theme="dark"] .esg-city__ratio           { color: #b5c48a; }
+:root[data-theme="dark"] .esg-city--portfolio .esg-city__ratio { color: #ffb59e; }
 :root[data-theme="dark"] .comp-dr__cond             { color: #c4b5fd; }
 :root[data-theme="dark"] .comp-dr__suggestion       { color: #fcd34d; }
 :root[data-theme="dark"] .risk-pill--high           { color: #ffcaa8; }

@@ -181,6 +181,28 @@ class EsgEnvironmentPageTests(TestCase):
                             'Invasive species — à venir'):
             self.assertNotContains(response, placeholder)
 
+    def assert_city_compare(self, content, root_id, page_script):
+        self.assertIn(f'id="{root_id}"', content)
+        for part in ('select', 'measures', 'facts', 'ratio', 'map'):
+            self.assertIn(f'data-cc="{part}"', content)
+        self.assertIn('maplibre-gl', content)
+        # city_compare.js définit CityCompare avant que le script de page ne l'appelle.
+        self.assertLess(content.index('js/city_compare.js'), content.index(page_script))
+
+    def test_comparaison_land_use_a_une_ville(self):
+        content = self.client.get(reverse('dashboard:esg')).content.decode()
+        self.assert_city_compare(content, 'esg-city', 'js/esg.js')
+        self.assertIn('m²a crop-eq', content)
+
+    def test_comparaison_impact_portefeuille_a_une_ville(self):
+        from django.contrib.auth import get_user_model
+        user = get_user_model().objects.create_user(username='pf', password='x')
+        self.client.force_login(user)
+        content = self.client.get(reverse('dashboard:portfolio_analysis')).content.decode()
+        self.assert_city_compare(content, 'pf-city', 'js/portfolio.js')
+        self.assertIn('esg-city--portfolio', content)
+        self.assertIn('MSA·km²', content)
+
     def test_api_expose_les_trois_onglets(self):
         company = Company.objects.create(name='ApiCorp')
         data = self.client.get(reverse('dashboard:esg_data', kwargs={'pk': company.pk})).json()

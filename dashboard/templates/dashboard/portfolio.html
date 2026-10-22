@@ -154,6 +154,14 @@
           <canvas id="pf-impact-chart" aria-label="{% translate 'Impact pondéré et poids par entreprise' %}"></canvas>
         </div>
       </section>
+
+      {% blocktranslate asvar pf_city_note trimmed %}
+      Impact financé du portefeuille lu comme une surface où la biodiversité aurait
+      entièrement disparu : PDF·m² (ReCiPe 2016 endpoint) ou MSA·km² (GBS). Cercles de même
+      aire que cette surface et que la superficie administrative de la ville, centrés sur son
+      centre-ville : la forme réelle des territoires n'est pas représentée.
+      {% endblocktranslate %}
+      {% include "dashboard/_city_compare.html" with cc_id="pf-city" cc_class="esg-city--portfolio" cc_note=pf_city_note %}
     </div>
   </div>
   <div class="pf-panel" data-tab-panel="risque-physique" hidden>
@@ -283,5 +291,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js" defer></script>
 <script src="{% static 'dashboard/js/pie_markers.js' %}" defer></script>
+<script src="{% static 'dashboard/js/city_compare.js' %}" defer></script>
 <script src="{% static 'dashboard/js/portfolio.js' %}" defer></script>
 {% endblock %}

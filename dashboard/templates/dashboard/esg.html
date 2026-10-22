@@ -5,6 +5,10 @@
 
 {% block nav_esg %}active{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
+{% endblock %}
+
 {% block header_left %}
 {% include "dashboard/_company_combobox.html" %}
 {% endblock header_left %}
@@ -122,6 +126,14 @@
           {% endblocktranslate %}
         </p>
       </section>
+
+      {% blocktranslate asvar land_city_note trimmed %}
+      Cercles de même aire que la surface comparée et que la superficie administrative de
+      la ville, centrés sur son centre-ville : la forme réelle des territoires n'est pas
+      représentée. L'impact ReCiPe (m²a crop-eq) se lit comme la surface de culture
+      annuelle occupée pendant un an.
+      {% endblocktranslate %}
+      {% include "dashboard/_city_compare.html" with cc_id="esg-city" cc_note=land_city_note %}
     </div>
 
     <!-- Resource use -->
@@ -364,5 +376,7 @@
 {{ initial_data|json_script:"esg-data" }}
 <script>var ESG_API_URL = "{% url 'dashboard:esg_data' pk=0 %}";
 var ESG_MARKET_URL = "{% url 'dashboard:esg_market' pk=0 %}";</script>
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js" defer></script>
+<script src="{% static 'dashboard/js/city_compare.js' %}" defer></script>
 <script src="{% static 'dashboard/js/esg.js' %}" defer></script>
 {% endblock %}

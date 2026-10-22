@@ -2,7 +2,7 @@
 
 const ESG_COMPANY_KEY = 'selected-company-id';
 
-const ESG_STATE = { data: null, pollutionKey: null, pollutionView: 'assets' };
+const ESG_STATE = { data: null, pollutionKey: null, pollutionView: 'assets', city: null };
 
 let esgScopeView = false;
 const SCOPE_COLORS = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc948'];
@@ -17,6 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   esgInitThemeTabs();
   esgInitSubTabs();
+  if (window.CityCompare) {
+    ESG_STATE.city = CityCompare.create(document.getElementById('esg-city'), {
+      emptyMessage: gettext('Aucune surface land use calculée pour cette entreprise.'),
+    });
+  }
   esgInitPollutionView();
 
   const scopeToggle = document.getElementById('esg-scope-toggle');
@@ -80,6 +85,8 @@ function esgInitSubTabs() {
         p.classList.toggle('esg-sub-panel--active', active);
         if (active) { p.removeAttribute('hidden'); } else { p.setAttribute('hidden', ''); }
       });
+      // Carte de comparaison à une ville : créée à la première ouverture.
+      if (sub === 'land-use' && ESG_STATE.city) ESG_STATE.city.show();
     });
   });
 }
@@ -151,6 +158,8 @@ function esgRenderLandUse(land) {
     }
   }
 
+  if (ESG_STATE.city) ESG_STATE.city.setMeasures(esgLandMeasures(land));
+
   const tbody = document.getElementById('esg-land-rows');
   const empty = document.getElementById('esg-land-empty');
   if (!tbody) return;
@@ -165,6 +174,26 @@ function esgRenderLandUse(land) {
     esgLandCell(a.surface, a.surface_year, maxSurface, M2_PER_HA, 'surface') +
     '</tr>'
   ).join('');
+}
+
+
+// Surfaces comparables à une ville (m²) : impact ReCiPe, emprise mesurée,
+// emprise déclarée par le groupe.
+function esgLandMeasures(land) {
+  const out = [];
+  if (land.total_impact) {
+    out.push({ key: 'impact', label: gettext('Impact ReCiPe (culture équivalente)'),
+               m2: land.total_impact });
+  }
+  if (land.total_surface) {
+    out.push({ key: 'surface', label: gettext('Emprise au sol des actifs'),
+               m2: land.total_surface });
+  }
+  if (land.declared_group && land.declared_group.value) {
+    out.push({ key: 'group', label: gettext('Emprise déclarée (groupe)'),
+               m2: land.declared_group.value });
+  }
+  return out;
 }
 
 

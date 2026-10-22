@@ -41,6 +41,14 @@
 
   var $ = function (id) { return document.getElementById(id); };
 
+  // Comparaison de l'impact financé à une ville (city_compare.js).
+  var CITY = window.CityCompare
+    ? CityCompare.create($('pf-city'), {
+        fill: '#af5d43', line: '#ffd8c8',
+        emptyMessage: gettext('Aucun impact à comparer pour ce portefeuille.'),
+      })
+    : null;
+
   // ── Tabs ────────────────────────────────────────────────────────
   function initTabs() {
     var tabs = document.querySelectorAll('.pf-tab');
@@ -57,6 +65,7 @@
           panel.classList.toggle('pf-panel--active', active);
           panel.hidden = !active;
         });
+        if (name === 'impact' && CITY && IMPACT_DATA) { CITY.show(); }
         if (name === 'risque-transition' && TRANS_DATA) {
           transEnsureMap();
           if (TRANS_MAP) {
@@ -310,6 +319,8 @@
         $('pf-impact-empty').hidden = true;
         $('pf-impact-report').hidden = false;
         renderImpact();
+        var panel = document.querySelector('.pf-panel[data-tab-panel="impact"]');
+        if (CITY && panel && !panel.hidden) { CITY.show(); }
       });
   }
 
@@ -330,6 +341,16 @@
     $('pf-impact-total').textContent = fmtNumber(m.total);
     $('pf-impact-unit').textContent = m.unit;
     renderImpactChart(m);
+    renderImpactCity(m);
+  }
+
+  // Surface en m² : PDF.m² tel quel, MSA.km² converti.
+  function renderImpactCity(m) {
+    if (!CITY) { return; }
+    var m2 = /km²/.test(m.unit) ? m.total * 1e6 : m.total;
+    var label = CURRENT_METRIC === 'gbs'
+      ? gettext('Impact financé GBS (MSA·km²)') : gettext('Impact financé ReCiPe (PDF·m²)');
+    CITY.setMeasures([{ key: CURRENT_METRIC, label: label, m2: m2 }], CURRENT_METRIC);
   }
 
   function renderImpactChart(m) {

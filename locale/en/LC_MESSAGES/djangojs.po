@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easybiodiv\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 21:34+0200\n"
+"POT-Creation-Date: 2026-10-21 23:11+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Easybiodiv\n"
 "Language-Team: English\n"
@@ -16,6 +16,110 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:19
+msgid "Paris"
+msgstr "Paris"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:20
+msgid "Lyon"
+msgstr "Lyon"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:21
+msgid "Marseille"
+msgstr "Marseille"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:22
+msgid "Toulouse"
+msgstr "Toulouse"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:23
+msgid "Bordeaux"
+msgstr "Bordeaux"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:24
+msgid "Nantes"
+msgstr "Nantes"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:25
+msgid "Lille"
+msgstr "Lille"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:26
+msgid "Bruxelles (Région capitale)"
+msgstr "Brussels (Capital Region)"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:27
+msgid "Genève"
+msgstr "Geneva"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:28
+msgid "Londres (Grand Londres)"
+msgstr "London (Greater London)"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:29
+msgid "Berlin"
+msgstr "Berlin"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:30
+msgid "Madrid"
+msgstr "Madrid"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:31
+msgid "Rome"
+msgstr "Rome"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:32
+msgid "New York"
+msgstr "New York"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:33
+msgid "Montréal"
+msgstr "Montreal"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:34
+msgid "São Paulo"
+msgstr "São Paulo"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:35
+msgid "Santiago du Chili (commune)"
+msgstr "Santiago, Chile (commune)"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:36
+msgid "Sydney (City of Sydney)"
+msgstr "Sydney (City of Sydney)"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:37
+msgid "Tokyo (23 arrondissements)"
+msgstr "Tokyo (23 special wards)"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:38
+msgid "Singapour"
+msgstr "Singapore"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:110
+msgid "Aucune surface à comparer."
+msgstr "No area to compare."
+
+#: .\dashboard\static\dashboard\js\city_compare.js:164
+msgid "Surface équivalente"
+msgstr "Equivalent area"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:165
+msgid "Rayon du cercle"
+msgstr "Circle radius"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:166
+msgid "Superficie de %(city)s"
+msgstr "Area of %(city)s"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:173
+msgid "≈ %(ratio)s fois la superficie de %(city)s"
+msgstr "≈ %(ratio)s times the area of %(city)s"
+
+#: .\dashboard\static\dashboard\js\city_compare.js:175
+msgid "≈ %(pct)s % de la superficie de %(city)s"
+msgstr "≈ %(pct)s % of the area of %(city)s"
 
 #: .\dashboard\static\dashboard\js\climate_stress_test.js:32
 msgid "pb"
@@ -110,7 +214,7 @@ msgstr "No production data available."
 #: .\dashboard\static\dashboard\js\dependencies.js:152
 #: .\dashboard\static\dashboard\js\leap_evaluate.js:93
 #: .\dashboard\static\dashboard\js\mesure_empreinte.js:148
-#: .\dashboard\static\dashboard\js\physical_risk_view.js:74
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:81
 msgid "Aucune donnée disponible."
 msgstr "No data available."
 
@@ -138,11 +242,11 @@ msgstr "%(sector)s details"
 msgid "Md"
 msgstr "bn"
 
-#: .\dashboard\static\dashboard\js\dette_view.js:34 .\dashboard\static\dashboard\js\portfolio.js:615
+#: .\dashboard\static\dashboard\js\dette_view.js:34 .\dashboard\static\dashboard\js\portfolio.js:710
 msgid "Assets"
 msgstr "Assets"
 
-#: .\dashboard\static\dashboard\js\dette_view.js:34 .\dashboard\static\dashboard\js\portfolio.js:614
+#: .\dashboard\static\dashboard\js\dette_view.js:34 .\dashboard\static\dashboard\js\portfolio.js:709
 msgid "Régions"
 msgstr "Regions"
 
@@ -154,108 +258,123 @@ msgstr "Main commodities"
 msgid "%(pct)s du total"
 msgstr "%(pct)s of total"
 
-#: .\dashboard\static\dashboard\js\esg.js:327 .\dashboard\static\dashboard\js\esg.js:393
+#: .\dashboard\static\dashboard\js\esg.js:22
+msgid "Aucune surface land use calculée pour cette entreprise."
+msgstr "No land use area computed for this company."
+
+#: .\dashboard\static\dashboard\js\esg.js:185
+msgid "Impact ReCiPe (culture équivalente)"
+msgstr "ReCiPe impact (cropland equivalent)"
+
+#: .\dashboard\static\dashboard\js\esg.js:189
+msgid "Emprise au sol des actifs"
+msgstr "Land footprint of assets"
+
+#: .\dashboard\static\dashboard\js\esg.js:193
+msgid "Emprise déclarée (groupe)"
+msgstr "Reported footprint (group)"
+
+#: .\dashboard\static\dashboard\js\esg.js:356 .\dashboard\static\dashboard\js\esg.js:422
 #: .\dashboard\static\dashboard\js\mesure_empreinte.js:581
 msgid "Actif"
 msgstr "Asset"
 
-#: .\dashboard\static\dashboard\js\esg.js:327 .\dashboard\static\dashboard\js\mesure_empreinte.js:86
+#: .\dashboard\static\dashboard\js\esg.js:356 .\dashboard\static\dashboard\js\mesure_empreinte.js:86
 #: .\dashboard\static\dashboard\js\mesure_empreinte.js:581
 msgid "Commodité"
 msgstr "Commodity"
 
-#: .\dashboard\static\dashboard\js\esg.js:328 .\dashboard\static\dashboard\js\esg.js:393
+#: .\dashboard\static\dashboard\js\esg.js:357 .\dashboard\static\dashboard\js\esg.js:422
 #: .\dashboard\static\dashboard\js\mesure_empreinte.js:172
 #: .\dashboard\static\dashboard\js\mesure_empreinte.js:582
 #: .\dashboard\static\dashboard\js\mesure_empreinte.js:623
 #: .\dashboard\static\dashboard\js\mesure_empreinte.js:650
-#: .\dashboard\static\dashboard\js\portfolio.js:615
+#: .\dashboard\static\dashboard\js\portfolio.js:710
 msgid "Pays"
 msgstr "Country"
 
-#: .\dashboard\static\dashboard\js\esg.js:329
+#: .\dashboard\static\dashboard\js\esg.js:358
 msgid "Pression"
 msgstr "Pressure"
 
-#: .\dashboard\static\dashboard\js\esg.js:330
+#: .\dashboard\static\dashboard\js\esg.js:359
 msgid "Part"
 msgstr "Share"
 
-#: .\dashboard\static\dashboard\js\esg.js:370
+#: .\dashboard\static\dashboard\js\esg.js:399
 msgid "Déclaré groupe :"
 msgstr "Reported by group:"
 
-#: .\dashboard\static\dashboard\js\esg.js:373
+#: .\dashboard\static\dashboard\js\esg.js:402
 msgid "Mesuré, somme des actifs"
 msgstr "Measured, sum of assets"
 
-#: .\dashboard\static\dashboard\js\esg.js:373
-#| msgid "Aucune donnée à simuler."
+#: .\dashboard\static\dashboard\js\esg.js:402
 msgid "Aucune donnée mesurée"
 msgstr "No measured data"
 
-#: .\dashboard\static\dashboard\js\esg.js:377
+#: .\dashboard\static\dashboard\js\esg.js:406
 msgid "Modélisé, ReCiPe 2016"
 msgstr "Modelled, ReCiPe 2016"
 
-#: .\dashboard\static\dashboard\js\esg.js:412
+#: .\dashboard\static\dashboard\js\esg.js:441
 msgid "Aucune mesure par actif : seules des valeurs consolidées sont déclarées."
 msgstr "No measurement by asset: only consolidated values are reported."
 
-#: .\dashboard\static\dashboard\js\esg.js:419
+#: .\dashboard\static\dashboard\js\esg.js:448
 msgid "Aucun facteur de raréfaction pour les productions de ces actifs."
 msgstr "No scarcity factor for these assets' production."
 
-#: .\dashboard\static\dashboard\js\esg.js:444
+#: .\dashboard\static\dashboard\js\esg.js:473
 msgid "Importations"
 msgstr "Imports"
 
-#: .\dashboard\static\dashboard\js\esg.js:445
+#: .\dashboard\static\dashboard\js\esg.js:474
 msgid "Plateforme de transport"
 msgstr "Transport hub"
 
-#: .\dashboard\static\dashboard\js\esg.js:452 .\dashboard\static\dashboard\js\leap_evaluate.js:182
+#: .\dashboard\static\dashboard\js\esg.js:481 .\dashboard\static\dashboard\js\leap_evaluate.js:182
 msgid "Oui"
 msgstr "Yes"
 
-#: .\dashboard\static\dashboard\js\esg.js:633 .\dashboard\static\dashboard\js\leap_prepare.js:315
+#: .\dashboard\static\dashboard\js\esg.js:662 .\dashboard\static\dashboard\js\leap_prepare.js:315
 #: .\dashboard\static\dashboard\js\leap_prepare.js:417
 msgid "Total"
 msgstr "Total"
 
-#: .\dashboard\static\dashboard\js\esg.js:640
+#: .\dashboard\static\dashboard\js\esg.js:669
 msgid "Projection"
 msgstr "Projection"
 
-#: .\dashboard\static\dashboard\js\esg.js:668 .\dashboard\static\dashboard\js\esg.js:698
+#: .\dashboard\static\dashboard\js\esg.js:697 .\dashboard\static\dashboard\js\esg.js:727
 msgid "Aucune politique enregistrée."
 msgstr "No policy recorded."
 
-#: .\dashboard\static\dashboard\js\esg.js:764
+#: .\dashboard\static\dashboard\js\esg.js:793
 msgid "Période"
 msgstr "Period"
 
-#: .\dashboard\static\dashboard\js\esg.js:786
+#: .\dashboard\static\dashboard\js\esg.js:815
 msgid "Cours (%(ticker)s)"
 msgstr "Share price (%(ticker)s)"
 
-#: .\dashboard\static\dashboard\js\esg.js:794
+#: .\dashboard\static\dashboard\js\esg.js:823
 msgid "Capitalisation"
 msgstr "Market cap"
 
-#: .\dashboard\static\dashboard\js\esg.js:795
+#: .\dashboard\static\dashboard\js\esg.js:824
 msgid "Notation ESG"
 msgstr "ESG rating"
 
-#: .\dashboard\static\dashboard\js\esg.js:796
+#: .\dashboard\static\dashboard\js\esg.js:825
 msgid "Perf. relative"
 msgstr "Relative perf."
 
-#: .\dashboard\static\dashboard\js\esg.js:912 .\dashboard\static\dashboard\js\esg.js:925
+#: .\dashboard\static\dashboard\js\esg.js:941 .\dashboard\static\dashboard\js\esg.js:954
 msgid "Historique"
 msgstr "History"
 
-#: .\dashboard\static\dashboard\js\esg.js:915 .\dashboard\static\dashboard\js\esg.js:927
+#: .\dashboard\static\dashboard\js\esg.js:944 .\dashboard\static\dashboard\js\esg.js:956
 msgid "Projection 2030"
 msgstr "2030 projection"
 
@@ -405,7 +524,6 @@ msgid "Aucune donnée à afficher."
 msgstr "No data to display."
 
 #: .\dashboard\static\dashboard\js\mesure_empreinte.js:582
-#: .\dashboard\static\dashboard\js\portfolio.js:503
 msgid "Entreprise"
 msgstr "Company"
 
@@ -485,91 +603,107 @@ msgstr "Score"
 msgid "Critique"
 msgstr "Critical"
 
-#: .\dashboard\static\dashboard\js\physical_risk_view.js:120
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:127
 msgid "Aucun actif."
 msgstr "No assets."
 
-#: .\dashboard\static\dashboard\js\physical_risk_view.js:141
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:148
 msgid "Aucune politique renseignée"
 msgstr "No policy recorded"
 
-#: .\dashboard\static\dashboard\js\physical_risk_view.js:146
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:153
 msgid "Détail de la vulnérabilité"
 msgstr "Vulnerability breakdown"
 
-#: .\dashboard\static\dashboard\js\physical_risk_view.js:148
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:155
 msgid "Moyenne :"
 msgstr "Average:"
 
-#: .\dashboard\static\dashboard\js\physical_risk_view.js:158
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:165
 msgid "Inventaire mesuré"
 msgstr "Measured inventory"
 
-#: .\dashboard\static\dashboard\js\physical_risk_view.js:216
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:226
 msgid "Exposition"
 msgstr "Exposure"
 
-#: .\dashboard\static\dashboard\js\physical_risk_view.js:224
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:234
 msgid "Risque"
 msgstr "Risk"
 
-#: .\dashboard\static\dashboard\js\physical_risk_view.js:235
+#: .\dashboard\static\dashboard\js\physical_risk_view.js:245
 msgid "Risque physique"
 msgstr "Physical risk"
 
-#: .\dashboard\static\dashboard\js\portfolio.js:200
+#: .\dashboard\static\dashboard\js\portfolio.js:48
+msgid "Aucun impact à comparer pour ce portefeuille."
+msgstr "No impact to compare for this portfolio."
+
+#: .\dashboard\static\dashboard\js\portfolio.js:210
 msgid "Détails financiers"
 msgstr "Financial details"
 
-#: .\dashboard\static\dashboard\js\portfolio.js:211
+#: .\dashboard\static\dashboard\js\portfolio.js:221
 msgid "Supprimer"
 msgstr "Delete"
 
-#: .\dashboard\static\dashboard\js\portfolio.js:283
+#: .\dashboard\static\dashboard\js\portfolio.js:293
 msgid "Détails"
 msgstr "Details"
 
-#: .\dashboard\static\dashboard\js\portfolio.js:349 .\dashboard\static\dashboard\js\portfolio.js:375
+#: .\dashboard\static\dashboard\js\portfolio.js:353
+msgid "Impact financé GBS (MSA·km²)"
+msgstr "GBS financed impact (MSA·km²)"
+
+#: .\dashboard\static\dashboard\js\portfolio.js:353
+msgid "Impact financé ReCiPe (PDF·m²)"
+msgstr "ReCiPe financed impact (PDF·m²)"
+
+#: .\dashboard\static\dashboard\js\portfolio.js:371 .\dashboard\static\dashboard\js\portfolio.js:397
 msgid "Impact financé (%(unit)s)"
 msgstr "Financed impact (%(unit)s)"
 
-#: .\dashboard\static\dashboard\js\portfolio.js:356
+#: .\dashboard\static\dashboard\js\portfolio.js:378
 msgid "Poids dans le portefeuille (%)"
 msgstr "Weight in portfolio (%)"
 
-#: .\dashboard\static\dashboard\js\portfolio.js:382
+#: .\dashboard\static\dashboard\js\portfolio.js:404
 msgid "Poids (%)"
 msgstr "Weight (%)"
 
-#: .\dashboard\static\dashboard\js\portfolio.js:446
+#: .\dashboard\static\dashboard\js\portfolio.js:469
 msgid "Portefeuille"
 msgstr "Portfolio"
 
-#: .\dashboard\static\dashboard\js\portfolio.js:602 .\dashboard\static\dashboard\js\portfolio.js:605
+#: .\dashboard\static\dashboard\js\portfolio.js:511
+msgid "Sans EVIC, exposition financée nulle : %(names)s."
+msgstr "No EVIC, so zero financed exposure: %(names)s."
+
+#: .\dashboard\static\dashboard\js\portfolio.js:697 .\dashboard\static\dashboard\js\portfolio.js:700
 msgid "%(pct)s % vs benchmark"
 msgstr "%(pct)s % vs benchmark"
 
-#: .\dashboard\static\dashboard\js\portfolio.js:647
+#: .\dashboard\static\dashboard\js\portfolio.js:742
 msgid "Dette :"
 msgstr "Debt:"
 
-#: .\dashboard\static\dashboard\js\portfolio.js:732
+#: .\dashboard\static\dashboard\js\portfolio.js:827
 msgid "Portefeuille enregistré."
 msgstr "Portfolio saved."
 
-#: .\dashboard\static\dashboard\js\portfolio.js:738
+#: .\dashboard\static\dashboard\js\portfolio.js:833
 msgid "Erreur de validation. Vérifiez les champs."
 msgstr "Validation error. Check the fields."
 
-#: .\dashboard\static\dashboard\js\portfolio.js:759
+#: .\dashboard\static\dashboard\js\portfolio.js:854
 msgid "Portefeuille commun : lecture seule. Dupliquez-le pour le modifier."
 msgstr "Shared portfolio: read-only. Duplicate it to edit it."
 
-#: .\dashboard\static\dashboard\js\portfolio.js:794
+#: .\dashboard\static\dashboard\js\portfolio.js:889
 msgid "La duplication a échoué."
 msgstr "Duplication failed."
 
-#: .\dashboard\static\dashboard\js\portfolio.js:804
+#: .\dashboard\static\dashboard\js\portfolio.js:899
 msgid "Mes portefeuilles"
 msgstr "My portfolios"
 

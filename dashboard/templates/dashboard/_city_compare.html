@@ -1,0 +1,42 @@
+{% load i18n %}{% comment %}
+Carte « Comparaison à une ville », pilotée par dashboard/js/city_compare.js
+(CityCompare.create). Incluse par l'onglet Land use de la page ESG et par
+l'onglet Impact de Portfolio analysis.
+
+Paramètres :
+  cc_id     identifiant de la section (racine passée à CityCompare.create)
+  cc_class  modificateur de couleur facultatif (ex. esg-city--portfolio)
+  cc_note   note méthodologique propre à la page, déjà traduite
+{% endcomment %}
+<section class="card esg-city {{ cc_class }}" id="{{ cc_id }}" aria-labelledby="{{ cc_id }}-title">
+  <div class="esg-chart__head">
+    <div>
+      <h3 class="esg-chart__title" id="{{ cc_id }}-title">{% translate "Comparaison à une ville" %}</h3>
+      <p class="esg-chart__sub">{% translate "Surface équivalente superposée au centre de la ville choisie" %}</p>
+    </div>
+  </div>
+  <div class="esg-city__layout">
+    <div class="esg-city__controls">
+      <label class="esg-city__field">
+        <span class="label-caps">{% translate "Ville" %}</span>
+        <select class="form-input esg-city__select" data-cc="select"></select>
+      </label>
+      <div class="esg-city__field">
+        <span class="label-caps" id="{{ cc_id }}-measure-label">{% translate "Surface comparée" %}</span>
+        <div class="esg-city__measures" data-cc="measures" role="group"
+          aria-labelledby="{{ cc_id }}-measure-label"></div>
+      </div>
+      <dl class="esg-city__facts" data-cc="facts"></dl>
+      <p class="esg-city__ratio" data-cc="ratio" aria-live="polite"></p>
+    </div>
+    <div class="esg-city__map-wrap">
+      <div class="esg-city__map" data-cc="map"
+        aria-label="{% translate 'Carte de la ville avec la surface équivalente' %}"></div>
+      <ul class="esg-city__legend" aria-hidden="true">
+        <li><span class="esg-city__swatch esg-city__swatch--company"></span>{% translate "Surface équivalente" %}</li>
+        <li><span class="esg-city__swatch esg-city__swatch--city"></span>{% translate "Superficie de la ville" %}</li>
+      </ul>
+    </div>
+  </div>
+  <p class="esg-note">{{ cc_note }}</p>
+</section>

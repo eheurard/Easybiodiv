@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easybiodiv\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 21:31+0200\n"
+"POT-Creation-Date: 2026-10-21 23:11+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Easybiodiv\n"
 "Language-Team: English\n"
@@ -418,11 +418,11 @@ msgstr "Carbon price (€/tCO₂e)"
 msgid "Multiplicateur d'aléa"
 msgstr "Hazard multiplier"
 
-#: .\dashboard\models.py:1366 .\dashboard\templates\dashboard\portfolio.html:242
+#: .\dashboard\models.py:1366 .\dashboard\templates\dashboard\portfolio.html:269
 msgid "Action (Equity)"
 msgstr "Equity"
 
-#: .\dashboard\models.py:1367 .\dashboard\templates\dashboard\portfolio.html:243
+#: .\dashboard\models.py:1367 .\dashboard\templates\dashboard\portfolio.html:270
 msgid "Obligation (Bond)"
 msgstr "Bond"
 
@@ -430,11 +430,11 @@ msgstr "Bond"
 msgid "Air"
 msgstr "Air"
 
-#: .\dashboard\services\esg_environment.py:33 .\dashboard\views.py:650
+#: .\dashboard\services\esg_environment.py:33 .\dashboard\views.py:651
 msgid "Acidification terrestre"
 msgstr "Terrestrial acidification"
 
-#: .\dashboard\services\esg_environment.py:34 .\dashboard\views.py:652
+#: .\dashboard\services\esg_environment.py:34 .\dashboard\views.py:653
 msgid "Appauvrissement de l'ozone"
 msgstr "Ozone depletion"
 
@@ -442,15 +442,15 @@ msgstr "Ozone depletion"
 msgid "Eau"
 msgstr "Water"
 
-#: .\dashboard\services\esg_environment.py:37 .\dashboard\views.py:648
+#: .\dashboard\services\esg_environment.py:37 .\dashboard\views.py:649
 msgid "Eutrophisation eau douce"
 msgstr "Freshwater eutrophication"
 
-#: .\dashboard\services\esg_environment.py:38 .\dashboard\views.py:649
+#: .\dashboard\services\esg_environment.py:38 .\dashboard\views.py:650
 msgid "Eutrophisation marine"
 msgstr "Marine eutrophication"
 
-#: .\dashboard\services\esg_environment.py:39 .\dashboard\views.py:647
+#: .\dashboard\services\esg_environment.py:39 .\dashboard\views.py:648
 msgid "Écotoxicité eau douce"
 msgstr "Freshwater ecotoxicity"
 
@@ -458,7 +458,7 @@ msgstr "Freshwater ecotoxicity"
 msgid "Sol"
 msgstr "Soil"
 
-#: .\dashboard\services\esg_environment.py:42 .\dashboard\views.py:651
+#: .\dashboard\services\esg_environment.py:42 .\dashboard\views.py:652
 msgid "Acidification des sols"
 msgstr "Soil acidification"
 
@@ -475,12 +475,10 @@ msgid "Déchets générés"
 msgstr "Waste generated"
 
 #: .\dashboard\services\esg_environment.py:54
-#| msgid "Épuisement ressources fossiles"
 msgid "Ressources fossiles"
 msgstr "Fossil resources"
 
 #: .\dashboard\services\esg_environment.py:55
-#| msgid "Épuisement ressources minérales"
 msgid "Ressources minérales"
 msgstr "Mineral resources"
 
@@ -507,7 +505,6 @@ msgid "Cultures et plantations"
 msgstr "Crops and plantations"
 
 #: .\dashboard\services\esg_environment.py:67
-#| msgid "Acidification des sols"
 msgid "Perturbation des sols"
 msgstr "Soil disturbance"
 
@@ -517,27 +514,27 @@ msgstr "Soil disturbance"
 msgid "Services écosystémiques"
 msgstr "Ecosystem services"
 
-#: .\dashboard\services\hazards.py:13 .\dashboard\views.py:41
+#: .\dashboard\services\hazards.py:13 .\dashboard\views.py:42
 msgid "Pollinisation"
 msgstr "Pollination"
 
-#: .\dashboard\services\hazards.py:14 .\dashboard\views.py:37
+#: .\dashboard\services\hazards.py:14 .\dashboard\views.py:38
 msgid "Qualité des sols"
 msgstr "Soil quality"
 
-#: .\dashboard\services\hazards.py:16 .\dashboard\views.py:38
+#: .\dashboard\services\hazards.py:16 .\dashboard\views.py:39
 msgid "Séquestration carbone"
 msgstr "Carbon sequestration"
 
-#: .\dashboard\services\hazards.py:18 .\dashboard\views.py:39
+#: .\dashboard\services\hazards.py:18 .\dashboard\views.py:40
 msgid "Épuration de l'eau"
 msgstr "Water purification"
 
-#: .\dashboard\services\hazards.py:20 .\dashboard\views.py:40
+#: .\dashboard\services\hazards.py:20 .\dashboard\views.py:41
 msgid "Contrôle des ravageurs"
 msgstr "Pest control"
 
-#: .\dashboard\services\hazards.py:22 .\dashboard\views.py:1969
+#: .\dashboard\services\hazards.py:22 .\dashboard\views.py:1970
 msgid "Stress hydrique"
 msgstr "Water stress"
 
@@ -553,19 +550,19 @@ msgstr "Climate hazards"
 msgid "Incendie"
 msgstr "Wildfire"
 
-#: .\dashboard\services\hazards.py:24 .\dashboard\views.py:1971
+#: .\dashboard\services\hazards.py:24 .\dashboard\views.py:1972
 msgid "Cyclone"
 msgstr "Cyclone"
 
-#: .\dashboard\services\hazards.py:25 .\dashboard\views.py:1972
+#: .\dashboard\services\hazards.py:25 .\dashboard\views.py:1973
 msgid "Sécheresse"
 msgstr "Drought"
 
-#: .\dashboard\services\hazards.py:26 .\dashboard\views.py:1973
+#: .\dashboard\services\hazards.py:26 .\dashboard\views.py:1974
 msgid "Inondation"
 msgstr "Flood"
 
-#: .\dashboard\services\hazards.py:27 .\dashboard\views.py:1974
+#: .\dashboard\services\hazards.py:27 .\dashboard\views.py:1975
 msgid "Submersion côtière"
 msgstr "Coastal flooding"
 
@@ -573,11 +570,11 @@ msgstr "Coastal flooding"
 msgid "Canicule"
 msgstr "Heatwave"
 
-#: .\dashboard\services\hazards.py:30 .\dashboard\views.py:1976
+#: .\dashboard\services\hazards.py:30 .\dashboard\views.py:1977
 msgid "Variation de température"
 msgstr "Temperature variation"
 
-#: .\dashboard\services\hazards.py:32 .\dashboard\views.py:1977
+#: .\dashboard\services\hazards.py:32 .\dashboard\views.py:1978
 msgid "Variation des précipitations"
 msgstr "Precipitation variation"
 
@@ -734,6 +731,34 @@ msgstr "Tier 2: Upstream supply"
 msgid "Matières premières"
 msgstr "Raw materials"
 
+#: .\dashboard\templates\dashboard\_city_compare.html:14
+msgid "Comparaison à une ville"
+msgstr "Comparison with a city"
+
+#: .\dashboard\templates\dashboard\_city_compare.html:15
+msgid "Surface équivalente superposée au centre de la ville choisie"
+msgstr "Equivalent area overlaid on the centre of the selected city"
+
+#: .\dashboard\templates\dashboard\_city_compare.html:21
+msgid "Ville"
+msgstr "City"
+
+#: .\dashboard\templates\dashboard\_city_compare.html:25
+msgid "Surface comparée"
+msgstr "Area compared"
+
+#: .\dashboard\templates\dashboard\_city_compare.html:34
+msgid "Carte de la ville avec la surface équivalente"
+msgstr "City map with the equivalent area"
+
+#: .\dashboard\templates\dashboard\_city_compare.html:36
+msgid "Surface équivalente"
+msgstr "Equivalent area"
+
+#: .\dashboard\templates\dashboard\_city_compare.html:37
+msgid "Superficie de la ville"
+msgstr "City area"
+
 #: .\dashboard\templates\dashboard\_company_combobox.html:10
 #: .\dashboard\templates\dashboard\portfolio.html:99
 msgid "Entreprise"
@@ -762,12 +787,12 @@ msgid "Détail par actif"
 msgstr "Breakdown by asset"
 
 #: .\dashboard\templates\dashboard\_pr_detail_drawer.html:21
-#: .\dashboard\templates\dashboard\esg.html:106 .\dashboard\templates\dashboard\esg.html:317
+#: .\dashboard\templates\dashboard\esg.html:110 .\dashboard\templates\dashboard\esg.html:329
 msgid "Actif"
 msgstr "Asset"
 
 #: .\dashboard\templates\dashboard\_pr_detail_drawer.html:23
-#: .\dashboard\templates\dashboard\esg.html:322
+#: .\dashboard\templates\dashboard\esg.html:334
 msgid "Exposition"
 msgstr "Exposure"
 
@@ -1059,14 +1084,14 @@ msgid "Carte de la dette écologique"
 msgstr "Ecological debt map"
 
 #: .\dashboard\templates\dashboard\dette_ecologique.html:23
-#: .\dashboard\templates\dashboard\portfolio.html:217
+#: .\dashboard\templates\dashboard\portfolio.html:244
 msgid "Légende commodités"
 msgstr "Commodity legend"
 
 #: .\dashboard\templates\dashboard\dette_ecologique.html:24
 #: .\dashboard\templates\dashboard\leap_locate.html:40
 #: .\dashboard\templates\dashboard\mesure_empreinte.html:28
-#: .\dashboard\templates\dashboard\portfolio.html:218
+#: .\dashboard\templates\dashboard\portfolio.html:245
 msgid "Commodités"
 msgstr "Commodities"
 
@@ -1079,23 +1104,23 @@ msgid "Réduire le panneau"
 msgstr "Collapse panel"
 
 #: .\dashboard\templates\dashboard\dette_ecologique.html:45
-#: .\dashboard\templates\dashboard\portfolio.html:204
+#: .\dashboard\templates\dashboard\portfolio.html:231
 msgid "Regrouper par :"
 msgstr "Group by:"
 
 #: .\dashboard\templates\dashboard\dette_ecologique.html:46
-#: .\dashboard\templates\dashboard\portfolio.html:205
+#: .\dashboard\templates\dashboard\portfolio.html:232
 msgid "Mode d'affichage"
 msgstr "Display mode"
 
 #: .\dashboard\templates\dashboard\dette_ecologique.html:48
 #: .\dashboard\templates\dashboard\leap_prepare.html:63
-#: .\dashboard\templates\dashboard\portfolio.html:207
+#: .\dashboard\templates\dashboard\portfolio.html:234
 msgid "Par asset"
 msgstr "By asset"
 
 #: .\dashboard\templates\dashboard\dette_ecologique.html:50
-#: .\dashboard\templates\dashboard\portfolio.html:209
+#: .\dashboard\templates\dashboard\portfolio.html:236
 msgid "Par région subnational"
 msgstr "By subnational region"
 
@@ -1107,88 +1132,88 @@ msgstr "Show the ecological debt panel"
 msgid "Données ESG"
 msgstr "ESG data"
 
-#: .\dashboard\templates\dashboard\esg.html:15
+#: .\dashboard\templates\dashboard\esg.html:19
 msgid "Thème ESG"
 msgstr "ESG theme"
 
-#: .\dashboard\templates\dashboard\esg.html:16
+#: .\dashboard\templates\dashboard\esg.html:20
 msgid "Environmental"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\esg.html:17
+#: .\dashboard\templates\dashboard\esg.html:21
 msgid "Social"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\esg.html:18
+#: .\dashboard\templates\dashboard\esg.html:22
 msgid "Governance"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\esg.html:24
+#: .\dashboard\templates\dashboard\esg.html:28
 msgid "Thème environnemental"
 msgstr "Environmental theme"
 
-#: .\dashboard\templates\dashboard\esg.html:32
+#: .\dashboard\templates\dashboard\esg.html:36
 msgid "Land use"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\esg.html:40
+#: .\dashboard\templates\dashboard\esg.html:44
 msgid "Resource use"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\esg.html:49
+#: .\dashboard\templates\dashboard\esg.html:53
 msgid "Climate change"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\esg.html:59
+#: .\dashboard\templates\dashboard\esg.html:63
 msgid "Pollution"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\esg.html:70
+#: .\dashboard\templates\dashboard\esg.html:74
 msgid "Invasive species"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\esg.html:80 .\dashboard\views.py:655
+#: .\dashboard\templates\dashboard\esg.html:84 .\dashboard\views.py:656
 msgid "Utilisation des terres"
 msgstr "Land use"
 
-#: .\dashboard\templates\dashboard\esg.html:81
+#: .\dashboard\templates\dashboard\esg.html:85
 msgid "Impact ReCiPe 2016 midpoint (m²a crop-eq) et emprise au sol des actifs détenus"
 msgstr "ReCiPe 2016 midpoint impact (m²a crop-eq) and land footprint of owned assets"
 
-#: .\dashboard\templates\dashboard\esg.html:87
+#: .\dashboard\templates\dashboard\esg.html:91
 msgid "Impact ReCiPe"
 msgstr "ReCiPe impact"
 
-#: .\dashboard\templates\dashboard\esg.html:91
+#: .\dashboard\templates\dashboard\esg.html:95
 msgid "Emprise des actifs"
 msgstr "Asset footprint"
 
-#: .\dashboard\templates\dashboard\esg.html:95
+#: .\dashboard\templates\dashboard\esg.html:99
 msgid "m²a crop-eq / m² d'emprise"
 msgstr "m²a crop-eq / m² of footprint"
 
-#: .\dashboard\templates\dashboard\esg.html:99
+#: .\dashboard\templates\dashboard\esg.html:103
 msgid "Déclaré groupe"
 msgstr "Reported by group"
 
-#: .\dashboard\templates\dashboard\esg.html:107 .\dashboard\templates\dashboard\esg.html:318
+#: .\dashboard\templates\dashboard\esg.html:111 .\dashboard\templates\dashboard\esg.html:330
 msgid "Pays"
 msgstr "Country"
 
-#: .\dashboard\templates\dashboard\esg.html:108
+#: .\dashboard\templates\dashboard\esg.html:112
 msgid "Impact ReCiPe (m²a crop-eq)"
 msgstr "ReCiPe impact (m²a crop-eq)"
 
-#: .\dashboard\templates\dashboard\esg.html:109
+#: .\dashboard\templates\dashboard\esg.html:113
 msgid "Emprise au sol (ha)"
 msgstr "Land footprint (ha)"
 
-#: .\dashboard\templates\dashboard\esg.html:115 .\dashboard\templates\dashboard\esg.html:153
-#: .\dashboard\templates\dashboard\esg.html:328
+#: .\dashboard\templates\dashboard\esg.html:119 .\dashboard\templates\dashboard\esg.html:165
+#: .\dashboard\templates\dashboard\esg.html:340
 msgid "Aucun actif détenu par cette entreprise."
 msgstr "No asset owned by this company."
 
-#: .\dashboard\templates\dashboard\esg.html:117
+#: .\dashboard\templates\dashboard\esg.html:121
 #, python-format
 msgid ""
 "Impact = production de la dernière année × facteur de caractérisation ReCiPe 2016 « land use » "
@@ -1201,32 +1226,35 @@ msgstr ""
 "The footprint reported at group level is not broken down by asset and is not included in the asset"
 " total."
 
-#: .\dashboard\templates\dashboard\esg.html:132
-#| msgid "Utilisation des terres"
+#: .\dashboard\templates\dashboard\esg.html:130
+msgid ""
+"Cercles de même aire que la surface comparée et que la superficie administrative de la ville, "
+"centrés sur son centre-ville : la forme réelle des territoires n'est pas représentée. L'impact "
+"ReCiPe (m²a crop-eq) se lit comme la surface de culture annuelle occupée pendant un an."
+msgstr ""
+"Circles with the same area as the compared surface and as the city's administrative area, centred "
+"on its city centre: the actual shape of the territories is not shown. The ReCiPe impact (m²a crop-"
+"eq) reads as the annual cropland area occupied for one year."
+
+#: .\dashboard\templates\dashboard\esg.html:144
 msgid "Utilisation des ressources"
 msgstr "Resource use"
 
-#: .\dashboard\templates\dashboard\esg.html:133
+#: .\dashboard\templates\dashboard\esg.html:145
 msgid ""
 "Consommations mesurées des actifs détenus et raréfaction des ressources (ReCiPe 2016 midpoint)"
 msgstr "Measured consumption of owned assets and resource scarcity (ReCiPe 2016 midpoint)"
 
-#: .\dashboard\templates\dashboard\esg.html:138
+#: .\dashboard\templates\dashboard\esg.html:150
 msgid "Inventaire mesuré par actif"
 msgstr "Measured inventory by asset"
 
-#: .\dashboard\templates\dashboard\esg.html:146
-#| msgid "Actions et ressources"
+#: .\dashboard\templates\dashboard\esg.html:158
 msgid "Raréfaction des ressources par actif"
 msgstr "Resource scarcity by asset"
 
-#: .\dashboard\templates\dashboard\esg.html:155
+#: .\dashboard\templates\dashboard\esg.html:167
 #, python-format
-#| msgid ""
-#| "Impact = production de la dernière année × facteur de caractérisation ReCiPe 2016 « land use » "
-#| "régionalisé (région, sinon pays, sinon global). Actifs comptés à 100 %%, sans pondération par la "
-#| "part de détention. L'emprise déclarée au niveau du groupe n'est pas ventilée par actif et n'entre "
-#| "pas dans le total des actifs."
 msgid ""
 "Inventaire : flux mesurés de chaque actif à sa dernière année (eau et énergie consommées, déchets "
 "générés). Raréfaction : production de la dernière année × facteurs ReCiPe 2016 « fossil » et « "
@@ -1239,120 +1267,111 @@ msgstr ""
 "resource scarcity\" factors. Assets counted at 100 %%, not weighted by ownership share. "
 "Consumption reported at group level is not broken down by asset and is shown separately."
 
-#: .\dashboard\templates\dashboard\esg.html:175
+#: .\dashboard\templates\dashboard\esg.html:187
 msgid "Tendance des émissions carbone"
 msgstr "Carbon emissions trend"
 
-#: .\dashboard\templates\dashboard\esg.html:176
+#: .\dashboard\templates\dashboard\esg.html:188
 msgid "Historique et projection"
 msgstr "History and projection"
 
-#: .\dashboard\templates\dashboard\esg.html:179
+#: .\dashboard\templates\dashboard\esg.html:191
 msgid "Historique"
 msgstr "History"
 
-#: .\dashboard\templates\dashboard\esg.html:180
+#: .\dashboard\templates\dashboard\esg.html:192
 msgid "Projection 2030"
 msgstr "2030 projection"
 
-#: .\dashboard\templates\dashboard\esg.html:182
+#: .\dashboard\templates\dashboard\esg.html:194
 msgid "Afficher les émissions par scope"
 msgstr "Show emissions by scope"
 
-#: .\dashboard\templates\dashboard\esg.html:188
+#: .\dashboard\templates\dashboard\esg.html:200
 msgid "Par scope"
 msgstr "By scope"
 
-#: .\dashboard\templates\dashboard\esg.html:194
+#: .\dashboard\templates\dashboard\esg.html:206
 msgid "Dernier total"
 msgstr "Latest total"
 
-#: .\dashboard\templates\dashboard\esg.html:198
+#: .\dashboard\templates\dashboard\esg.html:210
 msgid "Évolution"
 msgstr "Change"
 
-#: .\dashboard\templates\dashboard\esg.html:201
+#: .\dashboard\templates\dashboard\esg.html:213
 msgid "Graphique des émissions carbone"
 msgstr "Carbon emissions chart"
 
-#: .\dashboard\templates\dashboard\esg.html:202
+#: .\dashboard\templates\dashboard\esg.html:214
 msgid "Aucune donnée carbone disponible."
 msgstr "No carbon data available."
 
-#: .\dashboard\templates\dashboard\esg.html:206
+#: .\dashboard\templates\dashboard\esg.html:218
 msgid "Politiques en avant"
 msgstr "Featured policies"
 
-#: .\dashboard\templates\dashboard\esg.html:210
+#: .\dashboard\templates\dashboard\esg.html:222
 msgid "Cadre des politiques d'entreprise"
 msgstr "Corporate policy framework"
 
-#: .\dashboard\templates\dashboard\esg.html:221
+#: .\dashboard\templates\dashboard\esg.html:233
 msgid "Market Intelligence"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\esg.html:222
+#: .\dashboard\templates\dashboard\esg.html:234
 msgid "Démo"
 msgstr "Demo"
 
-#: .\dashboard\templates\dashboard\esg.html:229
+#: .\dashboard\templates\dashboard\esg.html:241
 msgid "Latest ESG News"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\esg.html:232
+#: .\dashboard\templates\dashboard\esg.html:244
 msgid "No news yet"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\esg.html:237
+#: .\dashboard\templates\dashboard\esg.html:249
 msgid "Grounded Intelligence"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\esg.html:238
+#: .\dashboard\templates\dashboard\esg.html:250
 msgid "Preserving Biodiversity"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\esg.html:251
-#| msgid "Horizon de projection"
+#: .\dashboard\templates\dashboard\esg.html:263
 msgid "Pressions de pollution"
 msgstr "Pollution pressures"
 
-#: .\dashboard\templates\dashboard\esg.html:252
-#| msgid "Impact ReCiPe 2016 midpoint (m²a crop-eq) et emprise au sol des actifs détenus"
+#: .\dashboard\templates\dashboard\esg.html:264
 msgid "Impacts ReCiPe 2016 midpoint des actifs détenus, par milieu récepteur"
 msgstr "ReCiPe 2016 midpoint impacts of owned assets, by receiving medium"
 
-#: .\dashboard\templates\dashboard\esg.html:255
+#: .\dashboard\templates\dashboard\esg.html:267
 msgid "Indicateur de pollution"
 msgstr "Pollution indicator"
 
-#: .\dashboard\templates\dashboard\esg.html:260
-#| msgid "Variation"
+#: .\dashboard\templates\dashboard\esg.html:272
 msgid "Ventilation"
 msgstr "Breakdown"
 
-#: .\dashboard\templates\dashboard\esg.html:261
+#: .\dashboard\templates\dashboard\esg.html:273
 #: .\dashboard\templates\dashboard\mesure_empreinte.html:43
 msgid "Par actif"
 msgstr "By asset"
 
-#: .\dashboard\templates\dashboard\esg.html:262 .\dashboard\templates\dashboard\leap_prepare.html:64
+#: .\dashboard\templates\dashboard\esg.html:274 .\dashboard\templates\dashboard\leap_prepare.html:64
 #: .\dashboard\templates\dashboard\leap_prepare.html:87
 #: .\dashboard\templates\dashboard\mesure_empreinte.html:39
 msgid "Par commodité"
 msgstr "By commodity"
 
-#: .\dashboard\templates\dashboard\esg.html:272
-#| msgid "Aucun actif détenu par cette entreprise."
+#: .\dashboard\templates\dashboard\esg.html:284
 msgid "Aucune pression de pollution modélisée pour cette entreprise."
 msgstr "No modelled pollution pressure for this company."
 
-#: .\dashboard\templates\dashboard\esg.html:274
+#: .\dashboard\templates\dashboard\esg.html:286
 #, python-format
-#| msgid ""
-#| "Impact = production de la dernière année × facteur de caractérisation ReCiPe 2016 « land use » "
-#| "régionalisé (région, sinon pays, sinon global). Actifs comptés à 100 %%, sans pondération par la "
-#| "part de détention. L'emprise déclarée au niveau du groupe n'est pas ventilée par actif et n'entre "
-#| "pas dans le total des actifs."
 msgid ""
 "Pression = production de la dernière année × facteur de caractérisation ReCiPe 2016 midpoint "
 "régionalisé (région, sinon pays, sinon global). Milieu récepteur selon ESRS E2 : l'acidification "
@@ -1364,50 +1383,47 @@ msgstr ""
 "and ozone depletion result from emissions to air. Assets counted at 100 %%, not weighted by "
 "ownership share. These values are modelled, not measured."
 
-#: .\dashboard\templates\dashboard\esg.html:290
+#: .\dashboard\templates\dashboard\esg.html:302
 msgid "Espèces exotiques envahissantes"
 msgstr "Invasive alien species"
 
-#: .\dashboard\templates\dashboard\esg.html:291
+#: .\dashboard\templates\dashboard\esg.html:303
 msgid "Exposition des actifs détenus aux voies d'introduction"
 msgstr "Exposure of owned assets to introduction pathways"
 
-#: .\dashboard\templates\dashboard\esg.html:293
+#: .\dashboard\templates\dashboard\esg.html:305
 msgid "Criblage indicatif"
 msgstr "Indicative screening"
 
-#: .\dashboard\templates\dashboard\esg.html:298
+#: .\dashboard\templates\dashboard\esg.html:310
 msgid "Actifs criblés"
 msgstr "Assets screened"
 
-#: .\dashboard\templates\dashboard\esg.html:302
+#: .\dashboard\templates\dashboard\esg.html:314
 msgid "Avec voie d'introduction"
 msgstr "With an introduction pathway"
 
-#: .\dashboard\templates\dashboard\esg.html:306
-#| msgid "Exposition"
+#: .\dashboard\templates\dashboard\esg.html:318
 msgid "Exposition élevée"
 msgstr "High exposure"
 
-#: .\dashboard\templates\dashboard\esg.html:310
-#| msgid "%(count)s site(s) en/près d'une zone sensible"
+#: .\dashboard\templates\dashboard\esg.html:322
 msgid "Près d'une zone sensible"
 msgstr "Near a sensitive area"
 
-#: .\dashboard\templates\dashboard\esg.html:319
+#: .\dashboard\templates\dashboard\esg.html:331
 msgid "Commerce international"
 msgstr "International trade"
 
-#: .\dashboard\templates\dashboard\esg.html:320
+#: .\dashboard\templates\dashboard\esg.html:332
 msgid "Activité"
 msgstr "Activity"
 
-#: .\dashboard\templates\dashboard\esg.html:321
-#| msgid "Sites zone sensible (E4-5)"
+#: .\dashboard\templates\dashboard\esg.html:333
 msgid "Zone sensible"
 msgstr "Sensitive area"
 
-#: .\dashboard\templates\dashboard\esg.html:330
+#: .\dashboard\templates\dashboard\esg.html:342
 msgid ""
 "Criblage des voies d'introduction de la CBD (2014) : commerce international (approvisionnements "
 "venant d'un autre pays, plateformes de transport), activité (cultures et plantations, sols mis à "
@@ -1422,11 +1438,11 @@ msgstr ""
 "exposure by one level. This screening does not measure the presence of invasive species: it guides"
 " field surveys and registry checks (GRIIS)."
 
-#: .\dashboard\templates\dashboard\esg.html:348
+#: .\dashboard\templates\dashboard\esg.html:360
 msgid "Social — à venir, aucune donnée disponible."
 msgstr "Social — coming soon, no data available."
 
-#: .\dashboard\templates\dashboard\esg.html:355
+#: .\dashboard\templates\dashboard\esg.html:367
 msgid "Governance — à venir, aucune donnée disponible."
 msgstr "Governance — coming soon, no data available."
 
@@ -1652,7 +1668,7 @@ msgid "Actifs"
 msgstr "Assets"
 
 #: .\dashboard\templates\dashboard\mesure_empreinte.html:47
-#: .\dashboard\templates\dashboard\portfolio.html:211
+#: .\dashboard\templates\dashboard\portfolio.html:238
 msgid "Par pays"
 msgstr "By country"
 
@@ -1689,6 +1705,7 @@ msgid "Carte des actifs par risque physique"
 msgstr "Asset map by physical risk"
 
 #: .\dashboard\templates\dashboard\physical_risk.html:23
+#: .\dashboard\templates\dashboard\portfolio.html:187
 msgid "Légende des niveaux de risque"
 msgstr "Risk level legend"
 
@@ -1697,6 +1714,7 @@ msgid "Critique"
 msgstr "Critical"
 
 #: .\dashboard\templates\dashboard\physical_risk.html:34
+#: .\dashboard\templates\dashboard\portfolio.html:189
 msgid "Synthèse du risque physique"
 msgstr "Physical risk summary"
 
@@ -1869,256 +1887,294 @@ msgstr "Impact by company"
 msgid "Impact pondéré et poids par entreprise"
 msgstr "Weighted impact and weight by company"
 
-#: .\dashboard\templates\dashboard\portfolio.html:160
+#: .\dashboard\templates\dashboard\portfolio.html:158
+msgid ""
+"Impact financé du portefeuille lu comme une surface où la biodiversité aurait entièrement disparu "
+": PDF·m² (ReCiPe 2016 endpoint) ou MSA·km² (GBS). Cercles de même aire que cette surface et que la"
+" superficie administrative de la ville, centrés sur son centre-ville : la forme réelle des "
+"territoires n'est pas représentée."
+msgstr ""
+"The portfolio's financed impact read as an area where biodiversity would have entirely "
+"disappeared: PDF·m² (ReCiPe 2016 endpoint) or MSA·km² (GBS). Circles with the same area as this "
+"surface and as the city's administrative area, centred on its city centre: the actual shape of the"
+" territories is not shown."
+
+#: .\dashboard\templates\dashboard\portfolio.html:168
 msgid "Enregistrez le portefeuille pour voir son risque physique."
 msgstr "Save the portfolio to see its physical risk."
 
-#: .\dashboard\templates\dashboard\portfolio.html:164
+#: .\dashboard\templates\dashboard\portfolio.html:172
 msgid "Empreinte de risque physique"
 msgstr "Physical risk footprint"
 
-#: .\dashboard\templates\dashboard\portfolio.html:165
+#: .\dashboard\templates\dashboard\portfolio.html:173
 msgid "Profil pondéré par le montant investi, par aléa climatique."
 msgstr "Profile weighted by amount invested, by climate hazard."
 
-#: .\dashboard\templates\dashboard\portfolio.html:167
+#: .\dashboard\templates\dashboard\portfolio.html:175
 msgid "Profil de risque physique du portefeuille"
 msgstr "Portfolio physical risk profile"
 
-#: .\dashboard\templates\dashboard\portfolio.html:172
-msgid "Risque par entreprise et aléa"
-msgstr "Risk by company and hazard"
-
 #: .\dashboard\templates\dashboard\portfolio.html:180
+#| msgid "Charger un portefeuille"
+msgid "Carte des actifs du portefeuille"
+msgstr "Portfolio asset map"
+
+#: .\dashboard\templates\dashboard\portfolio.html:181
+msgid ""
+"Actifs des entreprises du portefeuille, pondérés par l'exposition financée. Choisissez un aléa "
+"dans le classement."
+msgstr ""
+"Assets of the portfolio's companies, weighted by financed exposure. Pick a hazard in the ranking."
+
+#: .\dashboard\templates\dashboard\portfolio.html:185
+#| msgid "Carte des actifs par risque physique"
+msgid "Carte des actifs du portefeuille par risque physique"
+msgstr "Map of portfolio assets by physical risk"
+
+#: .\dashboard\templates\dashboard\portfolio.html:194
+msgid ""
+"Risque financé d'un actif = aléa × exposition financée × vulnérabilité. Exposition financée = "
+"revenu associé de l'actif (dernière année) × montant investi / EVIC de l'entreprise, comme les "
+"onglets Impact et Risque de transition. Vulnérabilité : moyenne des politiques de l'entreprise "
+"détentrice. Un actif détenu par plusieurs entreprises du portefeuille n'apparaît qu'une fois. "
+"Classement : risque financé moyen par actif."
+msgstr ""
+"Financed risk of an asset = hazard × financed exposure × vulnerability. Financed exposure = the "
+"asset's associated revenue (latest year) × amount invested / the company's EVIC, as in the Impact "
+"and Transition risk tabs. Vulnerability: average of the owning company's policies. An asset owned "
+"by several portfolio companies appears only once. Ranking: average financed risk per asset."
+
+#: .\dashboard\templates\dashboard\portfolio.html:207
 msgid "Enregistrez le portefeuille pour voir son risque de transition."
 msgstr "Save the portfolio to see its transition risk."
 
-#: .\dashboard\templates\dashboard\portfolio.html:186
+#: .\dashboard\templates\dashboard\portfolio.html:213
 msgid "Dette financée totale"
 msgstr "Total financed debt"
 
-#: .\dashboard\templates\dashboard\portfolio.html:191
+#: .\dashboard\templates\dashboard\portfolio.html:218
 msgid "Entreprises"
 msgstr "Companies"
 
-#: .\dashboard\templates\dashboard\portfolio.html:195
+#: .\dashboard\templates\dashboard\portfolio.html:222
 msgid "Assets"
 msgstr ""
 
-#: .\dashboard\templates\dashboard\portfolio.html:199
+#: .\dashboard\templates\dashboard\portfolio.html:226
 msgid "Top commodité"
 msgstr "Top commodity"
 
-#: .\dashboard\templates\dashboard\portfolio.html:226
+#: .\dashboard\templates\dashboard\portfolio.html:253
 msgid "Risque composite — à venir, aucune donnée disponible."
 msgstr "Composite risk — coming soon, no data available."
 
-#: .\dashboard\templates\dashboard\portfolio.html:229
+#: .\dashboard\templates\dashboard\portfolio.html:256
 msgid "Scénario — à venir, aucune donnée disponible."
 msgstr "Scenario — coming soon, no data available."
 
-#: .\dashboard\templates\dashboard\portfolio.html:237
+#: .\dashboard\templates\dashboard\portfolio.html:264
 msgid "Détails financiers"
 msgstr "Financial details"
 
-#: .\dashboard\templates\dashboard\portfolio.html:240
+#: .\dashboard\templates\dashboard\portfolio.html:267
 msgid "Type d'instrument"
 msgstr "Instrument type"
 
-#: .\dashboard\templates\dashboard\portfolio.html:249
+#: .\dashboard\templates\dashboard\portfolio.html:276
 msgid "Maturité"
 msgstr "Maturity"
 
-#: .\dashboard\templates\dashboard\portfolio.html:253
+#: .\dashboard\templates\dashboard\portfolio.html:280
 #, python-format
 msgid "Taux de coupon (%%)"
 msgstr "Coupon rate (%%)"
 
-#: .\dashboard\templates\dashboard\portfolio.html:257
+#: .\dashboard\templates\dashboard\portfolio.html:284
 msgid "Valeur nominale"
 msgstr "Face value"
 
-#: .\dashboard\templates\dashboard\portfolio.html:263 .\imports\templates\imports\preview.html:281
+#: .\dashboard\templates\dashboard\portfolio.html:290 .\imports\templates\imports\preview.html:281
 msgid "Annuler"
 msgstr "Cancel"
 
-#: .\dashboard\templates\dashboard\portfolio.html:264
+#: .\dashboard\templates\dashboard\portfolio.html:291
 msgid "Valider"
 msgstr "Confirm"
 
-#: .\dashboard\views.py:36
+#: .\dashboard\views.py:37
 msgid "Approvisionnement en eau"
 msgstr "Water supply"
 
-#: .\dashboard\views.py:65 .\dashboard\views.py:645
+#: .\dashboard\views.py:66 .\dashboard\views.py:646
 msgid "Consommation eau"
 msgstr "Water consumption"
 
-#: .\dashboard\views.py:66
+#: .\dashboard\views.py:67
 msgid "Émissions CO₂"
 msgstr "CO₂ emissions"
 
-#: .\dashboard\views.py:67
+#: .\dashboard\views.py:68
 msgid "Usage des sols"
 msgstr "Land use"
 
-#: .\dashboard\views.py:173
+#: .\dashboard\views.py:174
 msgid "Services de provisionnement"
 msgstr "Provisioning services"
 
-#: .\dashboard\views.py:174
+#: .\dashboard\views.py:175
 msgid "Services de régulation"
 msgstr "Regulating services"
 
-#: .\dashboard\views.py:646
+#: .\dashboard\views.py:647
 msgid "Changement climatique"
 msgstr "Climate change"
 
-#: .\dashboard\views.py:653
+#: .\dashboard\views.py:654
 msgid "Épuisement ressources fossiles"
 msgstr "Fossil resource depletion"
 
-#: .\dashboard\views.py:654
+#: .\dashboard\views.py:655
 msgid "Épuisement ressources minérales"
 msgstr "Mineral resource depletion"
 
-#: .\dashboard\views.py:1032
+#: .\dashboard\views.py:1033
 msgid "Conso. eau (ReCiPe midpoint)"
 msgstr "Water consumption (ReCiPe midpoint)"
 
-#: .\dashboard\views.py:1033
+#: .\dashboard\views.py:1034
 msgid "Changement climatique (ReCiPe)"
 msgstr "Climate change (ReCiPe)"
 
-#: .\dashboard\views.py:1034
+#: .\dashboard\views.py:1035
 msgid "Écotoxicité eau douce (ReCiPe)"
 msgstr "Freshwater ecotoxicity (ReCiPe)"
 
-#: .\dashboard\views.py:1036
+#: .\dashboard\views.py:1037
 msgid "Eutrophisation eau douce (ReCiPe)"
 msgstr "Freshwater eutrophication (ReCiPe)"
 
-#: .\dashboard\views.py:1037
+#: .\dashboard\views.py:1038
 msgid "Eutrophisation marine (ReCiPe)"
 msgstr "Marine eutrophication (ReCiPe)"
 
-#: .\dashboard\views.py:1038
+#: .\dashboard\views.py:1039
 msgid "Acidification terrestre (ReCiPe)"
 msgstr "Terrestrial acidification (ReCiPe)"
 
-#: .\dashboard\views.py:1039
+#: .\dashboard\views.py:1040
 msgid "Acidification sols (ReCiPe)"
 msgstr "Soil acidification (ReCiPe)"
 
-#: .\dashboard\views.py:1040
+#: .\dashboard\views.py:1041
 msgid "Dépletion ozone (ReCiPe)"
 msgstr "Ozone depletion (ReCiPe)"
 
-#: .\dashboard\views.py:1041
+#: .\dashboard\views.py:1042
 msgid "Dépletion fossile (ReCiPe)"
 msgstr "Fossil depletion (ReCiPe)"
 
-#: .\dashboard\views.py:1042
+#: .\dashboard\views.py:1043
 msgid "Dépletion minéraux (ReCiPe)"
 msgstr "Mineral depletion (ReCiPe)"
 
-#: .\dashboard\views.py:1043
+#: .\dashboard\views.py:1044
 msgid "Utilisation des terres (ReCiPe)"
 msgstr "Land use (ReCiPe)"
 
-#: .\dashboard\views.py:1044
+#: .\dashboard\views.py:1045
 msgid "Santé humaine (ReCiPe endpoint)"
 msgstr "Human health (ReCiPe endpoint)"
 
-#: .\dashboard\views.py:1046
+#: .\dashboard\views.py:1047
 msgid "Diversité écosystèmes (ReCiPe endpoint)"
 msgstr "Ecosystem diversity (ReCiPe endpoint)"
 
-#: .\dashboard\views.py:1048
+#: .\dashboard\views.py:1049
 msgid "Disponibilité ressources (ReCiPe endpoint)"
 msgstr "Resource availability (ReCiPe endpoint)"
 
-#: .\dashboard\views.py:1049
+#: .\dashboard\views.py:1050
 msgid "Terrestre dynamique (GBS endpoint)"
 msgstr "Terrestrial dynamic (GBS endpoint)"
 
-#: .\dashboard\views.py:1050
+#: .\dashboard\views.py:1051
 msgid "Terrestre statique (GBS endpoint)"
 msgstr "Terrestrial static (GBS endpoint)"
 
-#: .\dashboard\views.py:1054
+#: .\dashboard\views.py:1055
 msgid "Dépendance eau"
 msgstr "Water dependency"
 
-#: .\dashboard\views.py:1055
+#: .\dashboard\views.py:1056
 msgid "Dépendance pollinisation"
 msgstr "Pollination dependency"
 
-#: .\dashboard\views.py:1056
+#: .\dashboard\views.py:1057
 msgid "Dépendance qualité sols"
 msgstr "Soil quality dependency"
 
-#: .\dashboard\views.py:1057
+#: .\dashboard\views.py:1058
 msgid "Dépendance séquestration carbone"
 msgstr "Carbon sequestration dependency"
 
-#: .\dashboard\views.py:1058
+#: .\dashboard\views.py:1059
 msgid "Dépendance épuration eau"
 msgstr "Water purification dependency"
 
-#: .\dashboard\views.py:1059
+#: .\dashboard\views.py:1060
 msgid "Dépendance contrôle ravageurs"
 msgstr "Pest control dependency"
 
-#: .\dashboard\views.py:1064
+#: .\dashboard\views.py:1065
 msgid "Nombre d'actifs"
 msgstr "Number of assets"
 
-#: .\dashboard\views.py:1065
+#: .\dashboard\views.py:1066
 msgid "Dette écologique (L biodiv)"
 msgstr "Ecological debt (L biodiv)"
 
-#: .\dashboard\views.py:1177
+#: .\dashboard\views.py:1178
 #, python-format
 msgid "%(count)s site(s) en/près d'une zone sensible"
 msgstr "%(count)s site(s) in/near a sensitive area"
 
-#: .\dashboard\views.py:1181
+#: .\dashboard\views.py:1182
 #, python-format
 msgid "Dépendance principale : %(name)s"
 msgstr "Main dependency: %(name)s"
 
-#: .\dashboard\views.py:1182
+#: .\dashboard\views.py:1183
 msgid "Aucune dépendance évaluée"
 msgstr "No dependency assessed"
 
-#: .\dashboard\views.py:1184
+#: .\dashboard\views.py:1185
 #, python-format
 msgid "Empreinte écosystèmes : %(impact)s"
 msgstr "Ecosystem footprint: %(impact)s"
 
-#: .\dashboard\views.py:1762
+#: .\dashboard\views.py:1763
 msgid "JSON invalide"
 msgstr "Invalid JSON"
 
-#: .\dashboard\views.py:1769
+#: .\dashboard\views.py:1770
 msgid "Portefeuille commun : lecture seule."
 msgstr "Shared portfolio: read-only."
 
-#: .\dashboard\views.py:1805
+#: .\dashboard\views.py:1806
 msgid "Une entreprise ne peut apparaître qu'une fois."
 msgstr "A company can only appear once."
 
-#: .\dashboard\views.py:1861
+#: .\dashboard\views.py:1862
 #, python-format
 msgid "%(name)s (copie)"
 msgstr "%(name)s (copy)"
 
-#: .\dashboard\views.py:1970
+#: .\dashboard\views.py:1971
 msgid "Feux de forêt"
 msgstr "Wildfires"
 
-#: .\dashboard\views.py:1975
+#: .\dashboard\views.py:1976
 msgid "Vague de chaleur"
 msgstr "Heatwave"
 
