@@ -559,3 +559,161 @@ class FlowWriteApiTests(TestCase):
         self.assertFalse(Flow.objects.filter(pk=flow.pk).exists())
         r = self._post('dashboard:flow_map_flow_delete', {}, flow.pk)
         self.assertEqual(r.status_code, 404)
+
+
+class MapApiTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.creator = user_model.objects.create_user('createur2', password='x', role='CREATOR')
+        self.subscriber = user_model.objects.create_user(
+            'abonne2', password='x', role='SUBSCRIBER')
+        self.client.force_login(self.creator)
+        self.acme = Company.objects.create(name='Acme')
+        self.other = Company.objects.create(name='Other')
+        self.cargill = Company.objects.create(name='Cargill')
+        self.suisse = Country.objects.create(
+            name='Suisse', water_ownership='Public', land_ownership='Private')
+        self.soja = Commodity.objects.create(name='Soja', unit='t')
+        self.vevey = Asset.objects.create(
+            name='Usine Vevey', latitude=1.0, longitude=2.0, country=self.suisse)
+        self.bale = Asset.objects.create(
+            name='Usine Bâle', latitude=1.0, longitude=2.0, country=self.suisse)
+
+    def _post(self, name, body, *args):
+        return self.client.post(
+            reverse(name, args=args), data=json.dumps(body), content_type='application/json')
+
+    def _search(self, kind, q):
+        return self.client.get(reverse('dashboard:flow_map_search'), {'type': kind, 'q': q})
+
+    def test_search_assets_by_keyword(self):
+        r = self._search('asset', 'vev')
+        self.assertEqual(r.json()['results'],
+                         [{'id': self.vevey.pk, 'name': 'Usine Vevey', 'detail': 'Suisse'}])
+
+    def test_search_details_and_unknown_type(self):
+        self.assertEqual(self._search('commodity', 'so').json()['results'],
+                         [{'id': self.soja.pk, 'name': 'Soja', 'detail': 't'}])
+        self.assertEqual(self._search('company', 'cargi').json()['results'][0]['detail'], '')
+        self.assertEqual(self._search('country', 'sui').json()['results'][0]['detail'], '')
+        region = SubnationalRegion.objects.create(name='Vaud', country=self.suisse)
+        self.assertEqual(self._search('region', 'va').json()['results'],
+                         [{'id': region.pk, 'name': 'Vaud', 'detail': 'Suisse'}])
+        self.assertEqual(self._search('nope', 'abc').status_code, 400)
+
+    def test_search_short_query_returns_nothing(self):
+        self.assertEqual(self._search('asset', 'u').json(), {'results': []})
+
+    def test_create_asset(self):
+        r = self._post('dashboard:flow_map_asset_create', {
+            'name': 'Nouveau', 'country': self.suisse.pk, 'type': 'Mine',
+            'latitude': 46.4, 'longitude': 6.8})
+        self.assertEqual(r.status_code, 201, r.content)
+        asset = Asset.objects.get(pk=r.json()['id'])
+        self.assertEqual((asset.name, asset.type), ('Nouveau', 'Mine'))
+
+    def test_create_asset_rejects_latitude_out_of_range(self):
+        before = Asset.objects.count()
+        r = self._post('dashboard:flow_map_asset_create', {
+            'name': 'X', 'country': self.suisse.pk, 'type': 'Mine',
+            'latitude': 95, 'longitude': 6.8})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('latitude', r.json()['errors'])
+        self.assertEqual(Asset.objects.count(), before)
+
+    def test_create_company_with_name_only(self):
+        r = self._post('dashboard:flow_map_company_create', {'name': 'Nestlé'})
+        self.assertEqual(r.status_code, 201, r.content)
+        company = Company.objects.get(pk=r.json()['id'])
+        self.assertEqual((company.isin, company.ticker), ('0', '0'))
+
+    def test_create_commodity_default_unit(self):
+        r = self._post('dashboard:flow_map_commodity_create', {'name': 'Cacao'})
+        self.assertEqual(r.status_code, 201, r.content)
+        self.assertEqual(r.json()['unit'], 'tonnes')
+
+    def test_create_ownership_starts_at_year(self):
+        r = self._post('dashboard:flow_map_ownership_create', {
+            'company_id': self.acme.pk, 'asset_id': self.vevey.pk, 'share': 0.5, 'year': 2024})
+        self.assertEqual(r.status_code, 201, r.content)
+        ownership = Ownership.objects.get(asset=self.vevey)
+        self.assertEqual((ownership.start_year, ownership.end_year, ownership.created_by),
+                         (2024, None, self.creator))
+
+    def test_ownership_over_full_share_is_refused(self):
+        Ownership.objects.create(
+            asset=self.vevey, company=self.other, share=1, start_year=2020)
+        r = self._post('dashboard:flow_map_ownership_create', {
+            'company_id': self.acme.pk, 'asset_id': self.vevey.pk, 'share': 1, 'year': 2024})
+        self.assertEqual(r.status_code, 400)
+        self.assertTrue(r.json()['errors'])
+        self.assertEqual(Ownership.objects.count(), 1)
+
+    def test_group_create_update_delete(self):
+        r = self._post('dashboard:flow_map_group_create',
+                       {'name': 'Suisse', 'members': [self.vevey.pk]}, self.acme.pk)
+        self.assertEqual(r.status_code, 201, r.content)
+        group = AssetGroup.objects.get(pk=r.json()['id'])
+        self.assertEqual((group.company, group.created_by), (self.acme, self.creator))
+        r = self._post('dashboard:flow_map_group_update',
+                       {'name': 'CH', 'members': [self.bale.pk]}, group.pk)
+        self.assertEqual(r.status_code, 200, r.content)
+        group.refresh_from_db()
+        self.assertEqual(group.name, 'CH')
+        self.assertEqual(list(group.members.values_list('asset_id', flat=True)),
+                         [self.bale.pk])
+        r = self._post('dashboard:flow_map_group_delete', {}, group.pk)
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(AssetGroup.objects.exists())
+        self.assertEqual(
+            self._post('dashboard:flow_map_group_delete', {}, group.pk).status_code, 404)
+        self.assertEqual(
+            self._post('dashboard:flow_map_group_update',
+                       {'name': 'x', 'members': []}, group.pk).status_code, 404)
+
+    def test_group_refuses_asset_of_another_group(self):
+        first = AssetGroup.objects.create(name='A', company=self.acme)
+        first.set_members([self.vevey.pk])
+        r = self._post('dashboard:flow_map_group_create',
+                       {'name': 'B', 'members': [self.vevey.pk]}, self.acme.pk)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('Usine Vevey', r.json()['errors']['members'][0])
+        self.assertEqual(AssetGroup.objects.count(), 1)
+
+    def test_unlink_preview_then_unlink(self):
+        Ownership.objects.create(asset=self.vevey, company=self.acme, share=1, start_year=2020)
+        make_supply(what=self.soja, year=2024, quantity=5,
+                    origin=self.cargill, destination=self.vevey)
+        url = reverse('dashboard:flow_map_unlink', args=[self.acme.pk])
+        key = f'company:{self.cargill.pk}'
+        r = self.client.get(url, {'year': 2024, 'block': key})
+        self.assertEqual(r.json(), {'flows': 1, 'ownership': False})
+        self.assertEqual(Flow.objects.count(), 1)
+        r = self.client.post(f'{url}?year=2024&block={key}')
+        self.assertEqual(r.json(), {'flows': 1, 'ownership': False})
+        self.assertEqual(Flow.objects.count(), 0)
+
+    def test_unlink_bad_input(self):
+        url = reverse('dashboard:flow_map_unlink', args=[self.acme.pk])
+        self.assertEqual(self.client.get(url, {'year': 2024, 'block': 'environment'})
+                         .status_code, 400)
+        self.assertEqual(self.client.get(url, {'year': 'x', 'block': 'company:1'})
+                         .status_code, 400)
+        self.assertEqual(self.client.get(url, {'block': 'company:1'}).status_code, 400)
+
+    def test_writes_refused_for_subscriber(self):
+        self.client.force_login(self.subscriber)
+        calls = [
+            ('dashboard:flow_map_asset_create', ()),
+            ('dashboard:flow_map_company_create', ()),
+            ('dashboard:flow_map_commodity_create', ()),
+            ('dashboard:flow_map_ownership_create', ()),
+            ('dashboard:flow_map_group_create', (self.acme.pk,)),
+            ('dashboard:flow_map_group_update', (1,)),
+            ('dashboard:flow_map_group_delete', (1,)),
+        ]
+        for name, args in calls:
+            with self.subTest(name=name):
+                self.assertEqual(self._post(name, {}, *args).status_code, 403)
+        url = reverse('dashboard:flow_map_unlink', args=[self.acme.pk])
+        self.assertEqual(self.client.post(url + '?year=2024&block=company:1').status_code, 403)

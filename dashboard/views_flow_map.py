@@ -3,12 +3,15 @@ import json
 
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_http_methods, require_POST
 
 from .decorators import creator_required_json
-from .forms import FlowMapFlowForm
-from .models import Flow
-from .services.flow_map import endpoint_fields
+from .forms import (
+    AssetGroupForm, AssetQuickForm, CommodityQuickForm, CompanyQuickForm, FlowMapFlowForm,
+    OwnershipQuickForm,
+)
+from .models import Asset, AssetGroup, Commodity, Company, Country, Flow, SubnationalRegion
+from .services.flow_map import endpoint_fields, unlink, unlink_preview
 
 ENDPOINT_FIELDS = [
     f'{side}_{suffix}'
@@ -120,3 +123,175 @@ def flow_map_flow_delete(request, pk):
         return _not_found()
     flow.delete()
     return JsonResponse({'deleted': pk})
+
+
+# ── Recherche, créations, détentions, groupes, retrait ───────────────────────
+
+SEARCH_LIMIT = 20
+SEARCH_MIN_LENGTH = 2
+SEARCH_MODELS = {
+    'asset': Asset,
+    'company': Company,
+    'country': Country,
+    'region': SubnationalRegion,
+    'commodity': Commodity,
+}
+
+
+def _search_detail(kind, obj):
+    if kind in ('asset', 'region'):
+        return obj.country.name
+    if kind == 'commodity':
+        return obj.unit
+    return ''
+
+
+def flow_map_search(request):
+    kind = request.GET.get('type')
+    model = SEARCH_MODELS.get(kind)
+    if model is None:
+        return _error(_('Type de recherche inconnu.'))
+    query = request.GET.get('q', '').strip()
+    if len(query) < SEARCH_MIN_LENGTH:
+        return JsonResponse({'results': []})
+    queryset = model.objects.filter(name__icontains=query).order_by('name', 'pk')
+    if kind in ('asset', 'region'):
+        queryset = queryset.select_related('country')
+    results = [
+        {'id': obj.pk, 'name': obj.name, 'detail': _search_detail(kind, obj)}
+        for obj in queryset[:SEARCH_LIMIT]
+    ]
+    return JsonResponse({'results': results})
+
+
+def _create(request, form_class, answer):
+    """Crée un objet depuis le corps JSON ; `answer(obj)` donne la réponse 201."""
+    payload = _payload(request)
+    if payload is None:
+        return _error(_('JSON invalide'))
+    form = form_class(payload)
+    refused = _form_errors(form)
+    if refused:
+        return refused
+    return JsonResponse(answer(form.save()), status=201)
+
+
+@require_POST
+@creator_required_json
+def flow_map_asset_create(request):
+    return _create(request, AssetQuickForm, lambda a: {'id': a.pk, 'name': a.name})
+
+
+@require_POST
+@creator_required_json
+def flow_map_company_create(request):
+    return _create(request, CompanyQuickForm, lambda c: {'id': c.pk, 'name': c.name})
+
+
+@require_POST
+@creator_required_json
+def flow_map_commodity_create(request):
+    return _create(
+        request, CommodityQuickForm,
+        lambda c: {'id': c.pk, 'name': c.name, 'unit': c.unit})
+
+
+@require_POST
+@creator_required_json
+def flow_map_ownership_create(request):
+    payload = _payload(request)
+    if payload is None:
+        return _error(_('JSON invalide'))
+    form = OwnershipQuickForm({
+        'company': payload.get('company_id'),
+        'asset': payload.get('asset_id'),
+        'share': payload.get('share'),
+        'start_year': payload.get('year'),
+    })
+    refused = _form_errors(form)
+    if refused:
+        return refused
+    ownership = form.save(commit=False)
+    ownership.created_by = request.user
+    ownership.save()
+    return JsonResponse({'id': ownership.pk}, status=201)
+
+
+def _save_group(request, company, instance=None):
+    payload = _payload(request)
+    if payload is None:
+        return _error(_('JSON invalide'))
+    members = payload.get('members')
+    form = AssetGroupForm(
+        {'name': payload.get('name'), 'members': members if isinstance(members, list) else []},
+        instance=instance, company=company)
+    refused = _form_errors(form)
+    if refused:
+        return refused
+    group = form.save(commit=False)
+    if instance is None:
+        group.company = company
+        group.created_by = request.user
+    group.save()
+    group.set_members([asset.pk for asset in form.cleaned_data['members']])
+    return JsonResponse({'id': group.pk}, status=201 if instance is None else 200)
+
+
+def _get_group(pk):
+    return AssetGroup.objects.filter(pk=pk).select_related('company').first()
+
+
+@require_POST
+@creator_required_json
+def flow_map_group_create(request, company_pk):
+    company = Company.objects.filter(pk=company_pk).first()
+    if company is None:
+        return _error(_("Cette entreprise n'existe plus."), status=404)
+    return _save_group(request, company)
+
+
+@require_POST
+@creator_required_json
+def flow_map_group_update(request, pk):
+    group = _get_group(pk)
+    if group is None:
+        return _error(_("Ce groupe n'existe plus."), status=404)
+    return _save_group(request, group.company, instance=group)
+
+
+@require_POST
+@creator_required_json
+def flow_map_group_delete(request, pk):
+    group = _get_group(pk)
+    if group is None:
+        return _error(_("Ce groupe n'existe plus."), status=404)
+    group.delete()
+    return JsonResponse({'deleted': pk})
+
+
+def _run_unlink(request, action):
+    """Applique `action(company, year, key)` aux paramètres `year` et `block`."""
+    company = Company.objects.filter(pk=request.resolver_match.kwargs['company_pk']).first()
+    if company is None:
+        return _error(_("Cette entreprise n'existe plus."), status=404)
+    try:
+        year = int(request.GET.get('year'))
+    except (TypeError, ValueError):
+        return _error(_('Année invalide.'))
+    try:
+        return JsonResponse(action(company, year, request.GET.get('block')))
+    except (ValueError, TypeError):
+        return _error(_('Bloc invalide.'))
+
+
+@creator_required_json
+def _unlink_apply(request):
+    return _run_unlink(request, unlink)
+
+
+@require_http_methods(['GET', 'POST'])
+def flow_map_unlink(request, company_pk):
+    """GET : aperçu du retrait (ouvert) ; POST : retrait effectif (Créateur)."""
+    if request.method == 'POST':
+        return _unlink_apply(request)
+    return _run_unlink(request, unlink_preview)

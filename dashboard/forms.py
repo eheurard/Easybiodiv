@@ -6,7 +6,10 @@ passe par un formulaire, jamais par une lecture brute de `request.GET`.
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from .models import ClimateScenario, Flow, Portfolio, PortfolioHolding
+from .models import (
+    Asset, AssetGroup, AssetGroupMember, ClimateScenario, Commodity, Company, Flow,
+    Ownership, Portfolio, PortfolioHolding,
+)
 from .services.stress_test import HORIZONS, PD_MAX
 
 
@@ -108,3 +111,91 @@ class FlowMapFlowForm(forms.ModelForm):
         if value <= 0:
             raise forms.ValidationError(_('La quantité doit être positive.'))
         return value
+
+
+class AssetQuickForm(forms.ModelForm):
+    """Création rapide d'un actif depuis la carte des flux."""
+
+    class Meta:
+        model = Asset
+        fields = ['name', 'country', 'subnational_region', 'type', 'latitude', 'longitude']
+
+    def clean_latitude(self):
+        value = self.cleaned_data['latitude']
+        if not -90 <= value <= 90:
+            raise forms.ValidationError(_('La latitude doit être comprise entre -90 et 90.'))
+        return value
+
+    def clean_longitude(self):
+        value = self.cleaned_data['longitude']
+        if not -180 <= value <= 180:
+            raise forms.ValidationError(
+                _('La longitude doit être comprise entre -180 et 180.'))
+        return value
+
+
+class CompanyQuickForm(forms.ModelForm):
+    """Création rapide d'une entreprise : ISIN et ticker facultatifs (défaut du modèle)."""
+
+    isin = forms.CharField(required=False, max_length=255)
+    ticker = forms.CharField(required=False, max_length=255)
+
+    class Meta:
+        model = Company
+        fields = ['name', 'isin', 'ticker']
+
+    def clean_isin(self):
+        return self.cleaned_data['isin'].strip() or '0'
+
+    def clean_ticker(self):
+        return self.cleaned_data['ticker'].strip() or '0'
+
+
+class CommodityQuickForm(forms.ModelForm):
+    """Création rapide d'une commodité : unité facultative (défaut « tonnes »)."""
+
+    unit = forms.CharField(required=False, max_length=255)
+
+    class Meta:
+        model = Commodity
+        fields = ['name', 'unit']
+
+    def clean_unit(self):
+        return self.cleaned_data['unit'].strip() or 'tonnes'
+
+
+class OwnershipQuickForm(forms.ModelForm):
+    """Détention créée depuis la carte : débute à `start_year`, sans année de fin.
+
+    `Ownership.clean` (chevauchement, somme des parts) est appelé par le ModelForm.
+    """
+
+    class Meta:
+        model = Ownership
+        fields = ['company', 'asset', 'share', 'start_year']
+
+
+class AssetGroupForm(forms.ModelForm):
+    """Groupe d'actifs d'une entreprise ; un actif n'est membre que d'un groupe."""
+
+    members = forms.ModelMultipleChoiceField(queryset=Asset.objects.all(), required=False)
+
+    class Meta:
+        model = AssetGroup
+        fields = ['name']
+
+    def __init__(self, *args, company, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.company = company
+
+    def clean_members(self):
+        assets = self.cleaned_data['members']
+        taken = AssetGroupMember.objects.filter(
+            company=self.company, asset__in=assets,
+        ).exclude(group=self.instance.pk).select_related('group', 'asset')
+        for member in taken:
+            raise forms.ValidationError(
+                _('« %(asset)s » appartient déjà au groupe « %(group)s ».'),
+                params={'asset': member.asset.name, 'group': member.group.name},
+            )
+        return assets
