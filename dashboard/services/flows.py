@@ -7,7 +7,9 @@ from collections import defaultdict
 
 from django.db.models import Q
 
-from dashboard.models import Asset, Flow, FlowKind, FlowScope
+from dashboard.models import (
+    _ENDPOINT_FIELD_SUFFIX, Asset, Flow, FlowKind, FlowScope, Ownership,
+)
 
 _OUTGOING_INVENTORY_KINDS = (FlowKind.EMISSION, FlowKind.WASTE)
 
@@ -21,6 +23,44 @@ def flows_with_endpoints():
     """Tous les flux, avec leurs extrémités préchargées (imports/services/
     excel_parser.py : détection des doublons de la feuille Flow)."""
     return Flow.objects.select_related(*_ENDPOINT_RELATIONS)
+
+
+def _touches_q(company, asset_ids):
+    """Q vrai quand une extrémité du flux est `company` ou l'un des actifs."""
+    return (
+        Q(from_company=company) | Q(to_company=company)
+        | Q(from_asset_id__in=asset_ids) | Q(to_asset_id__in=asset_ids)
+    )
+
+
+def perimeter_flows(company, year, touching=None):
+    """Flux de l'année `year` dont une extrémité est `company` ou un actif
+    qu'elle détient cette année-là. `touching` = (endpoint, pk) ne garde que
+    les flux dont l'origine ou la destination est cet élément."""
+    asset_ids = Asset.objects.owned_by(company, year).values('pk')
+    flows = (
+        Flow.objects.filter(year=year)
+        .filter(_touches_q(company, asset_ids))
+        .select_related(*_ENDPOINT_RELATIONS)
+        .order_by('pk')
+    )
+    if touching is not None:
+        endpoint, pk = touching
+        suffix = _ENDPOINT_FIELD_SUFFIX[endpoint]
+        flows = flows.filter(
+            Q(**{f'from_{suffix}_id': pk}) | Q(**{f'to_{suffix}_id': pk}))
+    return flows
+
+
+def perimeter_years(company):
+    """Années (croissantes) des flux du périmètre de `company`, avec la règle
+    de détention de perimeter_flows()."""
+    ever_owned = Ownership.objects.filter(company=company).values('asset_id')
+    years = (
+        Flow.objects.filter(_touches_q(company, ever_owned))
+        .order_by().values_list('year', flat=True).distinct()
+    )
+    return sorted(year for year in years if perimeter_flows(company, year).exists())
 
 
 def _inventory_rows(asset_ids):

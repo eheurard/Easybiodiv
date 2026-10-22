@@ -5,7 +5,12 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Asset, AssetGroup, AssetGroupMember, Company, Country
+from .models import (
+    ENDPOINT_COMPANY, Asset, AssetGroup, AssetGroupMember, Commodity, Company, Country,
+    Ownership,
+)
+from .services.flows import perimeter_flows, perimeter_years
+from .testing import make_declared_emission, make_inventory, make_supply
 
 
 class AssetGroupModelTests(TestCase):
@@ -93,3 +98,51 @@ class AssetGroupAdminTests(TestCase):
         model_admin = admin.site._registry[AssetGroup]
         self.assertIn('company', model_admin.get_readonly_fields(request, self.g1))
         self.assertNotIn('company', model_admin.get_readonly_fields(request, None))
+
+
+class PerimeterFlowsTests(TestCase):
+    def setUp(self):
+        self.acme = Company.objects.create(name='Acme')
+        self.cargill = Company.objects.create(name='Cargill')
+        self.brazil = Country.objects.create(
+            name='Brésil', water_ownership='Public', land_ownership='Private')
+        self.soja = Commodity.objects.create(name='Soja')
+        self.vevey, self.rotterdam = (
+            Asset.objects.create(name=name, latitude=1.0, longitude=2.0, country=self.brazil)
+            for name in ('Vevey', 'Rotterdam')
+        )
+        Ownership.objects.create(
+            asset=self.vevey, company=self.acme, share=1, start_year=2020, end_year=None)
+        Ownership.objects.create(
+            asset=self.rotterdam, company=self.acme, share=1, start_year=2020, end_year=2023)
+
+    def test_includes_flows_touching_company_or_owned_assets(self):
+        f1 = make_supply(what=self.soja, year=2024, quantity=5,
+                         origin=self.cargill, destination=self.vevey)
+        f2 = make_declared_emission(company=self.acme, year=2024, scope='Scope 1', value=3)
+        self.assertEqual(list(perimeter_flows(self.acme, 2024)), [f1, f2])
+
+    def test_excludes_other_year_and_outside_flows(self):
+        make_supply(what=self.soja, year=2023, quantity=5,
+                    origin=self.cargill, destination=self.vevey)
+        make_supply(what=self.soja, year=2024, quantity=5,
+                    origin=self.brazil, destination=self.cargill)
+        self.assertEqual(list(perimeter_flows(self.acme, 2024)), [])
+
+    def test_excludes_asset_no_longer_owned(self):
+        make_inventory(asset=self.rotterdam, key='water', year=2024, value=1)
+        self.assertEqual(list(perimeter_flows(self.acme, 2024)), [])
+
+    def test_touching_filters_on_one_block(self):
+        f1 = make_supply(what=self.soja, year=2024, quantity=5,
+                         origin=self.cargill, destination=self.vevey)
+        make_inventory(asset=self.vevey, key='water', year=2024, value=1)
+        self.assertEqual(
+            list(perimeter_flows(self.acme, 2024, touching=(ENDPOINT_COMPANY, self.cargill.pk))),
+            [f1])
+
+    def test_perimeter_years(self):
+        make_inventory(asset=self.vevey, key='water', year=2022, value=1)
+        make_inventory(asset=self.rotterdam, key='water', year=2021, value=1)
+        make_inventory(asset=self.rotterdam, key='water', year=2024, value=1)  # plus détenu
+        self.assertEqual(perimeter_years(self.acme), [2021, 2022])
