@@ -3,7 +3,9 @@
 // Outils partagés par les scripts de la carte des flux : URL et sélecteurs (tous
 // les visiteurs), écriture JSON et liste de recherche serveur (Créateurs).
 //
-//   FlowMapUI.idUrl(template, id)  remplace le « /0/ » d'une URL {% url … pk=0 %}
+//   FlowMapUI.idUrl(template, id[, id2])  remplace les « /0/ » d'une URL
+//                                  {% url … pk=0 %}, dans l'ordre (company_pk=0 pk=0)
+//   FlowMapUI.rangeQuery(start, end) -> « ?start=…&end=… »
 //   FlowMapUI.cssEscape(value)     valeur sûre dans un sélecteur [data-key="…"]
 //   FlowMapUI.post(url, payload) -> Promise<{ok, status, data}>
 //   FlowMapUI.getJson(url)       -> Promise<{ok, status, data}>
@@ -23,8 +25,16 @@ window.FlowMapUI = (function () {
   var SEARCH_MIN = 2;
   var SEARCH_DELAY = 200;
 
-  function idUrl(template, id) {
-    return template.replace('/0/', '/' + id + '/');
+  function idUrl(template) {
+    var url = template;
+    for (var i = 1; i < arguments.length; i += 1) {
+      url = url.replace('/0/', '/' + arguments[i] + '/');
+    }
+    return url;
+  }
+
+  function rangeQuery(start, end) {
+    return '?start=' + encodeURIComponent(start) + '&end=' + encodeURIComponent(end);
   }
 
   function cssEscape(value) {
@@ -193,6 +203,7 @@ window.FlowMapUI = (function () {
   }
 
   return {
-    idUrl: idUrl, cssEscape: cssEscape, post: post, getJson: getJson, combobox: combobox,
+    idUrl: idUrl, rangeQuery: rangeQuery, cssEscape: cssEscape, post: post, getJson: getJson,
+    combobox: combobox,
   };
 })();

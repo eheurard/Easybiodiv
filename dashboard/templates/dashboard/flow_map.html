@@ -21,13 +21,20 @@
   <div class="flow-map__toolbar">
     <h1 class="flow-map__title">{% translate "Carte des flux" %}</h1>
 
-    <form class="flow-map__year" id="flow-map-year-form">
-      <label class="label-caps" for="flow-map-year">{% translate "Année" %}</label>
-      <select class="flow-map__select form-input" id="flow-map-year"></select>
-      <label class="visually-hidden" for="flow-map-year-other">{% translate "Autre année" %}</label>
-      <input type="number" class="flow-map__year-input form-input" id="flow-map-year-other"
-             min="1900" max="2100" step="1" inputmode="numeric"
-             placeholder="{% translate 'Autre année' %}">
+    {# Plage d'années : années proposées (datalist) ou saisie libre, contrôlées par flow_map.js. #}
+    <form class="flow-map__year" id="flow-map-range" role="group"
+          aria-labelledby="flow-map-range-label" novalidate>
+      <span class="label-caps" id="flow-map-range-label">{% translate "Années" %}</span>
+      <label class="flow-map__range-label" for="flow-map-start">{% translate "De" %}</label>
+      <input type="number" class="flow-map__year-input form-input" id="flow-map-start"
+             min="1900" max="2100" step="1" inputmode="numeric" list="flow-map-years"
+             aria-describedby="flow-map-range-error">
+      <label class="flow-map__range-label" for="flow-map-end">{% translate "À" %}</label>
+      <input type="number" class="flow-map__year-input form-input" id="flow-map-end"
+             min="1900" max="2100" step="1" inputmode="numeric" list="flow-map-years"
+             aria-describedby="flow-map-range-error">
+      <datalist id="flow-map-years"></datalist>
+      <p class="flow-map__range-error" id="flow-map-range-error" role="alert" hidden></p>
     </form>
 
     <span class="flow-map__spacer"></span>
@@ -58,11 +65,16 @@
   </div>
   {% endif %}
 
-  <ul class="flow-map__legend" aria-label="{% translate 'Natures de flux' %}">
+  {# Légende : chaque nature est un bouton bascule (flow_map.js masque ses flèches). #}
+  <ul class="flow-map__legend" id="flow-map-legend" aria-label="{% translate 'Natures de flux' %}">
     {% for kind in kinds %}
     <li>
-      <i class="flow-map__swatch flow-map__swatch--{{ kind.value|lower }}" aria-hidden="true"></i>
-      {{ kind.label }}
+      <button type="button" class="flow-map__legend-item" data-kind="{{ kind.value }}"
+              aria-pressed="true"
+              title="{% translate 'Masquer ou réafficher les flèches de cette nature' %}">
+        <i class="flow-map__swatch flow-map__swatch--{{ kind.value|lower }}" aria-hidden="true"></i>
+        {{ kind.label }}
+      </button>
     </li>
     {% endfor %}
   </ul>
@@ -99,8 +111,22 @@
     {% endif %}
   </p>
   {% if can_edit %}
+  {# Confirmation (FlowMapPanel.confirm) et choix des années (FlowMapPanel.chooseYears). #}
   <dialog class="fm-dialog" id="flow-map-confirm" aria-labelledby="flow-map-confirm-message">
     <p class="fm-dialog__message" id="flow-map-confirm-message"></p>
+    <fieldset class="fm-dialog__years" id="flow-map-confirm-years" hidden>
+      <legend class="visually-hidden">{% translate "Années" %}</legend>
+      <div class="fm-dialog__year-list" id="flow-map-confirm-year-list"></div>
+    </fieldset>
+    <div class="fm-dialog__ownership" id="flow-map-confirm-ownership" hidden>
+      <label class="fm-check fm-dialog__own">
+        <input type="checkbox" id="flow-map-confirm-own">
+        <span id="flow-map-confirm-own-label"></span>
+      </label>
+      <select class="form-input fm-dialog__own-year" id="flow-map-confirm-own-year"
+              aria-labelledby="flow-map-confirm-own-label"></select>
+    </div>
+    <p class="fm-dialog__note" id="flow-map-confirm-note" hidden></p>
     <div class="fm-dialog__actions">
       <button type="button" class="btn btn--secondary" id="flow-map-confirm-cancel">
         {% translate "Annuler" %}

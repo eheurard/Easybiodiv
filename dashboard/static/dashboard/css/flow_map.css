@@ -41,19 +41,37 @@
   color: var(--color-on-surface);
 }
 
+/* Plage d'années : « De » / « À » */
 .flow-map__year {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
 
-.flow-map__select,
 .flow-map__year-input {
+  width: 7rem;
   padding: 6px 10px;
 }
 
-.flow-map__year-input {
-  width: 9rem;
+.flow-map__range-label {
+  font-size: var(--text-body-sm-size);
+  color: var(--color-on-surface-variant);
+}
+
+.flow-map__year-input[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.flow-map__range-error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-error);
+}
+
+.flow-map__range-error[hidden] {
+  display: none;
 }
 
 .flow-map__spacer {
@@ -135,6 +153,37 @@
 .flow-map__swatch--emission    { background: var(--fm-emission); }
 .flow-map__swatch--waste       { background: var(--fm-waste); }
 .flow-map__swatch--production  { background: var(--fm-production); }
+
+/* Chaque entrée masque / réaffiche les flèches de sa nature (aria-pressed). */
+.flow-map__legend-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.flow-map__legend-item:hover {
+  border-color: var(--color-outline-variant);
+}
+
+.flow-map__legend-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.flow-map__legend-item.is-off {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.flow-map__legend-item.is-off .flow-map__swatch {
+  background: var(--color-outline-variant);
+}
 
 /* ── Plateau ──────────────────────────────────────────────────────────────── */
 /* Le panneau de saisie (Créateurs) s'ouvre à droite, dans le plateau. */
@@ -1084,6 +1133,76 @@
 }
 
 .fm-dialog .btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.fm-dialog__ok:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Choix des années (FlowMapPanel.chooseYears) */
+.fm-dialog__years {
+  margin: 14px 0 0;
+  padding: 0;
+  border: none;
+}
+
+.fm-dialog__years[hidden],
+.fm-dialog__ownership[hidden],
+.fm-dialog__note[hidden] {
+  display: none;
+}
+
+.fm-dialog__year-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+}
+
+.fm-dialog .fm-dialog__year {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--color-outline-variant);
+  font-weight: 400;
+}
+
+.fm-dialog .fm-dialog__year:last-child {
+  border-bottom: none;
+}
+
+.fm-dialog__year:has(input:checked) {
+  background: var(--tint-primary);
+}
+
+.fm-dialog__ownership {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.fm-dialog .fm-dialog__own {
+  font-weight: 400;
+}
+
+.fm-dialog .fm-dialog__own-year {
+  width: auto;
+  padding: 4px 8px;
+}
+
+.fm-dialog__note {
+  margin: 12px 0 0;
+  font-size: var(--text-body-sm-size);
+  color: var(--color-on-surface-variant);
+}
+
+.fm-dialog input:focus-visible,
+.fm-dialog select:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }

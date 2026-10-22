@@ -2579,9 +2579,6 @@ msgstr "Flow map"
 msgid "Année"
 msgstr "Year"
 
-msgid "Autre année"
-msgstr "Other year"
-
 msgid "Tout réafficher"
 msgstr "Show all again"
 
@@ -2727,3 +2724,21 @@ msgstr "Filter the assets on the map"
 
 msgid "Supprimer le groupe"
 msgstr "Delete the group"
+
+msgid "Années"
+msgstr "Years"
+
+msgid "De"
+msgstr "From"
+
+msgid "À"
+msgstr "To"
+
+msgid "Masquer ou réafficher les flèches de cette nature"
+msgstr "Hide or show the arrows of this kind"
+
+msgid "Détenu à partir de"
+msgstr "Owned from"
+
+msgid "Sans année de fin."
+msgstr "No end year."

@@ -5,19 +5,22 @@
 //
 //   Barre d'outils « + Pays / Région / Entreprise / Actif » : recherche serveur
 //   (et création pour une entreprise ou un actif). Un actif « détenu par E »
-//   crée une détention (part en %, à partir de l'année affichée) ; sinon le bloc
+//   crée une détention (part en %, à partir de l'année choisie, par défaut la fin
+//   de la plage affichée) ; sinon le bloc
 //   n'existe que pour la session (FlowMap.addSessionBlock) jusqu'à son premier flux.
 //   « + Groupe d'actifs » et menu « ⋯ » d'un groupe : nom et membres, choisis
 //   parmi les actifs de la carte ; un actif d'un autre groupe ne peut être coché.
-//   Menu « ⋯ » d'un bloc : « Supprimer les liens » (aperçu chiffré du serveur,
-//   confirmation), « Retirer de la carte » (bloc de session), « Modifier le
-//   groupe », « Supprimer le groupe ».
+//   Menu « ⋯ » d'un bloc : « Supprimer les liens » (aperçu chiffré du serveur sur
+//   la plage, choix des années et de la fin de détention), « Retirer de la carte »
+//   (bloc de session), « Modifier le groupe », « Supprimer le groupe ».
 // Écritures suivies de « flowmap:changed » (rechargement de la carte).
 window.FlowMapBlocks = (function () {
   var LINKABLE = ['asset', 'company', 'country', 'region'];
   var CREATABLE = ['asset', 'company'];
   var MAP_ZOOM = 1;
   var MAP_PICK_ZOOM = 5;
+  var YEAR_MIN = 1900;       // bornes des années (YEAR_MIN / YEAR_MAX côté serveur)
+  var YEAR_MAX = 2100;
 
   var els = {};
   var urls = {};
@@ -177,11 +180,9 @@ window.FlowMapBlocks = (function () {
     els.own.hidden = type !== 'asset';
     els.ownCheck.checked = true;
     els.ownShare.value = '100';
+    els.ownYear.value = String(model.end);
     els.ownLabel.textContent = interpolate(gettext('Détenu par %(company)s'),
       { company: model.company.name }, true);
-    els.ownHelp.textContent = interpolate(
-      gettext('La détention commence en %(year)s, sans année de fin.'),
-      { year: String(model.year) }, true);
     syncOwn();
     syncSubmit();
     showPanel('add', ADD_TITLES[type](), els.search);
@@ -189,6 +190,7 @@ window.FlowMapBlocks = (function () {
 
   function syncOwn() {
     els.ownShareField.hidden = !els.ownCheck.checked;
+    els.ownYearField.hidden = !els.ownCheck.checked;
     els.ownHelp.hidden = !els.ownCheck.checked;
   }
 
@@ -249,18 +251,28 @@ window.FlowMapBlocks = (function () {
     if (busy || !add) return;
     clearErrors(els.addForm);
     var share = null;
+    var start = null;
     if (add.type === 'asset' && els.ownCheck.checked) {
       share = decimal(els.ownShare.value);
+      start = ownStartYear();
+      var errors = {};
       if (!(share > 0 && share <= 100)) {
-        showErrors('fm-add', { share: [gettext('Indiquez une part entre 0 et 100 %.')] },
-          { share: els.ownShare }, { share: 'fm-own' });
+        errors.share = [gettext('Indiquez une part entre 0 et 100 %.')];
+      }
+      if (start === null) {
+        errors.start_year = [interpolate(gettext('Saisissez une année entre %(min)s et '
+          + '%(max)s.'), { min: String(YEAR_MIN), max: String(YEAR_MAX) }, true)];
+      }
+      if (Object.keys(errors).length) {
+        showErrors('fm-add', errors, ownInputs(), OWN_PREFIXES);
         return;
       }
     }
+    var ownership = share === null ? null : { share: share, start: start };
     var seq = panelSeq;
     if (add.creating) {
       (add.type === 'company' ? createCompany(seq) : createAsset(seq)).then(function (item) {
-        if (item && seq === panelSeq) place(item, share, seq);   // panneau resté ouvert
+        if (item && seq === panelSeq) place(item, ownership, seq);   // panneau resté ouvert
       });
       return;
     }
@@ -271,7 +283,22 @@ window.FlowMapBlocks = (function () {
       showErrors('fm-add', { search: [message] }, { search: els.search });
       return;
     }
-    place(add.item, share, seq);
+    place(add.item, ownership, seq);
+  }
+
+  // Champs de la détention : part et année de début (erreurs du serveur sous
+  // `share` et `start_year`).
+  var OWN_PREFIXES = { share: 'fm-own', start_year: 'fm-own' };
+
+  function ownInputs() {
+    return { share: els.ownShare, start_year: els.ownYear };
+  }
+
+  function ownStartYear() {
+    var text = els.ownYear.value.trim();
+    if (!/^[0-9]{4}$/.test(text)) return null;
+    var year = parseInt(text, 10);
+    return year >= YEAR_MIN && year <= YEAR_MAX ? year : null;
   }
 
   // Création réussie : l'élément devient le choix de la recherche, une nouvelle
@@ -363,19 +390,15 @@ window.FlowMapBlocks = (function () {
     return isNaN(value) ? String(text).trim() : value;
   }
 
-  function place(item, share, seq) {
+  // ownership : {share (en %), start} pour un actif « détenu », sinon null. Une
+  // détention qui chevaucherait une détention existante est refusée par le serveur
+  // (l'actif peut n'être détenu qu'une partie de la plage affichée).
+  function place(item, ownership, seq) {
     var model = FlowMap.model();
     if (!model) return;
     var key = add.type + ':' + item.id;
-    if (add.type === 'asset' && share !== null) {
-      var existing = model.blocks.find(function (b) { return b.key === key; });
-      if (existing && existing.owned) {
-        finish(interpolate(gettext('« %(name)s » est déjà détenu par %(company)s en %(year)s.'),
-          { name: item.name, company: model.company.name, year: String(model.year) }, true));
-        FlowMap.reveal(key);
-        return;
-      }
-      own(item, share / 100, model, seq);
+    if (add.type === 'asset' && ownership !== null) {
+      own(item, ownership.share / 100, ownership.start, model, seq);
       return;
     }
     var name = item.name;
@@ -390,21 +413,20 @@ window.FlowMapBlocks = (function () {
     }
   }
 
-  function own(item, share, model, seq) {
+  function own(item, share, start, model, seq) {
     write(urls.ownershipCreate, {
       company_id: model.company.id,
       asset_id: item.id,
       share: share.toFixed(4),
-      year: model.year,
+      year: start,
     }).then(function (res) {
       if (!res.ok) {
         if (seq !== panelSeq) {
           notice(firstError(res.data, gettext('Erreur inattendue du serveur.')));
           return;
         }
-        // part : sous le champ ; entreprise, actif, année, chevauchement : en tête.
-        showErrors('fm-add', res.data.errors || serverError(),
-          { share: els.ownShare }, { share: 'fm-own' });
+        // part, année : sous leur champ ; entreprise, actif, chevauchement : en tête.
+        showErrors('fm-add', res.data.errors || serverError(), ownInputs(), OWN_PREFIXES);
         return;
       }
       pendingReveal = 'asset:' + item.id;
@@ -644,35 +666,43 @@ window.FlowMapBlocks = (function () {
   }
 
   // ── Retrait des liens d'un bloc ──────────────────────────────────────────
-  function unlinkMessage(node, preview, model) {
-    var values = {
-      name: node.name, company: model.company.name, year: String(model.year),
-      flows: interpolate(ngettext('%(n)s flux', '%(n)s flux', preview.flows),
-        { n: preview.flows.toLocaleString(APP_LOCALE) }, true),
-    };
-    var text;
-    if (preview.flows && preview.ownership) {
-      text = gettext('Êtes-vous sûr de vouloir supprimer %(flows)s et 1 détention de '
-        + '« %(name)s » en %(year)s ? L’actif ne sera plus détenu par %(company)s à partir '
-        + 'de %(year)s.');
-    } else if (preview.ownership) {
-      text = gettext('Êtes-vous sûr de vouloir supprimer la détention de « %(name)s » ? '
-        + 'L’actif ne sera plus détenu par %(company)s à partir de %(year)s.');
-    } else {
-      text = gettext('Êtes-vous sûr de vouloir supprimer %(flows)s entre « %(name)s » et '
-        + '%(company)s en %(year)s ? « %(name)s » reste disponible dans la recherche.');
-    }
+  // Aperçu du serveur sur la plage affichée : années où des flux relient le bloc au
+  // périmètre (nombre de flux par année), détention éventuelle d'un actif détenu,
+  // copropriétaires. L'utilisateur choisit les années et la fin de détention.
+  function unlinkOptions(node, preview, model) {
+    var values = { name: node.name, company: model.company.name };
+    var message = preview.years.length
+      ? gettext('Supprimer les flux entre « %(name)s » et %(company)s pour les années :')
+      : gettext('Aucun flux entre « %(name)s » et %(company)s sur cette plage.');
+    var note = null;
     if (preview.co_owners && preview.co_owners.length) {
-      values.owners = preview.co_owners.join(', ');
-      text += ' ' + gettext('Ces flux disparaîtront aussi pour %(owners)s.');
+      note = interpolate(gettext('Ces flux disparaîtront aussi pour %(owners)s.'),
+        { owners: preview.co_owners.join(', ') }, true);
     }
-    return interpolate(text, values, true);
+    return {
+      message: interpolate(message, values, true),
+      years: preview.years.map(function (entry) {
+        return {
+          year: entry.year,
+          label: interpolate(ngettext('%(year)s — %(n)s flux', '%(year)s — %(n)s flux',
+            entry.flows), { year: String(entry.year), n: entry.flows.toLocaleString(APP_LOCALE) },
+          true),
+        };
+      }),
+      // ownership_year n'a de sens que pour un actif détenu sur la plage.
+      ownership: preview.ownership ? {
+        company: model.company.name, year: preview.ownership_year,
+        start: model.start, end: model.end,
+      } : null,
+      note: note,
+      confirmLabel: gettext('Supprimer'),
+    };
   }
 
   function unlink(node) {
     var model = FlowMap.model();
     if (!model) return;
-    var url = idUrl(urls.unlink, model.company.id) + '?year=' + encodeURIComponent(model.year)
+    var url = idUrl(urls.unlink, model.company.id) + FlowMapUI.rangeQuery(model.start, model.end)
       + '&block=' + encodeURIComponent(node.key);
     FlowMapUI.getJson(url).then(function (res) {
       if (!res.ok) {
@@ -680,18 +710,24 @@ window.FlowMapBlocks = (function () {
         return null;
       }
       var preview = res.data;
-      if (!preview.flows && !preview.ownership) {
-        notice(interpolate(gettext('« %(name)s » n’a aucun lien à supprimer en %(year)s.'),
-          { name: node.name, year: String(model.year) }, true));
+      if (!preview.years.length && !preview.ownership) {
+        var none = model.start === model.end
+          ? gettext('« %(name)s » n’a aucun lien à supprimer en %(year)s.')
+          : gettext('« %(name)s » n’a aucun lien à supprimer de %(start)s à %(end)s.');
+        notice(interpolate(none, {
+          name: node.name, year: String(model.end), start: String(model.start),
+          end: String(model.end),
+        }, true));
         return null;
       }
-      return FlowMapPanel.confirm(unlinkMessage(node, preview, model),
-        { confirmLabel: gettext('Supprimer') }).then(function (ok) {
+      return FlowMapPanel.chooseYears(unlinkOptions(node, preview, model)).then(function (choice) {
         var now = FlowMap.model();
-        if (!ok || !now || now.company.id !== model.company.id || now.year !== model.year) {
+        if (!choice || !now || now.company.id !== model.company.id || now.start !== model.start
+            || now.end !== model.end) {
           return null;
         }
-        return FlowMapUI.post(url, {}).then(function (done) {
+        var body = { years: choice.years, ownership_year: choice.ownershipYear };
+        return FlowMapUI.post(url, body).then(function (done) {
           if (!done.ok) {
             notice(firstError(done.data, gettext('Erreur inattendue du serveur.')));
             return;
@@ -859,6 +895,8 @@ window.FlowMapBlocks = (function () {
       ownLabel: $('fm-own-label'),
       ownShareField: $('fm-own-share-field'),
       ownShare: $('fm-own-share'),
+      ownYearField: $('fm-own-year-field'),
+      ownYear: $('fm-own-year'),
       ownHelp: $('fm-own-help'),
       addSubmit: $('fm-add-submit'),
       addCancel: $('fm-add-cancel'),

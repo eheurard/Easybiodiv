@@ -12,8 +12,10 @@
 //   FlowMap.canEdit      vrai pour un Créateur
 //   FlowMap.svg          l'élément <svg> de la carte
 //   FlowMap.redraw()     redessine sans recharger ; renvoie le résultat de render
-//   FlowMap.reload()     recharge l'entreprise et l'année affichées, sans recadrer
-//   FlowMap.load(id, y)  charge une entreprise / une année (y null : par défaut)
+//   FlowMap.reload()     recharge l'entreprise et la plage affichées, sans recadrer
+//   FlowMap.load(id, r)  charge une entreprise sur une plage r = {start, end}
+//                        (r null : plage par défaut du périmètre)
+//   FlowMap.range()      plage affichée {start, end} (ou null)
 //   FlowMap.menuActions  entrées du menu « ⋯ » d'un bloc :
 //                        {id, label: string, visible(node): bool, run(node)}
 //   FlowMap.onRender     fonctions appelées après chaque dessin, avec le résultat
@@ -29,7 +31,11 @@
 //   FlowMap.reveal(key)  réaffiche le bloc (masqué, membre d'un groupe replié),
 //                        l'amène dans la vue, le fait clignoter et focalise son « ⋯ »
 // Blocs de session : gardés au rechargement de la même entreprise et de la même
-// année, oubliés sinon, et retirés dès que le serveur renvoie la même clé.
+// plage, oubliés sinon, et retirés dès que le serveur renvoie la même clé.
+// Plage : « De » / « À » de la barre d'outils. Tant qu'on n'en a pas choisi, chaque
+// entreprise s'ouvre sur sa plage par défaut ; une plage choisie est gardée quand
+// on change d'entreprise (session de la page). Légende : chaque nature se masque
+// ou se réaffiche (state.hiddenKinds), y compris d'une entreprise à l'autre.
 // Événements sur document : « flowmap:loaded » (detail : données) après chaque
 // chargement ; « flowmap:cleared » quand un chargement échoue et vide la carte ;
 // « flowmap:changed », émis après une écriture, recharge la carte.
@@ -39,9 +45,14 @@ window.FlowMap = (function () {
   var MAX_FIT_SCALE = 1.5;    // cadrage initial : au-delà, texte illisible, on déplace la vue
   var DRAG_THRESHOLD = 4;
   var FLASH_MS = 1600;
+  var YEAR_MIN = 1900;        // bornes des années (YEAR_MIN / YEAR_MAX côté serveur)
+  var YEAR_MAX = 2100;
 
   var api = {
-    state: { expanded: new Set(), hidden: new Set(), positions: new Map(), selectedEdge: null },
+    state: {
+      expanded: new Set(), hidden: new Set(), hiddenKinds: new Set(), positions: new Map(),
+      selectedEdge: null,
+    },
     rules: {},
     kinds: [],
     canEdit: false,
@@ -50,6 +61,7 @@ window.FlowMap = (function () {
     onRender: [],
     onTap: [],
     model: function () { return current; },
+    range: function () { return current ? { start: current.start, end: current.end } : null; },
     lastRender: function () { return last; },
     redraw: redraw,
     reload: function () { return reload(); },
@@ -61,7 +73,8 @@ window.FlowMap = (function () {
   };
 
   var current = null;
-  var target = null;          // dernière demande {companyId, year} (affichée ou en cours)
+  var target = null;          // dernière demande {companyId, range} (affichée ou en cours)
+  var chosen = null;          // plage choisie dans la barre d'outils {start, end}, ou null
   var request = 0;            // numéro de la dernière demande : seule elle est affichée
   var pending = null;         // AbortController de la demande en cours
   var last = null;            // dernier résultat de FlowMapDraw.render
@@ -69,7 +82,7 @@ window.FlowMap = (function () {
   var viewPx = null;          // taille en pixels pour laquelle `view` a été calculée
   var frame = 0;
   var els = {};
-  var session = { companyId: null, year: null, blocks: [] };
+  var session = { companyId: null, start: null, end: null, blocks: [] };
 
   function readJson(id) {
     var node = document.getElementById(id);
@@ -88,14 +101,14 @@ window.FlowMap = (function () {
   // Une demande plus récente annule la précédente : une réponse lente ne peut
   // pas remplacer la carte demandée ensuite. `keepView` garde le cadrage (après
   // une écriture) ; sinon la carte est recadrée.
-  function load(companyId, year, keepView) {
+  function load(companyId, range, keepView) {
     var url = FlowMapUI.idUrl(FLOW_MAP_API_URL, companyId);
-    if (year !== null && year !== undefined) url += '?year=' + encodeURIComponent(year);
+    if (range) url += FlowMapUI.rangeQuery(range.start, range.end);
     if (pending) pending.abort();
     var controller = new AbortController();
     var mine = ++request;
     pending = controller;
-    target = { companyId: companyId, year: year };
+    target = { companyId: companyId, range: range || null };
     els.board.classList.add('is-loading');
     return fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal })
       .then(function (r) {
@@ -123,22 +136,22 @@ window.FlowMap = (function () {
   }
 
   // `target` est la dernière demande (en cours ou affichée) : un rechargement ne
-  // revient pas sur un changement d'entreprise ou d'année encore en route. La vue
+  // revient pas sur un changement d'entreprise ou de plage encore en route. La vue
   // n'est gardée que pour l'entreprise affichée.
   function reload() {
     if (!target) return null;
     var keepView = !!current && current.company.id === target.companyId;
-    return load(target.companyId, target.year, keepView);
+    return load(target.companyId, target.range, keepView);
   }
 
   function show(data, keepView) {
     mergeSession(data);
     current = data;
-    target = { companyId: data.company.id, year: data.year };
+    target = { companyId: data.company.id, range: { start: data.start, end: data.end } };
     api.canEdit = !!data.can_edit;
     api.state.editable = api.canEdit;
     closeMenu();
-    renderYears(data);
+    renderRange(data);
     redraw();
     if (!keepView || !view) fitView();
     else applyView();
@@ -165,8 +178,9 @@ window.FlowMap = (function () {
   // Ajoutés depuis la barre d'outils sans rien écrire en base (pays, région,
   // entreprise, actif non détenu) : ils attendent leur premier flux.
   function mergeSession(data) {
-    if (session.companyId !== data.company.id || session.year !== data.year) {
-      session = { companyId: data.company.id, year: data.year, blocks: [] };
+    if (session.companyId !== data.company.id || session.start !== data.start
+        || session.end !== data.end) {
+      session = { companyId: data.company.id, start: data.start, end: data.end, blocks: [] };
     }
     var known = new Set(data.blocks.map(function (b) { return b.key; }));
     session.blocks = session.blocks.filter(function (b) { return !known.has(b.key); });
@@ -258,12 +272,22 @@ window.FlowMap = (function () {
   }
 
   function renderEmpty() {
-    var empty = !last.edges.length && last.nodes.length <= 1;
+    var masked = current.flows.some(function (f) { return api.state.hiddenKinds.has(f.kind); });
+    var empty = !last.edges.length && !masked && last.nodes.length <= 1;
     if (!empty) { els.empty.hidden = true; return; }
-    var message = api.canEdit
-      ? gettext('Aucun flux pour %(year)s. Ajoutez un bloc pour commencer la carte.')
-      : gettext('Aucun flux enregistré pour %(year)s.');
-    showMessage(interpolate(message, { year: current.year }, true));
+    var message;
+    if (current.start === current.end) {
+      message = api.canEdit
+        ? gettext('Aucun flux pour %(year)s. Ajoutez un bloc pour commencer la carte.')
+        : gettext('Aucun flux enregistré pour %(year)s.');
+    } else {
+      message = api.canEdit
+        ? gettext('Aucun flux de %(start)s à %(end)s. Ajoutez un bloc pour commencer la carte.')
+        : gettext('Aucun flux enregistré de %(start)s à %(end)s.');
+    }
+    showMessage(interpolate(message, {
+      year: String(current.end), start: String(current.start), end: String(current.end),
+    }, true));
   }
 
   function hiddenCount() {
@@ -281,16 +305,72 @@ window.FlowMap = (function () {
       ngettext('%(n)s bloc masqué', '%(n)s blocs masqués', n), { n: n }, true);
   }
 
-  function renderYears(data) {
-    els.year.textContent = '';
+  // ── Plage d'années ───────────────────────────────────────────────────────
+  // Années proposées (datalist) et bornes affichées ; la saisie reste libre. Le
+  // champ en cours de saisie n'est pas réécrit (« De » change au passage vers « À »,
+  // dont la saisie ne doit pas être effacée par la réponse).
+  function renderRange(data) {
+    els.years.textContent = '';
     data.years.slice().sort(function (a, b) { return b - a; }).forEach(function (year) {
       var option = document.createElement('option');
       option.value = String(year);
-      option.textContent = String(year);
-      els.year.appendChild(option);
+      els.years.appendChild(option);
     });
-    els.year.value = String(data.year);
-    els.yearOther.value = '';
+    [[els.start, data.start], [els.end, data.end]].forEach(function (pair) {
+      if (document.activeElement !== pair[0]) pair[0].value = String(pair[1]);
+    });
+    rangeError(null);
+  }
+
+  function rangeError(message) {
+    els.rangeError.textContent = message || '';
+    els.rangeError.hidden = !message;
+    [els.start, els.end].forEach(function (input) {
+      if (message) input.setAttribute('aria-invalid', 'true');
+      else input.removeAttribute('aria-invalid');
+    });
+  }
+
+  function readYear(input) {
+    var text = input.value.trim();
+    if (!/^[0-9]{4}$/.test(text)) return null;
+    var year = parseInt(text, 10);
+    return year >= YEAR_MIN && year <= YEAR_MAX ? year : null;
+  }
+
+  // Plage saisie : contrôlée ici (bornes, De ≤ À), sans requête si elle est fausse.
+  function applyRange() {
+    if (!target) return;
+    var start = readYear(els.start);
+    var end = readYear(els.end);
+    if (start === null || end === null) {
+      rangeError(interpolate(gettext('Saisissez des années entre %(min)s et %(max)s.'),
+        { min: String(YEAR_MIN), max: String(YEAR_MAX) }, true));
+      return;
+    }
+    if (start > end) {
+      rangeError(gettext('L’année « De » doit précéder l’année « À » ou lui être égale.'));
+      return;
+    }
+    rangeError(null);
+    chosen = { start: start, end: end };
+    var asked = target.range;
+    if (asked && asked.start === start && asked.end === end) return;
+    load(target.companyId, chosen);
+  }
+
+  // ── Légende : masquer / réafficher les flèches d'une nature ──────────────
+  function toggleKind(button) {
+    var kind = button.dataset.kind;
+    var hidden = api.state.hiddenKinds;
+    if (hidden.has(kind)) hidden.delete(kind); else hidden.add(kind);
+    var off = hidden.has(kind);
+    button.setAttribute('aria-pressed', off ? 'false' : 'true');
+    button.classList.toggle('is-off', off);
+    if (!current) return;
+    var selected = api.state.selectedEdge;
+    if (off && selected && selected.split('|')[2] === kind) api.state.selectedEdge = null;
+    redraw();
   }
 
   // ── Vue : cadrage, zoom, déplacement ─────────────────────────────────────
@@ -542,15 +622,21 @@ window.FlowMap = (function () {
   }
 
   // ── Initialisation ───────────────────────────────────────────────────────
-  function bindYear() {
-    els.year.addEventListener('change', function () {
-      if (target) load(target.companyId, parseInt(els.year.value, 10));
+  function bindToolbar() {
+    [els.start, els.end].forEach(function (input) {
+      input.addEventListener('change', applyRange);
+      input.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        applyRange();
+      });
     });
-    els.yearForm.addEventListener('submit', function (event) {
+    els.range.addEventListener('submit', function (event) {
       event.preventDefault();
-      var year = parseInt(els.yearOther.value, 10);
-      if (!target || !els.yearOther.checkValidity() || !year) return;
-      load(target.companyId, year);
+      applyRange();
+    });
+    els.legend.querySelectorAll('[data-kind]').forEach(function (button) {
+      button.addEventListener('click', function () { toggleKind(button); });
     });
   }
 
@@ -588,9 +674,12 @@ window.FlowMap = (function () {
       menu: document.getElementById('flow-map-menu'),
       chip: document.getElementById('flow-map-hidden-chip'),
       fit: document.getElementById('flow-map-fit'),
-      year: document.getElementById('flow-map-year'),
-      yearForm: document.getElementById('flow-map-year-form'),
-      yearOther: document.getElementById('flow-map-year-other'),
+      range: document.getElementById('flow-map-range'),
+      start: document.getElementById('flow-map-start'),
+      end: document.getElementById('flow-map-end'),
+      years: document.getElementById('flow-map-years'),
+      rangeError: document.getElementById('flow-map-range-error'),
+      legend: document.getElementById('flow-map-legend'),
     };
     api.svg = els.svg;
     els.svg.setAttribute('tabindex', '-1');   // repli du focus quand le panneau se ferme
@@ -604,7 +693,7 @@ window.FlowMap = (function () {
       run: hideBlock,
     });
     bindBoard();
-    bindYear();
+    bindToolbar();
 
     var companies = readJson('companies-data') || [];
     var initial = readJson('initial-data');
@@ -614,7 +703,7 @@ window.FlowMap = (function () {
       root: document.getElementById('company-combobox'),
       companies: companies,
       selected: { company_id: initial.company.id, company_name: initial.company.name },
-      onSelect: function (id) { load(id, null); },
+      onSelect: function (id) { load(id, chosen); },
       persist: true,
     });
     if (saved && saved !== initial.company.id) {

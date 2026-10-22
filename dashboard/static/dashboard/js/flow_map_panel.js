@@ -14,6 +14,19 @@
 //   FlowMapPanel.confirm(message, {confirmLabel, danger}) -> Promise<bool>
 //                                     fenêtre modale de confirmation (focus piégé,
 //                                     retour du focus ; Échap ou clic hors = non)
+//   FlowMapPanel.chooseYears(options) -> Promise<{years: [int], ownershipYear: int|null}
+//                                     | null>   même fenêtre, avec une case par année
+//                                     (toutes cochées) ; null si annulé. options :
+//     message        texte en tête
+//     years          [{year: int, label: string}]
+//     ownership      facultatif {company: nom, year: année proposée, start, end} :
+//                    case « Mettre fin à la détention par … à partir de [année] »
+//                    (cochée), années de start à end ; l'année suit la plus ancienne
+//                    année cochée tant qu'on ne l'a pas choisie soi-même
+//     note           phrase facultative sous les choix (copropriétaires…)
+//     confirmLabel, danger   comme confirm
+//     returnFocus    élément refocalisé à la fermeture (défaut : l'élément actif)
+//   Le bouton de confirmation est désactivé si rien n'est coché.
 //   FlowMapPanel.notice(message)      message bref sous le bandeau de la carte
 // Ouvrir ce panneau émet « flowmap:panelopen » (detail : {panel: 'flow'}) ; il se
 // ferme quand un autre panneau s'ouvre (flow_map_blocks.js).
@@ -38,6 +51,8 @@ window.FlowMapPanel = (function () {
   var busy = false;
   var noticeTimer = 0;
   var pendingConfirm = null;
+  var syncDialog = null;    // choix des années ouvert : met à jour l'état de la fenêtre
+  var ownYearTouched = null;
   var refocus = false;      // rendre le focus à l'ouvreur après le rechargement
 
   // ── Utilitaires ──────────────────────────────────────────────────────────
@@ -350,7 +365,7 @@ window.FlowMapPanel = (function () {
       });
       var text = document.createElement('span');
       text.textContent = flow.what.name + ' · ' + quantityText(flow.quantity, true) + ' '
-        + flow.what.unit;
+        + flow.what.unit + ' · ' + flow.year;
       label.appendChild(input);
       label.appendChild(text);
       var member = memberOf(flow, edge);
@@ -403,7 +418,7 @@ window.FlowMapPanel = (function () {
     setWhat(flow ? flow.what : null);
     els.what.value = flow ? flow.what.name : '';
     els.quantity.value = flow ? quantityText(flow.quantity, false) : '';
-    els.year.value = String(flow ? flow.year : FlowMap.model().year);
+    els.year.value = String(flow ? flow.year : FlowMap.model().end);
     els.tier.value = String(flow ? flow.tier : 0);
     els.scope.value = flow ? flow.scope : 'undefined';
     els.source.value = flow ? flow.source : '';
@@ -524,23 +539,68 @@ window.FlowMapPanel = (function () {
       .finally(function () { setBusy(false); });
   }
 
+  // Années de la plage où ce même flux existe dans le périmètre (serveur), toutes
+  // cochées ; seules les lignes des années cochées sont supprimées.
   function remove() {
-    if (busy || !sheet || !sheet.flow) return;
+    var model = FlowMap.model();
+    if (busy || !sheet || !sheet.flow || !model) return;
     var flow = sheet.flow;
-    var message = interpolate(gettext('Supprimer le flux « %(what)s » (%(quantity)s %(unit)s, '
-      + '%(year)s) ? Cette suppression est définitive.'), {
-      what: flow.what.name, quantity: quantityText(flow.quantity, true),
-      unit: flow.what.unit, year: flow.year,
-    }, true);
-    confirm(message, { confirmLabel: gettext('Supprimer') }).then(function (ok) {
-      if (!ok || !sheet || sheet.flow !== flow) return;
-      clearErrors();
-      setBusy(true);
-      post(idUrl(urls.flowDelete, flow.id), {})
-        .then(function (res) { answer(res, gettext('Flux supprimé.')); })
-        .catch(unexpected)
-        .finally(function () { setBusy(false); });
-    });
+    var companyId = model.company.id;
+    var start = model.start;
+    var end = model.end;
+    var stillOpen = function () {
+      var now = FlowMap.model();
+      return !!sheet && sheet.flow === flow && !!now && now.company.id === companyId
+        && now.start === start && now.end === end;
+    };
+    // Le bouton est désactivé pendant la lecture des années : le focus lui revient
+    // à la fermeture de la fenêtre.
+    var trigger = document.activeElement;
+    clearErrors();
+    setBusy(true);
+    FlowMapUI.getJson(idUrl(urls.flowYears, companyId, flow.id) + FlowMapUI.rangeQuery(start, end))
+      .then(function (res) {
+        setBusy(false);
+        if (!stillOpen()) return;
+        var years = (res.ok && res.data.years) || [];
+        if (res.status === 404 || (res.ok && !years.length)) { gone(res.data); return; }
+        if (!res.ok) {
+          showErrors(res.data.errors || { __all__: [gettext('Erreur inattendue du serveur.')] });
+          return;
+        }
+        chooseYears({
+          message: interpolate(gettext('Supprimer « %(flow)s » pour les années :'),
+            { flow: flow.what.name }, true),
+          years: years.map(function (entry) {
+            return { year: entry.year, label: yearCount(entry.year, entry.count) };
+          }),
+          confirmLabel: gettext('Supprimer'),
+          returnFocus: trigger,
+        }).then(function (choice) {
+          if (!choice || !stillOpen()) return;
+          clearErrors();
+          setBusy(true);
+          post(idUrl(urls.flowDelete, companyId, flow.id),
+            { start: start, end: end, years: choice.years })
+            .then(function (done) {
+              if (done.ok && !done.data.deleted) gone(null);
+              else answer(done, gettext('Flux supprimé.'));
+            })
+            .catch(unexpected)
+            .finally(function () { setBusy(false); });
+        });
+      })
+      .catch(function (err) {
+        setBusy(false);
+        unexpected(err);
+      });
+  }
+
+  // « 2021 », ou « 2021 — 2 flux » quand l'année compte plusieurs lignes.
+  function yearCount(year, n) {
+    if (n === 1) return String(year);
+    return interpolate(ngettext('%(year)s — %(n)s flux', '%(year)s — %(n)s flux', n),
+      { year: String(year), n: n.toLocaleString(APP_LOCALE) }, true);
   }
 
   // ── Commodité : recherche et création ────────────────────────────────────
@@ -614,41 +674,141 @@ window.FlowMapPanel = (function () {
   }
 
   // ── Fenêtre de confirmation ──────────────────────────────────────────────
-  function confirm(message, opts) {
-    opts = opts || {};
+  // `collect` (choix des années) : valeur rendue à la confirmation ; sans lui,
+  // la fenêtre rend vrai / faux.
+  function openDialog(message, opts, collect, focusTarget) {
     if (pendingConfirm) finishConfirm(false);
     els.confirmMessage.textContent = message;
     els.confirmOk.textContent = opts.confirmLabel || gettext('Confirmer');
     els.confirmOk.classList.toggle('fm-dialog__ok--danger', opts.danger !== false);
     return new Promise(function (resolve) {
-      pendingConfirm = { resolve: resolve, returnFocus: document.activeElement };
+      pendingConfirm = {
+        resolve: resolve, returnFocus: opts.returnFocus || document.activeElement,
+        collect: collect || null,
+      };
       els.dialog.showModal();
-      els.confirmCancel.focus();
+      (focusTarget || els.confirmCancel).focus();
     });
   }
 
-  function finishConfirm(result) {
+  function resetDialog() {
+    els.confirmYears.hidden = true;
+    els.confirmYearList.textContent = '';
+    els.confirmOwnership.hidden = true;
+    els.confirmOwnYear.textContent = '';
+    els.confirmNote.hidden = true;
+    els.confirmNote.textContent = '';
+    els.confirmOk.disabled = false;
+  }
+
+  function confirm(message, opts) {
+    resetDialog();
+    return openDialog(message, opts || {}, null, null);
+  }
+
+  function chooseYears(options) {
+    resetDialog();
+    var yearBoxes = (options.years || []).map(function (entry) {
+      var label = document.createElement('label');
+      label.className = 'fm-check fm-dialog__year';
+      var input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = String(entry.year);
+      input.checked = true;
+      var text = document.createElement('span');
+      text.textContent = entry.label || String(entry.year);
+      label.appendChild(input);
+      label.appendChild(text);
+      els.confirmYearList.appendChild(label);
+      return input;
+    });
+    els.confirmYears.hidden = !yearBoxes.length;
+    var own = options.ownership || null;
+    var ownTouched = false;
+    if (own) {
+      els.confirmOwnLabel.textContent = interpolate(
+        gettext('Mettre fin à la détention par %(company)s à partir de'),
+        { company: own.company }, true);
+      for (var year = own.start; year <= own.end; year += 1) {
+        var option = document.createElement('option');
+        option.value = String(year);
+        option.textContent = String(year);
+        els.confirmOwnYear.appendChild(option);
+      }
+      els.confirmOwnYear.value = String(own.year);
+      els.confirmOwnCheck.checked = true;
+      els.confirmOwnership.hidden = false;
+    }
+    els.confirmNote.textContent = options.note || '';
+    els.confirmNote.hidden = !options.note;
+
+    var checkedYears = function () {
+      return yearBoxes.filter(function (b) { return b.checked; }).map(function (b) {
+        return Number(b.value);
+      });
+    };
+    // Rien de coché : confirmation impossible. L'année de fin de détention suit la
+    // plus ancienne année cochée tant qu'on ne l'a pas choisie soi-même.
+    var sync = function () {
+      var years = checkedYears();
+      var owning = !!own && els.confirmOwnCheck.checked;
+      els.confirmOwnYear.disabled = !!own && !owning;
+      if (own && !ownTouched) {
+        els.confirmOwnYear.value = String(years.length ? years[0] : own.year);
+      }
+      els.confirmOk.disabled = !years.length && !owning;
+    };
+    yearBoxes.forEach(function (box) { box.addEventListener('change', sync); });
+    syncDialog = sync;
+    ownYearTouched = function () { ownTouched = true; };
+    sync();
+
+    var collect = function () {
+      var owning = !!own && els.confirmOwnCheck.checked;
+      return {
+        years: checkedYears(),
+        ownershipYear: owning ? Number(els.confirmOwnYear.value) : null,
+      };
+    };
+    var first = yearBoxes[0] || (own ? els.confirmOwnCheck : null);
+    return openDialog(options.message, options, collect, first);
+  }
+
+  function finishConfirm(ok) {
     var pending = pendingConfirm;
     if (!pending) return;
+    if (ok && els.confirmOk.disabled) return;
     pendingConfirm = null;
+    syncDialog = null;
+    ownYearTouched = null;
+    var result = pending.collect ? (ok ? pending.collect() : null) : ok;
     if (els.dialog.open) els.dialog.close();
     var back = pending.returnFocus;
     if (back && back.isConnected && typeof back.focus === 'function') back.focus();
     pending.resolve(result);
   }
 
-  // Focus piégé entre les deux boutons (showModal rend déjà le reste inerte).
+  // Focus piégé dans la fenêtre (showModal rend déjà le reste inerte).
+  function dialogFocusables() {
+    return Array.prototype.filter.call(
+      els.dialog.querySelectorAll('input, select, button'),
+      function (node) { return !node.disabled && node.getClientRects().length > 0; });
+  }
+
   function onDialogKey(event) {
     if (event.key !== 'Tab') return;
-    var first = els.confirmCancel;
-    var last = els.confirmOk;
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
+    var items = dialogFocusables();
+    if (!items.length) return;
+    var first = items[0];
+    var last = items[items.length - 1];
+    var index = items.indexOf(document.activeElement);
+    if (index < 0) {
       event.preventDefault();
       first.focus();
-    } else if (document.activeElement !== first && document.activeElement !== last) {
+    } else if (event.shiftKey && index === 0) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && index === items.length - 1) {
       event.preventDefault();
       first.focus();
     }
@@ -657,6 +817,12 @@ window.FlowMapPanel = (function () {
   function bindDialog() {
     els.confirmOk.addEventListener('click', function () { finishConfirm(true); });
     els.confirmCancel.addEventListener('click', function () { finishConfirm(false); });
+    els.confirmOwnCheck.addEventListener('change', function () {
+      if (syncDialog) syncDialog();
+    });
+    els.confirmOwnYear.addEventListener('change', function () {
+      if (ownYearTouched) ownYearTouched();
+    });
     els.dialog.addEventListener('cancel', function (event) {
       event.preventDefault();
       finishConfirm(false);
@@ -669,8 +835,14 @@ window.FlowMapPanel = (function () {
       if (!els.dialog.open) finishConfirm(false);
     });
     els.dialog.addEventListener('keydown', onDialogKey);
+    // Clic sur le fond : la cible est le dialogue lui-même, hors de son cadre (un
+    // clic dans sa marge intérieure a la même cible mais ne ferme rien).
     els.dialog.addEventListener('click', function (event) {
-      if (event.target === els.dialog) finishConfirm(false);   // clic sur le fond
+      if (event.target !== els.dialog) return;
+      var r = els.dialog.getBoundingClientRect();
+      var inside = event.clientX >= r.left && event.clientX <= r.right
+        && event.clientY >= r.top && event.clientY <= r.bottom;
+      if (!inside) finishConfirm(false);
     });
   }
 
@@ -806,6 +978,13 @@ window.FlowMapPanel = (function () {
       confirmMessage: document.getElementById('flow-map-confirm-message'),
       confirmOk: document.getElementById('flow-map-confirm-ok'),
       confirmCancel: document.getElementById('flow-map-confirm-cancel'),
+      confirmYears: document.getElementById('flow-map-confirm-years'),
+      confirmYearList: document.getElementById('flow-map-confirm-year-list'),
+      confirmOwnership: document.getElementById('flow-map-confirm-ownership'),
+      confirmOwnCheck: document.getElementById('flow-map-confirm-own'),
+      confirmOwnLabel: document.getElementById('flow-map-confirm-own-label'),
+      confirmOwnYear: document.getElementById('flow-map-confirm-own-year'),
+      confirmNote: document.getElementById('flow-map-confirm-note'),
     };
     bindPanel();
     bindDialog();
@@ -820,6 +999,7 @@ window.FlowMapPanel = (function () {
     openEdge: openEdge,
     close: close,
     confirm: confirm,
+    chooseYears: chooseYears,
     notice: notice,
   };
 })();

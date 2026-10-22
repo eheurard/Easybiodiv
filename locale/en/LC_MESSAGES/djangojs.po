@@ -750,10 +750,6 @@ msgstr "Region"
 msgid "Détenu par %(company)s"
 msgstr "Owned by %(company)s"
 
-#, python-format
-msgid "La détention commence en %(year)s, sans année de fin."
-msgstr "Ownership starts in %(year)s, with no end year."
-
 msgid "Créer et ajouter"
 msgstr "Create and add"
 
@@ -784,10 +780,6 @@ msgstr "Choose a country from the list."
 
 msgid "Choisissez une région dans la liste, ou laissez vide."
 msgstr "Choose a region from the list, or leave it empty."
-
-#, python-format
-msgid "« %(name)s » est déjà détenu par %(company)s en %(year)s."
-msgstr "\"%(name)s\" is already owned by %(company)s in %(year)s."
 
 #, python-format
 msgid "« %(name)s » est déjà sur la carte."
@@ -846,38 +838,6 @@ msgstr ""
 
 msgid "Groupe supprimé."
 msgstr "Group deleted."
-
-#, python-format
-msgid "%(n)s flux"
-msgid_plural "%(n)s flux"
-msgstr[0] "%(n)s flow"
-msgstr[1] "%(n)s flows"
-
-#, python-format
-msgid ""
-"Êtes-vous sûr de vouloir supprimer %(flows)s et 1 détention de « %(name)s » "
-"en %(year)s ? L’actif ne sera plus détenu par %(company)s à partir de "
-"%(year)s."
-msgstr ""
-"Are you sure you want to delete %(flows)s and 1 ownership of \"%(name)s\" in"
-" %(year)s? The asset will no longer be owned by %(company)s from %(year)s "
-"onwards."
-
-#, python-format
-msgid ""
-"Êtes-vous sûr de vouloir supprimer la détention de « %(name)s » ? L’actif ne"
-" sera plus détenu par %(company)s à partir de %(year)s."
-msgstr ""
-"Are you sure you want to delete the ownership of \"%(name)s\"? The asset "
-"will no longer be owned by %(company)s from %(year)s onwards."
-
-#, python-format
-msgid ""
-"Êtes-vous sûr de vouloir supprimer %(flows)s entre « %(name)s » et "
-"%(company)s en %(year)s ? « %(name)s » reste disponible dans la recherche."
-msgstr ""
-"Are you sure you want to delete %(flows)s between \"%(name)s\" and "
-"%(company)s in %(year)s? \"%(name)s\" remains available in the search."
 
 #, python-format
 msgid "« %(name)s » n’a aucun lien à supprimer en %(year)s."
@@ -1005,14 +965,6 @@ msgstr "Flow created."
 msgid "Flux enregistré."
 msgstr "Flow saved."
 
-#, python-format
-msgid ""
-"Supprimer le flux « %(what)s » (%(quantity)s %(unit)s, %(year)s) ? Cette "
-"suppression est définitive."
-msgstr ""
-"Delete the flow \"%(what)s\" (%(quantity)s %(unit)s, %(year)s)? This "
-"deletion is permanent."
-
 msgid "Flux supprimé."
 msgstr "Flow deleted."
 
@@ -1033,3 +985,52 @@ msgstr "No results."
 #, python-format
 msgid "Ces flux disparaîtront aussi pour %(owners)s."
 msgstr "These flows will also disappear for %(owners)s."
+
+#, python-format
+msgid "Aucun flux de %(start)s à %(end)s. Ajoutez un bloc pour commencer la carte."
+msgstr "No flows from %(start)s to %(end)s. Add a block to start the map."
+
+#, python-format
+msgid "Aucun flux enregistré de %(start)s à %(end)s."
+msgstr "No flows recorded from %(start)s to %(end)s."
+
+#, python-format
+msgid "Saisissez des années entre %(min)s et %(max)s."
+msgstr "Enter years between %(min)s and %(max)s."
+
+#, python-format
+msgid "Saisissez une année entre %(min)s et %(max)s."
+msgstr "Enter a year between %(min)s and %(max)s."
+
+msgid "L’année « De » doit précéder l’année « À » ou lui être égale."
+msgstr "The \"From\" year must be before or equal to the \"To\" year."
+
+#, python-format
+msgid "%(label)s · %(year)s"
+msgstr "%(label)s · %(year)s"
+
+#, python-format
+msgid "Supprimer « %(flow)s » pour les années :"
+msgstr "Delete \"%(flow)s\" for the years:"
+
+#, python-format
+msgid "%(year)s — %(n)s flux"
+msgid_plural "%(year)s — %(n)s flux"
+msgstr[0] "%(year)s — %(n)s flow"
+msgstr[1] "%(year)s — %(n)s flows"
+
+#, python-format
+msgid "Mettre fin à la détention par %(company)s à partir de"
+msgstr "End ownership by %(company)s from"
+
+#, python-format
+msgid "Supprimer les flux entre « %(name)s » et %(company)s pour les années :"
+msgstr "Delete the flows between \"%(name)s\" and %(company)s for the years:"
+
+#, python-format
+msgid "Aucun flux entre « %(name)s » et %(company)s sur cette plage."
+msgstr "No flows between \"%(name)s\" and %(company)s in this range."
+
+#, python-format
+msgid "« %(name)s » n’a aucun lien à supprimer de %(start)s à %(end)s."
+msgstr "\"%(name)s\" has no links to delete from %(start)s to %(end)s."

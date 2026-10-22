@@ -4,17 +4,22 @@
 // état global : l'état de la page vit dans flow_map.js, qui rappelle render().
 //
 //   FlowMapDraw.render(svg, model, state) -> {nodes, edges, bounds}
-//     model  : réponse de build_flow_map (blocks, groups, flows, company, year…)
+//     model  : réponse de build_flow_map (blocks, groups, flows, company, start, end…)
 //     state  : {expanded: Set<groupKey>, hidden: Set<blockKey>,
+//               hiddenKinds: Set<FlowKind> (natures masquées par la légende ; le
+//               rangement des blocs n'en dépend pas, les blocs restent affichés),
 //               positions: Map<key, {x, y}>, selectedEdge: string|null,
 //               editable: bool (« + » des blocs, flèches activables au clavier),
 //               trace: {key, port}|null (tracé d'un flux en cours depuis ce bloc)}
 //     nodes  : blocs dessinés [{key, type, name, owned, column, x, y, …}]
-//     edges  : courbes dessinées (aggregateEdges + width, label, et la géométrie :
+//     edges  : courbes dessinées, natures masquées exclues (aggregateEdges + width,
+//              label, et la géométrie :
 //              p0, p3 (pointe), d (chemin), lane (voie d'une courbe du bandeau))
 //     bounds : rectangle englobant {x, y, width, height}, pour cadrer la vue
 //   FlowMapDraw.aggregateEdges(flows, model, state)
 //     -> [{key, from, to, kind, flows: [flow], total}]
+//   FlowMapDraw.edgeLabel(edge, end) -> « Soja +2 », « Soja · 2021 » : l'année est
+//     ajoutée quand tous les flux de la courbe ont la même année, différente de `end`
 //   FlowMapDraw.curve(p0, p3, vertical) -> chemin « M… C… » (Bézier en S)
 //
 // Dans le SVG : chaque bloc est un <g class="fm-block" data-key>, chaque courbe
@@ -131,8 +136,9 @@ window.FlowMapDraw = (function () {
     return edges;
   }
 
-  // « Soja +2 » : commodité de plus forte quantité et nombre des autres.
-  function edgeLabel(edge) {
+  // « Soja +2 » : commodité de plus forte quantité et nombre des autres ; suivie
+  // de l'année si tous les flux sont d'une même année antérieure à la fin de la plage.
+  function edgeLabel(edge, end) {
     var byWhat = new Map();
     edge.flows.forEach(function (flow) {
       var entry = byWhat.get(flow.what.id) || { name: flow.what.name, total: 0 };
@@ -143,9 +149,13 @@ window.FlowMapDraw = (function () {
       return b.total - a.total || a.name.localeCompare(b.name);
     });
     var name = truncate(sorted[0].name, LABEL_MAX);
-    if (sorted.length === 1) return name;
-    return interpolate(gettext('%(name)s +%(count)s'),
+    var label = sorted.length === 1 ? name : interpolate(gettext('%(name)s +%(count)s'),
       { name: name, count: sorted.length - 1 }, true);
+    var year = edge.flows[0].year;
+    var same = edge.flows.every(function (flow) { return flow.year === year; });
+    if (!same || end === undefined || end === null || year === end) return label;
+    return interpolate(gettext('%(label)s · %(year)s'), { label: label, year: String(year) },
+      true);
   }
 
   // Épaisseur bornée, proportionnelle à la quantité totale dans la vue.
@@ -457,7 +467,8 @@ window.FlowMapDraw = (function () {
 
   // ── Dessin ───────────────────────────────────────────────────────────────
   function flowLine(flow, edge, idx) {
-    var line = flow.what.name + ' · ' + quantity(flow.quantity) + ' ' + flow.what.unit;
+    var line = flow.what.name + ' · ' + quantity(flow.quantity) + ' ' + flow.what.unit
+      + ' · ' + flow.year;
     var member = null;
     if (edge.from !== flow.from && idx.blocks[flow.from]) member = idx.blocks[flow.from].name;
     else if (edge.to !== flow.to && idx.blocks[flow.to]) member = idx.blocks[flow.to].name;
@@ -656,9 +667,13 @@ window.FlowMapDraw = (function () {
     return { x: x, y: y, width: maxX + PAD - x, height: maxY + PAD - y };
   }
 
+  // Les natures masquées (légende) n'interviennent qu'au dessin : rangement des
+  // blocs et échelle des épaisseurs restent ceux de la carte complète, pour que
+  // masquer une nature ne déplace rien.
   function render(svg, model, state) {
     while (svg.firstChild) svg.removeChild(svg.firstChild);
     var idx = indexModel(model);
+    var hiddenKinds = state.hiddenKinds || new Set();
     var edges = aggregateEdges(model.flows, model, state);
     var nodes = visibleNodes(model, state, idx, edges);
     var byKey = new Map(nodes.map(function (n) { return [n.key, n]; }));
@@ -667,9 +682,10 @@ window.FlowMapDraw = (function () {
     });
     placeNodes(nodes, edges, state);
     var max = edges.reduce(function (m, e) { return Math.max(m, e.total); }, 0);
+    edges = edges.filter(function (e) { return !hiddenKinds.has(e.kind); });
     edges.forEach(function (e) {
       e.width = edgeWidth(e.total, max);
-      e.label = edgeLabel(e);
+      e.label = edgeLabel(e, model.end);
     });
     anchorEdges(edges, byKey);
     routeEdges(edges);

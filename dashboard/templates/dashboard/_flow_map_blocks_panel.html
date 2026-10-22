@@ -128,13 +128,23 @@
         <input type="checkbox" id="fm-own-check" checked>
         <span id="fm-own-label"></span>
       </label>
-      <div class="fm-panel__field" id="fm-own-share-field">
-        <label class="form-label" for="fm-own-share">{% translate "Part détenue (%)" %}</label>
-        <input type="text" class="form-input fm-own__share" id="fm-own-share" inputmode="decimal"
-               autocomplete="off" value="100" aria-describedby="fm-own-error-share fm-own-help">
-        <p class="fm-panel__error" id="fm-own-error-share" hidden></p>
+      <div class="fm-panel__row">
+        <div class="fm-panel__field" id="fm-own-share-field">
+          <label class="form-label" for="fm-own-share">{% translate "Part détenue (%)" %}</label>
+          <input type="text" class="form-input fm-own__share" id="fm-own-share"
+                 inputmode="decimal" autocomplete="off" value="100"
+                 aria-describedby="fm-own-error-share">
+          <p class="fm-panel__error" id="fm-own-error-share" hidden></p>
+        </div>
+        <div class="fm-panel__field" id="fm-own-year-field">
+          <label class="form-label" for="fm-own-year">{% translate "Détenu à partir de" %}</label>
+          <input type="number" class="form-input fm-own__year" id="fm-own-year" min="1900"
+                 max="2100" step="1" inputmode="numeric"
+                 aria-describedby="fm-own-error-start_year fm-own-help">
+          <p class="fm-panel__error" id="fm-own-error-start_year" hidden></p>
+        </div>
       </div>
-      <p class="fm-panel__help" id="fm-own-help"></p>
+      <p class="fm-panel__help" id="fm-own-help">{% translate "Sans année de fin." %}</p>
     </fieldset>
 
     <div class="fm-panel__actions">
