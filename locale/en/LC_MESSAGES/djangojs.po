@@ -1029,3 +1029,7 @@ msgstr "+ Create \"%(name)s\"…"
 
 msgid "Aucun résultat."
 msgstr "No results."
+
+#, python-format
+msgid "Ces flux disparaîtront aussi pour %(owners)s."
+msgstr "These flows will also disappear for %(owners)s."

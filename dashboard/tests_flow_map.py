@@ -12,7 +12,7 @@ from django.urls import reverse
 from .models import (
     ENDPOINT_COMPANY, FLOW_RULES, SUPPLY_SELF_LOOP_MESSAGE, Asset, AssetGroup,
     AssetGroupMember, Commodity, Company, Country, Flow, FlowKind, Ownership,
-    SubnationalRegion,
+    REVENUE_PRODUCTION_ONLY_MESSAGE, SubnationalRegion,
 )
 from .services.flow_map import (
     assign_columns, build_flow_map, endpoint_fields, endpoint_key, parse_key, unlink,
@@ -395,11 +395,11 @@ class UnlinkTests(TestCase):
 
     def test_preview_counts_only_displayed_year(self):
         self.assertEqual(unlink_preview(self.acme, 2024, f'company:{self.cargill.pk}'),
-                         {'flows': 2, 'ownership': False})
+                         {'flows': 2, 'ownership': False, 'co_owners': []})
 
     def test_preview_flags_owned_asset(self):
         self.assertEqual(unlink_preview(self.acme, 2024, f'asset:{self.vevey.pk}'),
-                         {'flows': 2, 'ownership': True})
+                         {'flows': 2, 'ownership': True, 'co_owners': []})
 
     def test_unlink_external_company_keeps_company_and_other_years(self):
         unlink(self.acme, 2024, f'company:{self.cargill.pk}')
@@ -409,10 +409,21 @@ class UnlinkTests(TestCase):
 
     def test_unlink_owned_asset_ends_ownership_previous_year(self):
         result = unlink(self.acme, 2024, f'asset:{self.vevey.pk}')
-        self.assertEqual(result, {'flows': 2, 'ownership': True})
+        self.assertEqual(result, {'flows': 2, 'ownership': True, 'co_owners': []})
         self.ownership.refresh_from_db()
         self.assertEqual(self.ownership.end_year, 2023)
         self.assertTrue(Asset.objects.filter(pk=self.vevey.pk).exists())
+
+    def test_preview_lists_co_owners_and_unlink_keeps_their_ownership(self):
+        other = Ownership.objects.create(
+            asset=self.vevey, company=self.cargill, share=0.5, start_year=2020)
+        expected = {'flows': 2, 'ownership': True, 'co_owners': ['Cargill']}
+        self.assertEqual(unlink_preview(self.acme, 2024, f'asset:{self.vevey.pk}'), expected)
+        self.assertEqual(unlink(self.acme, 2024, f'asset:{self.vevey.pk}'), expected)
+        other.refresh_from_db()
+        self.assertIsNone(other.end_year)
+        self.assertEqual(
+            unlink_preview(self.acme, 2024, f'company:{self.cargill.pk}')['co_owners'], [])
 
     def test_unlink_ownership_starting_that_year_is_deleted(self):
         self.ownership.start_year = 2024
@@ -554,6 +565,36 @@ class FlowWriteApiTests(TestCase):
         self.assertEqual(r.status_code, 404)
         self.assertIn('__all__', r.json()['errors'])
 
+    def test_update_to_waste_of_priced_production_is_refused(self):
+        flow = make_production(commodity=self.soja, year=2024, production=3,
+                               asset=self.vevey, estimated_revenue=10.0)
+        r = self._post('dashboard:flow_map_flow_update', {
+            'kind': 'WASTE', 'what_id': self.soja.pk, 'quantity': 3, 'year': 2024}, flow.pk)
+        self.assertEqual(r.status_code, 400, r.content)
+        self.assertIn(REVENUE_PRODUCTION_ONLY_MESSAGE, r.json()['errors']['__all__'])
+        flow.refresh_from_db()
+        self.assertEqual(flow.kind, FlowKind.PRODUCTION)
+
+    def test_update_keeps_omitted_optional_fields(self):
+        flow = make_supply(what=self.soja, year=2024, quantity=1,
+                           origin=self.cargill, destination=self.vevey, tier=2)
+        flow.scope = 'Scope 3'
+        flow.source = 'Src'
+        flow.reference = 'Ref'
+        flow.save()
+        r = self._post('dashboard:flow_map_flow_update', {
+            'kind': 'SUPPLY', 'what_id': self.soja.pk, 'quantity': 7, 'year': 2024}, flow.pk)
+        self.assertEqual(r.status_code, 200, r.content)
+        flow.refresh_from_db()
+        self.assertEqual((flow.quantity, flow.scope, flow.tier, flow.source, flow.reference),
+                         (7, 'Scope 3', 2, 'Src', 'Ref'))
+
+    def test_year_out_of_bounds_is_refused(self):
+        r = self._post('dashboard:flow_map_flow_create', self._supply(year=20244))
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('year', r.json()['errors'])
+        self.assertEqual(Flow.objects.count(), 0)
+
     def test_delete(self):
         flow = make_supply(what=self.soja, year=2024, quantity=1,
                            origin=self.cargill, destination=self.vevey)
@@ -643,6 +684,30 @@ class MapApiTests(TestCase):
         self.assertEqual((ownership.start_year, ownership.end_year, ownership.created_by),
                          (2024, None, self.creator))
 
+    def test_ownership_without_year_is_refused(self):
+        for year in (None, 'x', 3000):
+            body = {'company_id': self.acme.pk, 'asset_id': self.vevey.pk, 'share': 1}
+            if year is not None:
+                body['year'] = year
+            r = self._post('dashboard:flow_map_ownership_create', body)
+            self.assertEqual(r.status_code, 400)
+            self.assertIn('start_year', r.json()['errors'])
+        self.assertEqual(Ownership.objects.count(), 0)
+
+    def test_search_requires_get(self):
+        r = self.client.post(reverse('dashboard:flow_map_search'), {'type': 'asset', 'q': 'ab'})
+        self.assertEqual(r.status_code, 405)
+
+    def test_group_save_is_atomic_on_duplicate_member(self):
+        from unittest import mock
+        with mock.patch('dashboard.models.AssetGroup.set_members',
+                        side_effect=IntegrityError('dup')):
+            r = self._post('dashboard:flow_map_group_create',
+                           {'name': 'B', 'members': [self.vevey.pk]}, self.acme.pk)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('members', r.json()['errors'])
+        self.assertEqual(AssetGroup.objects.count(), 0)
+
     def test_ownership_over_full_share_is_refused(self):
         Ownership.objects.create(
             asset=self.vevey, company=self.other, share=1, start_year=2020)
@@ -709,14 +774,21 @@ class MapApiTests(TestCase):
         url = reverse('dashboard:flow_map_unlink', args=[self.acme.pk])
         key = f'company:{self.cargill.pk}'
         r = self.client.get(url, {'year': 2024, 'block': key})
-        self.assertEqual(r.json(), {'flows': 1, 'ownership': False})
+        self.assertEqual(r.json(), {'flows': 1, 'ownership': False, 'co_owners': []})
         self.assertEqual(Flow.objects.count(), 1)
         r = self.client.post(f'{url}?year=2024&block={key}')
-        self.assertEqual(r.json(), {'flows': 1, 'ownership': False})
+        self.assertEqual(r.json(), {'flows': 1, 'ownership': False, 'co_owners': []})
         self.assertEqual(Flow.objects.count(), 0)
 
     def test_unlink_bad_input(self):
         url = reverse('dashboard:flow_map_unlink', args=[self.acme.pk])
+        for year in ('99999999999999999999', '1800', '2101'):
+            self.assertEqual(self.client.post(f'{url}?year={year}&block=company:1')
+                             .status_code, 400)
+            self.assertEqual(self.client.get(url, {'year': year, 'block': 'company:1'})
+                             .status_code, 400)
+        self.assertEqual(self.client.get(reverse('dashboard:flow_map_data', args=[self.acme.pk]),
+                                         {'year': 99999999999999999999}).status_code, 400)
         self.assertEqual(self.client.get(url, {'year': 2024, 'block': 'environment'})
                          .status_code, 400)
         self.assertEqual(self.client.get(url, {'year': 'x', 'block': 'company:1'})

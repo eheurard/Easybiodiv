@@ -662,6 +662,10 @@ window.FlowMapBlocks = (function () {
       text = gettext('Êtes-vous sûr de vouloir supprimer %(flows)s entre « %(name)s » et '
         + '%(company)s en %(year)s ? « %(name)s » reste disponible dans la recherche.');
     }
+    if (preview.co_owners && preview.co_owners.length) {
+      values.owners = preview.co_owners.join(', ');
+      text += ' ' + gettext('Ces flux disparaîtront aussi pour %(owners)s.');
+    }
     return interpolate(text, values, true);
   }
 

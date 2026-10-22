@@ -259,6 +259,10 @@ risque) : choisis seulement, jamais créés ici.
 - Le calcul du périmètre et l'agrégation des flux sont dans `services/` (testables sans
   navigateur). Le rangement en colonnes peut être fait côté JS ou serveur (choix du
   builder) ; s'il est en Python, le tester.
+- Réalisé : seul le périmètre est calculé côté serveur ; l'agrégation des flux (par paire
+  et par nature, et pour les groupes repliés) est faite côté client dans
+  `FlowMapDraw.aggregateEdges`, car elle dépend de l'état déplié / masqué du client ; elle
+  est couverte par les vérifications manuelles.
 - Découpage des modules, noms d'URL, format JSON exact : laissés au builder.
 
 ## 8. Laissé au builder

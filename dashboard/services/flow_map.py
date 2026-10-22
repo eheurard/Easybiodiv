@@ -15,7 +15,7 @@ from django.utils.translation import gettext
 
 from dashboard.models import (
     _ENDPOINT_FIELD_SUFFIX, ENDPOINT_ASSET, ENDPOINT_COMPANY, ENDPOINT_ENVIRONMENT, Asset,
-    Ownership,
+    Company, Ownership,
 )
 from dashboard.services.flows import perimeter_flows, perimeter_years
 
@@ -274,11 +274,20 @@ def _owned_ownerships(company, year, endpoint, pk):
 
 def unlink_preview(company, year, key):
     """Effet d'un retrait des liens du bloc `key` pour `year` : nombre de flux
-    supprimés et si une détention de `company` prendrait fin."""
+    supprimés, si une détention de `company` prendrait fin et noms des autres
+    entreprises détentrices de l'actif cette année-là (leurs flux disparaissent aussi)."""
     endpoint, pk = _unlink_target(company, key)
+    co_owners = []
+    if endpoint == ENDPOINT_ASSET:
+        co_owners = list(
+            Company.objects.filter(
+                pk__in=Ownership.objects.valid_in(year).filter(asset_id=pk)
+                .exclude(company=company).values('company_id'),
+            ).order_by('name').values_list('name', flat=True))
     return {
         'flows': perimeter_flows(company, year, touching=(endpoint, pk)).count(),
         'ownership': _owned_ownerships(company, year, endpoint, pk).exists(),
+        'co_owners': co_owners,
     }
 
 

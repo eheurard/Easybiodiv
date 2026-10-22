@@ -7,7 +7,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from .models import (
-    Asset, AssetGroup, AssetGroupMember, ClimateScenario, Commodity, Company, Flow,
+    REVENUE_PRODUCTION_ONLY_MESSAGE, Asset, AssetGroup, AssetGroupMember, ClimateScenario, Commodity, Company, Flow,
     Ownership, Portfolio, PortfolioHolding,
 )
 from .services.stress_test import HORIZONS, PD_MAX
@@ -79,6 +79,9 @@ class PortfolioHoldingForm(forms.ModelForm):
         return weight
 
 
+YEAR_MIN, YEAR_MAX = 1900, 2100
+
+
 class FlowMapFlowForm(forms.ModelForm):
     """Création / modification d'un flux depuis la carte des flux.
 
@@ -87,6 +90,7 @@ class FlowMapFlowForm(forms.ModelForm):
     """
 
     quantity = forms.CharField()
+    year = forms.IntegerField(min_value=YEAR_MIN, max_value=YEAR_MAX)
 
     class Meta:
         model = Flow
@@ -111,6 +115,13 @@ class FlowMapFlowForm(forms.ModelForm):
         if value <= 0:
             raise forms.ValidationError(_('La quantité doit être positive.'))
         return value
+
+    def clean(self):
+        cleaned = super().clean()
+        if (self.instance.pk and self.instance.estimated_revenue is not None
+                and cleaned.get('kind') != Flow.Kind.PRODUCTION):
+            raise forms.ValidationError(REVENUE_PRODUCTION_ONLY_MESSAGE)
+        return cleaned
 
 
 class AssetQuickForm(forms.ModelForm):
@@ -169,6 +180,8 @@ class OwnershipQuickForm(forms.ModelForm):
 
     `Ownership.clean` (chevauchement, somme des parts) est appelé par le ModelForm.
     """
+
+    start_year = forms.IntegerField(min_value=YEAR_MIN, max_value=YEAR_MAX)
 
     class Meta:
         model = Ownership

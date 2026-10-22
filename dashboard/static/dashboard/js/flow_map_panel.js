@@ -53,9 +53,20 @@ window.FlowMapPanel = (function () {
   }
 
   function quantityText(value, grouping) {
-    return Number(value).toLocaleString(APP_LOCALE, {
-      maximumFractionDigits: grouping ? 2 : 10, useGrouping: grouping,
+    var number = Number(value);
+    if (grouping) {
+      return number.toLocaleString(APP_LOCALE, { maximumFractionDigits: 2 });
+    }
+    // Préremplissage d'édition : le texte doit redonner exactement le flottant
+    // stocké (15 chiffres significatifs, 17 si 15 ne suffisent pas).
+    var text;
+    [15, 17].some(function (digits) {
+      text = number.toLocaleString(APP_LOCALE, {
+        maximumSignificantDigits: digits, useGrouping: false,
+      });
+      return parseFloat(text.replace(',', '.')) === number;
     });
+    return text;
   }
 
   // Type d'extrémité d'une clé de bloc, au sens de FLOW_RULES.

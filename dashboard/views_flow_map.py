@@ -2,6 +2,7 @@
 (Créateurs uniquement)."""
 import json
 
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import gettext as _
@@ -9,11 +10,11 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from .decorators import creator_required_json
 from .forms import (
-    AssetGroupForm, AssetQuickForm, CommodityQuickForm, CompanyQuickForm, FlowMapFlowForm,
+    YEAR_MAX, YEAR_MIN, AssetGroupForm, AssetQuickForm, CommodityQuickForm, CompanyQuickForm, FlowMapFlowForm,
     OwnershipQuickForm,
 )
 from .models import (
-    FLOW_RULES, Asset, AssetGroup, Commodity, Company, Country, Flow, FlowKind,
+    ASSET_GROUP_DUPLICATE_MESSAGE, FLOW_RULES, Asset, AssetGroup, Commodity, Company, Country, Flow, FlowKind,
     SubnationalRegion,
 )
 from .services.flow_map import build_flow_map, endpoint_fields, unlink, unlink_preview
@@ -60,18 +61,27 @@ def flow_map(request):
     })
 
 
+def _parse_year(raw):
+    """(année, None) ou (None, réponse 400) ; `raw` absent ou vide donne (None, None).
+    L'année doit être un entier entre YEAR_MIN et YEAR_MAX."""
+    if raw in (None, ''):
+        return None, None
+    try:
+        year = int(raw)
+        if not YEAR_MIN <= year <= YEAR_MAX:
+            raise ValueError(raw)
+    except (TypeError, ValueError):
+        return None, JsonResponse({'errors': {'year': [_('Année invalide.')]}}, status=400)
+    return year, None
+
+
 @require_GET
 def flow_map_data(request, company_pk):
     """Données de la carte pour une entreprise et `?year=` (absent : année par défaut)."""
     company = get_object_or_404(Company, pk=company_pk)
-    year = request.GET.get('year')
-    if year in (None, ''):
-        year = None
-    else:
-        try:
-            year = int(year)
-        except ValueError:
-            return JsonResponse({'errors': {'year': [_('Année invalide.')]}}, status=400)
+    year, refused = _parse_year(request.GET.get('year'))
+    if refused:
+        return refused
     return JsonResponse(build_flow_map(company, year, request.user))
 
 
@@ -93,16 +103,23 @@ def _payload(request):
     return payload if isinstance(payload, dict) else None
 
 
-def _form_data(payload, endpoints):
+def _form_data(payload, endpoints, instance=None):
+    """Données du formulaire de flux. À la modification, une clé absente du corps
+    conserve la valeur du flux (une valeur vide explicite, elle, la réinitialise)."""
+    def optional(key, default):
+        if key not in payload and instance is not None:
+            return getattr(instance, key)
+        return payload.get(key) or default
+
     data = {
         'kind': payload.get('kind'),
         'what': payload.get('what_id'),
-        'scope': payload.get('scope') or Flow.Scope.UNDEFINED,
+        'scope': optional('scope', Flow.Scope.UNDEFINED),
         'year': payload.get('year'),
         'quantity': payload.get('quantity'),
-        'tier': payload.get('tier') or 0,
-        'source': payload.get('source') or '',
-        'reference': payload.get('reference') or '',
+        'tier': optional('tier', 0),
+        'source': optional('source', ''),
+        'reference': optional('reference', ''),
     }
     for name, value in endpoints.items():
         if value is not None and value is not False:
@@ -164,7 +181,7 @@ def flow_map_flow_update(request, pk):
     if payload is None:
         return _error(_('JSON invalide'))
     endpoints = {name: getattr(flow, _attname(name)) for name in ENDPOINT_FIELDS}
-    form = FlowMapFlowForm(_form_data(payload, endpoints), instance=flow)
+    form = FlowMapFlowForm(_form_data(payload, endpoints, flow), instance=flow)
     refused = _form_errors(form)
     if refused:
         return refused
@@ -203,6 +220,7 @@ def _search_detail(kind, obj):
     return ''
 
 
+@require_GET
 def flow_map_search(request):
     kind = request.GET.get('type')
     model = SEARCH_MODELS.get(kind)
@@ -289,8 +307,13 @@ def _save_group(request, company, instance=None):
     if instance is None:
         group.company = company
         group.created_by = request.user
-    group.save()
-    group.set_members([asset.pk for asset in form.cleaned_data['members']])
+    try:
+        with transaction.atomic():
+            group.save()
+            group.set_members([asset.pk for asset in form.cleaned_data['members']])
+    except IntegrityError:
+        return JsonResponse(
+            {'errors': {'members': [ASSET_GROUP_DUPLICATE_MESSAGE]}}, status=400)
     return JsonResponse({'id': group.pk}, status=201 if instance is None else 200)
 
 
@@ -331,10 +354,9 @@ def _run_unlink(request, action):
     company = Company.objects.filter(pk=request.resolver_match.kwargs['company_pk']).first()
     if company is None:
         return _error(_("Cette entreprise n'existe plus."), status=404)
-    try:
-        year = int(request.GET.get('year'))
-    except (TypeError, ValueError):
-        return _error(_('Année invalide.'))
+    year, refused = _parse_year(request.GET.get('year'))
+    if refused or year is None:
+        return refused or _error(_('Année invalide.'))
     try:
         return JsonResponse(action(company, year, request.GET.get('block')))
     except (ValueError, TypeError):
