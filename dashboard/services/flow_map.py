@@ -10,10 +10,12 @@ Clés de blocs (contrat partagé avec le JS) : `company:<id>`, `asset:<id>`,
 import datetime
 import re
 
+from django.db import transaction
 from django.utils.translation import gettext
 
 from dashboard.models import (
     _ENDPOINT_FIELD_SUFFIX, ENDPOINT_ASSET, ENDPOINT_COMPANY, ENDPOINT_ENVIRONMENT, Asset,
+    Ownership,
 )
 from dashboard.services.flows import perimeter_flows, perimeter_years
 
@@ -250,3 +252,53 @@ def build_flow_map(company, year, user):
         'groups': groups,
         'flows': [_serialize_flow(flow) for flow in flows],
     }
+
+
+def _unlink_target(company, key):
+    """(extrémité, pk) du bloc dont on retire les liens ; ValueError pour l'entreprise
+    elle-même, un groupe, le milieu ou une extrémité inconnue."""
+    endpoint, pk = parse_key(key)
+    if endpoint in (None, ENDPOINT_ENVIRONMENT, GROUP_TYPE):
+        raise ValueError(f'Les liens de ce bloc ne peuvent pas être retirés : {key!r}')
+    if endpoint == ENDPOINT_COMPANY and pk == company.pk:
+        raise ValueError("Les liens de l'entreprise elle-même ne peuvent pas être retirés")
+    return endpoint, pk
+
+
+def _owned_ownerships(company, year, endpoint, pk):
+    if endpoint != ENDPOINT_ASSET:
+        return Ownership.objects.none()
+    return Ownership.objects.valid_in(year).filter(company=company, asset_id=pk)
+
+
+def unlink_preview(company, year, key):
+    """Effet d'un retrait des liens du bloc `key` pour `year` : nombre de flux
+    supprimés et si une détention de `company` prendrait fin."""
+    endpoint, pk = _unlink_target(company, key)
+    return {
+        'flows': perimeter_flows(company, year, touching=(endpoint, pk)).count(),
+        'ownership': _owned_ownerships(company, year, endpoint, pk).exists(),
+    }
+
+
+def end_ownership(company, asset, year):
+    """Met fin aux détentions de `asset` par `company` valides en `year` : supprimées
+    si elles commencent cette année-là, sinon arrêtées l'année précédente."""
+    for ownership in Ownership.objects.valid_in(year).filter(company=company, asset=asset):
+        if ownership.start_year == year:
+            ownership.delete()
+        else:
+            ownership.end_year = year - 1
+            ownership.save()
+
+
+def unlink(company, year, key):
+    """Retire les liens du bloc `key` pour `year` : supprime ses flux du périmètre
+    et, pour un actif détenu, met fin à la détention. Le bloc et les groupes restent."""
+    endpoint, pk = _unlink_target(company, key)
+    with transaction.atomic():
+        result = unlink_preview(company, year, key)
+        perimeter_flows(company, year, touching=(endpoint, pk)).delete()
+        if result['ownership']:
+            end_ownership(company, Asset.objects.get(pk=pk), year)
+    return result

@@ -13,7 +13,8 @@ from .models import (
     FlowKind, Ownership, SubnationalRegion,
 )
 from .services.flow_map import (
-    assign_columns, build_flow_map, endpoint_fields, endpoint_key, parse_key,
+    assign_columns, build_flow_map, endpoint_fields, endpoint_key, parse_key, unlink,
+    unlink_preview,
 )
 from .services.flows import perimeter_flows, perimeter_years
 from .testing import make_declared_emission, make_inventory, make_production, make_supply
@@ -369,3 +370,77 @@ class BuildFlowMapTests(TestCase):
         subscriber = User.objects.create_user('s', password='pw', role=User.SUBSCRIBER)
         self.assertTrue(build_flow_map(self.acme, 2024, creator)['can_edit'])
         self.assertFalse(build_flow_map(self.acme, 2024, subscriber)['can_edit'])
+
+
+class UnlinkTests(TestCase):
+    def setUp(self):
+        self.acme = Company.objects.create(name='Acme')
+        self.cargill = Company.objects.create(name='Cargill')
+        self.brazil = Country.objects.create(
+            name='Brésil', water_ownership='Public', land_ownership='Private')
+        self.soja = Commodity.objects.create(name='Soja', unit='t')
+        self.vevey = Asset.objects.create(
+            name='Vevey', latitude=1.0, longitude=2.0, country=self.brazil)
+        self.ownership = Ownership.objects.create(
+            asset=self.vevey, company=self.acme, share=1, start_year=2020, end_year=None)
+        for year in (2023, 2024):
+            for _ in range(2 if year == 2024 else 1):
+                make_supply(what=self.soja, year=year, quantity=5,
+                            origin=self.cargill, destination=self.vevey)
+
+    def test_preview_counts_only_displayed_year(self):
+        self.assertEqual(unlink_preview(self.acme, 2024, f'company:{self.cargill.pk}'),
+                         {'flows': 2, 'ownership': False})
+
+    def test_preview_flags_owned_asset(self):
+        self.assertEqual(unlink_preview(self.acme, 2024, f'asset:{self.vevey.pk}'),
+                         {'flows': 2, 'ownership': True})
+
+    def test_unlink_external_company_keeps_company_and_other_years(self):
+        unlink(self.acme, 2024, f'company:{self.cargill.pk}')
+        self.assertTrue(Company.objects.filter(pk=self.cargill.pk).exists())
+        self.assertEqual(Flow.objects.filter(year=2023).count(), 1)
+        self.assertEqual(Flow.objects.filter(year=2024).count(), 0)
+
+    def test_unlink_owned_asset_ends_ownership_previous_year(self):
+        result = unlink(self.acme, 2024, f'asset:{self.vevey.pk}')
+        self.assertEqual(result, {'flows': 2, 'ownership': True})
+        self.ownership.refresh_from_db()
+        self.assertEqual(self.ownership.end_year, 2023)
+        self.assertTrue(Asset.objects.filter(pk=self.vevey.pk).exists())
+
+    def test_unlink_ownership_starting_that_year_is_deleted(self):
+        self.ownership.start_year = 2024
+        self.ownership.save()
+        unlink(self.acme, 2024, f'asset:{self.vevey.pk}')
+        self.assertFalse(Ownership.objects.filter(pk=self.ownership.pk).exists())
+
+    def test_unlink_keeps_later_ownership(self):
+        self.ownership.end_year = 2022
+        self.ownership.save()
+        later = Ownership.objects.create(
+            asset=self.vevey, company=self.acme, share=1, start_year=2025, end_year=None)
+        unlink(self.acme, 2021, f'asset:{self.vevey.pk}')
+        self.ownership.refresh_from_db()
+        later.refresh_from_db()
+        self.assertEqual(self.ownership.end_year, 2020)
+        self.assertEqual((later.start_year, later.end_year), (2025, None))
+
+    def test_unlink_keeps_group_membership(self):
+        group = AssetGroup.objects.create(name='G', company=self.acme)
+        group.set_members([self.vevey.pk])
+        unlink(self.acme, 2024, f'asset:{self.vevey.pk}')
+        self.assertTrue(AssetGroup.objects.filter(pk=group.pk).exists())
+        self.assertEqual(group.members.count(), 1)
+
+    def test_unlink_refuses_the_company_itself(self):
+        with self.assertRaises(ValueError):
+            unlink(self.acme, 2024, f'company:{self.acme.pk}')
+
+    def test_refuses_groups_environment_and_unknown(self):
+        for key in ('group:1', 'environment', 'unknown-in', 'unknown-out'):
+            with self.subTest(key=key):
+                with self.assertRaises(ValueError):
+                    unlink_preview(self.acme, 2024, key)
+                with self.assertRaises(ValueError):
+                    unlink(self.acme, 2024, key)
