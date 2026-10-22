@@ -533,6 +533,8 @@ window.FlowMapPanel = (function () {
     setBusy(true);
     post(url, payload)
       .then(function (res) {
+        // Un flux enregistré hors de la plage affichée l'élargit : il reste visible.
+        if (res.ok) FlowMap.includeYear(parseInt(payload.year, 10));
         answer(res, creating ? gettext('Flux créé.') : gettext('Flux enregistré.'));
       })
       .catch(unexpected)
@@ -702,11 +704,16 @@ window.FlowMapPanel = (function () {
   }
 
   function confirm(message, opts) {
+    // Clore l'éventuelle fenêtre en cours avant de réinitialiser celle-ci.
+    if (pendingConfirm) finishConfirm(false);
     resetDialog();
     return openDialog(message, opts || {}, null, null);
   }
 
   function chooseYears(options) {
+    // Clore l'éventuelle fenêtre en cours AVANT d'armer syncDialog / ownYearTouched :
+    // finishConfirm les remet à zéro.
+    if (pendingConfirm) finishConfirm(false);
     resetDialog();
     var yearBoxes = (options.years || []).map(function (entry) {
       var label = document.createElement('label');

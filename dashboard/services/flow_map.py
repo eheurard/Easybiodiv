@@ -380,10 +380,12 @@ def unlink_preview(company, start, end, key):
     )
     years = [{'year': year, 'flows': counts[year]} for year in sorted(counts)]
     ownership = _is_owned_in_range(company, start, end, endpoint, pk)
-    if years:
+    if not ownership:
+        ownership_year = None
+    elif years:
         ownership_year = years[0]['year']
     else:
-        ownership_year = start if ownership else None
+        ownership_year = start
     co_owners = []
     if endpoint == ENDPOINT_ASSET:
         others = ownerships_overlapping(start, end).filter(asset_id=pk).exclude(company=company)

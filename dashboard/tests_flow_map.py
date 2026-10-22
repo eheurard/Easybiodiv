@@ -16,8 +16,9 @@ from .models import (
     REVENUE_PRODUCTION_ONLY_MESSAGE, SubnationalRegion,
 )
 from .services.flow_map import (
-    assign_columns, build_flow_map, delete_flow_years, endpoint_fields, endpoint_key, flow_key,
-    flow_years, latest_flows, owned_assets_in_range, parse_key, unlink, unlink_preview,
+    assign_columns, build_flow_map, delete_flow_years, end_ownership, endpoint_fields,
+    endpoint_key, flow_key, flow_years, latest_flows, owned_assets_in_range, parse_key, unlink,
+    unlink_preview,
 )
 from .services.flows import perimeter_flows, perimeter_years, range_perimeter_flows
 from .testing import make_declared_emission, make_inventory, make_production, make_supply
@@ -462,6 +463,29 @@ class RangeFlowMapTests(TestCase):
         self.assertNotIn(f'asset:{self.mine.pk}',
                          {block['key'] for block in data['blocks']})
 
+    def test_two_ownership_periods_exclude_flows_of_the_gap(self):
+        depot = Asset.objects.create(
+            name='Dépôt', latitude=1.0, longitude=2.0, country=self.brazil)
+        for first, last in ((2020, 2021), (2023, 2024)):
+            Ownership.objects.create(
+                asset=depot, company=self.acme, share=1, start_year=first, end_year=last)
+        rows = {
+            year: make_supply(what=self.soja, year=year, quantity=year,
+                              origin=self.cargill, destination=depot)
+            for year in (2020, 2021, 2022, 2023, 2024)
+        }
+        # Même clé de flux sur toute la plage : la ligne de la dernière année l'emporte,
+        # les années de trou sont écartées du périmètre.
+        flows = range_perimeter_flows(self.acme, 2020, 2024)
+        self.assertEqual(sorted(f.year for f in flows), [2020, 2021, 2023, 2024])
+        data = build_flow_map(self.acme, 2020, 2024, AnonymousUser())
+        self.assertEqual(self._ids(data), [rows[2024].pk])
+        self.assertEqual(
+            flow_years(self.acme, 2020, 2024, rows[2022]),
+            [{'year': 2020, 'count': 1}, {'year': 2021, 'count': 1},
+             {'year': 2023, 'count': 1}, {'year': 2024, 'count': 1}])
+        self.assertEqual(self._ids(build_flow_map(self.acme, 2022, 2022, AnonymousUser())), [])
+
     def test_flow_of_year_asset_not_owned_is_excluded(self):
         kept = make_supply(what=self.soja, year=2022, quantity=5,
                            origin=self.cargill, destination=self.mine)
@@ -537,7 +561,7 @@ class UnlinkTests(TestCase):
         self.assertEqual(
             unlink_preview(self.acme, 2024, 2024, f'company:{self.cargill.pk}'),
             {'years': [{'year': 2024, 'flows': 2}], 'ownership': False,
-             'ownership_year': 2024, 'co_owners': []})
+             'ownership_year': None, 'co_owners': []})
 
     def test_preview_flags_owned_asset(self):
         self.assertEqual(
@@ -591,6 +615,18 @@ class UnlinkTests(TestCase):
         later.refresh_from_db()
         self.assertEqual(self.ownership.end_year, 2020)
         self.assertEqual((later.start_year, later.end_year), (2025, None))
+
+    def test_unlink_keeps_another_companys_ownership_starting_in_range(self):
+        # Détention d'une autre entreprise débutant dans (Y, F] : elle n'est pas touchée.
+        other = Ownership.objects.create(
+            asset=self.vevey, company=self.cargill, share=0.3, start_year=2022, end_year=None)
+        unlink(self.acme, 2021, 2024, f'asset:{self.vevey.pk}', years=[],
+               ownership_year=2021)
+        other.refresh_from_db()
+        self.assertEqual((other.start_year, other.end_year), (2022, None))
+        end_ownership(self.acme, self.vevey, 2021, 2024)
+        other.refresh_from_db()
+        self.assertEqual((other.start_year, other.end_year), (2022, None))
 
     def test_unlink_keeps_group_membership(self):
         group = AssetGroup.objects.create(name='G', company=self.acme)
@@ -705,7 +741,7 @@ class RangeDeletionTests(TestCase):
         self.assertEqual(
             unlink_preview(self.acme, 2020, 2024, f'company:{self.cargill.pk}'), {
                 'years': [{'year': 2021, 'flows': 1}, {'year': 2023, 'flows': 2}],
-                'ownership': False, 'ownership_year': 2021, 'co_owners': [],
+                'ownership': False, 'ownership_year': None, 'co_owners': [],
             })
 
     def test_unlink_preview_without_flows(self):
@@ -1163,7 +1199,7 @@ class MapApiTests(TestCase):
         r = self.client.get(self._unlink_url(key))
         self.assertEqual(r.json(), {
             'years': [{'year': 2024, 'flows': 1}], 'ownership': False,
-            'ownership_year': 2024, 'co_owners': []})
+            'ownership_year': None, 'co_owners': []})
         self.assertEqual(Flow.objects.count(), 1)
         r = self._unlink(key, {'years': [2024], 'ownership_year': None})
         self.assertEqual(r.json(), {'flows': 1, 'ownership': False})

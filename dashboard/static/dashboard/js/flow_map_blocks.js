@@ -430,6 +430,8 @@ window.FlowMapBlocks = (function () {
         return;
       }
       pendingReveal = 'asset:' + item.id;
+      // Détention débutant après la plage affichée : l'élargir pour la montrer.
+      if (start > model.end) FlowMap.includeYear(start);
       var message = interpolate(gettext('« %(name)s » ajouté au périmètre de %(company)s.'),
         { name: item.name, company: model.company.name }, true);
       if (seq === panelSeq) finish(message); else notice(message);

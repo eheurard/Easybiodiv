@@ -1034,3 +1034,6 @@ msgstr "No flows between \"%(name)s\" and %(company)s in this range."
 #, python-format
 msgid "« %(name)s » n’a aucun lien à supprimer de %(start)s à %(end)s."
 msgstr "\"%(name)s\" has no links to delete from %(start)s to %(end)s."
+
+msgid "Toutes les natures de flux sont masquées."
+msgstr "All flow kinds are hidden."

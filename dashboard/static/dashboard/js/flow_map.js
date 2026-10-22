@@ -15,6 +15,7 @@
 //   FlowMap.reload()     recharge l'entreprise et la plage affichées, sans recadrer
 //   FlowMap.load(id, r)  charge une entreprise sur une plage r = {start, end}
 //                        (r null : plage par défaut du périmètre)
+//   FlowMap.includeYear(y) élargit la plage demandée pour qu'elle contienne y (avant reload)
 //   FlowMap.range()      plage affichée {start, end} (ou null)
 //   FlowMap.menuActions  entrées du menu « ⋯ » d'un bloc :
 //                        {id, label: string, visible(node): bool, run(node)}
@@ -61,6 +62,7 @@ window.FlowMap = (function () {
     onRender: [],
     onTap: [],
     model: function () { return current; },
+    includeYear: includeYear,
     range: function () { return current ? { start: current.start, end: current.end } : null; },
     lastRender: function () { return last; },
     redraw: redraw,
@@ -142,6 +144,15 @@ window.FlowMap = (function () {
     if (!target) return null;
     var keepView = !!current && current.company.id === target.companyId;
     return load(target.companyId, target.range, keepView);
+  }
+
+  // Élargit la plage demandée à `year` : un élément enregistré hors de [De, À]
+  // reste visible au rechargement. Sans effet si l'année est déjà dans la plage.
+  function includeYear(year) {
+    if (!target || !target.range || !isFinite(year)) return;
+    var range = { start: Math.min(target.range.start, year), end: Math.max(target.range.end, year) };
+    target = { companyId: target.companyId, range: range };
+    if (chosen) chosen = { start: range.start, end: range.end };
   }
 
   function show(data, keepView) {
@@ -273,6 +284,11 @@ window.FlowMap = (function () {
 
   function renderEmpty() {
     var masked = current.flows.some(function (f) { return api.state.hiddenKinds.has(f.kind); });
+    if (masked && !last.edges.length
+        && current.flows.every(function (f) { return api.state.hiddenKinds.has(f.kind); })) {
+      showMessage(gettext('Toutes les natures de flux sont masquées.'));
+      return;
+    }
     var empty = !last.edges.length && !masked && last.nodes.length <= 1;
     if (!empty) { els.empty.hidden = true; return; }
     var message;
@@ -369,7 +385,11 @@ window.FlowMap = (function () {
     button.classList.toggle('is-off', off);
     if (!current) return;
     var selected = api.state.selectedEdge;
-    if (off && selected && selected.split('|')[2] === kind) api.state.selectedEdge = null;
+    if (off && selected && selected.split('|')[2] === kind) {
+      // La flèche ouverte n'est plus dessinée : fermer sa fiche sans enregistrer.
+      if (window.FlowMapPanel) window.FlowMapPanel.close({ focus: false });
+      api.state.selectedEdge = null;
+    }
     redraw();
   }
 
