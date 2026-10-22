@@ -282,3 +282,87 @@ risque) : choisis seulement, jamais créés ici.
   `FLOW_RULES` → erreur lisible ; « supprimer les liens » n'efface que le périmètre
   annoncé et ne supprime jamais l'élément.
 - Création d'actif avec détention.
+
+## 10. Évolution : plage d'années et légende interactive (2026-10-22)
+
+Demandée après la première livraison. **Remplace** le sélecteur d'année de §4.1, et
+précise §4.1, §5.1–§5.4 là où ils parlent de « l'année A ».
+
+### 10.1 Plage d'années
+
+- Deux champs **« De »** et **« À »** remplacent le sélecteur d'année (années
+  proposées : celles ayant des flux pour le périmètre, plus l'année en cours, plus
+  saisie libre ; contrôle De ≤ À). Par défaut : de la plus ancienne à la plus récente
+  année ayant des flux pour le périmètre ; à défaut, l'année en cours seule.
+  *(Choix de conception.)*
+- **Périmètre sur la plage [D, F]** : E et les actifs détenus par E **à un moment
+  quelconque** de la plage (une détention valide au moins une année entre D et F).
+  *(Choix de conception.)*
+- **Flux retenus** : les flux d'une année entre D et F dont une extrémité est E ou un
+  actif du périmètre **détenu cette année-là** (même règle qu'en §4.1, appliquée année
+  par année).
+- **« Même flux »** : même nature, même commodité, même origine, même destination et
+  même scope. Quand un même flux existe pour plusieurs années de la plage, **seule la
+  ligne de l'année la plus récente est affichée** ; les lignes plus anciennes restent
+  en base et ne sont pas dessinées. Deux lignes de même clé **la même année** sont
+  toutes deux affichées (pas de dédoublonnage intra-année). Tier, source, référence et
+  quantité ne font pas partie de la clé. *(Définition : choix de conception.)*
+- **Année visible** : chaque flux affiché porte son année, et le panneau l'affiche.
+  L'étiquette de la flèche indique l'année quand **tous** ses flux ont la même année et
+  qu'elle diffère de F (ex. « Soja · 2021 ») ; années mélangées → pas d'année sur
+  l'étiquette, le détail est dans le panneau. *(Choix de conception.)*
+- Les parts de détention ne sont ni affichées ni agrégées sur la plage : seule compte la
+  présence d'une détention.
+- La plage est mémorisée dans la session comme l'était l'année (pas en base).
+
+### 10.2 Saisie dans une plage
+
+- **Nouveau flux** : année pré-remplie avec F, modifiable.
+- **Modifier un flux** : modifie la ligne affichée (la plus récente). Si l'année est
+  changée vers une année déjà occupée par le même flux, la règle d'affichage s'applique
+  simplement après rechargement (pas de fusion).
+- **Ajouter un actif « détenu »** : la détention commence en F (champ année modifiable
+  dans la fiche, pré-rempli à F).
+
+### 10.3 Suppression : choix des années
+
+- **Supprimer un flux** (panneau) : la confirmation **liste les années de la plage où
+  ce même flux existe dans le périmètre** (années où il serait retenu par §10.1, même si
+  une ligne plus récente le masque), chacune avec une case **cochée par défaut** ;
+  l'utilisateur peut décocher des années. Seules les lignes des années cochées sont
+  supprimées. Rien hors de la plage ni hors du périmètre n'est proposé ni supprimé.
+  *(Liste limitée au périmètre : choix de conception, pour ne jamais effacer plus que
+  ce que la carte représente.)*
+- **Supprimer les liens d'un bloc** : même principe. La confirmation liste les années
+  de la plage où des flux relient ce bloc au périmètre, avec le nombre de flux par
+  année, toutes cochées par défaut ; on supprime les flux des années cochées.
+- **Détention d'un actif détenu** (retrait de liens) : option **séparée** dans la même
+  confirmation, « Mettre fin à la détention par E à partir de [année] », cochée par
+  défaut, l'année pré-remplie avec la plus ancienne année cochée et modifiable parmi
+  les années de la plage. Effet, pour l'année choisie Y : chaque détention de E sur cet
+  actif valide en Y prend fin en Y − 1 (supprimée si elle commence en Y) ; une
+  détention qui commence après Y et **avant ou pendant F** est supprimée ; celles qui
+  commencent après F ne sont pas touchées. Décochée : la détention n'est pas modifiée.
+  *(Choix de conception : découpler les années de flux et la fin de détention évite
+  qu'une année décochée disparaisse de la carte sans avoir été demandée.)*
+- Les copropriétaires éventuels restent mentionnés dans la confirmation.
+- Aucune année cochée et option de détention décochée → bouton de confirmation
+  désactivé.
+
+### 10.4 Légende interactive
+
+- Un clic sur une entrée de la légende (nature de flux) **masque ou réaffiche** toutes
+  les flèches de cette nature ; l'entrée masquée est visiblement estompée et annoncée
+  (`aria-pressed`). Activable au clavier. État de session seulement, comme le masquage
+  des blocs. Les blocs qui n'ont plus aucune flèche visible restent affichés.
+  *(Dernier point : choix de conception.)*
+
+### 10.5 Tests attendus en plus
+
+- Périmètre sur une plage : actif détenu une partie de la plage inclus ; flux d'une année
+  où l'actif n'était pas détenu exclu.
+- « Même flux » : deux années → seule la plus récente renvoyée ; scopes différents →
+  deux flux.
+- Suppression par années : seules les années cochées sont effacées, rien hors plage ;
+  retrait de liens avec l'option de détention (fin en Y − 1, détention démarrant entre
+  Y et F supprimée, détention après F intacte) et sans elle (détention inchangée).
