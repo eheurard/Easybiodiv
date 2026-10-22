@@ -33,11 +33,14 @@ window.FlowMap = (function () {
     onRender: [],
     model: function () { return current; },
     redraw: redraw,
-    reload: function () { return current ? load(current.company.id, current.year) : null; },
+    reload: function () { return reload(); },
     load: load,
   };
 
   var current = null;
+  var target = null;          // dernière demande {companyId, year} (affichée ou en cours)
+  var request = 0;            // numéro de la dernière demande : seule elle est affichée
+  var pending = null;         // AbortController de la demande en cours
   var last = null;            // dernier résultat de FlowMapDraw.render
   var view = null;            // viewBox {x, y, width, height}
   var frame = 0;
@@ -56,34 +59,68 @@ window.FlowMap = (function () {
   }
 
   // ── Chargement ───────────────────────────────────────────────────────────
-  function load(companyId, year) {
+  // Une demande plus récente annule la précédente : une réponse lente ne peut
+  // pas remplacer la carte demandée ensuite. `keepView` garde le cadrage (après
+  // une écriture) ; sinon la carte est recadrée.
+  function load(companyId, year, keepView) {
     var url = FLOW_MAP_API_URL.replace('/0/', '/' + companyId + '/');
     if (year !== null && year !== undefined) url += '?year=' + encodeURIComponent(year);
+    if (pending) pending.abort();
+    var controller = new AbortController();
+    var mine = ++request;
+    pending = controller;
+    target = { companyId: companyId, year: year };
     els.board.classList.add('is-loading');
-    return fetch(url, { headers: { Accept: 'application/json' } })
+    return fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal })
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
       })
       .then(function (data) {
+        if (mine !== request) return null;
         if (!current || current.company.id !== data.company.id) resetState();
-        show(data);
+        show(data, keepView);
         return data;
       })
       .catch(function (err) {
+        if (mine !== request) return null;
         console.error('flow_map fetch failed:', err);
+        clearMap();
         showMessage(gettext('Impossible de charger la carte des flux.'));
+        return null;
       })
-      .finally(function () { els.board.classList.remove('is-loading'); });
+      .finally(function () {
+        if (mine !== request) return;
+        pending = null;
+        els.board.classList.remove('is-loading');
+      });
   }
 
-  function show(data) {
+  function reload() {
+    if (!target) return null;
+    return load(target.companyId, current ? current.year : target.year, true);
+  }
+
+  function show(data, keepView) {
     current = data;
+    target = { companyId: data.company.id, year: data.year };
     api.canEdit = !!data.can_edit;
     closeMenu();
     renderYears(data);
     redraw();
-    fitView();
+    if (!keepView || !view) fitView();
+    else applyView();
+    document.dispatchEvent(new CustomEvent('flowmap:loaded', { detail: data }));
+  }
+
+  // Échec du chargement : rien de l'entreprise précédente ne doit rester affiché.
+  function clearMap() {
+    current = null;
+    last = null;
+    resetState();
+    while (els.svg.firstChild) els.svg.removeChild(els.svg.firstChild);
+    els.chip.hidden = true;
+    closeMenu();
   }
 
   function showMessage(message) {
@@ -361,13 +398,13 @@ window.FlowMap = (function () {
   // ── Initialisation ───────────────────────────────────────────────────────
   function bindYear() {
     els.year.addEventListener('change', function () {
-      load(current.company.id, parseInt(els.year.value, 10));
+      if (target) load(target.companyId, parseInt(els.year.value, 10));
     });
     els.yearForm.addEventListener('submit', function (event) {
       event.preventDefault();
       var year = parseInt(els.yearOther.value, 10);
-      if (!current || !els.yearOther.checkValidity() || !year) return;
-      load(current.company.id, year);
+      if (!target || !els.yearOther.checkValidity() || !year) return;
+      load(target.companyId, year);
     });
   }
 
