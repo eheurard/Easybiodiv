@@ -23,7 +23,8 @@
 //                        type : 'block', 'frame', 'edge', 'port', 'band', 'background'
 //   FlowMap.lastRender() dernier résultat de FlowMapDraw.render (ou null)
 // Événements sur document : « flowmap:loaded » (detail : données) après chaque
-// chargement ; « flowmap:changed », émis après une écriture, recharge la carte.
+// chargement ; « flowmap:cleared » quand un chargement échoue et vide la carte ;
+// « flowmap:changed », émis après une écriture, recharge la carte.
 window.FlowMap = (function () {
   var MIN_SCALE = 0.2;        // unités SVG par pixel écran (zoom avant maximal)
   var MAX_SCALE = 6;          // zoom arrière maximal
@@ -107,9 +108,13 @@ window.FlowMap = (function () {
       });
   }
 
+  // `target` est la dernière demande (en cours ou affichée) : un rechargement ne
+  // revient pas sur un changement d'entreprise ou d'année encore en route. La vue
+  // n'est gardée que pour l'entreprise affichée.
   function reload() {
     if (!target) return null;
-    return load(target.companyId, current ? current.year : target.year, true);
+    var keepView = !!current && current.company.id === target.companyId;
+    return load(target.companyId, target.year, keepView);
   }
 
   function show(data, keepView) {
@@ -133,6 +138,7 @@ window.FlowMap = (function () {
     while (els.svg.firstChild) els.svg.removeChild(els.svg.firstChild);
     els.chip.hidden = true;
     closeMenu();
+    document.dispatchEvent(new CustomEvent('flowmap:cleared'));
   }
 
   function showMessage(message) {

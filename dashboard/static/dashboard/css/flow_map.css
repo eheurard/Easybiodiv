@@ -400,9 +400,12 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* ── « + » des blocs ──────────────────────────────────────────────────────── */
+/* Invisible, un « + » ne capte pas le clic : sinon il masquerait la pointe d'une
+   flèche qui arrive au bord du bloc. Le clavier y accède toujours (tabindex). */
 .fm-port {
   cursor: pointer;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.12s ease;
 }
 
@@ -411,6 +414,7 @@
 .fm-block.is-trace-source .fm-port,
 .fm-port:focus {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .fm-port circle {

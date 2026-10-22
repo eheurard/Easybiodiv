@@ -40,6 +40,7 @@ window.FlowMapPanel = (function () {
   var busy = false;
   var noticeTimer = 0;
   var pendingConfirm = null;
+  var refocus = false;      // rendre le focus à l'ouvreur après le rechargement
 
   // ── Utilitaires ──────────────────────────────────────────────────────────
   function getCookie(name) {
@@ -204,6 +205,7 @@ window.FlowMapPanel = (function () {
   }
 
   function startTrace(key, port) {
+    if (!FlowMap.model()) return;
     close({ focus: false });
     trace = { key: key, port: port };
     opener = portSelector(key, port);
@@ -287,17 +289,18 @@ window.FlowMapPanel = (function () {
   // ── Fiche ────────────────────────────────────────────────────────────────
   function openNewFlow(fromKey, toKey) {
     cancelTrace();
+    if (!FlowMap.model()) return false;   // carte vide (chargement échoué)
     var list = optionsFor(fromKey, toKey, true);
     if (!list.length) {
       notice(interpolate(gettext('Aucune nature de flux n’est possible de « %(from)s » '
         + 'vers « %(to)s ».'), { from: blockName(fromKey), to: blockName(toKey) }, true));
       return false;
     }
+    sheet = { mode: 'new', options: list, edge: null, flow: null };
     if (FlowMap.state.selectedEdge !== null) {
       FlowMap.state.selectedEdge = null;
       FlowMap.redraw();
     }
-    sheet = { mode: 'new', options: list, edge: null, flow: null };
     els.title.textContent = gettext('Nouveau flux');
     els.flowList.textContent = '';
     els.flows.hidden = true;
@@ -311,9 +314,10 @@ window.FlowMapPanel = (function () {
 
   function openEdge(edge) {
     cancelTrace();
+    if (!FlowMap.model()) return;
+    sheet = { mode: 'edit', edge: edge, flow: null, options: [] };
     FlowMap.state.selectedEdge = edge.key;
     FlowMap.redraw();
-    sheet = { mode: 'edit', edge: edge, flow: null, options: [] };
     els.title.textContent = gettext('Modifier le flux');
     els.remove.hidden = false;
     var collapsed = edge.from.indexOf('group:') === 0 || edge.to.indexOf('group:') === 0;
@@ -430,29 +434,62 @@ window.FlowMapPanel = (function () {
 
   function close(opts) {
     if (els.panel.hidden) return;
-    var hadFocus = els.panel.contains(document.activeElement);
+    var hadFocus = focusInPanel();
     els.panel.hidden = true;
     hideList();
     hideCreate();
     sheet = null;
     if (FlowMap.state.selectedEdge !== null) {
+      var mapFocus = mapSelector(document.activeElement);
       FlowMap.state.selectedEdge = null;
       FlowMap.redraw();
+      // Le redessin remplace l'élément de la carte qui avait le focus.
+      var again = mapFocus && FlowMap.svg.querySelector(mapFocus);
+      if (again) again.focus({ preventScroll: true });
     }
     if (hadFocus && !(opts && opts.focus === false)) focusOpener();
   }
 
+  // Sélecteur stable d'un élément focalisable de la carte (survit au redessin).
+  function mapSelector(node) {
+    if (!node || !FlowMap.svg.contains(node) || node === FlowMap.svg) return null;
+    var block = node.closest('.fm-block');
+    if (node.classList.contains('fm-port') && block) {
+      return portSelector(block.dataset.key, node.dataset.port);
+    }
+    var kinds = ['fm-block', 'fm-edge', 'fm-frame'];
+    for (var i = 0; i < kinds.length; i++) {
+      if (node.classList.contains(kinds[i]) && node.dataset.key) {
+        return '.' + kinds[i] + '[data-key="' + attr(node.dataset.key) + '"]';
+      }
+    }
+    return null;
+  }
+
+  // Focus dans le panneau, ou perdu parce que le bouton focalisé a été désactivé
+  // pendant l'écriture (Supprimer, Enregistrer).
+  function focusInPanel() {
+    var active = document.activeElement;
+    return !active || active === document.body || els.panel.contains(active);
+  }
+
   // Écriture réussie : on ferme, on prévient, la carte se recharge.
+  // Le rechargement redessine la carte et retire l'élément focalisé : le focus
+  // revient à l'ouvreur (ou à la carte) une fois la carte rechargée.
   function done(message) {
+    var hadFocus = focusInPanel();
     close();
     notice(message);
+    refocus = hadFocus;
     changed();
   }
 
   function gone(data) {
     var errors = (data && data.errors && data.errors.__all__) || [];
+    var hadFocus = focusInPanel();
     close();
     notice(errors[0] || gettext('Ce flux n’existe plus.'));
+    refocus = hadFocus;
     changed();
   }
 
@@ -731,7 +768,13 @@ window.FlowMapPanel = (function () {
       event.preventDefault();
       finishConfirm(false);
     });
-    els.dialog.addEventListener('close', function () { finishConfirm(false); });
+    // « close » est asynchrone : celui d'une confirmation déjà résolue arrive
+    // parfois après l'ouverture de la suivante (dialogue rouvert) et l'ignore.
+    // Il ne compte que si le dialogue s'est fermé sans passer par nos boutons
+    // (Échap répété, que le navigateur peut fermer sans « cancel »).
+    els.dialog.addEventListener('close', function () {
+      if (!els.dialog.open) finishConfirm(false);
+    });
     els.dialog.addEventListener('keydown', onDialogKey);
     els.dialog.addEventListener('click', function (event) {
       if (event.target === els.dialog) finishConfirm(false);   // clic sur le fond
@@ -783,7 +826,41 @@ window.FlowMapPanel = (function () {
     document.addEventListener('flowmap:loaded', function () {
       cancelTrace();
       close({ focus: false });
+      restoreFocus();
     });
+    // Chargement échoué : plus rien de l'entreprise précédente ne reste actif.
+    document.addEventListener('flowmap:cleared', function () {
+      refocus = false;
+      cancelTrace();
+      close();
+      // Le focus était sur un élément de la carte, retiré avec elle.
+      if (document.activeElement === document.body) FlowMap.svg.focus({ preventScroll: true });
+    });
+  }
+
+  // Après une écriture : le redessin a retiré l'élément focalisé, le focus revient
+  // à l'ouvreur (ou à la carte) s'il n'est pas parti ailleurs entre-temps.
+  function restoreFocus() {
+    if (!refocus) return;
+    refocus = false;
+    var active = document.activeElement;
+    if (!active || active === document.body) focusOpener();
+  }
+
+  // Après un redessin (groupe déplié ou replié…), la flèche qui porte le flux
+  // ouvert reste en surbrillance tant que le panneau est ouvert.
+  function keepHighlight(result) {
+    if (!sheet || sheet.mode !== 'edit' || !sheet.flow || !result) return;
+    var id = sheet.flow.id;
+    var edge = result.edges.find(function (e) {
+      return e.flows.some(function (f) { return f.id === id; });
+    });
+    if (!edge) return;
+    opener = '.fm-edge[data-key="' + attr(edge.key) + '"]';
+    if (FlowMap.state.selectedEdge === edge.key) return;
+    FlowMap.state.selectedEdge = edge.key;
+    var g = FlowMap.svg.querySelector(opener);
+    if (g) g.classList.add('is-selected');
   }
 
   function init() {
@@ -834,6 +911,7 @@ window.FlowMapPanel = (function () {
     bindPanel();
     bindDialog();
     FlowMap.onTap.push(onTap);
+    FlowMap.onRender.push(keepHighlight);
   }
 
   document.addEventListener('DOMContentLoaded', init);
