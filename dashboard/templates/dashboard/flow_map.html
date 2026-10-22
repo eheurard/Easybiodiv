@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{% translate "Carte des flux" %} — Easybiodiv{% endblock %}
+
+{% block nav_flow_map %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'dashboard/css/flow_map.css' %}">
+{% endblock %}
+
+{% block header_left %}
+{% include "dashboard/_company_combobox.html" %}
+{% endblock header_left %}
+
+{% block content %}
+<div class="flow-map" id="flow-map" data-can-edit="{{ can_edit|yesno:'1,0' }}">
+  <div class="flow-map__toolbar">
+    <h1 class="flow-map__title">{% translate "Carte des flux" %}</h1>
+
+    <form class="flow-map__year" id="flow-map-year-form">
+      <label class="label-caps" for="flow-map-year">{% translate "Année" %}</label>
+      <select class="flow-map__select form-input" id="flow-map-year"></select>
+      <label class="visually-hidden" for="flow-map-year-other">{% translate "Autre année" %}</label>
+      <input type="number" class="flow-map__year-input form-input" id="flow-map-year-other"
+             min="1900" max="2100" step="1" inputmode="numeric"
+             placeholder="{% translate 'Autre année' %}">
+    </form>
+
+    <span class="flow-map__spacer"></span>
+
+    <button type="button" class="flow-map__chip" id="flow-map-hidden-chip" hidden
+            title="{% translate 'Tout réafficher' %}"></button>
+    <button type="button" class="flow-map__tool" id="flow-map-fit"
+            title="{% translate 'Recentrer la carte' %}">{% translate "Recentrer" %}</button>
+  </div>
+
+  <ul class="flow-map__legend" aria-label="{% translate 'Natures de flux' %}">
+    {% for kind in kinds %}
+    <li>
+      <i class="flow-map__swatch flow-map__swatch--{{ kind.value|lower }}" aria-hidden="true"></i>
+      {{ kind.label }}
+    </li>
+    {% endfor %}
+  </ul>
+
+  <div class="flow-map__board" id="flow-map-board">
+    <svg class="flow-map__svg" id="flow-map-svg" role="group"
+         aria-label="{% translate 'Carte des flux de l’entreprise' %}"></svg>
+    <p class="flow-map__empty" id="flow-map-empty" {% if companies %}hidden{% endif %}>
+      {% if not companies %}{% translate "Aucune entreprise n’est encore enregistrée." %}{% endif %}
+    </p>
+    <div class="flow-map__menu" id="flow-map-menu" role="menu" hidden></div>
+  </div>
+  <p class="flow-map__hint">
+    {% blocktranslate trimmed %}
+      Molette : zoom · glisser le fond : déplacer la vue · glisser un bloc : le déplacer
+      pour la session.
+    {% endblocktranslate %}
+  </p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ companies|json_script:"companies-data" }}
+{{ initial_data|json_script:"initial-data" }}
+{{ flow_rules|json_script:"flow-rules" }}
+{{ kinds|json_script:"flow-kinds" }}
+<script>var FLOW_MAP_API_URL = "{% url 'dashboard:flow_map_data' company_pk=0 %}";</script>
+<script src="{% static 'dashboard/js/flow_map_draw.js' %}" defer></script>
+<script src="{% static 'dashboard/js/flow_map.js' %}" defer></script>
+{% endblock %}

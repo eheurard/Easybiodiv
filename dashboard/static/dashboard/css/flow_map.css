@@ -1,0 +1,384 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   CARTE DES FLUX — page dashboard/flow_map.html
+   Dessin SVG produit par js/flow_map_draw.js (classes fm-*), page par
+   js/flow_map.js (classes flow-map__*). Couleurs par nature : maquette validée
+   (spec 2026-10-22 §4.3).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.flow-map {
+  --fm-supply:      #91452d;
+  --fm-consumption: #3d7ea6;
+  --fm-emission:    #7b7366;
+  --fm-waste:       #8a8f3c;
+  --fm-production:  #d08a3a;
+  --fm-env:         #e3ecdf;
+  --fm-env-line:    #6f8f68;
+  --fm-halo:        var(--color-surface-container-lowest);
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+:root[data-theme="dark"] .flow-map {
+  --fm-env:      #243024;
+  --fm-env-line: #8fb087;
+}
+
+/* ── Barre d'outils ───────────────────────────────────────────────────────── */
+.flow-map__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.flow-map__title {
+  margin: 0;
+  font-size: var(--text-headline-md-size);
+  font-weight: var(--text-headline-md-weight);
+  line-height: var(--text-headline-md-lh);
+  color: var(--color-on-surface);
+}
+
+.flow-map__year {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.flow-map__select,
+.flow-map__year-input {
+  padding: 6px 10px;
+}
+
+.flow-map__year-input {
+  width: 9rem;
+}
+
+.flow-map__spacer {
+  flex: 1;
+}
+
+.flow-map__chip,
+.flow-map__tool {
+  font-family: var(--font-family);
+  font-size: var(--text-body-sm-size);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.flow-map__chip {
+  border: 1px solid var(--color-primary);
+  background: var(--tint-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.flow-map__chip[hidden] {
+  display: none;
+}
+
+.flow-map__tool {
+  border: 1px solid var(--color-outline-variant);
+  background: var(--color-surface-container-lowest);
+  color: var(--color-on-surface);
+}
+
+.flow-map__chip:hover,
+.flow-map__tool:hover {
+  border-color: var(--color-primary);
+}
+
+/* ── Légende des natures ──────────────────────────────────────────────────── */
+.flow-map__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+}
+
+.flow-map__swatch {
+  display: inline-block;
+  width: 18px;
+  height: 4px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.flow-map__swatch--supply      { background: var(--fm-supply); }
+.flow-map__swatch--consumption { background: var(--fm-consumption); }
+.flow-map__swatch--emission    { background: var(--fm-emission); }
+.flow-map__swatch--waste       { background: var(--fm-waste); }
+.flow-map__swatch--production  { background: var(--fm-production); }
+
+/* ── Plateau ──────────────────────────────────────────────────────────────── */
+.flow-map__board {
+  position: relative;
+  height: max(420px, calc(100vh - var(--header-height) - 200px));
+  height: max(420px, calc(100dvh - var(--header-height) - 200px));
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  transition: opacity 0.15s ease;
+}
+
+.flow-map__board.is-loading {
+  opacity: 0.6;
+}
+
+.flow-map__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  font-family: var(--font-family);
+}
+
+.flow-map__svg.is-panning {
+  cursor: grabbing;
+}
+
+.flow-map__empty {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  transform: translate(-50%, -50%);
+  max-width: 28rem;
+  margin: 0;
+  padding: 16px 20px;
+  text-align: center;
+  font-size: var(--text-body-md-size);
+  color: var(--color-on-surface-variant);
+  background: var(--scrim-panel);
+  border: 1px dashed var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+}
+
+.flow-map__empty[hidden] {
+  display: none;
+}
+
+.flow-map__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+}
+
+/* ── Menu « ⋯ » d'un bloc ─────────────────────────────────────────────────── */
+.flow-map__menu {
+  position: absolute;
+  z-index: 10;
+  min-width: 10rem;
+  padding: 4px;
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+}
+
+.flow-map__menu[hidden] {
+  display: none;
+}
+
+.flow-map__menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-on-surface);
+  font-family: var(--font-family);
+  font-size: var(--text-body-sm-size);
+  text-align: left;
+  cursor: pointer;
+}
+
+.flow-map__menu-item:hover,
+.flow-map__menu-item:focus-visible {
+  background: var(--color-surface-container-high);
+  outline: none;
+}
+
+/* ── Bandeau du milieu ────────────────────────────────────────────────────── */
+.fm-band__rect {
+  fill: var(--fm-env);
+  stroke: var(--fm-env-line);
+  stroke-dasharray: 4 4;
+}
+
+.fm-band__label {
+  fill: var(--fm-env-line);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ── Courbes ──────────────────────────────────────────────────────────────── */
+.fm-edge--supply      { --fm-kind: var(--fm-supply); }
+.fm-edge--consumption { --fm-kind: var(--fm-consumption); }
+.fm-edge--emission    { --fm-kind: var(--fm-emission); }
+.fm-edge--waste       { --fm-kind: var(--fm-waste); }
+.fm-edge--production  { --fm-kind: var(--fm-production); }
+
+.fm-edge__hit {
+  fill: none;
+  stroke: transparent;
+  pointer-events: stroke;
+}
+
+.fm-edge__line {
+  fill: none;
+  stroke: var(--fm-kind);
+  stroke-opacity: 0.75;
+  stroke-linecap: butt;
+}
+
+.fm-edge__arrow {
+  fill: var(--fm-kind);
+  fill-opacity: 0.9;
+}
+
+.fm-edge__label {
+  fill: var(--fm-kind);
+  font-size: 11px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--fm-halo);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.fm-edge:hover .fm-edge__line,
+.fm-edge.is-selected .fm-edge__line {
+  stroke-opacity: 1;
+}
+
+.fm-edge.is-selected .fm-edge__hit {
+  stroke: var(--fm-kind);
+  stroke-opacity: 0.18;
+}
+
+/* ── Blocs ────────────────────────────────────────────────────────────────── */
+.fm-block {
+  cursor: pointer;
+}
+
+.flow-map__svg.is-dragging .fm-block {
+  cursor: grabbing;
+}
+
+.fm-block__card,
+.fm-block__stack {
+  fill: var(--color-surface-container-lowest);
+  stroke: var(--color-outline-variant);
+  stroke-width: 1;
+}
+
+.fm-block.is-owned .fm-block__card,
+.fm-block.is-owned .fm-block__stack {
+  fill: var(--tint-primary);
+}
+
+.fm-block.is-owned .fm-block__card {
+  stroke: var(--color-primary-container);
+}
+
+.fm-block.is-focus .fm-block__card {
+  stroke: var(--color-primary);
+  stroke-width: 2;
+}
+
+.fm-block--unknown .fm-block__card {
+  fill: var(--color-surface-container-low);
+  stroke: var(--color-outline);
+  stroke-dasharray: 5 4;
+}
+
+.fm-block__type {
+  fill: var(--color-on-surface-variant);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.fm-block__name {
+  fill: var(--color-on-surface);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.fm-block--unknown .fm-block__name {
+  fill: var(--color-outline);
+}
+
+.fm-block__toggle {
+  fill: var(--color-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.fm-block:focus-visible .fm-block__card,
+.fm-frame:focus-visible .fm-frame__rect {
+  stroke: var(--color-primary);
+  stroke-width: 3;
+}
+
+.fm-block:focus,
+.fm-frame:focus,
+.fm-block__menu:focus {
+  outline: none;
+}
+
+.fm-block__menu circle {
+  fill: transparent;
+  stroke: transparent;
+}
+
+.fm-block__menu text {
+  fill: var(--color-on-surface-variant);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.fm-block__menu:hover circle,
+.fm-block__menu:focus-visible circle {
+  fill: var(--color-surface-container-high);
+  stroke: var(--color-outline-variant);
+}
+
+/* ── Groupe déplié ────────────────────────────────────────────────────────── */
+.fm-frame {
+  cursor: pointer;
+}
+
+.fm-frame__rect {
+  fill: var(--color-surface-container-low);
+  fill-opacity: 0.6;
+  stroke: var(--color-outline);
+  stroke-dasharray: 6 4;
+}
+
+.fm-frame.is-owned .fm-frame__rect {
+  stroke: var(--color-primary-container);
+}
+
+.fm-frame__label {
+  fill: var(--color-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Lien du pied de barre latérale, page en cours. */
+.sidebar__footer-link.active {
+  box-shadow: inset 0 0 0 2px var(--color-on-primary);
+}

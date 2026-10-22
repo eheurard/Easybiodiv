@@ -1,17 +1,22 @@
-"""Écriture des flux depuis la carte interactive (JSON, Créateurs uniquement)."""
+"""Carte interactive des flux : page en lecture, données JSON et écritures
+(Créateurs uniquement)."""
 import json
 
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
 from django.utils.translation import gettext as _
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .decorators import creator_required_json
 from .forms import (
     AssetGroupForm, AssetQuickForm, CommodityQuickForm, CompanyQuickForm, FlowMapFlowForm,
     OwnershipQuickForm,
 )
-from .models import Asset, AssetGroup, Commodity, Company, Country, Flow, SubnationalRegion
-from .services.flow_map import endpoint_fields, unlink, unlink_preview
+from .models import (
+    FLOW_RULES, Asset, AssetGroup, Commodity, Company, Country, Flow, FlowKind,
+    SubnationalRegion,
+)
+from .services.flow_map import build_flow_map, endpoint_fields, unlink, unlink_preview
 
 ENDPOINT_FIELDS = [
     f'{side}_{suffix}'
@@ -19,6 +24,53 @@ ENDPOINT_FIELDS = [
     for suffix in ('asset', 'region', 'country', 'company', 'environment')
 ]
 
+
+# ── Page et données de la carte ──────────────────────────────────────────────
+
+def _flow_rules():
+    """FLOW_RULES sérialisable : {nature: {'origins': [...], 'destinations': [...]}},
+    une extrémité inconnue valant None (null en JSON)."""
+    return {
+        kind: {'origins': list(rule.origins), 'destinations': list(rule.destinations)}
+        for kind, rule in FLOW_RULES.items()
+    }
+
+
+@require_GET
+def flow_map(request):
+    """Page Carte des flux, ouverte sur la première entreprise (le JS recharge
+    l'entreprise mémorisée si elle diffère)."""
+    user = request.user
+    companies = list(Company.objects.order_by('name').values('id', 'name'))
+    initial_data = None
+    if companies:
+        first = Company.objects.get(pk=companies[0]['id'])
+        initial_data = build_flow_map(first, None, user)
+    return render(request, 'dashboard/flow_map.html', {
+        'companies': companies,
+        'initial_data': initial_data,
+        'flow_rules': _flow_rules(),
+        'kinds': [{'value': value, 'label': str(label)} for value, label in FlowKind.choices],
+        'can_edit': bool(user.is_authenticated and user.role == 'CREATOR'),
+    })
+
+
+@require_GET
+def flow_map_data(request, company_pk):
+    """Données de la carte pour une entreprise et `?year=` (absent : année par défaut)."""
+    company = get_object_or_404(Company, pk=company_pk)
+    year = request.GET.get('year')
+    if year in (None, ''):
+        year = None
+    else:
+        try:
+            year = int(year)
+        except ValueError:
+            return JsonResponse({'errors': {'year': [_('Année invalide.')]}}, status=400)
+    return JsonResponse(build_flow_map(company, year, request.user))
+
+
+# ── Écriture des flux ────────────────────────────────────────────────────────
 
 def _error(message, status=400):
     return JsonResponse({'errors': {'__all__': [str(message)]}}, status=status)

@@ -717,3 +717,75 @@ class MapApiTests(TestCase):
                 self.assertEqual(self._post(name, {}, *args).status_code, 403)
         url = reverse('dashboard:flow_map_unlink', args=[self.acme.pk])
         self.assertEqual(self.client.post(url + '?year=2024&block=company:1').status_code, 403)
+
+
+class FlowMapPageTests(TestCase):
+    def setUp(self):
+        self.acme = Company.objects.create(name='Acme')
+        self.cargill = Company.objects.create(name='Cargill')
+        self.soja = Commodity.objects.create(name='Soja', unit='t')
+        for year in (2023, 2024):
+            make_supply(what=self.soja, year=year, quantity=5,
+                        origin=self.cargill, destination=self.acme)
+
+    def test_page_renders_with_initial_data(self):
+        r = self.client.get(reverse('dashboard:flow_map'))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'id="flow-rules"')
+        self.assertContains(r, 'flow_map.js')
+        self.assertEqual(r.context['companies'][0], {'id': self.acme.pk, 'name': 'Acme'})
+        self.assertEqual(r.context['initial_data']['company']['id'], self.acme.pk)
+        self.assertEqual(r.context['initial_data']['year'], 2024)
+        self.assertFalse(r.context['can_edit'])
+
+    def test_page_context_rules_and_kinds(self):
+        r = self.client.get(reverse('dashboard:flow_map'))
+        rules = r.context['flow_rules']
+        self.assertEqual(set(rules), set(FLOW_RULES))
+        self.assertEqual(rules['PRODUCTION'], {
+            'origins': ['asset', 'company'], 'destinations': [None]})
+        self.assertIn(None, rules['CONSUMPTION']['origins'])
+        json.dumps(rules)
+        kinds = r.context['kinds']
+        self.assertEqual([k['value'] for k in kinds], list(FlowKind.values))
+        self.assertTrue(all(isinstance(k['label'], str) for k in kinds))
+        self.assertContains(r, '"destinations": [null]')
+
+    def test_page_can_edit_for_creator(self):
+        User = get_user_model()
+        self.client.force_login(User.objects.create_user('c', password='pw', role='CREATOR'))
+        r = self.client.get(reverse('dashboard:flow_map'))
+        self.assertTrue(r.context['can_edit'])
+
+    def test_page_without_company(self):
+        Flow.objects.all().delete()
+        Company.objects.all().delete()
+        r = self.client.get(reverse('dashboard:flow_map'))
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNone(r.context['initial_data'])
+        self.assertEqual(r.context['companies'], [])
+
+    def test_data_endpoint_uses_year(self):
+        r = self.client.get(reverse('dashboard:flow_map_data', args=[self.acme.pk]),
+                            {'year': 2023})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['year'], 2023)
+        self.assertEqual(r.json()['company'], {'id': self.acme.pk, 'name': 'Acme'})
+
+    def test_data_endpoint_default_year(self):
+        r = self.client.get(reverse('dashboard:flow_map_data', args=[self.acme.pk]))
+        self.assertEqual(r.json()['year'], 2024)
+
+    def test_data_endpoint_rejects_bad_year(self):
+        r = self.client.get(reverse('dashboard:flow_map_data', args=[self.acme.pk]),
+                            {'year': 'abc'})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('year', r.json()['errors'])
+
+    def test_data_endpoint_unknown_company(self):
+        r = self.client.get(reverse('dashboard:flow_map_data', args=[999999]))
+        self.assertEqual(r.status_code, 404)
+
+    def test_sidebar_links_to_flow_map(self):
+        r = self.client.get(reverse('dashboard:index'))
+        self.assertContains(r, reverse('dashboard:flow_map'))
