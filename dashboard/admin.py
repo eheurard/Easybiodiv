@@ -1,5 +1,9 @@
 from django.contrib import admin
+from django.core.exceptions import ValidationError
+from django.forms.models import BaseInlineFormSet
+
 from .models import (
+    ASSET_GROUP_DUPLICATE_MESSAGE as DUPLICATE_MEMBER_MESSAGE,
     Country, SubnationalRegion, Commodity, Sector, SubSector,
     Asset, AssetGroup, AssetGroupMember, Company, Ownership,
     Company_Revenue, Company_Revenue_Sector,
@@ -87,8 +91,32 @@ class OwnershipAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
+class AssetGroupMemberFormSet(BaseInlineFormSet):
+    """Le champ `company` n'est pas dans l'inline : la contrainte (company, asset) n'est
+    donc pas validée par Django. On la contrôle ici."""
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        company_id = self.instance.company_id
+        seen = set()
+        for form in self.forms:
+            data = getattr(form, 'cleaned_data', None)
+            if not data or data.get('DELETE') or not data.get('asset'):
+                continue
+            asset = data['asset']
+            taken = AssetGroupMember.objects.filter(company_id=company_id, asset=asset)
+            if self.instance.pk:
+                taken = taken.exclude(group=self.instance)
+            if asset.pk in seen or taken.exists():
+                raise ValidationError(DUPLICATE_MEMBER_MESSAGE)
+            seen.add(asset.pk)
+
+
 class AssetGroupMemberInline(admin.TabularInline):
     model = AssetGroupMember
+    formset = AssetGroupMemberFormSet
     fields = ('asset',)
     autocomplete_fields = ('asset',)
     extra = 0
@@ -101,6 +129,12 @@ class AssetGroupAdmin(admin.ModelAdmin):
     autocomplete_fields = ('company',)
     exclude = ('created_by',)
     inlines = [AssetGroupMemberInline]
+
+    def get_readonly_fields(self, request, obj=None):
+        # Les membres recopient la société du groupe : on ne la change plus après création.
+        if obj is not None:
+            return (*super().get_readonly_fields(request, obj), 'company')
+        return super().get_readonly_fields(request, obj)
 
     def save_model(self, request, obj, form, change):
         if not change and obj.created_by_id is None:

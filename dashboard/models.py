@@ -721,6 +721,9 @@ class Ownership(models.Model):
         return f'{(Decimal(self.share) * 100).normalize():f}%'
 
 
+ASSET_GROUP_DUPLICATE_MESSAGE = "Cet actif appartient déjà à un groupe de cette entreprise."
+
+
 class AssetGroup(models.Model):
     """Regroupement d'actifs d'une entreprise, affiché comme un seul bloc sur la carte
     des flux."""
@@ -773,9 +776,7 @@ class AssetGroupMember(models.Model):
             models.UniqueConstraint(
                 fields=['company', 'asset'],
                 name='asset_group_member_one_group_per_company',
-                violation_error_message=(
-                    "Cet actif appartient déjà à un groupe de cette entreprise."
-                ),
+                violation_error_message=ASSET_GROUP_DUPLICATE_MESSAGE,
             ),
         ]
 
