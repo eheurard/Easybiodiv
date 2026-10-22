@@ -10,8 +10,9 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from .models import (
-    ENDPOINT_COMPANY, FLOW_RULES, SUPPLY_SELF_LOOP_MESSAGE, Asset, AssetGroup, AssetGroupMember, Commodity, Company, Country, Flow,
-    FlowKind, Ownership, SubnationalRegion,
+    ENDPOINT_COMPANY, FLOW_RULES, SUPPLY_SELF_LOOP_MESSAGE, Asset, AssetGroup,
+    AssetGroupMember, Commodity, Company, Country, Flow, FlowKind, Ownership,
+    SubnationalRegion,
 )
 from .services.flow_map import (
     assign_columns, build_flow_map, endpoint_fields, endpoint_key, parse_key, unlink,
@@ -512,7 +513,7 @@ class FlowWriteApiTests(TestCase):
         self.assertEqual(Flow.objects.get(pk=r.json()['id']).quantity, 12400.5)
 
     def test_create_rejects_bad_quantity_and_keys(self):
-        for quantity in ('abc', 0, -3, None):
+        for quantity in ('abc', 0, -3, None, '1_000'):
             r = self._post('dashboard:flow_map_flow_create', self._supply(quantity=quantity))
             self.assertEqual(r.status_code, 400)
             self.assertIn('quantity', r.json()['errors'])

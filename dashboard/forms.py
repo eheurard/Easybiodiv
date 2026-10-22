@@ -96,8 +96,10 @@ class FlowMapFlowForm(forms.ModelForm):
 
     def clean_quantity(self):
         raw = str(self.cleaned_data['quantity'])
-        text = ''.join(raw.split()).replace(' ', '').replace(' ', '')
+        text = ''.join(raw.split())
         try:
+            if '_' in text:
+                raise ValueError(text)
             value = float(text.replace(',', '.'))
         except ValueError:
             raise forms.ValidationError(_('Quantité invalide.'))

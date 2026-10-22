@@ -61,13 +61,15 @@ def _get_flow(pk):
         return None
 
 
-def _save(form):
-    if not form.is_valid():
-        return JsonResponse({'errors': {
+def _form_errors(form):
+    """Réponse 400 si le formulaire est invalide, sinon None."""
+    if form.is_valid():
+        return None
+    errors = {
         field: [str(message) for message in messages]
         for field, messages in form.errors.items()
-    }}, status=400)
-    return None
+    }
+    return JsonResponse({'errors': errors}, status=400)
 
 
 @require_POST
@@ -83,7 +85,7 @@ def flow_map_flow_create(request):
     except (ValueError, TypeError):
         return _error(_('Extrémité de flux invalide.'))
     form = FlowMapFlowForm(_form_data(payload, endpoints))
-    refused = _save(form)
+    refused = _form_errors(form)
     if refused:
         return refused
     flow = form.save(commit=False)
@@ -103,7 +105,7 @@ def flow_map_flow_update(request, pk):
         return _error(_('JSON invalide'))
     endpoints = {name: getattr(flow, _attname(name)) for name in ENDPOINT_FIELDS}
     form = FlowMapFlowForm(_form_data(payload, endpoints), instance=flow)
-    refused = _save(form)
+    refused = _form_errors(form)
     if refused:
         return refused
     form.save()
