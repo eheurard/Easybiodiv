@@ -27,7 +27,9 @@ window.FlowMapBlocks = (function () {
   var country = null;        // pays choisi pour un nouvel actif {id, name}
   var region = null;         // région choisie (facultative)
   var opener = null;         // sélecteur (ou élément) à refocaliser à la fermeture
-  var busy = false;
+  var busy = false;          // écriture en cours : boutons désactivés jusqu'à sa fin
+  var panelSeq = 0;          // numéro du panneau ouvert ; une réponse arrivée après
+                             // sa fermeture (ou sa réouverture) ne le modifie pas
   var pendingReveal = null;  // clé du bloc à montrer après le rechargement
   var refocusMap = false;
   var minimap = null;
@@ -35,13 +37,8 @@ window.FlowMapBlocks = (function () {
   var combos = {};
 
   // ── Utilitaires ──────────────────────────────────────────────────────────
-  function idUrl(template, id) {
-    return template.replace('/0/', '/' + id + '/');
-  }
-
-  function attr(value) {
-    return window.CSS && CSS.escape ? CSS.escape(value) : value;
-  }
+  var idUrl = FlowMapUI.idUrl;
+  var attr = FlowMapUI.cssEscape;
 
   function notice(message) {
     FlowMapPanel.notice(message);
@@ -121,8 +118,9 @@ window.FlowMapBlocks = (function () {
   // ── Panneau ──────────────────────────────────────────────────────────────
   function showPanel(which, title, focusTarget) {
     document.dispatchEvent(new CustomEvent('flowmap:panelopen', { detail: { panel: 'block' } }));
+    panelSeq += 1;
     mode = which;
-    setBusy(false);
+    setBusy(busy);   // une écriture d'un panneau précédent peut être encore en route
     els.title.textContent = title;
     els.addForm.hidden = which !== 'add';
     els.groupForm.hidden = which !== 'group';
@@ -142,6 +140,7 @@ window.FlowMapBlocks = (function () {
     var active = document.activeElement;
     var hadFocus = !active || active === document.body || els.panel.contains(active);
     els.panel.hidden = true;
+    panelSeq += 1;
     Object.keys(combos).forEach(function (k) { combos[k].cancel(); });
     mode = null;
     add = null;
@@ -253,15 +252,15 @@ window.FlowMapBlocks = (function () {
     if (add.type === 'asset' && els.ownCheck.checked) {
       share = decimal(els.ownShare.value);
       if (!(share > 0 && share <= 100)) {
-        showErrors('fm-own', { share: [gettext('Indiquez une part entre 0 et 100 %.')] },
-          { share: els.ownShare });
+        showErrors('fm-add', { share: [gettext('Indiquez une part entre 0 et 100 %.')] },
+          { share: els.ownShare }, { share: 'fm-own' });
         return;
       }
     }
+    var seq = panelSeq;
     if (add.creating) {
-      var pending = add;
-      (add.type === 'company' ? createCompany() : createAsset()).then(function (item) {
-        if (item && add === pending) place(item, share);   // panneau resté ouvert
+      (add.type === 'company' ? createCompany(seq) : createAsset(seq)).then(function (item) {
+        if (item && seq === panelSeq) place(item, share, seq);   // panneau resté ouvert
       });
       return;
     }
@@ -272,13 +271,18 @@ window.FlowMapBlocks = (function () {
       showErrors('fm-add', { search: [message] }, { search: els.search });
       return;
     }
-    place(add.item, share);
+    place(add.item, share, seq);
   }
 
   // Création réussie : l'élément devient le choix de la recherche, une nouvelle
   // tentative (détention refusée…) ne le recrée pas.
-  function created(item) {
-    if (!add) return null;
+  function created(item, seq) {
+    if (seq !== panelSeq) {
+      // Panneau fermé entre-temps : l'élément existe, il se retrouve par la recherche.
+      notice(interpolate(gettext('« %(name)s » a été créé ; recherchez-le pour l’ajouter.'),
+        { name: item.name }, true));
+      return null;
+    }
     add.item = item;
     els.search.value = item.name;
     stopCreate();
@@ -294,29 +298,32 @@ window.FlowMapBlocks = (function () {
     return { __all__: [gettext('Erreur inattendue du serveur.')] };
   }
 
-  function unexpected(prefix) {
+  function unexpected(prefix, seq) {
     return function (err) {
       console.error('flow_map block write failed:', err);
-      showErrors(prefix, { __all__: [gettext('Le serveur est injoignable. Réessayez.')] }, {});
+      var message = gettext('Le serveur est injoignable. Réessayez.');
+      if (seq === panelSeq) showErrors(prefix, { __all__: [message] }, {});
+      else notice(message);
       return null;
     };
   }
 
-  function createCompany() {
+  function createCompany(seq) {
     return write(urls.companyCreate, {
       name: els.companyName.value.trim(),
       isin: els.companyIsin.value.trim(),
       ticker: els.companyTicker.value.trim(),
     }).then(function (res) {
-      if (res.ok) return created(res.data);
+      if (res.ok) return created(res.data, seq);
+      if (seq !== panelSeq) return null;
       showErrors('fm-add', res.data.errors || serverError(), {
         name: els.companyName, isin: els.companyIsin, ticker: els.companyTicker,
       }, { name: 'fm-company', isin: 'fm-company', ticker: 'fm-company' });
       return null;
-    }).catch(unexpected('fm-add'));
+    }).catch(unexpected('fm-add', seq));
   }
 
-  function createAsset() {
+  function createAsset(seq) {
     var inputs = {
       name: els.assetName, country: els.assetCountry, subnational_region: els.assetRegion,
       type: els.assetType, latitude: els.assetLat, longitude: els.assetLng,
@@ -342,10 +349,11 @@ window.FlowMapBlocks = (function () {
       latitude: coordinate(els.assetLat.value),
       longitude: coordinate(els.assetLng.value),
     }).then(function (res) {
-      if (res.ok) return created(res.data);
+      if (res.ok) return created(res.data, seq);
+      if (seq !== panelSeq) return null;
       showErrors('fm-add', res.data.errors || serverError(), inputs, prefixes);
       return null;
-    }).catch(unexpected('fm-add'));
+    }).catch(unexpected('fm-add', seq));
   }
 
   // Coordonnée saisie (virgule française acceptée) ; texte brut si illisible,
@@ -355,7 +363,7 @@ window.FlowMapBlocks = (function () {
     return isNaN(value) ? String(text).trim() : value;
   }
 
-  function place(item, share) {
+  function place(item, share, seq) {
     var model = FlowMap.model();
     if (!model) return;
     var key = add.type + ':' + item.id;
@@ -367,7 +375,7 @@ window.FlowMapBlocks = (function () {
         FlowMap.reveal(key);
         return;
       }
-      own(item, share / 100, model);
+      own(item, share / 100, model, seq);
       return;
     }
     var name = item.name;
@@ -382,7 +390,7 @@ window.FlowMapBlocks = (function () {
     }
   }
 
-  function own(item, share, model) {
+  function own(item, share, model, seq) {
     write(urls.ownershipCreate, {
       company_id: model.company.id,
       asset_id: item.id,
@@ -390,16 +398,21 @@ window.FlowMapBlocks = (function () {
       year: model.year,
     }).then(function (res) {
       if (!res.ok) {
+        if (seq !== panelSeq) {
+          notice(firstError(res.data, gettext('Erreur inattendue du serveur.')));
+          return;
+        }
         // part : sous le champ ; entreprise, actif, année, chevauchement : en tête.
         showErrors('fm-add', res.data.errors || serverError(),
           { share: els.ownShare }, { share: 'fm-own' });
         return;
       }
       pendingReveal = 'asset:' + item.id;
-      finish(interpolate(gettext('« %(name)s » ajouté au périmètre de %(company)s.'),
-        { name: item.name, company: model.company.name }, true));
+      var message = interpolate(gettext('« %(name)s » ajouté au périmètre de %(company)s.'),
+        { name: item.name, company: model.company.name }, true);
+      if (seq === panelSeq) finish(message); else notice(message);
       changed();
-    }).catch(unexpected('fm-add'));
+    }).catch(unexpected('fm-add', seq));
   }
 
   function finish(message) {
@@ -535,20 +548,21 @@ window.FlowMapBlocks = (function () {
     var kept = keptMembers(model);
     els.groupKept.hidden = !kept.length;
     els.groupKept.textContent = interpolate(ngettext(
-      '%(n)s autre actif du groupe, absent de la carte en %(year)s, est conservé.',
-      '%(n)s autres actifs du groupe, absents de la carte en %(year)s, sont conservés.',
-      kept.length), { n: kept.length, year: String(model.year) }, true);
+      '%(n)s autre actif du groupe, hors de cette liste, est conservé.',
+      '%(n)s autres actifs du groupe, hors de cette liste, sont conservés.',
+      kept.length), { n: kept.length.toLocaleString(APP_LOCALE) }, true);
   }
 
-  // Membres du groupe modifié qui ne sont pas sur la carte : renvoyés tels quels.
+  // Membres du groupe modifié absents de la liste à cocher (hors de la carte cette
+  // année, ou blocs de session) : renvoyés tels quels.
   function keptMembers(model) {
     if (!group) return [];
-    var onMap = new Set(model.blocks.map(function (b) { return b.key; }));
-    return (group.all_members || group.members).filter(function (k) { return !onMap.has(k); });
+    var listed = new Set(mapAssets(model).map(function (b) { return b.key; }));
+    return (group.all_members || group.members).filter(function (k) { return !listed.has(k); });
   }
 
   function fold(text) {
-    return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   }
 
   function filterMembers() {
@@ -566,28 +580,45 @@ window.FlowMapBlocks = (function () {
     var members = Array.prototype.map.call(
       els.members.querySelectorAll('input:checked'), function (i) { return Number(i.value); });
     keptMembers(model).forEach(function (k) { members.push(Number(k.split(':')[1])); });
-    var inputs = { name: els.groupName, members: els.groupFilter };
+    var inputs = { name: els.groupName };
     if (!members.length) {
-      showErrors('fm-group', { members: [gettext('Cochez au moins un actif.')] }, inputs);
+      groupErrors({ members: [gettext('Cochez au moins un actif.')] }, inputs);
       return;
     }
+    var seq = panelSeq;
     var editing = group;
     var url = editing ? idUrl(urls.groupUpdate, editing.id)
       : idUrl(urls.groupCreate, model.company.id);
     write(url, { name: els.groupName.value.trim(), members: members }).then(function (res) {
+      var open = seq === panelSeq;
       if (res.status === 404) {
-        finish(firstError(res.data, gettext('Ce groupe n’existe plus.')));
+        var gone = firstError(res.data, gettext('Ce groupe n’existe plus.'));
+        if (open) finish(gone); else notice(gone);
         changed();
         return;
       }
       if (!res.ok) {
-        showErrors('fm-group', res.data.errors || serverError(), inputs);
+        if (open) groupErrors(res.data.errors || serverError(), inputs);
+        else notice(firstError(res.data, gettext('Erreur inattendue du serveur.')));
         return;
       }
       pendingReveal = 'group:' + res.data.id;
-      finish(editing ? gettext('Groupe enregistré.') : gettext('Groupe créé.'));
+      var message = editing ? gettext('Groupe enregistré.') : gettext('Groupe créé.');
+      if (open) finish(message); else notice(message);
       changed();
-    }).catch(unexpected('fm-group'));
+    }).catch(unexpected('fm-group', seq));
+  }
+
+  // Une erreur sur les membres marque la liste (fieldset) et donne le focus à sa
+  // première case disponible, sauf si le nom, plus haut, est déjà en erreur.
+  function groupErrors(errors, inputs) {
+    showErrors('fm-group', errors, inputs);
+    if (!errors.members) return;
+    els.membersField.setAttribute('aria-invalid', 'true');
+    if (errors.name) return;
+    var box = els.members.querySelector('.fm-member:not([hidden]) input:not(:disabled)')
+      || els.groupFilter;
+    box.focus();
   }
 
   function deleteGroup(target) {
@@ -831,6 +862,7 @@ window.FlowMapBlocks = (function () {
       groupName: $('fm-group-name'),
       groupFilter: $('fm-group-filter'),
       members: $('fm-group-members'),
+      membersField: $('fm-group-members-field'),
       groupKept: $('fm-group-kept'),
       groupSave: $('fm-group-save'),
       groupCancel: $('fm-group-cancel'),

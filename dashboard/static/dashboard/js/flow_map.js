@@ -89,7 +89,7 @@ window.FlowMap = (function () {
   // pas remplacer la carte demandée ensuite. `keepView` garde le cadrage (après
   // une écriture) ; sinon la carte est recadrée.
   function load(companyId, year, keepView) {
-    var url = FLOW_MAP_API_URL.replace('/0/', '/' + companyId + '/');
+    var url = FlowMapUI.idUrl(FLOW_MAP_API_URL, companyId);
     if (year !== null && year !== undefined) url += '?year=' + encodeURIComponent(year);
     if (pending) pending.abort();
     var controller = new AbortController();
@@ -232,17 +232,13 @@ window.FlowMap = (function () {
       view.y = node.y + h / 2 - view.height / 2;
       applyView();
     }
-    var g = els.svg.querySelector('.fm-block[data-key="' + cssKey(key) + '"]');
+    var g = els.svg.querySelector('.fm-block[data-key="' + FlowMapUI.cssEscape(key) + '"]');
     if (!g) return false;
     g.classList.add('is-flash');
     setTimeout(function () { g.classList.remove('is-flash'); }, FLASH_MS);
-    var target = g.querySelector('.fm-block__menu') || (g.hasAttribute('tabindex') ? g : null);
-    if (target) target.focus({ preventScroll: true });
+    var focusEl = g.querySelector('.fm-block__menu') || (g.hasAttribute('tabindex') ? g : null);
+    if (focusEl) focusEl.focus({ preventScroll: true });
     return true;
-  }
-
-  function cssKey(key) {
-    return window.CSS && CSS.escape ? CSS.escape(key) : key;
   }
 
   // ── Dessin ───────────────────────────────────────────────────────────────

@@ -674,6 +674,25 @@ class MapApiTests(TestCase):
             self._post('dashboard:flow_map_group_update',
                        {'name': 'x', 'members': []}, group.pk).status_code, 404)
 
+    def test_group_update_keeps_members_absent_from_displayed_map(self):
+        # Vevey n'est plus détenu en 2024 : hors de la carte, mais toujours membre.
+        Ownership.objects.create(asset=self.vevey, company=self.acme, share=1,
+                                 start_year=2020, end_year=2022)
+        Ownership.objects.create(asset=self.bale, company=self.acme, share=1,
+                                 start_year=2020, end_year=None)
+        group = AssetGroup.objects.create(name='Suisse', company=self.acme)
+        group.set_members([self.vevey.pk, self.bale.pk])
+        data = build_flow_map(self.acme, 2024, self.creator)
+        self.assertEqual(data['groups'][0]['members'], [f'asset:{self.bale.pk}'])
+        self.assertEqual(data['groups'][0]['all_members'],
+                         [f'asset:{self.vevey.pk}', f'asset:{self.bale.pk}'])
+        # Le JS renvoie les cases cochées plus les membres conservés hors carte.
+        r = self._post('dashboard:flow_map_group_update',
+                       {'name': 'CH', 'members': [self.bale.pk, self.vevey.pk]}, group.pk)
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertEqual(sorted(group.members.values_list('asset_id', flat=True)),
+                         sorted([self.vevey.pk, self.bale.pk]))
+
     def test_group_refuses_asset_of_another_group(self):
         first = AssetGroup.objects.create(name='A', company=self.acme)
         first.set_members([self.vevey.pk])

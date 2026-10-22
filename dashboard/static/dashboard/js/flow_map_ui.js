@@ -1,8 +1,10 @@
 'use strict';
 
-// Outils partagés par les panneaux de saisie de la carte des flux (Créateurs) :
-// écriture JSON et liste de recherche serveur (flow_map_search).
+// Outils partagés par les scripts de la carte des flux : URL et sélecteurs (tous
+// les visiteurs), écriture JSON et liste de recherche serveur (Créateurs).
 //
+//   FlowMapUI.idUrl(template, id)  remplace le « /0/ » d'une URL {% url … pk=0 %}
+//   FlowMapUI.cssEscape(value)     valeur sûre dans un sélecteur [data-key="…"]
 //   FlowMapUI.post(url, payload) -> Promise<{ok, status, data}>
 //   FlowMapUI.getJson(url)       -> Promise<{ok, status, data}>
 //   FlowMapUI.combobox(opts)     -> {hide(), cancel(), set(changes)}
@@ -20,6 +22,14 @@
 window.FlowMapUI = (function () {
   var SEARCH_MIN = 2;
   var SEARCH_DELAY = 200;
+
+  function idUrl(template, id) {
+    return template.replace('/0/', '/' + id + '/');
+  }
+
+  function cssEscape(value) {
+    return window.CSS && CSS.escape ? CSS.escape(value) : value;
+  }
 
   function getCookie(name) {
     var match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
@@ -182,5 +192,7 @@ window.FlowMapUI = (function () {
     return { hide: hide, cancel: cancel, set: set };
   }
 
-  return { post: post, getJson: getJson, combobox: combobox };
+  return {
+    idUrl: idUrl, cssEscape: cssEscape, post: post, getJson: getJson, combobox: combobox,
+  };
 })();

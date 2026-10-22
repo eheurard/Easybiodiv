@@ -45,13 +45,8 @@ window.FlowMapPanel = (function () {
     return FlowMapUI.post(url, payload);
   }
 
-  function idUrl(template, id) {
-    return template.replace('/0/', '/' + id + '/');
-  }
-
-  function attr(value) {
-    return window.CSS && CSS.escape ? CSS.escape(value) : value;
-  }
+  var idUrl = FlowMapUI.idUrl;
+  var attr = FlowMapUI.cssEscape;
 
   function changed() {
     document.dispatchEvent(new CustomEvent('flowmap:changed'));

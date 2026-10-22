@@ -120,6 +120,7 @@
 {{ flow_rules|json_script:"flow-rules" }}
 {{ kinds|json_script:"flow-kinds" }}
 <script>var FLOW_MAP_API_URL = "{% url 'dashboard:flow_map_data' company_pk=0 %}";</script>
+<script src="{% static 'dashboard/js/flow_map_ui.js' %}" defer></script>
 <script src="{% static 'dashboard/js/flow_map_draw.js' %}" defer></script>
 <script src="{% static 'dashboard/js/flow_map.js' %}" defer></script>
 {% if can_edit %}
@@ -140,7 +141,6 @@
   };
 </script>
 <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js" defer></script>
-<script src="{% static 'dashboard/js/flow_map_ui.js' %}" defer></script>
 <script src="{% static 'dashboard/js/flow_map_panel.js' %}" defer></script>
 <script src="{% static 'dashboard/js/flow_map_blocks.js' %}" defer></script>
 {% endif %}
