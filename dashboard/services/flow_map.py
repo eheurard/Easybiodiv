@@ -190,23 +190,24 @@ def _perimeter_blocks(company, year, flows):
 
 def _present_groups(company, blocks):
     """Groupes de l'entreprise ayant au moins un membre parmi les blocs, avec
-    ces membres seulement ; marque le groupe de chaque bloc membre."""
+    ces membres (`members`) et tous les membres du groupe (`all_members`, pour
+    que l'édition du groupe conserve ceux absents de la carte) ; marque le
+    groupe de chaque bloc membre."""
     groups = []
     for group in company.asset_groups.prefetch_related('members').order_by('pk'):
         group_key = f'{GROUP_TYPE}:{group.pk}'
-        members = [
-            key for key in (
-                f'{ENDPOINT_ASSET}:{asset_id}'
-                for asset_id in sorted(member.asset_id for member in group.members.all())
-            )
-            if key in blocks
+        all_members = [
+            f'{ENDPOINT_ASSET}:{asset_id}'
+            for asset_id in sorted(member.asset_id for member in group.members.all())
         ]
+        members = [key for key in all_members if key in blocks]
         if not members:
             continue
         for key in members:
             blocks[key]['group'] = group_key
         groups.append({
             'key': group_key, 'id': group.pk, 'name': group.name, 'members': members,
+            'all_members': all_members,
             'owned': any(blocks[key]['owned'] for key in members), 'column': 0,
         })
     return groups

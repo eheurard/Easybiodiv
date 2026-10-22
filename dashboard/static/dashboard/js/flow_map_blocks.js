@@ -1,0 +1,848 @@
+'use strict';
+
+// Blocs et groupes de la carte des flux (spec 2026-10-22 §5.3–§5.5, §6.2),
+// Créateurs seulement.
+//
+//   Barre d'outils « + Pays / Région / Entreprise / Actif » : recherche serveur
+//   (et création pour une entreprise ou un actif). Un actif « détenu par E »
+//   crée une détention (part en %, à partir de l'année affichée) ; sinon le bloc
+//   n'existe que pour la session (FlowMap.addSessionBlock) jusqu'à son premier flux.
+//   « + Groupe d'actifs » et menu « ⋯ » d'un groupe : nom et membres, choisis
+//   parmi les actifs de la carte ; un actif d'un autre groupe ne peut être coché.
+//   Menu « ⋯ » d'un bloc : « Supprimer les liens » (aperçu chiffré du serveur,
+//   confirmation), « Retirer de la carte » (bloc de session), « Modifier le
+//   groupe », « Supprimer le groupe ».
+// Écritures suivies de « flowmap:changed » (rechargement de la carte).
+window.FlowMapBlocks = (function () {
+  var LINKABLE = ['asset', 'company', 'country', 'region'];
+  var CREATABLE = ['asset', 'company'];
+  var MAP_ZOOM = 1;
+  var MAP_PICK_ZOOM = 5;
+
+  var els = {};
+  var urls = {};
+  var mode = null;           // 'add' | 'group' | null (panneau fermé)
+  var add = null;            // {type, item, creating, created}
+  var group = null;          // groupe modifié (entrée de model.groups) ou null (création)
+  var country = null;        // pays choisi pour un nouvel actif {id, name}
+  var region = null;         // région choisie (facultative)
+  var opener = null;         // sélecteur (ou élément) à refocaliser à la fermeture
+  var busy = false;
+  var pendingReveal = null;  // clé du bloc à montrer après le rechargement
+  var refocusMap = false;
+  var minimap = null;
+  var marker = null;
+  var combos = {};
+
+  // ── Utilitaires ──────────────────────────────────────────────────────────
+  function idUrl(template, id) {
+    return template.replace('/0/', '/' + id + '/');
+  }
+
+  function attr(value) {
+    return window.CSS && CSS.escape ? CSS.escape(value) : value;
+  }
+
+  function notice(message) {
+    FlowMapPanel.notice(message);
+  }
+
+  function changed() {
+    document.dispatchEvent(new CustomEvent('flowmap:changed'));
+  }
+
+  function focusKey() {
+    var model = FlowMap.model();
+    return model ? 'company:' + model.company.id : null;
+  }
+
+  function decimal(text) {
+    var clean = String(text).trim().replace(/\s/g, '').replace(',', '.');
+    if (!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(clean)) return NaN;
+    return parseFloat(clean);
+  }
+
+  function firstError(data, fallback) {
+    var errors = (data && data.errors) || {};
+    var all = [];
+    Object.keys(errors).forEach(function (k) { all = all.concat(errors[k]); });
+    return all[0] || fallback;
+  }
+
+  // ── Erreurs des formulaires ──────────────────────────────────────────────
+  // Chaque champ serveur est relié à son message (<p id=…-error-champ>) et à son
+  // contrôle ; les champs inconnus vont dans le message général du formulaire.
+  function errorTarget(prefix, field) {
+    var p = document.getElementById(prefix + '-error-' + field);
+    return p ? field : '__all__';
+  }
+
+  function clearErrors(form) {
+    form.querySelectorAll('.fm-panel__error').forEach(function (p) {
+      p.textContent = '';
+      p.hidden = true;
+    });
+    form.querySelectorAll('[aria-invalid]').forEach(function (input) {
+      input.removeAttribute('aria-invalid');
+    });
+  }
+
+  // errors : {champ: [messages]} ; inputs : {champ: élément} ; prefixes : {champ:
+  // préfixe des id de message} (défaut : `prefix`).
+  function showErrors(prefix, errors, inputs, prefixes) {
+    var focus = null;
+    var allId = prefix + '-error-__all__';
+    Object.keys(errors).forEach(function (field) {
+      var own = (prefixes && prefixes[field]) || prefix;
+      var target = errorTarget(own, field);
+      var p = document.getElementById(target === '__all__' ? allId : own + '-error-' + field);
+      var text = [].concat(errors[field]).join(' ');
+      p.textContent = p.textContent ? p.textContent + ' ' + text : text;
+      p.hidden = false;
+      var input = target === '__all__' ? null : inputs[field];
+      if (input) {
+        input.setAttribute('aria-invalid', 'true');
+        if (!focus) focus = input;
+      }
+    });
+    var all = document.getElementById(allId);
+    if (focus) focus.focus();
+    else if (!all.hidden) all.focus();
+  }
+
+  function setBusy(on) {
+    busy = on;
+    els.panel.setAttribute('aria-busy', on ? 'true' : 'false');
+    els.panel.querySelectorAll('.fm-panel__actions button').forEach(function (b) {
+      b.disabled = on;
+    });
+  }
+
+  // ── Panneau ──────────────────────────────────────────────────────────────
+  function showPanel(which, title, focusTarget) {
+    document.dispatchEvent(new CustomEvent('flowmap:panelopen', { detail: { panel: 'block' } }));
+    mode = which;
+    setBusy(false);
+    els.title.textContent = title;
+    els.addForm.hidden = which !== 'add';
+    els.groupForm.hidden = which !== 'group';
+    els.panel.hidden = false;
+    els.panel.scrollTop = 0;
+    (focusTarget || els.panel).focus();
+  }
+
+  function focusOpener() {
+    var target = typeof opener === 'string' ? FlowMap.svg.querySelector(opener) : opener;
+    if (target && target.isConnected) target.focus({ preventScroll: true });
+    else FlowMap.svg.focus({ preventScroll: true });
+  }
+
+  function close(opts) {
+    if (els.panel.hidden) return;
+    var active = document.activeElement;
+    var hadFocus = !active || active === document.body || els.panel.contains(active);
+    els.panel.hidden = true;
+    Object.keys(combos).forEach(function (k) { combos[k].cancel(); });
+    mode = null;
+    add = null;
+    group = null;
+    if (hadFocus && !(opts && opts.focus === false)) focusOpener();
+  }
+
+  // ── Ajout d'un bloc ──────────────────────────────────────────────────────
+  var ADD_TITLES = {
+    country: function () { return gettext('Ajouter un pays'); },
+    region: function () { return gettext('Ajouter une région'); },
+    company: function () { return gettext('Ajouter une entreprise'); },
+    asset: function () { return gettext('Ajouter un actif'); },
+  };
+  var SEARCH_LABELS = {
+    country: function () { return gettext('Pays'); },
+    region: function () { return gettext('Région'); },
+    company: function () { return gettext('Entreprise'); },
+    asset: function () { return gettext('Actif'); },
+  };
+
+  function openAdd(type, button) {
+    var model = FlowMap.model();
+    if (!model) return;
+    opener = button;
+    add = { type: type, item: null, creating: false };
+    clearErrors(els.addForm);
+    els.searchLabel.textContent = SEARCH_LABELS[type]();
+    els.search.value = '';
+    combos.add.cancel();
+    combos.add.set({ type: type, canCreate: CREATABLE.indexOf(type) >= 0 });
+    els.createCompany.hidden = true;
+    els.createAsset.hidden = true;
+    els.own.hidden = type !== 'asset';
+    els.ownCheck.checked = true;
+    els.ownShare.value = '100';
+    els.ownLabel.textContent = interpolate(gettext('Détenu par %(company)s'),
+      { company: model.company.name }, true);
+    els.ownHelp.textContent = interpolate(
+      gettext('La détention commence en %(year)s, sans année de fin.'),
+      { year: String(model.year) }, true);
+    syncOwn();
+    syncSubmit();
+    showPanel('add', ADD_TITLES[type](), els.search);
+  }
+
+  function syncOwn() {
+    els.ownShareField.hidden = !els.ownCheck.checked;
+    els.ownHelp.hidden = !els.ownCheck.checked;
+  }
+
+  function syncSubmit() {
+    els.addSubmit.textContent = add && add.creating
+      ? gettext('Créer et ajouter') : gettext('Ajouter à la carte');
+  }
+
+  function onSearchInput() {
+    if (add.item && els.search.value !== add.item.name) add.item = null;
+  }
+
+  function onSearchSelect(item) {
+    add.item = item;
+    stopCreate();
+    var p = document.getElementById('fm-add-error-search');
+    p.hidden = true;
+    els.search.removeAttribute('aria-invalid');
+    els.search.focus();
+  }
+
+  function startCreate(name) {
+    add.item = null;
+    add.creating = true;
+    els.search.value = name;
+    if (add.type === 'company') {
+      els.createCompany.hidden = false;
+      els.companyName.value = name;
+      els.companyIsin.value = '';
+      els.companyTicker.value = '';
+      syncSubmit();
+      els.companyName.focus();
+    } else {
+      els.createAsset.hidden = false;
+      els.assetName.value = name;
+      els.assetCountry.value = '';
+      els.assetRegion.value = '';
+      els.assetType.value = els.assetType.dataset.default;
+      els.assetLat.value = '';
+      els.assetLng.value = '';
+      country = null;
+      region = null;
+      syncSubmit();
+      initMinimap();
+      els.assetName.focus();
+    }
+  }
+
+  function stopCreate() {
+    add.creating = false;
+    els.createCompany.hidden = true;
+    els.createAsset.hidden = true;
+    syncSubmit();
+  }
+
+  function submitAdd(event) {
+    event.preventDefault();
+    if (busy || !add) return;
+    clearErrors(els.addForm);
+    var share = null;
+    if (add.type === 'asset' && els.ownCheck.checked) {
+      share = decimal(els.ownShare.value);
+      if (!(share > 0 && share <= 100)) {
+        showErrors('fm-own', { share: [gettext('Indiquez une part entre 0 et 100 %.')] },
+          { share: els.ownShare });
+        return;
+      }
+    }
+    if (add.creating) {
+      var pending = add;
+      (add.type === 'company' ? createCompany() : createAsset()).then(function (item) {
+        if (item && add === pending) place(item, share);   // panneau resté ouvert
+      });
+      return;
+    }
+    if (!add.item) {
+      var message = CREATABLE.indexOf(add.type) >= 0
+        ? gettext('Choisissez un élément dans la liste, ou créez-le.')
+        : gettext('Choisissez un élément dans la liste.');
+      showErrors('fm-add', { search: [message] }, { search: els.search });
+      return;
+    }
+    place(add.item, share);
+  }
+
+  // Création réussie : l'élément devient le choix de la recherche, une nouvelle
+  // tentative (détention refusée…) ne le recrée pas.
+  function created(item) {
+    if (!add) return null;
+    add.item = item;
+    els.search.value = item.name;
+    stopCreate();
+    return item;
+  }
+
+  function write(url, payload) {
+    setBusy(true);
+    return FlowMapUI.post(url, payload).finally(function () { setBusy(false); });
+  }
+
+  function serverError() {
+    return { __all__: [gettext('Erreur inattendue du serveur.')] };
+  }
+
+  function unexpected(prefix) {
+    return function (err) {
+      console.error('flow_map block write failed:', err);
+      showErrors(prefix, { __all__: [gettext('Le serveur est injoignable. Réessayez.')] }, {});
+      return null;
+    };
+  }
+
+  function createCompany() {
+    return write(urls.companyCreate, {
+      name: els.companyName.value.trim(),
+      isin: els.companyIsin.value.trim(),
+      ticker: els.companyTicker.value.trim(),
+    }).then(function (res) {
+      if (res.ok) return created(res.data);
+      showErrors('fm-add', res.data.errors || serverError(), {
+        name: els.companyName, isin: els.companyIsin, ticker: els.companyTicker,
+      }, { name: 'fm-company', isin: 'fm-company', ticker: 'fm-company' });
+      return null;
+    }).catch(unexpected('fm-add'));
+  }
+
+  function createAsset() {
+    var inputs = {
+      name: els.assetName, country: els.assetCountry, subnational_region: els.assetRegion,
+      type: els.assetType, latitude: els.assetLat, longitude: els.assetLng,
+    };
+    var prefixes = {};
+    Object.keys(inputs).forEach(function (k) { prefixes[k] = 'fm-asset'; });
+    if (!country) {
+      showErrors('fm-add', { country: [gettext('Choisissez un pays dans la liste.')] },
+        inputs, prefixes);
+      return Promise.resolve(null);
+    }
+    if (els.assetRegion.value.trim() && !region) {
+      showErrors('fm-add', {
+        subnational_region: [gettext('Choisissez une région dans la liste, ou laissez vide.')],
+      }, inputs, prefixes);
+      return Promise.resolve(null);
+    }
+    return write(urls.assetCreate, {
+      name: els.assetName.value.trim(),
+      country: country.id,
+      subnational_region: region ? region.id : null,
+      type: els.assetType.value,
+      latitude: coordinate(els.assetLat.value),
+      longitude: coordinate(els.assetLng.value),
+    }).then(function (res) {
+      if (res.ok) return created(res.data);
+      showErrors('fm-add', res.data.errors || serverError(), inputs, prefixes);
+      return null;
+    }).catch(unexpected('fm-add'));
+  }
+
+  // Coordonnée saisie (virgule française acceptée) ; texte brut si illisible,
+  // le serveur renvoie alors son message.
+  function coordinate(text) {
+    var value = decimal(text);
+    return isNaN(value) ? String(text).trim() : value;
+  }
+
+  function place(item, share) {
+    var model = FlowMap.model();
+    if (!model) return;
+    var key = add.type + ':' + item.id;
+    if (add.type === 'asset' && share !== null) {
+      var existing = model.blocks.find(function (b) { return b.key === key; });
+      if (existing && existing.owned) {
+        finish(interpolate(gettext('« %(name)s » est déjà détenu par %(company)s en %(year)s.'),
+          { name: item.name, company: model.company.name, year: String(model.year) }, true));
+        FlowMap.reveal(key);
+        return;
+      }
+      own(item, share / 100, model);
+      return;
+    }
+    var name = item.name;
+    var type = add.type;
+    close({ focus: false });
+    var result = FlowMap.addSessionBlock({ key: key, type: type, id: item.id, name: name });
+    if (result === 'exists') {
+      notice(interpolate(gettext('« %(name)s » est déjà sur la carte.'), { name: name }, true));
+    } else if (result === 'added') {
+      notice(interpolate(gettext('« %(name)s » ajouté pour cette session : tracez un flux '
+        + 'pour l’enregistrer.'), { name: name }, true));
+    }
+  }
+
+  function own(item, share, model) {
+    write(urls.ownershipCreate, {
+      company_id: model.company.id,
+      asset_id: item.id,
+      share: share.toFixed(4),
+      year: model.year,
+    }).then(function (res) {
+      if (!res.ok) {
+        // part : sous le champ ; entreprise, actif, année, chevauchement : en tête.
+        showErrors('fm-add', res.data.errors || serverError(),
+          { share: els.ownShare }, { share: 'fm-own' });
+        return;
+      }
+      pendingReveal = 'asset:' + item.id;
+      finish(interpolate(gettext('« %(name)s » ajouté au périmètre de %(company)s.'),
+        { name: item.name, company: model.company.name }, true));
+      changed();
+    }).catch(unexpected('fm-add'));
+  }
+
+  function finish(message) {
+    close({ focus: false });
+    notice(message);
+  }
+
+  // ── Mini-carte (position d'un nouvel actif) ──────────────────────────────
+  function initMinimap() {
+    if (minimap) {
+      requestAnimationFrame(function () { minimap.resize(); });
+      return;
+    }
+    if (typeof maplibregl === 'undefined' || typeof mapStyleFor !== 'function') {
+      els.map.hidden = true;
+      els.mapHelp.textContent = gettext('Carte indisponible : saisissez la latitude et la '
+        + 'longitude.');
+      return;
+    }
+    minimap = new maplibregl.Map({
+      container: els.map,
+      style: mapStyleFor(activeMapStyleName()),
+      center: [0, 20],
+      zoom: MAP_ZOOM,
+      attributionControl: { compact: true },
+    });
+    // Attribution repliée : sinon elle couvre la moitié de la mini-carte.
+    minimap.on('load', function () {
+      var attrib = els.map.querySelector('.maplibregl-ctrl-attrib');
+      if (attrib) attrib.classList.remove('maplibregl-compact-show');
+    });
+    minimap.on('click', function (event) {
+      var lat = Math.round(event.lngLat.lat * 1e5) / 1e5;
+      var lng = Math.round(event.lngLat.lng * 1e5) / 1e5;
+      els.assetLat.value = lat.toLocaleString(APP_LOCALE, { maximumFractionDigits: 5,
+        useGrouping: false });
+      els.assetLng.value = lng.toLocaleString(APP_LOCALE, { maximumFractionDigits: 5,
+        useGrouping: false });
+      [els.assetLat, els.assetLng].forEach(function (input) {
+        input.removeAttribute('aria-invalid');
+      });
+      ['latitude', 'longitude'].forEach(function (f) {
+        document.getElementById('fm-asset-error-' + f).hidden = true;
+      });
+      setMarker(lng, lat, false);
+    });
+    document.addEventListener('themechange', function () {
+      if (minimap) minimap.setStyle(mapStyleFor(activeMapStyleName()));
+    });
+  }
+
+  function setMarker(lng, lat, move) {
+    if (!minimap) return;
+    if (!marker) {
+      var color = getComputedStyle(els.panel).getPropertyValue('--color-primary').trim();
+      marker = new maplibregl.Marker(color ? { color: color } : {});
+    }
+    marker.setLngLat([lng, lat]).addTo(minimap);
+    if (move) {
+      minimap.easeTo({ center: [lng, lat], zoom: Math.max(minimap.getZoom(), MAP_PICK_ZOOM) });
+    }
+  }
+
+  function onCoordinateInput() {
+    var lat = decimal(els.assetLat.value);
+    var lng = decimal(els.assetLng.value);
+    if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) setMarker(lng, lat, true);
+  }
+
+  // ── Groupes ──────────────────────────────────────────────────────────────
+  function groupOf(key) {
+    var model = FlowMap.model();
+    return model && model.groups.find(function (g) { return g.key === key; });
+  }
+
+  // Actifs de la carte (connus du serveur : un bloc de session n'est rattaché à
+  // aucun groupe tant qu'il n'a pas de flux), triés par nom.
+  function mapAssets(model) {
+    return model.blocks.filter(function (b) {
+      return b.type === 'asset' && !FlowMap.isSession(b.key);
+    }).sort(function (a, b) { return a.name.localeCompare(b.name, APP_LOCALE); });
+  }
+
+  function openGroup(key, trigger) {
+    var model = FlowMap.model();
+    if (!model) return;
+    opener = trigger;
+    group = key ? groupOf(key) : null;
+    if (key && !group) return;
+    clearErrors(els.groupForm);
+    els.groupName.value = group ? group.name : '';
+    els.groupFilter.value = '';
+    els.groupDelete.hidden = !group;
+    renderMembers(model);
+    showPanel('group', group ? gettext('Modifier le groupe') : gettext('Nouveau groupe d’actifs'),
+      els.groupName);
+  }
+
+  function renderMembers(model) {
+    els.members.textContent = '';
+    var assets = mapAssets(model);
+    if (!assets.length) {
+      var empty = document.createElement('p');
+      empty.className = 'fm-panel__help';
+      empty.textContent = gettext('Aucun actif sur la carte. Ajoutez d’abord des actifs.');
+      els.members.appendChild(empty);
+    }
+    assets.forEach(function (block) {
+      var label = document.createElement('label');
+      label.className = 'fm-member';
+      label.dataset.name = fold(block.name);
+      var input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = String(block.id);
+      var inOther = block.group && (!group || block.group !== group.key);
+      var other = inOther ? groupOf(block.group) : null;
+      input.checked = !!group && block.group === group.key;
+      input.disabled = !!other;
+      var name = document.createElement('span');
+      name.textContent = block.name;
+      label.appendChild(input);
+      label.appendChild(name);
+      if (other) {
+        label.classList.add('is-disabled');
+        var note = document.createElement('span');
+        note.className = 'fm-member__note';
+        note.textContent = interpolate(gettext('déjà dans « %(group)s »'),
+          { group: other.name }, true);
+        label.appendChild(note);
+      }
+      els.members.appendChild(label);
+    });
+    var kept = keptMembers(model);
+    els.groupKept.hidden = !kept.length;
+    els.groupKept.textContent = interpolate(ngettext(
+      '%(n)s autre actif du groupe, absent de la carte en %(year)s, est conservé.',
+      '%(n)s autres actifs du groupe, absents de la carte en %(year)s, sont conservés.',
+      kept.length), { n: kept.length, year: String(model.year) }, true);
+  }
+
+  // Membres du groupe modifié qui ne sont pas sur la carte : renvoyés tels quels.
+  function keptMembers(model) {
+    if (!group) return [];
+    var onMap = new Set(model.blocks.map(function (b) { return b.key; }));
+    return (group.all_members || group.members).filter(function (k) { return !onMap.has(k); });
+  }
+
+  function fold(text) {
+    return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  }
+
+  function filterMembers() {
+    var q = fold(els.groupFilter.value.trim());
+    els.members.querySelectorAll('.fm-member').forEach(function (label) {
+      label.hidden = !!q && label.dataset.name.indexOf(q) < 0;
+    });
+  }
+
+  function saveGroup(event) {
+    event.preventDefault();
+    var model = FlowMap.model();
+    if (busy || !model) return;
+    clearErrors(els.groupForm);
+    var members = Array.prototype.map.call(
+      els.members.querySelectorAll('input:checked'), function (i) { return Number(i.value); });
+    keptMembers(model).forEach(function (k) { members.push(Number(k.split(':')[1])); });
+    var inputs = { name: els.groupName, members: els.groupFilter };
+    if (!members.length) {
+      showErrors('fm-group', { members: [gettext('Cochez au moins un actif.')] }, inputs);
+      return;
+    }
+    var editing = group;
+    var url = editing ? idUrl(urls.groupUpdate, editing.id)
+      : idUrl(urls.groupCreate, model.company.id);
+    write(url, { name: els.groupName.value.trim(), members: members }).then(function (res) {
+      if (res.status === 404) {
+        finish(firstError(res.data, gettext('Ce groupe n’existe plus.')));
+        changed();
+        return;
+      }
+      if (!res.ok) {
+        showErrors('fm-group', res.data.errors || serverError(), inputs);
+        return;
+      }
+      pendingReveal = 'group:' + res.data.id;
+      finish(editing ? gettext('Groupe enregistré.') : gettext('Groupe créé.'));
+      changed();
+    }).catch(unexpected('fm-group'));
+  }
+
+  function deleteGroup(target) {
+    var message = interpolate(gettext('Supprimer le groupe « %(name)s » ? Ses actifs et leurs '
+      + 'flux restent sur la carte.'), { name: target.name }, true);
+    var options = { confirmLabel: gettext('Supprimer') };
+    return FlowMapPanel.confirm(message, options).then(function (ok) {
+      if (!ok) return;
+      return write(idUrl(urls.groupDelete, target.id), {}).then(function (res) {
+        if (!res.ok && res.status !== 404) {
+          notice(firstError(res.data, gettext('Erreur inattendue du serveur.')));
+          return;
+        }
+        refocusMap = true;
+        finish(res.ok ? gettext('Groupe supprimé.')
+          : firstError(res.data, gettext('Ce groupe n’existe plus.')));
+        changed();
+      });
+    }).catch(function (err) {
+      console.error('flow_map group delete failed:', err);
+      notice(gettext('Le serveur est injoignable. Réessayez.'));
+    });
+  }
+
+  // ── Retrait des liens d'un bloc ──────────────────────────────────────────
+  function unlinkMessage(node, preview, model) {
+    var values = {
+      name: node.name, company: model.company.name, year: String(model.year),
+      flows: interpolate(ngettext('%(n)s flux', '%(n)s flux', preview.flows),
+        { n: preview.flows.toLocaleString(APP_LOCALE) }, true),
+    };
+    var text;
+    if (preview.flows && preview.ownership) {
+      text = gettext('Êtes-vous sûr de vouloir supprimer %(flows)s et 1 détention de '
+        + '« %(name)s » en %(year)s ? L’actif ne sera plus détenu par %(company)s à partir '
+        + 'de %(year)s.');
+    } else if (preview.ownership) {
+      text = gettext('Êtes-vous sûr de vouloir supprimer la détention de « %(name)s » ? '
+        + 'L’actif ne sera plus détenu par %(company)s à partir de %(year)s.');
+    } else {
+      text = gettext('Êtes-vous sûr de vouloir supprimer %(flows)s entre « %(name)s » et '
+        + '%(company)s en %(year)s ? « %(name)s » reste disponible dans la recherche.');
+    }
+    return interpolate(text, values, true);
+  }
+
+  function unlink(node) {
+    var model = FlowMap.model();
+    if (!model) return;
+    var url = idUrl(urls.unlink, model.company.id) + '?year=' + encodeURIComponent(model.year)
+      + '&block=' + encodeURIComponent(node.key);
+    FlowMapUI.getJson(url).then(function (res) {
+      if (!res.ok) {
+        notice(firstError(res.data, gettext('Erreur inattendue du serveur.')));
+        return null;
+      }
+      var preview = res.data;
+      if (!preview.flows && !preview.ownership) {
+        notice(interpolate(gettext('« %(name)s » n’a aucun lien à supprimer en %(year)s.'),
+          { name: node.name, year: String(model.year) }, true));
+        return null;
+      }
+      return FlowMapPanel.confirm(unlinkMessage(node, preview, model),
+        { confirmLabel: gettext('Supprimer') }).then(function (ok) {
+        var now = FlowMap.model();
+        if (!ok || !now || now.company.id !== model.company.id || now.year !== model.year) {
+          return null;
+        }
+        return FlowMapUI.post(url, {}).then(function (done) {
+          if (!done.ok) {
+            notice(firstError(done.data, gettext('Erreur inattendue du serveur.')));
+            return;
+          }
+          refocusMap = true;
+          notice(interpolate(gettext('Liens de « %(name)s » supprimés.'),
+            { name: node.name }, true));
+          changed();
+        });
+      });
+    }).catch(function (err) {
+      console.error('flow_map unlink failed:', err);
+      notice(gettext('Le serveur est injoignable. Réessayez.'));
+    });
+  }
+
+  function menuTrigger(key) {
+    return '.fm-block[data-key="' + attr(key) + '"] .fm-block__menu';
+  }
+
+  function registerMenu() {
+    FlowMap.menuActions.push({
+      id: 'unlink',
+      label: gettext('Supprimer les liens'),
+      visible: function (node) {
+        return FlowMap.canEdit && LINKABLE.indexOf(node.type) >= 0
+          && node.key !== focusKey() && !FlowMap.isSession(node.key);
+      },
+      run: unlink,
+    });
+    FlowMap.menuActions.push({
+      id: 'remove',
+      label: gettext('Retirer de la carte'),
+      visible: function (node) { return FlowMap.canEdit && FlowMap.isSession(node.key); },
+      run: function (node) {
+        FlowMap.removeSessionBlock(node.key);
+        FlowMap.svg.focus({ preventScroll: true });
+        notice(interpolate(gettext('« %(name)s » retiré de la carte.'), { name: node.name }, true));
+      },
+    });
+    FlowMap.menuActions.push({
+      id: 'group-edit',
+      label: gettext('Modifier le groupe'),
+      visible: function (node) { return FlowMap.canEdit && node.type === 'group'; },
+      run: function (node) { openGroup(node.key, menuTrigger(node.key)); },
+    });
+    FlowMap.menuActions.push({
+      id: 'group-delete',
+      label: gettext('Supprimer le groupe'),
+      visible: function (node) { return FlowMap.canEdit && node.type === 'group'; },
+      run: function (node) {
+        var target = groupOf(node.key);
+        if (target) deleteGroup(target);
+      },
+    });
+  }
+
+  // ── Initialisation ───────────────────────────────────────────────────────
+  function onEscape(event) {
+    if (event.key !== 'Escape' || event.defaultPrevented || els.panel.hidden) return;
+    var dialog = document.getElementById('flow-map-confirm');
+    if (dialog && dialog.open) return;
+    var menu = document.getElementById('flow-map-menu');
+    if (menu && menu.contains(event.target)) return;
+    event.preventDefault();
+    close();
+  }
+
+  // Après une écriture : montrer le bloc concerné, ou rendre le focus à la carte
+  // si l'élément focalisé a disparu avec le redessin.
+  function onLoaded() {
+    close({ focus: false });
+    var key = pendingReveal;
+    pendingReveal = null;
+    if (key && FlowMap.reveal(key)) { refocusMap = false; return; }
+    if (refocusMap && (!document.activeElement || document.activeElement === document.body)) {
+      FlowMap.svg.focus({ preventScroll: true });
+    }
+    refocusMap = false;
+  }
+
+  function bind() {
+    document.querySelectorAll('[data-add]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        if (button.dataset.add === 'group') openGroup(null, button);
+        else openAdd(button.dataset.add, button);
+      });
+    });
+    els.closeButton.addEventListener('click', function () { close(); });
+    els.addCancel.addEventListener('click', function () { close(); });
+    els.groupCancel.addEventListener('click', function () { close(); });
+    els.addForm.addEventListener('submit', submitAdd);
+    els.groupForm.addEventListener('submit', saveGroup);
+    els.groupDelete.addEventListener('click', function () {
+      if (group && !busy) deleteGroup(group);
+    });
+    els.groupFilter.addEventListener('input', filterMembers);
+    els.ownCheck.addEventListener('change', syncOwn);
+    els.assetLat.addEventListener('change', onCoordinateInput);
+    els.assetLng.addEventListener('change', onCoordinateInput);
+    document.addEventListener('keydown', onEscape);
+    document.addEventListener('flowmap:panelopen', function (event) {
+      if (event.detail.panel !== 'block') close({ focus: false });
+    });
+    document.addEventListener('flowmap:loaded', onLoaded);
+    document.addEventListener('flowmap:cleared', function () {
+      pendingReveal = null;
+      close();
+    });
+  }
+
+  function bindCombos() {
+    // Le type de la recherche suit le bouton qui a ouvert le panneau (openAdd).
+    combos.add = FlowMapUI.combobox({
+      input: els.search, list: els.addList, type: 'country', url: urls.search,
+      canCreate: false, onSelect: onSearchSelect, onCreate: startCreate,
+      onInput: onSearchInput,
+    });
+    combos.country = FlowMapUI.combobox({
+      input: els.assetCountry, list: els.assetCountryList, type: 'country', url: urls.search,
+      onSelect: function (item) { country = item; els.assetRegion.focus(); },
+      onInput: function () {
+        if (country && els.assetCountry.value !== country.name) country = null;
+      },
+    });
+    combos.region = FlowMapUI.combobox({
+      input: els.assetRegion, list: els.assetRegionList, type: 'region', url: urls.search,
+      onSelect: function (item) { region = item; els.assetType.focus(); },
+      onInput: function () {
+        if (region && els.assetRegion.value !== region.name) region = null;
+      },
+    });
+  }
+
+  function init() {
+    var panel = document.getElementById('flow-map-block-panel');
+    if (!panel || !window.FlowMap || !window.FlowMapPanel || !window.FLOW_MAP_URLS) return;
+    urls = FLOW_MAP_URLS;
+    var $ = function (id) { return document.getElementById(id); };
+    els = {
+      panel: panel,
+      title: $('fm-block-title'),
+      closeButton: $('fm-block-close'),
+      addForm: $('fm-add-form'),
+      searchLabel: $('fm-add-search-label'),
+      search: $('fm-add-search'),
+      addList: $('fm-add-list'),
+      createCompany: $('fm-create-company'),
+      companyName: $('fm-company-name'),
+      companyIsin: $('fm-company-isin'),
+      companyTicker: $('fm-company-ticker'),
+      createAsset: $('fm-create-asset'),
+      assetName: $('fm-asset-name'),
+      assetCountry: $('fm-asset-country'),
+      assetCountryList: $('fm-asset-country-list'),
+      assetRegion: $('fm-asset-region'),
+      assetRegionList: $('fm-asset-region-list'),
+      assetType: $('fm-asset-type'),
+      map: $('fm-asset-map'),
+      mapHelp: $('fm-asset-map-help'),
+      assetLat: $('fm-asset-latitude'),
+      assetLng: $('fm-asset-longitude'),
+      own: $('fm-own'),
+      ownCheck: $('fm-own-check'),
+      ownLabel: $('fm-own-label'),
+      ownShareField: $('fm-own-share-field'),
+      ownShare: $('fm-own-share'),
+      ownHelp: $('fm-own-help'),
+      addSubmit: $('fm-add-submit'),
+      addCancel: $('fm-add-cancel'),
+      groupForm: $('fm-group-form'),
+      groupName: $('fm-group-name'),
+      groupFilter: $('fm-group-filter'),
+      members: $('fm-group-members'),
+      groupKept: $('fm-group-kept'),
+      groupSave: $('fm-group-save'),
+      groupCancel: $('fm-group-cancel'),
+      groupDelete: $('fm-group-delete'),
+    };
+    els.assetType.dataset.default = els.assetType.value;
+    bindCombos();
+    bind();
+    registerMenu();
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+
+  return { openAdd: openAdd, openGroup: openGroup, unlink: unlink };
+})();

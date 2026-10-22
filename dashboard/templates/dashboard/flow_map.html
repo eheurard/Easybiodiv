@@ -6,6 +6,9 @@
 {% block nav_flow_map %}active{% endblock %}
 
 {% block extra_css %}
+{% if can_edit %}
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
+{% endif %}
 <link rel="stylesheet" href="{% static 'dashboard/css/flow_map.css' %}">
 {% endblock %}
 
@@ -35,6 +38,26 @@
             title="{% translate 'Recentrer la carte' %}">{% translate "Recentrer" %}</button>
   </div>
 
+  {% if can_edit %}
+  <div class="flow-map__adds" role="group" aria-label="{% translate 'Ajouter à la carte' %}">
+    <button type="button" class="flow-map__tool flow-map__tool--add" data-add="country">
+      {% translate "+ Pays" %}
+    </button>
+    <button type="button" class="flow-map__tool flow-map__tool--add" data-add="region">
+      {% translate "+ Région" %}
+    </button>
+    <button type="button" class="flow-map__tool flow-map__tool--add" data-add="company">
+      {% translate "+ Entreprise" %}
+    </button>
+    <button type="button" class="flow-map__tool flow-map__tool--add" data-add="asset">
+      {% translate "+ Actif" %}
+    </button>
+    <button type="button" class="flow-map__tool flow-map__tool--add" data-add="group">
+      {% translate "+ Groupe d’actifs" %}
+    </button>
+  </div>
+  {% endif %}
+
   <ul class="flow-map__legend" aria-label="{% translate 'Natures de flux' %}">
     {% for kind in kinds %}
     <li>
@@ -61,6 +84,7 @@
       </button>
     </div>
     {% include "dashboard/_flow_map_panel.html" %}
+    {% include "dashboard/_flow_map_blocks_panel.html" %}
     {% endif %}
   </div>
   <p class="flow-map__hint">
@@ -105,9 +129,19 @@
     flowUpdate: "{% url 'dashboard:flow_map_flow_update' pk=0 %}",
     flowDelete: "{% url 'dashboard:flow_map_flow_delete' pk=0 %}",
     search: "{% url 'dashboard:flow_map_search' %}",
-    commodityCreate: "{% url 'dashboard:flow_map_commodity_create' %}"
+    commodityCreate: "{% url 'dashboard:flow_map_commodity_create' %}",
+    assetCreate: "{% url 'dashboard:flow_map_asset_create' %}",
+    companyCreate: "{% url 'dashboard:flow_map_company_create' %}",
+    ownershipCreate: "{% url 'dashboard:flow_map_ownership_create' %}",
+    groupCreate: "{% url 'dashboard:flow_map_group_create' company_pk=0 %}",
+    groupUpdate: "{% url 'dashboard:flow_map_group_update' pk=0 %}",
+    groupDelete: "{% url 'dashboard:flow_map_group_delete' pk=0 %}",
+    unlink: "{% url 'dashboard:flow_map_unlink' company_pk=0 %}"
   };
 </script>
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js" defer></script>
+<script src="{% static 'dashboard/js/flow_map_ui.js' %}" defer></script>
 <script src="{% static 'dashboard/js/flow_map_panel.js' %}" defer></script>
+<script src="{% static 'dashboard/js/flow_map_blocks.js' %}" defer></script>
 {% endif %}
 {% endblock %}

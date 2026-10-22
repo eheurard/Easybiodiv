@@ -22,6 +22,14 @@
 //                        comportement par défaut, déplier / replier, est alors sauté).
 //                        type : 'block', 'frame', 'edge', 'port', 'band', 'background'
 //   FlowMap.lastRender() dernier résultat de FlowMapDraw.render (ou null)
+//   FlowMap.addSessionBlock({key, type, id, name}) -> 'added' | 'exists' | null
+//                        bloc extérieur ajouté pour la session (colonne 0, rien en
+//                        base) ; 'exists' : déjà sur la carte, il est montré (reveal)
+//   FlowMap.removeSessionBlock(key), FlowMap.isSession(key)
+//   FlowMap.reveal(key)  réaffiche le bloc (masqué, membre d'un groupe replié),
+//                        l'amène dans la vue, le fait clignoter et focalise son « ⋯ »
+// Blocs de session : gardés au rechargement de la même entreprise et de la même
+// année, oubliés sinon, et retirés dès que le serveur renvoie la même clé.
 // Événements sur document : « flowmap:loaded » (detail : données) après chaque
 // chargement ; « flowmap:cleared » quand un chargement échoue et vide la carte ;
 // « flowmap:changed », émis après une écriture, recharge la carte.
@@ -30,6 +38,7 @@ window.FlowMap = (function () {
   var MAX_SCALE = 6;          // zoom arrière maximal
   var MAX_FIT_SCALE = 1.5;    // cadrage initial : au-delà, texte illisible, on déplace la vue
   var DRAG_THRESHOLD = 4;
+  var FLASH_MS = 1600;
 
   var api = {
     state: { expanded: new Set(), hidden: new Set(), positions: new Map(), selectedEdge: null },
@@ -45,6 +54,10 @@ window.FlowMap = (function () {
     redraw: redraw,
     reload: function () { return reload(); },
     load: load,
+    addSessionBlock: addSessionBlock,
+    removeSessionBlock: removeSessionBlock,
+    isSession: isSession,
+    reveal: reveal,
   };
 
   var current = null;
@@ -56,6 +69,7 @@ window.FlowMap = (function () {
   var viewPx = null;          // taille en pixels pour laquelle `view` a été calculée
   var frame = 0;
   var els = {};
+  var session = { companyId: null, year: null, blocks: [] };
 
   function readJson(id) {
     var node = document.getElementById(id);
@@ -118,6 +132,7 @@ window.FlowMap = (function () {
   }
 
   function show(data, keepView) {
+    mergeSession(data);
     current = data;
     target = { companyId: data.company.id, year: data.year };
     api.canEdit = !!data.can_edit;
@@ -144,6 +159,90 @@ window.FlowMap = (function () {
   function showMessage(message) {
     els.empty.textContent = message;
     els.empty.hidden = false;
+  }
+
+  // ── Blocs de session ─────────────────────────────────────────────────────
+  // Ajoutés depuis la barre d'outils sans rien écrire en base (pays, région,
+  // entreprise, actif non détenu) : ils attendent leur premier flux.
+  function mergeSession(data) {
+    if (session.companyId !== data.company.id || session.year !== data.year) {
+      session = { companyId: data.company.id, year: data.year, blocks: [] };
+    }
+    var known = new Set(data.blocks.map(function (b) { return b.key; }));
+    session.blocks = session.blocks.filter(function (b) { return !known.has(b.key); });
+    session.blocks.forEach(function (b) { data.blocks.push(Object.assign({}, b)); });
+  }
+
+  function isSession(key) {
+    return session.blocks.some(function (b) { return b.key === key; });
+  }
+
+  function findBlock(key) {
+    if (!current) return null;
+    return current.blocks.find(function (b) { return b.key === key; })
+      || current.groups.find(function (g) { return g.key === key; }) || null;
+  }
+
+  function addSessionBlock(block) {
+    if (!current) return null;
+    if (findBlock(block.key)) {
+      reveal(block.key);
+      return 'exists';
+    }
+    var entry = {
+      key: block.key, type: block.type, id: block.id, name: block.name, owned: false,
+      group: null, column: 0, session: true,
+    };
+    session.blocks.push(entry);
+    current.blocks.push(Object.assign({}, entry));
+    redraw();
+    reveal(block.key);
+    return 'added';
+  }
+
+  function removeSessionBlock(key) {
+    if (!current || !isSession(key)) return;
+    session.blocks = session.blocks.filter(function (b) { return b.key !== key; });
+    current.blocks = current.blocks.filter(function (b) { return b.key !== key; });
+    api.state.hidden.delete(key);
+    api.state.positions.delete(key);
+    redraw();
+  }
+
+  // Montre un bloc : réaffiché s'il était masqué, groupe déplié s'il en est
+  // membre, vue déplacée s'il est hors cadre ; il clignote et son « ⋯ » prend
+  // le focus (repère pour la suite au clavier).
+  function reveal(key) {
+    var block = findBlock(key);
+    if (!block || !view) return false;
+    api.state.hidden.delete(key);
+    if (block.group) {
+      api.state.hidden.delete(block.group);
+      api.state.expanded.add(block.group);
+    }
+    redraw();
+    var node = nodeOf(key);
+    if (!node) return false;
+    var w = FlowMapDraw.BLOCK_W;
+    var h = FlowMapDraw.BLOCK_H;
+    var inside = node.x >= view.x && node.y >= view.y && node.x + w <= view.x + view.width
+      && node.y + h <= view.y + view.height;
+    if (!inside) {
+      view.x = node.x + w / 2 - view.width / 2;
+      view.y = node.y + h / 2 - view.height / 2;
+      applyView();
+    }
+    var g = els.svg.querySelector('.fm-block[data-key="' + cssKey(key) + '"]');
+    if (!g) return false;
+    g.classList.add('is-flash');
+    setTimeout(function () { g.classList.remove('is-flash'); }, FLASH_MS);
+    var target = g.querySelector('.fm-block__menu') || (g.hasAttribute('tabindex') ? g : null);
+    if (target) target.focus({ preventScroll: true });
+    return true;
+  }
+
+  function cssKey(key) {
+    return window.CSS && CSS.escape ? CSS.escape(key) : key;
   }
 
   // ── Dessin ───────────────────────────────────────────────────────────────

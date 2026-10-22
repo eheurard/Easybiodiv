@@ -331,6 +331,7 @@ class BuildFlowMapTests(TestCase):
         self.assertEqual(data['groups'], [{
             'key': group_key, 'id': group.pk, 'name': 'Usines',
             'members': [f'asset:{self.vevey.pk}', f'asset:{self.rotterdam.pk}'],
+            'all_members': [f'asset:{self.vevey.pk}', f'asset:{self.rotterdam.pk}'],
             'owned': True, 'column': 1,
         }])
         self.assertEqual(blocks[f'company:{self.cargill.pk}']['column'], 0)
@@ -348,6 +349,8 @@ class BuildFlowMapTests(TestCase):
         data = build_flow_map(self.acme, 2024, AnonymousUser())
         self.assertEqual([g['name'] for g in data['groups']], ['Mixte'])
         self.assertEqual(data['groups'][0]['members'], [f'asset:{self.vevey.pk}'])
+        self.assertEqual(data['groups'][0]['all_members'],
+                         [f'asset:{self.vevey.pk}', f'asset:{other.pk}'])
         self.assertNotIn(f'asset:{self.mine.pk}', self._blocks(data))
 
     def test_outside_group_is_not_owned(self):
@@ -753,6 +756,8 @@ class FlowMapPageTests(TestCase):
         scopes = r.context['scopes']
         self.assertEqual([s['value'] for s in scopes], list(Flow.Scope.values))
         self.assertNotContains(r, 'id="flow-map-panel"')
+        self.assertNotContains(r, 'id="flow-map-block-panel"')
+        self.assertNotContains(r, 'data-add=')
 
     def test_page_can_edit_for_creator(self):
         User = get_user_model()
@@ -762,6 +767,11 @@ class FlowMapPageTests(TestCase):
         self.assertContains(r, 'id="flow-map-panel"')
         self.assertContains(r, 'id="flow-map-confirm"')
         self.assertContains(r, '<option value="undefined">')
+        self.assertContains(r, 'id="flow-map-block-panel"')
+        self.assertContains(r, 'data-add="asset"')
+        self.assertRegex(r.content.decode(), r'<option value="Factory"\s+selected>')
+        self.assertContains(r, 'flow_map_blocks.js')
+        self.assertIn({'value': 'Mine', 'label': 'Mine'}, r.context['asset_types'])
 
     def test_page_without_company(self):
         Flow.objects.all().delete()

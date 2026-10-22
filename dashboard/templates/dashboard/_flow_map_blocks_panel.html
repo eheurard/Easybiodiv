@@ -1,0 +1,181 @@
+{% load i18n %}
+{# Panneau latéral d'ajout de bloc et de gestion des groupes (Créateurs) : #}
+{# rempli par js/flow_map_blocks.js. Un seul des deux formulaires est affiché. #}
+<aside class="fm-panel" id="flow-map-block-panel" aria-labelledby="fm-block-title" tabindex="-1"
+       hidden>
+  <header class="fm-panel__head">
+    <h2 class="fm-panel__title" id="fm-block-title"></h2>
+    <button type="button" class="fm-panel__close" id="fm-block-close"
+            aria-label="{% translate 'Fermer sans enregistrer' %}"
+            title="{% translate 'Fermer sans enregistrer' %}">✕</button>
+  </header>
+
+  {# ── Ajout d'un pays, d'une région, d'une entreprise ou d'un actif ── #}
+  <form class="fm-panel__form" id="fm-add-form" novalidate hidden>
+    <p class="fm-panel__error fm-panel__error--all" id="fm-add-error-__all__" role="alert"
+       tabindex="-1" hidden></p>
+
+    <div class="fm-panel__field fm-combo">
+      <label class="form-label" for="fm-add-search" id="fm-add-search-label"></label>
+      <input type="text" class="form-input" id="fm-add-search" autocomplete="off"
+             role="combobox" aria-autocomplete="list" aria-expanded="false"
+             aria-controls="fm-add-list" aria-describedby="fm-add-error-search"
+             placeholder="{% translate 'Rechercher (2 caractères minimum)' %}">
+      <ul class="fm-combo__list" id="fm-add-list" role="listbox"
+          aria-labelledby="fm-add-search-label" hidden></ul>
+      <p class="fm-panel__error" id="fm-add-error-search" hidden></p>
+    </div>
+
+    <fieldset class="fm-create" id="fm-create-company" hidden>
+      <legend class="label-caps">{% translate "Nouvelle entreprise" %}</legend>
+      <div class="fm-panel__field">
+        <label class="form-label" for="fm-company-name">{% translate "Nom" %}</label>
+        <input type="text" class="form-input" id="fm-company-name" maxlength="255"
+               aria-describedby="fm-company-error-name">
+        <p class="fm-panel__error" id="fm-company-error-name" hidden></p>
+      </div>
+      <div class="fm-panel__row">
+        <div class="fm-panel__field">
+          <label class="form-label" for="fm-company-isin">
+            {% translate "ISIN (facultatif)" %}
+          </label>
+          <input type="text" class="form-input" id="fm-company-isin" maxlength="255"
+                 aria-describedby="fm-company-error-isin">
+          <p class="fm-panel__error" id="fm-company-error-isin" hidden></p>
+        </div>
+        <div class="fm-panel__field">
+          <label class="form-label" for="fm-company-ticker">
+            {% translate "Ticker (facultatif)" %}
+          </label>
+          <input type="text" class="form-input" id="fm-company-ticker" maxlength="255"
+                 aria-describedby="fm-company-error-ticker">
+          <p class="fm-panel__error" id="fm-company-error-ticker" hidden></p>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="fm-create" id="fm-create-asset" hidden>
+      <legend class="label-caps">{% translate "Nouvel actif" %}</legend>
+      <div class="fm-panel__field">
+        <label class="form-label" for="fm-asset-name">{% translate "Nom" %}</label>
+        <input type="text" class="form-input" id="fm-asset-name" maxlength="255"
+               aria-describedby="fm-asset-error-name">
+        <p class="fm-panel__error" id="fm-asset-error-name" hidden></p>
+      </div>
+      <div class="fm-panel__field fm-combo">
+        <label class="form-label" for="fm-asset-country" id="fm-asset-country-label">
+          {% translate "Pays" %}
+        </label>
+        <input type="text" class="form-input" id="fm-asset-country" autocomplete="off"
+               role="combobox" aria-autocomplete="list" aria-expanded="false"
+               aria-controls="fm-asset-country-list" aria-describedby="fm-asset-error-country"
+               placeholder="{% translate 'Rechercher (2 caractères minimum)' %}">
+        <ul class="fm-combo__list" id="fm-asset-country-list" role="listbox"
+            aria-labelledby="fm-asset-country-label" hidden></ul>
+        <p class="fm-panel__error" id="fm-asset-error-country" hidden></p>
+      </div>
+      <div class="fm-panel__field fm-combo">
+        <label class="form-label" for="fm-asset-region" id="fm-asset-region-label">
+          {% translate "Région (facultatif)" %}
+        </label>
+        <input type="text" class="form-input" id="fm-asset-region" autocomplete="off"
+               role="combobox" aria-autocomplete="list" aria-expanded="false"
+               aria-controls="fm-asset-region-list"
+               aria-describedby="fm-asset-error-subnational_region"
+               placeholder="{% translate 'Rechercher (2 caractères minimum)' %}">
+        <ul class="fm-combo__list" id="fm-asset-region-list" role="listbox"
+            aria-labelledby="fm-asset-region-label" hidden></ul>
+        <p class="fm-panel__error" id="fm-asset-error-subnational_region" hidden></p>
+      </div>
+      <div class="fm-panel__field">
+        <label class="form-label" for="fm-asset-type">{% translate "Type" %}</label>
+        <select class="form-input" id="fm-asset-type" aria-describedby="fm-asset-error-type">
+          {% for asset_type in asset_types %}
+          <option value="{{ asset_type.value }}"
+                  {% if asset_type.value == 'Factory' %}selected{% endif %}>
+            {{ asset_type.label }}
+          </option>
+          {% endfor %}
+        </select>
+        <p class="fm-panel__error" id="fm-asset-error-type" hidden></p>
+      </div>
+      <div class="fm-panel__field">
+        <span class="form-label" id="fm-asset-map-label">{% translate "Position" %}</span>
+        <div class="fm-minimap" id="fm-asset-map" aria-labelledby="fm-asset-map-label"></div>
+        <p class="fm-panel__help" id="fm-asset-map-help">
+          {% translate "Cliquez sur la carte, ou saisissez la latitude et la longitude." %}
+        </p>
+      </div>
+      <div class="fm-panel__row">
+        <div class="fm-panel__field">
+          <label class="form-label" for="fm-asset-latitude">{% translate "Latitude" %}</label>
+          <input type="text" class="form-input" id="fm-asset-latitude" inputmode="decimal"
+                 autocomplete="off" aria-describedby="fm-asset-error-latitude">
+          <p class="fm-panel__error" id="fm-asset-error-latitude" hidden></p>
+        </div>
+        <div class="fm-panel__field">
+          <label class="form-label" for="fm-asset-longitude">{% translate "Longitude" %}</label>
+          <input type="text" class="form-input" id="fm-asset-longitude" inputmode="decimal"
+                 autocomplete="off" aria-describedby="fm-asset-error-longitude">
+          <p class="fm-panel__error" id="fm-asset-error-longitude" hidden></p>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="fm-own" id="fm-own" hidden>
+      <legend class="visually-hidden">{% translate "Détention" %}</legend>
+      <label class="fm-check">
+        <input type="checkbox" id="fm-own-check" checked>
+        <span id="fm-own-label"></span>
+      </label>
+      <div class="fm-panel__field" id="fm-own-share-field">
+        <label class="form-label" for="fm-own-share">{% translate "Part détenue (%)" %}</label>
+        <input type="text" class="form-input fm-own__share" id="fm-own-share" inputmode="decimal"
+               autocomplete="off" value="100" aria-describedby="fm-own-error-share fm-own-help">
+        <p class="fm-panel__error" id="fm-own-error-share" hidden></p>
+      </div>
+      <p class="fm-panel__help" id="fm-own-help"></p>
+    </fieldset>
+
+    <div class="fm-panel__actions">
+      <button type="submit" class="btn btn--primary" id="fm-add-submit"></button>
+      <button type="button" class="btn btn--secondary" id="fm-add-cancel">
+        {% translate "Annuler" %}
+      </button>
+    </div>
+  </form>
+
+  {# ── Création / modification d'un groupe d'actifs ── #}
+  <form class="fm-panel__form" id="fm-group-form" novalidate hidden>
+    <p class="fm-panel__error fm-panel__error--all" id="fm-group-error-__all__" role="alert"
+       tabindex="-1" hidden></p>
+    <div class="fm-panel__field">
+      <label class="form-label" for="fm-group-name">{% translate "Nom du groupe" %}</label>
+      <input type="text" class="form-input" id="fm-group-name" maxlength="255"
+             aria-describedby="fm-group-error-name">
+      <p class="fm-panel__error" id="fm-group-error-name" hidden></p>
+    </div>
+    <fieldset class="fm-panel__field" aria-describedby="fm-group-error-members">
+      <legend class="form-label">{% translate "Actifs du groupe" %}</legend>
+      <label class="visually-hidden" for="fm-group-filter">
+        {% translate "Filtrer les actifs" %}
+      </label>
+      <input type="search" class="form-input" id="fm-group-filter" autocomplete="off"
+             placeholder="{% translate 'Filtrer les actifs de la carte' %}">
+      <div class="fm-members" id="fm-group-members"></div>
+      <p class="fm-panel__help" id="fm-group-kept" hidden></p>
+      <p class="fm-panel__error" id="fm-group-error-members" hidden></p>
+    </fieldset>
+    <div class="fm-panel__actions">
+      <button type="submit" class="btn btn--primary" id="fm-group-save">
+        {% translate "Enregistrer" %}
+      </button>
+      <button type="button" class="btn btn--secondary" id="fm-group-cancel">
+        {% translate "Annuler" %}
+      </button>
+      <button type="button" class="btn fm-panel__delete" id="fm-group-delete" hidden>
+        {% translate "Supprimer le groupe" %}
+      </button>
+    </div>
+  </form>
+</aside>

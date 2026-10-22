@@ -14,14 +14,15 @@
 //   FlowMapPanel.confirm(message, {confirmLabel, danger}) -> Promise<bool>
 //                                     fenêtre modale de confirmation (focus piégé,
 //                                     retour du focus ; Échap ou clic hors = non)
+//   FlowMapPanel.notice(message)      message bref sous le bandeau de la carte
+// Ouvrir ce panneau émet « flowmap:panelopen » (detail : {panel: 'flow'}) ; il se
+// ferme quand un autre panneau s'ouvre (flow_map_blocks.js).
 // Après chaque écriture réussie : événement « flowmap:changed » sur document
 // (flow_map.js recharge la carte).
 window.FlowMapPanel = (function () {
   var ENV = 'environment';
   var UNKNOWN_IN = 'unknown-in';
   var UNKNOWN_OUT = 'unknown-out';
-  var SEARCH_MIN = 2;
-  var SEARCH_DELAY = 200;
   var NOTICE_DELAY = 6000;
   var FIELDS = ['kind', 'what', 'quantity', 'year', 'tier', 'scope', 'source', 'reference'];
   var OPTIONAL_FIELDS = ['tier', 'scope', 'source', 'reference'];
@@ -32,10 +33,7 @@ window.FlowMapPanel = (function () {
   var sheet = null;         // fiche ouverte {mode: 'new'|'edit', options, option, edge, flow}
   var opener = null;        // sélecteur de l'élément de la carte qui a ouvert la fiche
   var what = null;          // commodité choisie {id, name, unit}
-  var options = [];         // options de la liste de commodités
-  var activeOption = -1;
-  var searchRequest = 0;
-  var searchTimer = 0;
+  var whatCombo = null;     // recherche des commodités (FlowMapUI.combobox)
   var createName = '';
   var busy = false;
   var noticeTimer = 0;
@@ -43,25 +41,8 @@ window.FlowMapPanel = (function () {
   var refocus = false;      // rendre le focus à l'ouvreur après le rechargement
 
   // ── Utilitaires ──────────────────────────────────────────────────────────
-  function getCookie(name) {
-    var match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-    return match ? match.pop() : '';
-  }
-
   function post(url, payload) {
-    return fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'X-CSRFToken': getCookie('csrftoken'),
-      },
-      body: JSON.stringify(payload),
-    }).then(function (response) {
-      return response.json().catch(function () { return {}; }).then(function (data) {
-        return { ok: response.ok, status: response.status, data: data || {} };
-      });
-    });
+    return FlowMapUI.post(url, payload);
   }
 
   function idUrl(template, id) {
@@ -427,6 +408,7 @@ window.FlowMapPanel = (function () {
 
   function showPanel(focusTarget) {
     setBusy(false);
+    document.dispatchEvent(new CustomEvent('flowmap:panelopen', { detail: { panel: 'flow' } }));
     els.panel.hidden = false;
     els.panel.scrollTop = 0;
     (focusTarget || els.panel).focus();
@@ -564,112 +546,17 @@ window.FlowMapPanel = (function () {
   function onWhatInput() {
     if (what && els.what.value !== what.name) setWhat(null);
     hideCreate();
-    clearTimeout(searchTimer);
-    var q = els.what.value.trim();
-    if (q.length < SEARCH_MIN) {
-      searchRequest += 1;
-      hideList();
-      return;
-    }
-    searchTimer = setTimeout(function () { search(q); }, SEARCH_DELAY);
   }
 
-  function search(q) {
-    var mine = ++searchRequest;
-    fetch(urls.search + '?type=commodity&q=' + encodeURIComponent(q), {
-      headers: { Accept: 'application/json' },
-    })
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        if (mine === searchRequest && document.activeElement === els.what) {
-          renderList(q, data.results || []);
-        }
-      })
-      .catch(function (err) {
-        if (mine !== searchRequest) return;
-        console.error('commodity search failed:', err);
-        renderList(q, []);
-      });
-  }
-
-  function renderList(q, results) {
-    options = results.map(function (r) {
-      return {
-        item: { id: r.id, name: r.name, unit: r.detail },
-        label: r.detail ? r.name + ' — ' + r.detail : r.name,
-      };
-    });
-    var exact = results.some(function (r) { return r.name.toLowerCase() === q.toLowerCase(); });
-    if (!exact) {
-      options.push({
-        create: q, label: interpolate(gettext('+ Créer « %(name)s »…'), { name: q }, true),
-      });
-    }
-    els.list.textContent = '';
-    options.forEach(function (option, i) {
-      var li = document.createElement('li');
-      li.id = 'fm-what-option-' + i;
-      li.className = 'fm-combo__option' + (option.create ? ' fm-combo__option--create' : '');
-      li.setAttribute('role', 'option');
-      li.setAttribute('aria-selected', 'false');
-      li.textContent = option.label;
-      li.addEventListener('click', function () { choose(i); });
-      els.list.appendChild(li);
-    });
-    activeOption = -1;
-    els.what.removeAttribute('aria-activedescendant');
-    els.list.hidden = false;
-    els.what.setAttribute('aria-expanded', 'true');
-  }
-
-  function hideList() {
-    if (!els.list) return;
-    els.list.hidden = true;
-    els.what.setAttribute('aria-expanded', 'false');
-    els.what.removeAttribute('aria-activedescendant');
-    activeOption = -1;
-  }
-
-  function setActive(index) {
-    var items = els.list.children;
-    if (!items.length) return;
-    activeOption = (index + items.length) % items.length;
-    Array.prototype.forEach.call(items, function (li, i) {
-      li.classList.toggle('is-active', i === activeOption);
-      li.setAttribute('aria-selected', i === activeOption ? 'true' : 'false');
-    });
-    els.what.setAttribute('aria-activedescendant', items[activeOption].id);
-    items[activeOption].scrollIntoView({ block: 'nearest' });
-  }
-
-  function choose(index) {
-    var option = options[index];
-    if (!option) return;
-    hideList();
-    if (option.create) { showCreate(option.create); return; }
-    setWhat(option.item);
-    els.what.value = option.item.name;
+  function onWhatSelect(item) {
+    setWhat({ id: item.id, name: item.name, unit: item.detail });
     document.getElementById('fm-error-what').hidden = true;
     els.what.removeAttribute('aria-invalid');
     els.what.focus();
   }
 
-  function onWhatKey(event) {
-    var open = !els.list.hidden;
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      if (!open) return;
-      event.preventDefault();
-      setActive(activeOption + (event.key === 'ArrowDown' ? 1 : -1));
-    } else if (event.key === 'Enter' && open) {
-      event.preventDefault();
-      if (activeOption >= 0) choose(activeOption);
-    } else if (event.key === 'Escape' && open) {
-      event.preventDefault();
-      hideList();
-    }
+  function hideList() {
+    if (whatCombo) whatCombo.hide();
   }
 
   function showCreate(name) {
@@ -805,10 +692,10 @@ window.FlowMapPanel = (function () {
       var edge = sheet && sheet.edge;
       if (edge) openNewFlow(edge.from, edge.to);
     });
-    els.what.addEventListener('input', onWhatInput);
-    els.what.addEventListener('keydown', onWhatKey);
-    els.what.addEventListener('blur', hideList);
-    els.list.addEventListener('mousedown', function (event) { event.preventDefault(); });
+    whatCombo = FlowMapUI.combobox({
+      input: els.what, list: els.list, type: 'commodity', url: urls.search, canCreate: true,
+      onSelect: onWhatSelect, onCreate: showCreate, onInput: onWhatInput,
+    });
     els.unitInput.addEventListener('keydown', onUnitKey);
     els.createOk.addEventListener('click', createCommodity);
     els.createCancel.addEventListener('click', function () {
@@ -829,6 +716,12 @@ window.FlowMapPanel = (function () {
       restoreFocus();
     });
     // Chargement échoué : plus rien de l'entreprise précédente ne reste actif.
+    document.addEventListener('flowmap:panelopen', function (event) {
+      if (event.detail.panel !== 'flow') {
+        cancelTrace();
+        close({ focus: false });
+      }
+    });
     document.addEventListener('flowmap:cleared', function () {
       refocus = false;
       cancelTrace();
@@ -921,5 +814,6 @@ window.FlowMapPanel = (function () {
     openEdge: openEdge,
     close: close,
     confirm: confirm,
+    notice: notice,
   };
 })();
