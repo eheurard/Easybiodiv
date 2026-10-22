@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, views_flow_map
 
 app_name = 'dashboard'
 
@@ -42,4 +42,10 @@ urlpatterns = [
          name='portfolio_physical_risk'),
     path('api/portfolio/<int:pk>/transition-risk/', views.portfolio_transition_risk,
          name='portfolio_transition_risk'),
+    path('api/flow-map/flows/', views_flow_map.flow_map_flow_create,
+         name='flow_map_flow_create'),
+    path('api/flow-map/flows/<int:pk>/', views_flow_map.flow_map_flow_update,
+         name='flow_map_flow_update'),
+    path('api/flow-map/flows/<int:pk>/delete/', views_flow_map.flow_map_flow_delete,
+         name='flow_map_flow_delete'),
 ]

@@ -6,7 +6,7 @@ passe par un formulaire, jamais par une lecture brute de `request.GET`.
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from .models import ClimateScenario, Portfolio, PortfolioHolding
+from .models import ClimateScenario, Flow, Portfolio, PortfolioHolding
 from .services.stress_test import HORIZONS, PD_MAX
 
 
@@ -74,3 +74,35 @@ class PortfolioHoldingForm(forms.ModelForm):
         if weight < 0 or weight > 100:
             raise forms.ValidationError(_('Le poids doit être compris entre 0 et 100.'))
         return weight
+
+
+class FlowMapFlowForm(forms.ModelForm):
+    """Création / modification d'un flux depuis la carte des flux.
+
+    Tous les champs d'extrémité figurent dans le formulaire pour que `full_clean`
+    valide les `CheckConstraint` du modèle (règles par nature, boucle d'approvisionnement).
+    """
+
+    quantity = forms.CharField()
+
+    class Meta:
+        model = Flow
+        fields = [
+            'kind', 'what', 'scope',
+            'from_asset', 'from_region', 'from_country', 'from_company', 'from_environment',
+            'to_asset', 'to_region', 'to_country', 'to_company', 'to_environment',
+            'year', 'quantity', 'tier', 'source', 'reference',
+        ]
+
+    def clean_quantity(self):
+        raw = str(self.cleaned_data['quantity'])
+        text = ''.join(raw.split()).replace(' ', '').replace(' ', '')
+        try:
+            value = float(text.replace(',', '.'))
+        except ValueError:
+            raise forms.ValidationError(_('Quantité invalide.'))
+        if value != value or value in (float('inf'), float('-inf')):
+            raise forms.ValidationError(_('Quantité invalide.'))
+        if value <= 0:
+            raise forms.ValidationError(_('La quantité doit être positive.'))
+        return value

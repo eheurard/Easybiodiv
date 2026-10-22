@@ -1,5 +1,6 @@
 """Tests de la carte interactive des flux."""
 import datetime
+import json
 
 from django.contrib import admin
 from django.contrib.auth import get_user_model
@@ -9,7 +10,7 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from .models import (
-    ENDPOINT_COMPANY, Asset, AssetGroup, AssetGroupMember, Commodity, Company, Country, Flow,
+    ENDPOINT_COMPANY, FLOW_RULES, SUPPLY_SELF_LOOP_MESSAGE, Asset, AssetGroup, AssetGroupMember, Commodity, Company, Country, Flow,
     FlowKind, Ownership, SubnationalRegion,
 )
 from .services.flow_map import (
@@ -444,3 +445,116 @@ class UnlinkTests(TestCase):
                     unlink_preview(self.acme, 2024, key)
                 with self.assertRaises(ValueError):
                     unlink(self.acme, 2024, key)
+
+
+class FlowWriteApiTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.creator = user_model.objects.create_user('createur', password='x', role='CREATOR')
+        self.subscriber = user_model.objects.create_user(
+            'abonne', password='x', role='SUBSCRIBER')
+        self.client.force_login(self.creator)
+        self.cargill = Company.objects.create(name='Cargill')
+        self.brazil = Country.objects.create(
+            name='Brésil', water_ownership='Public', land_ownership='Private')
+        self.soja = Commodity.objects.create(name='Soja')
+        self.vevey = Asset.objects.create(
+            name='Vevey', latitude=1.0, longitude=2.0, country=self.brazil)
+        self.other = Asset.objects.create(
+            name='Autre', latitude=1.0, longitude=2.0, country=self.brazil)
+
+    def _post(self, name, body, *args):
+        return self.client.post(
+            reverse(name, args=args), data=json.dumps(body), content_type='application/json')
+
+    def _supply(self, **extra):
+        body = {'kind': 'SUPPLY', 'what_id': self.soja.pk, 'quantity': 12, 'year': 2024,
+                'from': f'company:{self.cargill.pk}', 'to': f'asset:{self.vevey.pk}'}
+        body.update(extra)
+        return body
+
+    def test_anonymous_and_subscriber_are_refused(self):
+        for user in (None, self.subscriber):
+            self.client.logout()
+            if user:
+                self.client.force_login(user)
+            r = self._post('dashboard:flow_map_flow_create', self._supply())
+            self.assertEqual(r.status_code, 403)
+            self.assertIn('__all__', r.json()['errors'])
+        self.assertEqual(Flow.objects.count(), 0)
+
+    def test_create_supply(self):
+        r = self._post('dashboard:flow_map_flow_create', self._supply())
+        self.assertEqual(r.status_code, 201)
+        flow = Flow.objects.get(pk=r.json()['id'])
+        self.assertEqual((flow.from_company, flow.to_asset, flow.created_by),
+                         (self.cargill, self.vevey, self.creator))
+
+    def test_create_consumption_from_environment(self):
+        r = self._post('dashboard:flow_map_flow_create', self._supply(
+            kind='CONSUMPTION', **{'from': 'environment'}))
+        self.assertEqual(r.status_code, 201, r.content)
+        flow = Flow.objects.get(pk=r.json()['id'])
+        self.assertTrue(flow.from_environment)
+        self.assertEqual(flow.to_asset, self.vevey)
+
+    def test_create_production_to_unknown(self):
+        r = self._post('dashboard:flow_map_flow_create', self._supply(
+            kind='PRODUCTION', **{'from': f'asset:{self.vevey.pk}', 'to': 'unknown-out'}))
+        self.assertEqual(r.status_code, 201, r.content)
+        flow = Flow.objects.get(pk=r.json()['id'])
+        self.assertIsNone(flow.to_asset)
+        self.assertFalse(flow.to_environment)
+
+    def test_create_flow_accepts_french_number(self):
+        r = self._post('dashboard:flow_map_flow_create', self._supply(quantity='12 400,5'))
+        self.assertEqual(r.status_code, 201, r.content)
+        self.assertEqual(Flow.objects.get(pk=r.json()['id']).quantity, 12400.5)
+
+    def test_create_rejects_bad_quantity_and_keys(self):
+        for quantity in ('abc', 0, -3, None):
+            r = self._post('dashboard:flow_map_flow_create', self._supply(quantity=quantity))
+            self.assertEqual(r.status_code, 400)
+            self.assertIn('quantity', r.json()['errors'])
+        for key in ('nope', None, 5, 'group:1'):
+            r = self._post('dashboard:flow_map_flow_create', self._supply(**{'from': key}))
+            self.assertEqual(r.status_code, 400)
+            self.assertIn('__all__', r.json()['errors'])
+        self.assertEqual(Flow.objects.count(), 0)
+
+    def test_create_supply_to_itself_returns_rule_message(self):
+        r = self._post('dashboard:flow_map_flow_create', self._supply(
+            **{'from': f'asset:{self.vevey.pk}', 'to': f'asset:{self.vevey.pk}'}))
+        self.assertEqual(r.status_code, 400)
+        self.assertIn(SUPPLY_SELF_LOOP_MESSAGE, r.json()['errors']['__all__'])
+
+    def test_kind_forbidden_by_rules_returns_rule_message(self):
+        r = self._post('dashboard:flow_map_flow_create', self._supply(
+            kind='EMISSION', **{'from': f'country:{self.brazil.pk}', 'to': 'environment'}))
+        self.assertEqual(r.status_code, 400)
+        self.assertIn(FLOW_RULES['EMISSION'].message, r.json()['errors']['__all__'])
+
+    def test_update_keeps_endpoints(self):
+        flow = make_supply(what=self.soja, year=2024, quantity=1,
+                           origin=self.cargill, destination=self.vevey)
+        r = self._post('dashboard:flow_map_flow_update', self._supply(
+            quantity=5, **{'from': f'asset:{self.other.pk}', 'to': f'asset:{self.other.pk}'}),
+            flow.pk)
+        self.assertEqual(r.status_code, 200, r.content)
+        flow.refresh_from_db()
+        self.assertEqual(flow.quantity, 5)
+        self.assertEqual((flow.from_company, flow.to_asset), (self.cargill, self.vevey))
+
+    def test_update_missing_flow_returns_404(self):
+        r = self._post('dashboard:flow_map_flow_update', self._supply(), 999999)
+        self.assertEqual(r.status_code, 404)
+        self.assertIn('__all__', r.json()['errors'])
+
+    def test_delete(self):
+        flow = make_supply(what=self.soja, year=2024, quantity=1,
+                           origin=self.cargill, destination=self.vevey)
+        r = self._post('dashboard:flow_map_flow_delete', {}, flow.pk)
+        self.assertEqual(r.json(), {'deleted': flow.pk})
+        self.assertFalse(Flow.objects.filter(pk=flow.pk).exists())
+        r = self._post('dashboard:flow_map_flow_delete', {}, flow.pk)
+        self.assertEqual(r.status_code, 404)
