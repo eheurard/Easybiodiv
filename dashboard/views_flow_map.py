@@ -10,14 +10,16 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from .decorators import creator_required_json
 from .forms import (
-    YEAR_MAX, YEAR_MIN, AssetGroupForm, AssetQuickForm, CommodityQuickForm, CompanyQuickForm, FlowMapFlowForm,
-    OwnershipQuickForm,
+    YEAR_MAX, YEAR_MIN, AssetGroupForm, AssetQuickForm, CommodityQuickForm, CompanyQuickForm,
+    FlowMapFlowForm, FlowYearsDeleteForm, OwnershipQuickForm, UnlinkForm,
 )
 from .models import (
-    ASSET_GROUP_DUPLICATE_MESSAGE, FLOW_RULES, Asset, AssetGroup, Commodity, Company, Country, Flow, FlowKind,
-    SubnationalRegion,
+    ASSET_GROUP_DUPLICATE_MESSAGE, FLOW_RULES, Asset, AssetGroup, Commodity, Company, Country,
+    Flow, FlowKind, SubnationalRegion,
 )
-from .services.flow_map import build_flow_map, endpoint_fields, unlink, unlink_preview
+from .services.flow_map import (
+    build_flow_map, delete_flow_years, endpoint_fields, flow_years, unlink, unlink_preview,
+)
 
 ENDPOINT_FIELDS = [
     f'{side}_{suffix}'
@@ -37,13 +39,6 @@ def _flow_rules():
     }
 
 
-def _with_year(data):
-    """Transition : le JS lit encore une seule année `year` ; on lui passe la fin
-    de la plage, en attendant le passage de l'API à `start` / `end`."""
-    data['year'] = data['end']
-    return data
-
-
 @require_GET
 def flow_map(request):
     """Page Carte des flux, ouverte sur la première entreprise (le JS recharge
@@ -53,7 +48,7 @@ def flow_map(request):
     initial_data = None
     if companies:
         first = Company.objects.get(pk=companies[0]['id'])
-        initial_data = _with_year(build_flow_map(first, None, None, user))
+        initial_data = build_flow_map(first, None, None, user)
     return render(request, 'dashboard/flow_map.html', {
         'companies': companies,
         'initial_data': initial_data,
@@ -69,27 +64,46 @@ def flow_map(request):
 
 
 def _parse_year(raw):
-    """(année, None) ou (None, réponse 400) ; `raw` absent ou vide donne (None, None).
-    L'année doit être un entier entre YEAR_MIN et YEAR_MAX."""
-    if raw in (None, ''):
-        return None, None
+    """Année entière entre YEAR_MIN et YEAR_MAX, ou None si `raw` est invalide."""
     try:
         year = int(raw)
-        if not YEAR_MIN <= year <= YEAR_MAX:
-            raise ValueError(raw)
     except (TypeError, ValueError):
-        return None, JsonResponse({'errors': {'year': [_('Année invalide.')]}}, status=400)
-    return year, None
+        return None
+    return year if YEAR_MIN <= year <= YEAR_MAX else None
+
+
+def _range_refused(errors):
+    return JsonResponse({'errors': errors}, status=400)
+
+
+def _parse_range(params, required=False):
+    """(start, end, réponse 400) d'après `?start=&end=`.
+
+    Les deux bornes absentes (ou vides) donnent (None, None, None) sauf si `required` ;
+    une seule présente, non entière ou hors YEAR_MIN–YEAR_MAX donne une 400 ; start > end
+    aussi."""
+    raw = {name: params.get(name) or None for name in ('start', 'end')}
+    if not required and not any(raw.values()):
+        return None, None, None
+    bounds = {name: _parse_year(value) for name, value in raw.items()}
+    errors = {name: [_('Année invalide.')] for name, year in bounds.items() if year is None}
+    if errors:
+        return None, None, _range_refused(errors)
+    if bounds['start'] > bounds['end']:
+        return None, None, _range_refused(
+            {'end': [_('La fin de la plage doit suivre son début.')]})
+    return bounds['start'], bounds['end'], None
 
 
 @require_GET
 def flow_map_data(request, company_pk):
-    """Données de la carte pour une entreprise et `?year=` (absent : année par défaut)."""
+    """Données de la carte pour une entreprise et `?start=&end=` (absents : plage
+    par défaut du périmètre)."""
     company = get_object_or_404(Company, pk=company_pk)
-    year, refused = _parse_year(request.GET.get('year'))
+    start, end, refused = _parse_range(request.GET)
     if refused:
         return refused
-    return JsonResponse(_with_year(build_flow_map(company, year, year, request.user)))
+    return JsonResponse(build_flow_map(company, start, end, request.user))
 
 
 # ── Écriture des flux ────────────────────────────────────────────────────────
@@ -196,14 +210,45 @@ def flow_map_flow_update(request, pk):
     return JsonResponse({'id': flow.pk})
 
 
-@require_POST
-@creator_required_json
-def flow_map_flow_delete(request, pk):
+@require_GET
+def flow_map_flow_years(request, company_pk, pk):
+    """Années de la plage où le même flux figure dans le périmètre (lecture ouverte)."""
+    company = Company.objects.filter(pk=company_pk).first()
+    if company is None:
+        return _error(_("Cette entreprise n'existe plus."), status=404)
     flow = _get_flow(pk)
     if flow is None:
         return _not_found()
-    flow.delete()
-    return JsonResponse({'deleted': pk})
+    start, end, refused = _parse_range(request.GET, required=True)
+    if refused:
+        return refused
+    return JsonResponse({'years': flow_years(company, start, end, flow)})
+
+
+@require_POST
+@creator_required_json
+def flow_map_flow_delete(request, company_pk, pk):
+    """Supprime les lignes du même flux pour les années cochées de la plage."""
+    company = Company.objects.filter(pk=company_pk).first()
+    if company is None:
+        return _error(_("Cette entreprise n'existe plus."), status=404)
+    flow = _get_flow(pk)
+    if flow is None:
+        return _not_found()
+    payload = _payload(request)
+    if payload is None:
+        return _error(_('JSON invalide'))
+    form = FlowYearsDeleteForm(payload)
+    refused = _form_errors(form)
+    if refused:
+        return refused
+    data = form.cleaned_data
+    try:
+        deleted = delete_flow_years(company, data['start'], data['end'], flow, data['years'])
+    except ValueError:
+        return JsonResponse({'errors': {'years': [_('Années invalides pour cette plage.')]}},
+                            status=400)
+    return JsonResponse({'deleted': deleted})
 
 
 # ── Recherche, créations, détentions, groupes, retrait ───────────────────────
@@ -356,44 +401,44 @@ def flow_map_group_delete(request, pk):
     return JsonResponse({'deleted': pk})
 
 
-def _single_year_preview(company, year, key):
-    """Aperçu d'un retrait limité à `year`, au format de l'API d'une seule année."""
-    preview = unlink_preview(company, year, year, key)
-    return {
-        'flows': sum(entry['flows'] for entry in preview['years']),
-        'ownership': preview['ownership'],
-        'co_owners': preview['co_owners'],
-    }
-
-
-def _single_year_unlink(company, year, key):
-    """Retire les liens du bloc pour `year` seulement : tous ses flux de l'année et,
-    pour un actif détenu, sa détention à partir de cette année."""
-    with transaction.atomic():
-        result = _single_year_preview(company, year, key)
-        if result['flows'] or result['ownership']:
-            unlink(company, year, year, key, years=[year] if result['flows'] else [],
-                   ownership_year=year if result['ownership'] else None)
-    return result
-
-
-def _run_unlink(request, action):
-    """Applique `action(company, year, key)` aux paramètres `year` et `block`."""
+def _unlink_context(request):
+    """(entreprise, start, end, réponse 400/404) d'après l'URL et `?start=&end=`."""
     company = Company.objects.filter(pk=request.resolver_match.kwargs['company_pk']).first()
     if company is None:
-        return _error(_("Cette entreprise n'existe plus."), status=404)
-    year, refused = _parse_year(request.GET.get('year'))
-    if refused or year is None:
-        return refused or _error(_('Année invalide.'))
+        return None, None, None, _error(_("Cette entreprise n'existe plus."), status=404)
+    start, end, refused = _parse_range(request.GET, required=True)
+    return company, start, end, refused
+
+
+def _unlink_preview_response(request):
+    company, start, end, refused = _unlink_context(request)
+    if refused:
+        return refused
     try:
-        return JsonResponse(action(company, year, request.GET.get('block')))
+        return JsonResponse(unlink_preview(company, start, end, request.GET.get('block')))
     except (ValueError, TypeError):
         return _error(_('Bloc invalide.'))
 
 
 @creator_required_json
 def _unlink_apply(request):
-    return _run_unlink(request, _single_year_unlink)
+    company, start, end, refused = _unlink_context(request)
+    if refused:
+        return refused
+    payload = _payload(request)
+    if payload is None:
+        return _error(_('JSON invalide'))
+    form = UnlinkForm(payload)
+    refused = _form_errors(form)
+    if refused:
+        return refused
+    data = form.cleaned_data
+    try:
+        result = unlink(company, start, end, request.GET.get('block'), data['years'],
+                        data['ownership_year'])
+    except (ValueError, TypeError):
+        return _error(_('Retrait impossible : vérifiez le bloc, les années et la détention.'))
+    return JsonResponse(result)
 
 
 @require_http_methods(['GET', 'POST'])
@@ -401,4 +446,4 @@ def flow_map_unlink(request, company_pk):
     """GET : aperçu du retrait (ouvert) ; POST : retrait effectif (Créateur)."""
     if request.method == 'POST':
         return _unlink_apply(request)
-    return _run_unlink(request, _single_year_preview)
+    return _unlink_preview_response(request)

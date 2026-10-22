@@ -128,7 +128,8 @@
   var FLOW_MAP_URLS = {
     flowCreate: "{% url 'dashboard:flow_map_flow_create' %}",
     flowUpdate: "{% url 'dashboard:flow_map_flow_update' pk=0 %}",
-    flowDelete: "{% url 'dashboard:flow_map_flow_delete' pk=0 %}",
+    flowDelete: "{% url 'dashboard:flow_map_flow_delete' company_pk=0 pk=0 %}",
+    flowYears: "{% url 'dashboard:flow_map_flow_years' company_pk=0 pk=0 %}",
     search: "{% url 'dashboard:flow_map_search' %}",
     commodityCreate: "{% url 'dashboard:flow_map_commodity_create' %}",
     assetCreate: "{% url 'dashboard:flow_map_asset_create' %}",

@@ -188,6 +188,58 @@ class OwnershipQuickForm(forms.ModelForm):
         fields = ['company', 'asset', 'share', 'start_year']
 
 
+class StrictYearField(forms.Field):
+    """Année donnée comme un vrai entier JSON (ni chaîne, ni décimal, ni booléen)
+    entre YEAR_MIN et YEAR_MAX."""
+
+    def to_python(self, value):
+        if value in self.empty_values:
+            return None
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise forms.ValidationError(_('Année invalide.'), code='invalid')
+        if not YEAR_MIN <= value <= YEAR_MAX:
+            raise forms.ValidationError(_('Année invalide.'), code='invalid')
+        return value
+
+
+class YearListField(forms.Field):
+    """Liste d'années (entiers stricts) ; une valeur absente donne une liste vide."""
+
+    def to_python(self, value):
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise forms.ValidationError(_('Année invalide.'), code='invalid')
+        year_field = StrictYearField(required=True)
+        return [year_field.clean(year) for year in value]
+
+    def validate(self, value):
+        if self.required and not value:
+            raise forms.ValidationError(_('Choisissez au moins une année.'), code='required')
+
+
+class FlowYearsDeleteForm(forms.Form):
+    """Corps de la suppression d'un flux : plage de la carte et années cochées."""
+
+    start = StrictYearField()
+    end = StrictYearField()
+    years = YearListField()
+
+    def clean(self):
+        cleaned = super().clean()
+        start, end = cleaned.get('start'), cleaned.get('end')
+        if start is not None and end is not None and start > end:
+            self.add_error('end', _('La fin de la plage doit suivre son début.'))
+        return cleaned
+
+
+class UnlinkForm(forms.Form):
+    """Corps du retrait des liens d'un bloc : années de flux et fin de détention."""
+
+    years = YearListField(required=False)
+    ownership_year = StrictYearField(required=False)
+
+
 class AssetGroupForm(forms.ModelForm):
     """Groupe d'actifs d'une entreprise ; un actif n'est membre que d'un groupe."""
 

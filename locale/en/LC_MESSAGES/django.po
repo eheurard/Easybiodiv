@@ -2552,6 +2552,18 @@ msgstr "Invalid year."
 msgid "Bloc invalide."
 msgstr "Invalid block."
 
+msgid "La fin de la plage doit suivre son début."
+msgstr "The end of the range must not precede its start."
+
+msgid "Choisissez au moins une année."
+msgstr "Choose at least one year."
+
+msgid "Années invalides pour cette plage."
+msgstr "Invalid years for this range."
+
+msgid "Retrait impossible : vérifiez le bloc, les années et la détention."
+msgstr "Cannot unlink: check the block, the years and the ownership."
+
 msgid "Origine inconnue"
 msgstr "Unknown origin"
 

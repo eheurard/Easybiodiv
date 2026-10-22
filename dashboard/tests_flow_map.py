@@ -8,6 +8,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, transaction
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from .models import (
     ENDPOINT_COMPANY, FLOW_RULES, SUPPLY_SELF_LOOP_MESSAGE, Asset, AssetGroup,
@@ -907,14 +908,80 @@ class FlowWriteApiTests(TestCase):
         self.assertIn('year', r.json()['errors'])
         self.assertEqual(Flow.objects.count(), 0)
 
-    def test_delete(self):
-        flow = make_supply(what=self.soja, year=2024, quantity=1,
-                           origin=self.cargill, destination=self.vevey)
-        r = self._post('dashboard:flow_map_flow_delete', {}, flow.pk)
-        self.assertEqual(r.json(), {'deleted': flow.pk})
-        self.assertFalse(Flow.objects.filter(pk=flow.pk).exists())
-        r = self._post('dashboard:flow_map_flow_delete', {}, flow.pk)
-        self.assertEqual(r.status_code, 404)
+    def _owned_flows(self, years=(2022, 2023, 2024)):
+        acme = Company.objects.create(name='Acme')
+        Ownership.objects.create(asset=self.vevey, company=acme, share=1, start_year=2015)
+        flows = [make_supply(what=self.soja, year=year, quantity=1,
+                             origin=self.cargill, destination=self.vevey) for year in years]
+        return acme, flows
+
+    def _delete(self, acme, flow, body):
+        return self._post('dashboard:flow_map_flow_delete', body, acme.pk, flow.pk)
+
+    def test_flow_years_endpoint(self):
+        acme, flows = self._owned_flows()
+        url = reverse('dashboard:flow_map_flow_years', args=[acme.pk, flows[2].pk])
+        self.client.logout()
+        r = self.client.get(url, {'start': 2023, 'end': 2025})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), {'years': [{'year': 2023, 'count': 1},
+                                              {'year': 2024, 'count': 1}]})
+
+    def test_flow_years_requires_valid_range(self):
+        acme, flows = self._owned_flows()
+        url = reverse('dashboard:flow_map_flow_years', args=[acme.pk, flows[0].pk])
+        for params in ({}, {'start': 2022}, {'start': 2024, 'end': 2022},
+                       {'start': 'x', 'end': 1}):
+            with self.subTest(params=params):
+                self.assertEqual(self.client.get(url, params).status_code, 400)
+        missing = reverse('dashboard:flow_map_flow_years', args=[acme.pk, 999999])
+        self.assertEqual(self.client.get(missing, {'start': 2022, 'end': 2024}).status_code, 404)
+
+    def test_delete_flow_selected_years(self):
+        acme, flows = self._owned_flows()
+        r = self._delete(acme, flows[2], {'start': 2022, 'end': 2024, 'years': [2022, 2024]})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), {'deleted': 2})
+        self.assertEqual(list(Flow.objects.values_list('year', flat=True)), [2023])
+
+    def test_delete_flow_missing_is_404(self):
+        acme, flows = self._owned_flows(years=(2024,))
+        body = {'start': 2024, 'end': 2024, 'years': [2024]}
+        self.assertEqual(self._delete(acme, flows[0], body).json(), {'deleted': 1})
+        self.assertEqual(self._delete(acme, flows[0], body).status_code, 404)
+
+    def test_delete_flow_rejects_year_outside_range(self):
+        acme, flows = self._owned_flows()
+        r = self._delete(acme, flows[2], {'start': 2023, 'end': 2024, 'years': [2022, 2024]})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(Flow.objects.count(), 3)
+
+    def test_delete_flow_rejects_bad_body(self):
+        acme, flows = self._owned_flows()
+        bad_years = ['2024', 2024.0, True, None, [], [None], [2024.5], 'x', [2024, '2023']]
+        for years in bad_years:
+            with self.subTest(years=years):
+                r = self._delete(acme, flows[2], {'start': 2022, 'end': 2024, 'years': years})
+                self.assertEqual(r.status_code, 400)
+                self.assertIn('years', r.json()['errors'])
+        for start, end in (('2022', 2024), (2022, None), (2024, 2022), (1800, 2024),
+                           (True, 2024)):
+            with self.subTest(start=start, end=end):
+                r = self._delete(acme, flows[2], {'start': start, 'end': end, 'years': [2024]})
+                self.assertEqual(r.status_code, 400)
+                self.assertTrue({'start', 'end'} & set(r.json()['errors']))
+        self.assertEqual(Flow.objects.count(), 3)
+        r = self.client.post(
+            reverse('dashboard:flow_map_flow_delete', args=[acme.pk, flows[0].pk]),
+            data='pas du json', content_type='application/json')
+        self.assertEqual(r.status_code, 400)
+
+    def test_delete_flow_refused_for_subscriber(self):
+        acme, flows = self._owned_flows()
+        self.client.force_login(self.subscriber)
+        r = self._delete(acme, flows[2], {'start': 2022, 'end': 2024, 'years': [2024]})
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(Flow.objects.count(), 3)
 
 
 class MapApiTests(TestCase):
@@ -1079,33 +1146,85 @@ class MapApiTests(TestCase):
         self.assertIn('Usine Vevey', r.json()['errors']['members'][0])
         self.assertEqual(AssetGroup.objects.count(), 1)
 
+    def _unlink_url(self, key, start=2020, end=2025):
+        base = reverse('dashboard:flow_map_unlink', args=[self.acme.pk])
+        return f'{base}?start={start}&end={end}&block={key}'
+
+    def _unlink(self, key, body, **range_):
+        return self.client.post(
+            self._unlink_url(key, **range_), data=json.dumps(body),
+            content_type='application/json')
+
     def test_unlink_preview_then_unlink(self):
         Ownership.objects.create(asset=self.vevey, company=self.acme, share=1, start_year=2020)
         make_supply(what=self.soja, year=2024, quantity=5,
                     origin=self.cargill, destination=self.vevey)
-        url = reverse('dashboard:flow_map_unlink', args=[self.acme.pk])
         key = f'company:{self.cargill.pk}'
-        r = self.client.get(url, {'year': 2024, 'block': key})
-        self.assertEqual(r.json(), {'flows': 1, 'ownership': False, 'co_owners': []})
+        r = self.client.get(self._unlink_url(key))
+        self.assertEqual(r.json(), {
+            'years': [{'year': 2024, 'flows': 1}], 'ownership': False,
+            'ownership_year': 2024, 'co_owners': []})
         self.assertEqual(Flow.objects.count(), 1)
-        r = self.client.post(f'{url}?year=2024&block={key}')
-        self.assertEqual(r.json(), {'flows': 1, 'ownership': False, 'co_owners': []})
+        r = self._unlink(key, {'years': [2024], 'ownership_year': None})
+        self.assertEqual(r.json(), {'flows': 1, 'ownership': False})
         self.assertEqual(Flow.objects.count(), 0)
+
+    def test_unlink_with_years_and_ownership_year(self):
+        Ownership.objects.create(asset=self.vevey, company=self.acme, share=1, start_year=2020)
+        for year in (2022, 2023, 2024):
+            make_supply(what=self.soja, year=year, quantity=5,
+                        origin=self.cargill, destination=self.vevey)
+        key = f'asset:{self.vevey.pk}'
+        r = self._unlink(key, {'years': [2022, 2024], 'ownership_year': 2023})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), {'flows': 2, 'ownership': True})
+        self.assertEqual(list(Flow.objects.values_list('year', flat=True)), [2023])
+        ownership = Ownership.objects.get(asset=self.vevey, company=self.acme)
+        self.assertEqual(ownership.end_year, 2022)
+
+    def test_unlink_with_nothing_selected_is_refused(self):
+        Ownership.objects.create(asset=self.vevey, company=self.acme, share=1, start_year=2020)
+        make_supply(what=self.soja, year=2024, quantity=5,
+                    origin=self.cargill, destination=self.vevey)
+        for body in ({}, {'years': [], 'ownership_year': None}):
+            r = self._unlink(f'asset:{self.vevey.pk}', body)
+            self.assertEqual(r.status_code, 400)
+        self.assertEqual(Flow.objects.count(), 1)
+        self.assertIsNone(Ownership.objects.get(asset=self.vevey).end_year)
+
+    def test_unlink_rejects_untyped_years(self):
+        make_supply(what=self.soja, year=2024, quantity=5,
+                    origin=self.cargill, destination=self.vevey)
+        key = f'company:{self.cargill.pk}'
+        for body in ({'years': ['2024']}, {'years': [True]}, {'years': 2024},
+                     {'years': [2024.5]}, {'years': [2024], 'ownership_year': '2024'},
+                     {'years': [2024], 'ownership_year': 2024.0},
+                     {'years': [2024], 'ownership_year': False}):
+            with self.subTest(body=body):
+                r = self._unlink(key, body)
+                self.assertEqual(r.status_code, 400)
+                self.assertTrue({'years', 'ownership_year'} & set(r.json()['errors']))
+        r = self._unlink(key, {'years': [2030]})
+        self.assertEqual(r.status_code, 400)
+        r = self.client.post(self._unlink_url(key), data='x', content_type='application/json')
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(Flow.objects.count(), 1)
 
     def test_unlink_bad_input(self):
         url = reverse('dashboard:flow_map_unlink', args=[self.acme.pk])
-        for year in ('99999999999999999999', '1800', '2101'):
-            self.assertEqual(self.client.post(f'{url}?year={year}&block=company:1')
-                             .status_code, 400)
-            self.assertEqual(self.client.get(url, {'year': year, 'block': 'company:1'})
-                             .status_code, 400)
-        self.assertEqual(self.client.get(reverse('dashboard:flow_map_data', args=[self.acme.pk]),
-                                         {'year': 99999999999999999999}).status_code, 400)
-        self.assertEqual(self.client.get(url, {'year': 2024, 'block': 'environment'})
-                         .status_code, 400)
-        self.assertEqual(self.client.get(url, {'year': 'x', 'block': 'company:1'})
-                         .status_code, 400)
+        for start, end in (('99999999999999999999', 2024), (1800, 2024), (2020, 2101),
+                           ('x', 2024), (2024, 2020), (2020, None)):
+            params = {'start': start, 'block': 'company:1'}
+            if end is not None:
+                params['end'] = end
+            self.assertEqual(self.client.get(url, params).status_code, 400)
+            self.assertEqual(
+                self.client.post(url + '?' + urlencode(params), data='{}',
+                                 content_type='application/json').status_code, 400)
         self.assertEqual(self.client.get(url, {'block': 'company:1'}).status_code, 400)
+        self.assertEqual(self.client.get(
+            url, {'start': 2024, 'end': 2024, 'block': 'environment'}).status_code, 400)
+        self.assertEqual(self._unlink('environment', {'years': [2024]}).status_code, 400)
 
     def test_writes_refused_for_subscriber(self):
         self.client.force_login(self.subscriber)
@@ -1122,7 +1241,9 @@ class MapApiTests(TestCase):
             with self.subTest(name=name):
                 self.assertEqual(self._post(name, {}, *args).status_code, 403)
         url = reverse('dashboard:flow_map_unlink', args=[self.acme.pk])
-        self.assertEqual(self.client.post(url + '?year=2024&block=company:1').status_code, 403)
+        r = self.client.post(url + '?start=2024&end=2024&block=company:1', data='{}',
+                             content_type='application/json')
+        self.assertEqual(r.status_code, 403)
 
 
 class FlowMapPageTests(TestCase):
@@ -1141,7 +1262,8 @@ class FlowMapPageTests(TestCase):
         self.assertContains(r, 'flow_map.js')
         self.assertEqual(r.context['companies'][0], {'id': self.acme.pk, 'name': 'Acme'})
         self.assertEqual(r.context['initial_data']['company']['id'], self.acme.pk)
-        self.assertEqual(r.context['initial_data']['year'], 2024)
+        self.assertEqual(r.context['initial_data']['start'], 2023)
+        self.assertEqual(r.context['initial_data']['end'], 2024)
         self.assertFalse(r.context['can_edit'])
 
     def test_page_context_rules_and_kinds(self):
@@ -1184,22 +1306,42 @@ class FlowMapPageTests(TestCase):
         self.assertIsNone(r.context['initial_data'])
         self.assertEqual(r.context['companies'], [])
 
-    def test_data_endpoint_uses_year(self):
+    def test_data_uses_range(self):
         r = self.client.get(reverse('dashboard:flow_map_data', args=[self.acme.pk]),
-                            {'year': 2023})
+                            {'start': 2020, 'end': 2024})
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json()['year'], 2023)
-        self.assertEqual(r.json()['company'], {'id': self.acme.pk, 'name': 'Acme'})
+        data = r.json()
+        self.assertEqual((data['start'], data['end']), (2020, 2024))
+        self.assertEqual(data['company'], {'id': self.acme.pk, 'name': 'Acme'})
+        self.assertNotIn('year', data)
 
-    def test_data_endpoint_default_year(self):
-        r = self.client.get(reverse('dashboard:flow_map_data', args=[self.acme.pk]))
-        self.assertEqual(r.json()['year'], 2024)
+    def test_data_default_range(self):
+        data = self.client.get(reverse('dashboard:flow_map_data', args=[self.acme.pk])).json()
+        self.assertEqual((data['start'], data['end']), (2023, 2024))
 
-    def test_data_endpoint_rejects_bad_year(self):
+    def test_data_rejects_inverted_range(self):
         r = self.client.get(reverse('dashboard:flow_map_data', args=[self.acme.pk]),
-                            {'year': 'abc'})
+                            {'start': 2024, 'end': 2023})
         self.assertEqual(r.status_code, 400)
-        self.assertIn('year', r.json()['errors'])
+        self.assertIn('end', r.json()['errors'])
+
+    def test_data_rejects_single_bound(self):
+        url = reverse('dashboard:flow_map_data', args=[self.acme.pk])
+        r = self.client.get(url, {'start': 2023})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('end', r.json()['errors'])
+        r = self.client.get(url, {'end': 2023})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('start', r.json()['errors'])
+
+    def test_data_rejects_bad_bounds(self):
+        url = reverse('dashboard:flow_map_data', args=[self.acme.pk])
+        for params in ({'start': 'abc', 'end': 2024}, {'start': 1800, 'end': 2024},
+                       {'start': 2020, 'end': '99999999999999999999'}):
+            with self.subTest(params=params):
+                r = self.client.get(url, params)
+                self.assertEqual(r.status_code, 400)
+                self.assertTrue({'start', 'end'} & set(r.json()['errors']))
 
     def test_data_endpoint_unknown_company(self):
         r = self.client.get(reverse('dashboard:flow_map_data', args=[999999]))
