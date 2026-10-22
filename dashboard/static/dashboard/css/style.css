@@ -4038,21 +4038,17 @@ a.app-header__avatar {
 .pf-phys { display: grid; gap: 1.5rem; }
 .pf-phys__caption { margin: 0 0 1rem; font-size: 13px; color: var(--color-on-surface-variant); }
 .pf-phys__radar-wrap { position: relative; height: 420px; }
-.pf-phys__heatmap-wrap { overflow-x: auto; }
-.pf-phys-heatmap { border-collapse: collapse; width: 100%; font-size: 13px; }
-.pf-phys-heatmap th {
-  text-align: left; padding: .5rem .6rem; font-weight: 600;
-  color: var(--color-on-surface-variant); white-space: nowrap;
-}
-.pf-phys-heatmap thead th { vertical-align: bottom; }
-.pf-phys-heatmap td {
-  padding: .5rem .6rem; text-align: center; font-variant-numeric: tabular-nums;
-}
-.pf-phys-row--total th, .pf-phys-row--total td {
-  font-weight: 700;
-  border-top: 2px solid var(--color-outline);
-  border-bottom: 2px solid var(--color-outline);
-}
+/* Carte des actifs agrégés : carte à gauche, classement des aléas à droite
+   (fragment _pr_panel.html, partagé avec la page Risque physique). */
+.pf-phys-map { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1.5rem; }
+@media (max-width: 1000px) { .pf-phys-map { grid-template-columns: 1fr; } }
+.pf-phys-map__stage { position: relative; }
+.pf-phys-map__canvas { height: 520px; border-radius: 8px; overflow: hidden; border: 1px solid var(--color-outline-variant); }
+.pf-phys-map__legend { position: absolute; left: 12px; bottom: 12px; }
+.pf-phys-map__panel { display: flex; flex-direction: column; gap: 12px; max-height: 520px; overflow-y: auto; }
+.pf-phys-map__panel .kpi-row { margin: 0; }
+.pf-phys__note { margin: 1rem 0 0; font-size: 12px; line-height: 1.5; color: var(--color-on-surface-variant); }
+.pf-phys__note--warn { color: var(--color-secondary); }
 
 /* ── Portfolio : onglet Risque de transition ─────────────────────── */
 .pf-trans .kpi-row { margin-bottom: 1rem; }
@@ -5388,6 +5384,10 @@ button.sidebar__footer-icon-link {
   .pf-impact__chart-wrap,
   .pf-phys__radar-wrap {
     height: 300px;
+  }
+
+  .pf-phys-map__canvas {
+    height: 360px;
   }
 
   .policy-accordion-header {

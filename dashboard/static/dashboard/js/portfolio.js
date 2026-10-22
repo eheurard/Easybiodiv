@@ -66,6 +66,7 @@
           panel.hidden = !active;
         });
         if (name === 'impact' && CITY && IMPACT_DATA) { CITY.show(); }
+        if (name === 'risque-physique' && PHYS_DATA) { physShowMap(); }
         if (name === 'risque-transition' && TRANS_DATA) {
           transEnsureMap();
           if (TRANS_MAP) {
@@ -416,22 +417,21 @@
   }
 
   // ── Physical-risk tab ────────────────────────────────────────────
-  function physMix(a, b, t) {
-    return {
-      r: Math.round(a[0] + (b[0] - a[0]) * t),
-      g: Math.round(a[1] + (b[1] - a[1]) * t),
-      b: Math.round(a[2] + (b[2] - a[2]) * t),
-    };
-  }
+  // Radar (profil pondéré par montant) et carte des actifs agrégés du
+  // portefeuille, pondérés par l'exposition financée. La carte réutilise le
+  // rendu de la page Risque physique (physical_risk_view.js) : classement des
+  // aléas (sélecteur), perte projetée, points, popup et légende.
+  var PHYS_MAP = null;
+  var PHYS_MAP_READY = false;
+  var PHYS_KEY = null;          // aléa sélectionné dans le classement
+  var PHYS_HORIZON = 5;
+  var PHYS_FIT = false;         // recadrer la carte sur les actifs au prochain rendu
 
-  function physColor(score) {
-    var s = Math.max(0, Math.min(1, Number(score) || 0));
-    if (s < 0.5) { return physMix([26, 122, 76], [217, 154, 0], s / 0.5); }
-    return physMix([217, 154, 0], [179, 38, 30], (s - 0.5) / 0.5);
-  }
+  function physMapData() { return PHYS_DATA && PHYS_DATA.map; }
 
-  function physLuminance(c) {
-    return (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b) / 255;
+  function physPanelVisible() {
+    var panel = document.querySelector('.pf-panel[data-tab-panel="risque-physique"]');
+    return panel && !panel.hidden;
   }
 
   function clearPhysical() {
@@ -447,6 +447,7 @@
       .then(function (data) {
         if (!data) { clearPhysical(); return; }
         PHYS_DATA = data;
+        PHYS_FIT = true;
         $('pf-phys-empty').hidden = true;
         $('pf-phys-report').hidden = false;
         renderPhysical();
@@ -456,7 +457,8 @@
   function renderPhysical() {
     if (!PHYS_DATA) { return; }
     renderPhysRadar(PHYS_DATA);
-    renderPhysHeatmap(PHYS_DATA);
+    renderPhysMapPanel();
+    if (physPanelVisible()) { physShowMap(); }
   }
 
   function renderPhysRadar(data) {
@@ -492,52 +494,125 @@
     });
   }
 
-  function physRow(label, scores, hazards, isTotal) {
-    var tr = document.createElement('tr');
-    if (isTotal) { tr.className = 'pf-phys-row--total'; }
-    var th = document.createElement('th');
-    th.scope = 'row';
-    th.textContent = label;
-    tr.appendChild(th);
-    scores.forEach(function (score, i) {
-      var td = document.createElement('td');
-      var col = physColor(score);
-      td.style.backgroundColor = 'rgb(' + col.r + ',' + col.g + ',' + col.b + ')';
-      td.style.color = physLuminance(col) > 0.55 ? '#1b1c19' : '#ffffff';
-      td.textContent = Number(score).toFixed(2);
-      td.title = hazards[i].label + ' : ' + Number(score).toFixed(2);
-      tr.appendChild(td);
-    });
-    return tr;
+  function renderPhysMapPanel() {
+    var data = physMapData();
+    if (!data || typeof PhysicalRiskView === 'undefined') { return; }
+    var known = data.hazards.some(function (h) { return h.key === PHYS_KEY; });
+    if (!known) { PHYS_KEY = data.hazards.length ? data.hazards[0].key : null; }
+    PhysicalRiskView.renderKpis(data, PHYS_HORIZON);
+    PhysicalRiskView.renderRanking(data, PHYS_KEY, physSelectHazard);
+    var legend = $('pf-phys-legend');
+    if (legend) { legend.innerHTML = PhysicalRiskView.legendHtml(); }
+    var note = $('pf-phys-evic-note');
+    if (note) {
+      var missing = data.companies_without_evic || [];
+      note.hidden = !missing.length;
+      note.textContent = missing.length
+        ? interpolate(gettext('Sans EVIC, exposition financée nulle : %(names)s.'),
+            { names: missing.join(', ') }, true)
+        : '';
+    }
+    physSyncMap();
   }
 
-  function renderPhysHeatmap(data) {
-    var table = $('pf-phys-heatmap');
-    if (!table) { return; }
-    table.innerHTML = '';
-    var hazards = data.hazards;
+  function physSelectHazard(key) {
+    PHYS_KEY = key;
+    PhysicalRiskView.markSelected(key);
+    physSyncMap();
+  }
 
-    var thead = document.createElement('thead');
-    var htr = document.createElement('tr');
-    var corner = document.createElement('th');
-    corner.scope = 'col';
-    corner.textContent = gettext('Entreprise');
-    htr.appendChild(corner);
-    hazards.forEach(function (h) {
-      var th = document.createElement('th');
-      th.scope = 'col';
-      th.textContent = h.label;
-      htr.appendChild(th);
-    });
-    thead.appendChild(htr);
-    table.appendChild(thead);
+  function physAddLayers() {
+    if (!PHYS_MAP.getSource('pf-phys-assets')) {
+      PHYS_MAP.addSource('pf-phys-assets', {
+        type: 'geojson', data: { type: 'FeatureCollection', features: [] },
+      });
+    }
+    if (!PHYS_MAP.getLayer('pf-phys-layer')) {
+      PHYS_MAP.addLayer({
+        id: 'pf-phys-layer',
+        type: 'circle',
+        source: 'pf-phys-assets',
+        paint: {
+          'circle-radius': ['get', 'radius'],
+          'circle-color': ['get', 'color'],
+          'circle-opacity': 0.75,
+          'circle-stroke-width': 1.5,
+          'circle-stroke-color': '#ffffff',
+        },
+      });
+    }
+  }
 
-    var tbody = document.createElement('tbody');
-    tbody.appendChild(physRow('Portefeuille', data.portfolio, hazards, true));
-    data.companies.forEach(function (c) {
-      tbody.appendChild(physRow(c.name, c.scores, hazards, false));
+  // Recadre la carte sur l'ensemble des actifs (un seul : zoom régional).
+  function physFitBounds(features) {
+    if (!features.length) { return; }
+    var lngs = features.map(function (f) { return f.geometry.coordinates[0]; });
+    var lats = features.map(function (f) { return f.geometry.coordinates[1]; });
+    PHYS_MAP.fitBounds(
+      [[Math.min.apply(null, lngs), Math.min.apply(null, lats)],
+       [Math.max.apply(null, lngs), Math.max.apply(null, lats)]],
+      // Marge gauche : la légende occupe le coin inférieur gauche.
+      { padding: { top: 50, right: 70, bottom: 50, left: 180 }, maxZoom: 6, duration: 0 }
+    );
+  }
+
+  function physSyncMap() {
+    if (!PHYS_MAP || !PHYS_MAP_READY || typeof PhysicalRiskView === 'undefined') { return; }
+    var geojson = PhysicalRiskView.buildGeojson(physMapData(), PHYS_KEY);
+    PHYS_MAP.getSource('pf-phys-assets').setData(geojson);
+    if (PHYS_FIT) {
+      PHYS_FIT = false;
+      physFitBounds(geojson.features);
+    }
+  }
+
+  // Création à la première ouverture de l'onglet : une carte créée dans un
+  // panneau masqué n'a pas de taille.
+  function physShowMap() {
+    if (PHYS_MAP) {
+      PHYS_MAP.resize();
+      physSyncMap();
+      return;
+    }
+    if (typeof maplibregl === 'undefined' || !$('pf-phys-map')) { return; }
+    PHYS_MAP = new maplibregl.Map({
+      container: 'pf-phys-map',
+      style: mapStyleFor('classic'),
+      center: [0, 20],
+      zoom: 1.5,
     });
-    table.appendChild(tbody);
+    // Carte dans une page qui défile : zoom par boutons, pas à la molette.
+    PHYS_MAP.scrollZoom.disable();
+    PHYS_MAP.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    PHYS_MAP.on('load', function () {
+      physAddLayers();
+      PHYS_MAP_READY = true;
+      physSyncMap();
+    });
+    PHYS_MAP.on('click', 'pf-phys-layer', function (e) {
+      new maplibregl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(PhysicalRiskView.popupHtml(e.features[0].properties))
+        .addTo(PHYS_MAP);
+    });
+    PHYS_MAP.on('mouseenter', 'pf-phys-layer', function () { PHYS_MAP.getCanvas().style.cursor = 'pointer'; });
+    PHYS_MAP.on('mouseleave', 'pf-phys-layer', function () { PHYS_MAP.getCanvas().style.cursor = ''; });
+  }
+
+  function initPhysicalMap() {
+    if (typeof PhysicalRiskView === 'undefined') { return; }
+    PhysicalRiskView.bindHorizon(document.querySelector('#pf-phys-report .pr-horizon'), function (years) {
+      PHYS_HORIZON = years;
+      PhysicalRiskView.renderLoss(physMapData(), years);
+    });
+    // Le fond suit le thème : on rejoue le style puis on repose source et couche.
+    document.addEventListener('themechange', function () {
+      if (!PHYS_MAP) { return; }
+      replayMapStyle(PHYS_MAP, mapStyleFor('classic'), function () {
+        physAddLayers();
+        physSyncMap();
+      });
+    });
   }
 
   // ── Transition risk (dette écologique financée) ──────────────────
@@ -856,6 +931,7 @@
     initCompanySearch();
     initDialog();
     initImpactToggle();
+    initPhysicalMap();
     initTransitionToggle();
     $('pf-save-btn').addEventListener('click', save);
     $('pf-new-btn').addEventListener('click', resetForm);

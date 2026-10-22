@@ -28,6 +28,13 @@ window.PhysicalRiskView = (function () {
     return Math.round(v).toLocaleString(APP_LOCALE) + ' €';
   }
 
+  // Vulnérabilité d'un actif : la sienne si le payload la fournit (carte d'un
+  // portefeuille, où elle dépend de l'entreprise détentrice), sinon celle de l'aléa.
+  function assetVulnerability(asset, key, fallback) {
+    const own = asset.vulnerability && asset.vulnerability[key];
+    return own != null ? own : fallback;
+  }
+
   function hazard(data, key) {
     if (!data || !key) return null;
     return (data.hazards || []).find(h => h.key === key) || null;
@@ -125,7 +132,7 @@ window.PhysicalRiskView = (function () {
     const vuln = current.vulnerability != null ? current.vulnerability : 0;
     const rows = data.assets.map(a => {
       const hz = a.risk[key] || 0;
-      const risk = hz * a.exposition * vuln;
+      const risk = hz * a.exposition * assetVulnerability(a, key, vuln);
       return { name: a.name, hz: hz, expo: a.exposition, risk: risk,
                inventory: a.inventory || [] };
     }).sort((x, y) => y.risk - x.risk);
@@ -177,7 +184,8 @@ window.PhysicalRiskView = (function () {
 
     const key = current.key;
     const vuln = current.vulnerability;
-    const risks = data.assets.map(a => (a.risk[key] || 0) * a.exposition * vuln);
+    const risks = data.assets.map(a =>
+      (a.risk[key] || 0) * a.exposition * assetVulnerability(a, key, vuln));
     const maxRisk = risks.reduce((m, v) => v > m ? v : m, 0) || 1;
 
     const features = data.assets.map((a, i) => {
@@ -188,6 +196,7 @@ window.PhysicalRiskView = (function () {
         geometry: { type: 'Point', coordinates: [a.longitude, a.latitude] },
         properties: {
           name: a.name,
+          companies: a.companies || '',
           hazardName: current.name,
           hazard: hz,
           exposition: a.exposition,
@@ -205,6 +214,7 @@ window.PhysicalRiskView = (function () {
       <div class="asset-popup">
         <div class="asset-popup__header">
           <div class="asset-popup__name">${escHtml(p.name)}</div>
+          ${p.companies ? `<div class="asset-popup__meta">${escHtml(p.companies)}</div>` : ''}
         </div>
         <div class="asset-popup__body">
           <div class="asset-popup__rows">

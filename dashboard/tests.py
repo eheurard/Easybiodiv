@@ -2921,7 +2921,7 @@ class PortfolioTemplateContentTests(TestCase):
         response = self.client.get(reverse('dashboard:portfolio_analysis'))
         for needle in [
             'id="pf-phys-empty"', 'id="pf-phys-report"',
-            'id="pf-phys-radar"', 'id="pf-phys-heatmap"', 'PF_PHYSICAL_URL',
+            'id="pf-phys-radar"', 'id="pf-phys-map"', 'PF_PHYSICAL_URL',
         ]:
             self.assertContains(response, needle)
 

@@ -176,11 +176,30 @@
         </div>
       </section>
 
-      <section class="card pf-phys__heatmap-card">
-        <h4 class="pf-section-title label-caps">{% translate "Risque par entreprise et aléa" %}</h4>
-        <div class="pf-phys__heatmap-wrap">
-          <table class="pf-phys-heatmap" id="pf-phys-heatmap"></table>
+      <section class="card pf-phys__map-card">
+        <h4 class="pf-section-title label-caps">{% translate "Carte des actifs du portefeuille" %}</h4>
+        <p class="pf-phys__caption">{% translate "Actifs des entreprises du portefeuille, pondérés par l'exposition financée. Choisissez un aléa dans le classement." %}</p>
+        <div class="pf-phys-map">
+          <div class="pf-phys-map__stage">
+            <div class="pf-phys-map__canvas" id="pf-phys-map"
+              aria-label="{% translate 'Carte des actifs du portefeuille par risque physique' %}"></div>
+            <div class="map-legend pf-phys-map__legend" id="pf-phys-legend"
+              aria-label="{% translate 'Légende des niveaux de risque' %}"></div>
+          </div>
+          <aside class="pf-phys-map__panel" aria-label="{% translate 'Synthèse du risque physique' %}">
+            {% include "dashboard/_pr_panel.html" %}
+          </aside>
         </div>
+        <p class="pf-phys__note">
+          {% blocktranslate trimmed %}
+          Risque financé d'un actif = aléa × exposition financée × vulnérabilité. Exposition
+          financée = revenu associé de l'actif (dernière année) × montant investi / EVIC de
+          l'entreprise, comme les onglets Impact et Risque de transition. Vulnérabilité : moyenne
+          des politiques de l'entreprise détentrice. Un actif détenu par plusieurs entreprises
+          du portefeuille n'apparaît qu'une fois. Classement : risque financé moyen par actif.
+          {% endblocktranslate %}
+        </p>
+        <p class="pf-phys__note pf-phys__note--warn" id="pf-phys-evic-note" hidden></p>
       </section>
     </div>
   </div>
@@ -291,6 +310,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js" defer></script>
 <script src="{% static 'dashboard/js/pie_markers.js' %}" defer></script>
+<script src="{% static 'dashboard/js/physical_risk_view.js' %}" defer></script>
 <script src="{% static 'dashboard/js/city_compare.js' %}" defer></script>
 <script src="{% static 'dashboard/js/portfolio.js' %}" defer></script>
 {% endblock %}

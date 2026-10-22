@@ -21,6 +21,7 @@ from .services.hazards import PHYSICAL_RISKS
 from .services.stress_test import get_stress_test_data
 from .services import esg_environment
 from .services import flows as flow_service
+from .services.portfolio_physical import physical_risk_map
 
 from .compliance_catalog import APPLICABLE_DRS, DR_CATALOG
 
@@ -2062,6 +2063,8 @@ def portfolio_physical_risk(request, pk):
         'portfolio': _portfolio_physical_aggregate(holdings, per_company),
         'benchmark': benchmark,
         'companies': companies,
+        # Carte des actifs agrégés, pondérés par l'exposition financée.
+        'map': physical_risk_map(holdings),
     })
 
 
