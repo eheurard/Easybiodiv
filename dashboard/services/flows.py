@@ -33,6 +33,16 @@ def _touches_q(company, asset_ids):
     )
 
 
+def _touching(flows, touching):
+    """Restreint `flows` à ceux dont l'origine ou la destination est l'élément
+    `touching` = (endpoint, pk) ; inchangé si `touching` est None."""
+    if touching is None:
+        return flows
+    endpoint, pk = touching
+    suffix = _ENDPOINT_FIELD_SUFFIX[endpoint]
+    return flows.filter(Q(**{f'from_{suffix}_id': pk}) | Q(**{f'to_{suffix}_id': pk}))
+
+
 def perimeter_flows(company, year, touching=None):
     """Flux de l'année `year` dont une extrémité est `company` ou un actif
     qu'elle détient cette année-là. `touching` = (endpoint, pk) ne garde que
@@ -44,12 +54,45 @@ def perimeter_flows(company, year, touching=None):
         .select_related(*_ENDPOINT_RELATIONS)
         .order_by('pk')
     )
-    if touching is not None:
-        endpoint, pk = touching
-        suffix = _ENDPOINT_FIELD_SUFFIX[endpoint]
-        flows = flows.filter(
-            Q(**{f'from_{suffix}_id': pk}) | Q(**{f'to_{suffix}_id': pk}))
-    return flows
+    return _touching(flows, touching)
+
+
+def ownerships_in_range(company, start, end):
+    """Détentions de `company` valides au moins une année de [start, end]."""
+    return Ownership.objects.filter(
+        Q(start_year__isnull=True) | Q(start_year__lte=end),
+        Q(end_year__isnull=True) | Q(end_year__gte=start),
+        company=company,
+    )
+
+
+def range_perimeter_flows(company, start, end, touching=None):
+    """Union, pour chaque année de [start, end], de perimeter_flows(company,
+    année, touching), triée par (année, pk) : la détention d'un actif est
+    vérifiée l'année du flux."""
+    ownerships = ownerships_in_range(company, start, end)
+    held = defaultdict(list)
+    for asset_id, first, last in ownerships.values_list('asset_id', 'start_year', 'end_year'):
+        held[asset_id].append((first, last))
+
+    def owned(asset_id, year):
+        return any(
+            (first is None or first <= year) and (last is None or last >= year)
+            for first, last in held.get(asset_id, ())
+        )
+
+    flows = _touching(
+        Flow.objects.filter(year__gte=start, year__lte=end)
+        .filter(_touches_q(company, ownerships.values('asset_id')))
+        .select_related(*_ENDPOINT_RELATIONS)
+        .order_by('year', 'pk'),
+        touching,
+    )
+    return [
+        flow for flow in flows
+        if company.pk in (flow.from_company_id, flow.to_company_id)
+        or owned(flow.from_asset_id, flow.year) or owned(flow.to_asset_id, flow.year)
+    ]
 
 
 def perimeter_years(company):

@@ -37,6 +37,13 @@ def _flow_rules():
     }
 
 
+def _with_year(data):
+    """Transition : le JS lit encore une seule année `year` ; on lui passe la fin
+    de la plage, en attendant le passage de l'API à `start` / `end`."""
+    data['year'] = data['end']
+    return data
+
+
 @require_GET
 def flow_map(request):
     """Page Carte des flux, ouverte sur la première entreprise (le JS recharge
@@ -46,7 +53,7 @@ def flow_map(request):
     initial_data = None
     if companies:
         first = Company.objects.get(pk=companies[0]['id'])
-        initial_data = build_flow_map(first, None, user)
+        initial_data = _with_year(build_flow_map(first, None, None, user))
     return render(request, 'dashboard/flow_map.html', {
         'companies': companies,
         'initial_data': initial_data,
@@ -82,7 +89,7 @@ def flow_map_data(request, company_pk):
     year, refused = _parse_year(request.GET.get('year'))
     if refused:
         return refused
-    return JsonResponse(build_flow_map(company, year, request.user))
+    return JsonResponse(_with_year(build_flow_map(company, year, year, request.user)))
 
 
 # ── Écriture des flux ────────────────────────────────────────────────────────

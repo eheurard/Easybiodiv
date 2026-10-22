@@ -15,10 +15,10 @@ from .models import (
     REVENUE_PRODUCTION_ONLY_MESSAGE, SubnationalRegion,
 )
 from .services.flow_map import (
-    assign_columns, build_flow_map, endpoint_fields, endpoint_key, parse_key, unlink,
-    unlink_preview,
+    assign_columns, build_flow_map, endpoint_fields, endpoint_key, flow_key, latest_flows,
+    owned_assets_in_range, parse_key, unlink, unlink_preview,
 )
-from .services.flows import perimeter_flows, perimeter_years
+from .services.flows import perimeter_flows, perimeter_years, range_perimeter_flows
 from .testing import make_declared_emission, make_inventory, make_production, make_supply
 
 
@@ -156,6 +156,29 @@ class PerimeterFlowsTests(TestCase):
         make_inventory(asset=self.rotterdam, key='water', year=2024, value=1)  # plus détenu
         self.assertEqual(perimeter_years(self.acme), [2021, 2022])
 
+    def test_range_perimeter_flows_is_union_of_years(self):
+        flows = [
+            make_supply(what=self.soja, year=year, quantity=5,
+                        origin=self.cargill, destination=asset)
+            for year in (2019, 2021, 2023, 2024)
+            for asset in (self.vevey, self.rotterdam)
+        ]
+        make_supply(what=self.soja, year=2022, quantity=5,
+                    origin=self.brazil, destination=self.cargill)
+        expected = sorted(
+            (flow for year in range(2019, 2025) for flow in perimeter_flows(self.acme, year)),
+            key=lambda flow: (flow.year, flow.pk))
+        self.assertEqual(range_perimeter_flows(self.acme, 2019, 2024), expected)
+        self.assertEqual(
+            [(f.year, f.to_asset_id) for f in expected],
+            [(2021, self.vevey.pk), (2021, self.rotterdam.pk), (2023, self.vevey.pk),
+             (2023, self.rotterdam.pk), (2024, self.vevey.pk)])
+        self.assertNotIn(flows[0], expected)
+        self.assertEqual(
+            range_perimeter_flows(self.acme, 2022, 2024,
+                                  touching=('asset', self.rotterdam.pk)),
+            [flows[5]])
+
 
 class AssignColumnsTests(SimpleTestCase):
     def test_chain_left_to_right(self):
@@ -267,7 +290,7 @@ class BuildFlowMapTests(TestCase):
                              origin=self.cargill, destination=self.vevey)
         make_inventory(asset=self.vevey, key='water', year=2024, value=2)
         make_production(commodity=self.soja, year=2024, production=4, asset=self.vevey)
-        data = build_flow_map(self.acme, 2024, AnonymousUser())
+        data = build_flow_map(self.acme, 2024, 2024, AnonymousUser())
         blocks = self._blocks(data)
         self.assertEqual(set(blocks), {
             f'company:{self.acme.pk}', f'asset:{self.vevey.pk}',
@@ -275,7 +298,7 @@ class BuildFlowMapTests(TestCase):
         self.assertEqual(len(data['flows']), 3)
         self.assertFalse(data['can_edit'])
         self.assertEqual(data['company'], {'id': self.acme.pk, 'name': 'Acme'})
-        self.assertEqual(data['year'], 2024)
+        self.assertEqual((data['start'], data['end']), (2024, 2024))
         self.assertEqual(data['groups'], [])
         self.assertEqual(data['blocks'][0]['key'], f'company:{self.acme.pk}')
         self.assertEqual(blocks[f'company:{self.acme.pk}']['type'], 'company')
@@ -299,24 +322,26 @@ class BuildFlowMapTests(TestCase):
         Flow.objects.create(
             kind=FlowKind.CONSUMPTION, what=self.soja, to_asset=self.vevey,
             year=2024, quantity=1)
-        blocks = self._blocks(build_flow_map(self.acme, 2024, AnonymousUser()))
+        blocks = self._blocks(build_flow_map(self.acme, 2024, 2024, AnonymousUser()))
         self.assertEqual(blocks['unknown-in']['column'], 0)
         self.assertEqual(blocks['unknown-in']['name'], 'Origine inconnue')
         self.assertEqual(blocks[f'asset:{self.vevey.pk}']['column'], 1)
         self.assertNotIn('unknown-out', blocks)
 
-    def test_default_year_is_latest_with_flows_else_current(self):
+    def test_default_range_is_known_years_else_current(self):
         current = datetime.date.today().year
-        data = build_flow_map(self.acme, None, AnonymousUser())
-        self.assertEqual(data['year'], current)
+        data = build_flow_map(self.acme, None, None, AnonymousUser())
+        self.assertEqual((data['start'], data['end']), (current, current))
         self.assertEqual(data['years'], [current])
         make_inventory(asset=self.vevey, key='water', year=2021, value=1)
         make_inventory(asset=self.vevey, key='water', year=2022, value=1)
-        data = build_flow_map(self.acme, None, AnonymousUser())
-        self.assertEqual(data['year'], 2022)
+        data = build_flow_map(self.acme, None, None, AnonymousUser())
+        self.assertEqual((data['start'], data['end']), (2021, 2022))
         self.assertEqual(data['years'], [2021, 2022, current])
-        data = build_flow_map(self.acme, 1990, AnonymousUser())
+        data = build_flow_map(self.acme, 1990, 1990, AnonymousUser())
         self.assertEqual(data['years'], [1990, 2021, 2022, current])
+        data = build_flow_map(self.acme, 1985, 2095, AnonymousUser())
+        self.assertEqual(data['years'], [1985, 2021, 2022, current, 2095])
 
     def test_group_collapsed_for_layout_and_members_share_column(self):
         group = AssetGroup.objects.create(name='Usines', company=self.acme)
@@ -325,7 +350,7 @@ class BuildFlowMapTests(TestCase):
                     origin=self.cargill, destination=self.vevey)
         make_supply(what=self.soja, year=2024, quantity=5,
                     origin=self.vevey, destination=self.rotterdam)
-        data = build_flow_map(self.acme, 2024, AnonymousUser())
+        data = build_flow_map(self.acme, 2024, 2024, AnonymousUser())
         blocks = self._blocks(data)
         group_key = f'group:{group.pk}'
         self.assertEqual(data['groups'], [{
@@ -346,7 +371,7 @@ class BuildFlowMapTests(TestCase):
         other = Asset.objects.create(
             name='Autre', latitude=1.0, longitude=2.0, country=self.brazil)
         partial.set_members([self.vevey.pk, other.pk])
-        data = build_flow_map(self.acme, 2024, AnonymousUser())
+        data = build_flow_map(self.acme, 2024, 2024, AnonymousUser())
         self.assertEqual([g['name'] for g in data['groups']], ['Mixte'])
         self.assertEqual(data['groups'][0]['members'], [f'asset:{self.vevey.pk}'])
         self.assertEqual(data['groups'][0]['all_members'],
@@ -358,14 +383,14 @@ class BuildFlowMapTests(TestCase):
         group.set_members([self.mine.pk])
         make_supply(what=self.soja, year=2024, quantity=5,
                     origin=self.mine, destination=self.vevey)
-        data = build_flow_map(self.acme, 2024, AnonymousUser())
+        data = build_flow_map(self.acme, 2024, 2024, AnonymousUser())
         self.assertFalse(data['groups'][0]['owned'])
         self.assertFalse(self._blocks(data)[f'asset:{self.mine.pk}']['owned'])
 
     def test_other_company_group_is_ignored(self):
         cargill_group = AssetGroup.objects.create(name='Cargill', company=self.cargill)
         cargill_group.set_members([self.vevey.pk])
-        data = build_flow_map(self.acme, 2024, AnonymousUser())
+        data = build_flow_map(self.acme, 2024, 2024, AnonymousUser())
         self.assertEqual(data['groups'], [])
         self.assertIsNone(self._blocks(data)[f'asset:{self.vevey.pk}']['group'])
 
@@ -373,8 +398,122 @@ class BuildFlowMapTests(TestCase):
         User = get_user_model()
         creator = User.objects.create_user('c', password='pw', role=User.CREATOR)
         subscriber = User.objects.create_user('s', password='pw', role=User.SUBSCRIBER)
-        self.assertTrue(build_flow_map(self.acme, 2024, creator)['can_edit'])
-        self.assertFalse(build_flow_map(self.acme, 2024, subscriber)['can_edit'])
+        self.assertTrue(build_flow_map(self.acme, 2024, 2024, creator)['can_edit'])
+        self.assertFalse(build_flow_map(self.acme, 2024, 2024, subscriber)['can_edit'])
+
+
+class RangeFlowMapTests(TestCase):
+    def setUp(self):
+        self.acme = Company.objects.create(name='Acme')
+        self.cargill = Company.objects.create(name='Cargill')
+        self.brazil = Country.objects.create(
+            name='Brésil', water_ownership='Public', land_ownership='Private')
+        self.soja = Commodity.objects.create(name='Soja', unit='t')
+        self.vevey, self.mine = (
+            Asset.objects.create(name=name, latitude=1.0, longitude=2.0, country=self.brazil)
+            for name in ('Vevey', 'Mine')
+        )
+        Ownership.objects.create(
+            asset=self.vevey, company=self.acme, share=1, start_year=2020, end_year=None)
+        Ownership.objects.create(
+            asset=self.mine, company=self.acme, share=1, start_year=2021, end_year=2022)
+
+    def _ids(self, data):
+        return [flow['id'] for flow in data['flows']]
+
+    def test_latest_year_wins_for_same_flow(self):
+        make_supply(what=self.soja, year=2021, quantity=5,
+                    origin=self.cargill, destination=self.vevey)
+        new = make_supply(what=self.soja, year=2023, quantity=7,
+                          origin=self.cargill, destination=self.vevey)
+        data = build_flow_map(self.acme, 2020, 2024, AnonymousUser())
+        self.assertEqual(self._ids(data), [new.pk])
+        self.assertEqual(data['flows'][0]['year'], 2023)
+        self.assertEqual((data['start'], data['end']), (2020, 2024))
+        self.assertNotIn('year', data)
+
+    def test_different_scope_is_another_flow(self):
+        old = make_declared_emission(company=self.acme, year=2021, scope='Scope 1', value=3)
+        new = make_declared_emission(company=self.acme, year=2023, scope='Scope 2', value=4)
+        data = build_flow_map(self.acme, 2020, 2024, AnonymousUser())
+        self.assertEqual(self._ids(data), [old.pk, new.pk])
+
+    def test_same_year_duplicates_are_both_kept(self):
+        make_supply(what=self.soja, year=2021, quantity=1,
+                    origin=self.cargill, destination=self.vevey)
+        first, second = (
+            make_supply(what=self.soja, year=2023, quantity=quantity,
+                        origin=self.cargill, destination=self.vevey)
+            for quantity in (5, 6)
+        )
+        data = build_flow_map(self.acme, 2020, 2024, AnonymousUser())
+        self.assertEqual(self._ids(data), [first.pk, second.pk])
+
+    def test_asset_owned_part_of_range_is_owned_block(self):
+        data = build_flow_map(self.acme, 2022, 2024, AnonymousUser())
+        blocks = {block['key']: block for block in data['blocks']}
+        self.assertTrue(blocks[f'asset:{self.mine.pk}']['owned'])
+        self.assertEqual(list(owned_assets_in_range(self.acme, 2022, 2024)),
+                         [self.vevey, self.mine])
+        self.assertEqual(list(owned_assets_in_range(self.acme, 2023, 2024)), [self.vevey])
+        self.assertEqual(list(owned_assets_in_range(self.acme, 2018, 2019)), [])
+        data = build_flow_map(self.acme, 2023, 2024, AnonymousUser())
+        self.assertNotIn(f'asset:{self.mine.pk}',
+                         {block['key'] for block in data['blocks']})
+
+    def test_flow_of_year_asset_not_owned_is_excluded(self):
+        kept = make_supply(what=self.soja, year=2022, quantity=5,
+                           origin=self.cargill, destination=self.mine)
+        make_supply(what=self.soja, year=2024, quantity=5,
+                    origin=self.cargill, destination=self.mine)
+        data = build_flow_map(self.acme, 2020, 2024, AnonymousUser())
+        self.assertEqual(self._ids(data), [kept.pk])
+
+    def test_default_range_spans_known_years(self):
+        make_inventory(asset=self.vevey, key='water', year=2019, value=1)  # pas encore détenu
+        make_inventory(asset=self.vevey, key='water', year=2020, value=1)
+        make_declared_emission(company=self.acme, year=2022, scope='Scope 1', value=3)
+        data = build_flow_map(self.acme, None, None, AnonymousUser())
+        self.assertEqual((data['start'], data['end']), (2020, 2022))
+
+    def test_single_year_range_matches_year_view(self):
+        group = AssetGroup.objects.create(name='Usines', company=self.acme)
+        group.set_members([self.vevey.pk, self.mine.pk])
+        for year in (2021, 2022, 2023):
+            make_supply(what=self.soja, year=year, quantity=5,
+                        origin=self.cargill, destination=self.mine)
+            make_supply(what=self.soja, year=year, quantity=5,
+                        origin=self.mine, destination=self.vevey)
+        make_inventory(asset=self.vevey, key='water', year=2022, value=1)
+        data = build_flow_map(self.acme, 2022, 2022, AnonymousUser())
+        self.assertEqual(self._ids(data),
+                         [flow.pk for flow in perimeter_flows(self.acme, 2022)])
+        owned = {block['key'] for block in data['blocks'] if block['owned']}
+        self.assertEqual(owned, {f'company:{self.acme.pk}'} | {
+            f'asset:{asset.pk}' for asset in Asset.objects.owned_by(self.acme, 2022)})
+        self.assertEqual(data['groups'][0]['members'],
+                         [f'asset:{self.vevey.pk}', f'asset:{self.mine.pk}'])
+
+    def test_one_bound_missing_raises(self):
+        with self.assertRaises(ValueError):
+            build_flow_map(self.acme, 2020, None, AnonymousUser())
+        with self.assertRaises(ValueError):
+            build_flow_map(self.acme, None, 2020, AnonymousUser())
+        with self.assertRaises(ValueError):
+            build_flow_map(self.acme, 2024, 2020, AnonymousUser())
+
+    def test_flow_key_and_latest_flows(self):
+        old = make_supply(what=self.soja, year=2021, quantity=5,
+                          origin=self.cargill, destination=self.vevey)
+        new = make_supply(what=self.soja, year=2023, quantity=5,
+                          origin=self.cargill, destination=self.vevey)
+        other = make_supply(what=self.soja, year=2021, quantity=5,
+                            origin=self.brazil, destination=self.vevey)
+        self.assertEqual(flow_key(old), (
+            'SUPPLY', self.soja.pk, f'company:{self.cargill.pk}', f'asset:{self.vevey.pk}',
+            'undefined'))
+        self.assertEqual(flow_key(old), flow_key(new))
+        self.assertEqual(latest_flows([new, old, other]), [other, new])
 
 
 class UnlinkTests(TestCase):
@@ -747,7 +886,7 @@ class MapApiTests(TestCase):
                                  start_year=2020, end_year=None)
         group = AssetGroup.objects.create(name='Suisse', company=self.acme)
         group.set_members([self.vevey.pk, self.bale.pk])
-        data = build_flow_map(self.acme, 2024, self.creator)
+        data = build_flow_map(self.acme, 2024, 2024, self.creator)
         self.assertEqual(data['groups'][0]['members'], [f'asset:{self.bale.pk}'])
         self.assertEqual(data['groups'][0]['all_members'],
                          [f'asset:{self.vevey.pk}', f'asset:{self.bale.pk}'])

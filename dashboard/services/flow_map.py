@@ -1,6 +1,6 @@
-"""Données de la carte interactive des flux (spec 2026-10-22 §4).
+"""Données de la carte interactive des flux (spec 2026-10-22 §4 et §10).
 
-Blocs, groupes et flux d'une entreprise pour une année, rangés en colonnes.
+Blocs, groupes et flux d'une entreprise sur une plage d'années, rangés en colonnes.
 Les flux sont lus via dashboard/services/flows.py, seul module qui filtre Flow.
 
 Clés de blocs (contrat partagé avec le JS) : `company:<id>`, `asset:<id>`,
@@ -17,7 +17,9 @@ from dashboard.models import (
     _ENDPOINT_FIELD_SUFFIX, ENDPOINT_ASSET, ENDPOINT_COMPANY, ENDPOINT_ENVIRONMENT, Asset,
     Company, Ownership,
 )
-from dashboard.services.flows import perimeter_flows, perimeter_years
+from dashboard.services.flows import (
+    ownerships_in_range, perimeter_flows, perimeter_years, range_perimeter_flows,
+)
 
 ENVIRONMENT_KEY = ENDPOINT_ENVIRONMENT
 UNKNOWN_IN_KEY = 'unknown-in'
@@ -167,7 +169,33 @@ def _serialize_flow(flow):
     }
 
 
-def _perimeter_blocks(company, year, flows):
+def flow_key(flow):
+    """Identité d'un « même flux » d'une année à l'autre (spec §10.1) : nature,
+    commodité, origine, destination et scope."""
+    return (
+        flow.kind, flow.what_id, endpoint_key(flow, 'from'), endpoint_key(flow, 'to'),
+        flow.scope,
+    )
+
+
+def latest_flows(flows):
+    """Pour chaque flow_key(), toutes les lignes de son année la plus récente,
+    dans l'ordre (année, pk)."""
+    latest = {}
+    for flow in flows:
+        key = flow_key(flow)
+        latest[key] = max(latest.get(key, flow.year), flow.year)
+    kept = [flow for flow in flows if flow.year == latest[flow_key(flow)]]
+    return sorted(kept, key=lambda flow: (flow.year, flow.pk))
+
+
+def owned_assets_in_range(company, start, end):
+    """Actifs détenus par `company` au moins une année de [start, end], par pk."""
+    held = ownerships_in_range(company, start, end).values('asset_id')
+    return Asset.objects.filter(pk__in=held).order_by('pk')
+
+
+def _perimeter_blocks(company, owned_assets, flows):
     """Blocs dans l'ordre de rangement : l'entreprise, ses actifs détenus (par
     pk), puis les autres extrémités des flux triées par type et id."""
     perimeter = {
@@ -175,7 +203,7 @@ def _perimeter_blocks(company, year, flows):
             f'{ENDPOINT_COMPANY}:{company.pk}', ENDPOINT_COMPANY, company.pk, company.name,
             owned=True),
     }
-    for asset in Asset.objects.owned_by(company, year):
+    for asset in owned_assets:
         key = f'{ENDPOINT_ASSET}:{asset.pk}'
         perimeter[key] = _block(key, ENDPOINT_ASSET, asset.pk, asset.name, owned=True)
     outside = {}
@@ -233,21 +261,34 @@ def _layout(blocks, groups, flows):
         group['column'] = columns[group['key']]
 
 
-def build_flow_map(company, year, user):
-    """Données de la carte des flux de `company` pour `year` (None : dernière
-    année du périmètre ayant des flux, sinon l'année en cours)."""
+def build_flow_map(company, start, end, user):
+    """Données de la carte des flux de `company` sur [start, end] (spec §10.1).
+
+    `start` et `end` à None : de la première à la dernière année du périmètre
+    ayant des flux, sinon l'année en cours. Un seul des deux à None, ou
+    start > end : ValueError. Un même flux présent plusieurs années n'est
+    dessiné que pour la plus récente."""
+    if (start is None) != (end is None):
+        raise ValueError('Plage incomplète : start et end vont ensemble')
     known_years = perimeter_years(company)
     current_year = datetime.date.today().year
-    if year is None:
-        year = known_years[-1] if known_years else current_year
-    flows = list(perimeter_flows(company, year))
-    blocks = {block['key']: block for block in _perimeter_blocks(company, year, flows)}
+    if start is None:
+        start = known_years[0] if known_years else current_year
+        end = known_years[-1] if known_years else current_year
+    if start > end:
+        raise ValueError(f'Plage inversée : {start} > {end}')
+    flows = latest_flows(range_perimeter_flows(company, start, end))
+    owned_assets = owned_assets_in_range(company, start, end)
+    blocks = {
+        block['key']: block for block in _perimeter_blocks(company, owned_assets, flows)
+    }
     groups = _present_groups(company, blocks)
     _layout(blocks, groups, flows)
     return {
         'company': {'id': company.pk, 'name': company.name},
-        'year': year,
-        'years': sorted(set(known_years) | {current_year, year}),
+        'start': start,
+        'end': end,
+        'years': sorted(set(known_years) | {current_year, start, end}),
         'can_edit': bool(user.is_authenticated and user.role == 'CREATOR'),
         'blocks': list(blocks.values()),
         'groups': groups,
