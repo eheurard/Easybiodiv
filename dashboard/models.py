@@ -6,7 +6,7 @@ from functools import reduce
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db import models
+from django.db import models, transaction
 from django.db.models import F, Q
 from django.utils.translation import gettext_lazy as _
 
@@ -719,6 +719,72 @@ class Ownership(models.Model):
     def share_label(self):
         """Part au format affiché : Decimal('0.75') → '75%'."""
         return f'{(Decimal(self.share) * 100).normalize():f}%'
+
+
+class AssetGroup(models.Model):
+    """Regroupement d'actifs d'une entreprise, affiché comme un seul bloc sur la carte
+    des flux."""
+
+    name = models.CharField(max_length=255, verbose_name='Nom')
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='asset_groups',
+        verbose_name='Entreprise',
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name='Créé par',
+    )
+
+    class Meta:
+        verbose_name = "Groupe d'actifs"
+        verbose_name_plural = "Groupes d'actifs"
+
+    def __str__(self):
+        return self.name
+
+    def set_members(self, asset_ids):
+        """Remplace les membres du groupe par les actifs donnés."""
+        wanted = set(asset_ids)
+        with transaction.atomic():
+            self.members.exclude(asset_id__in=wanted).delete()
+            existing = set(self.members.values_list('asset_id', flat=True))
+            for asset_id in wanted - existing:
+                AssetGroupMember.objects.create(group=self, asset_id=asset_id)
+
+
+class AssetGroupMember(models.Model):
+    group = models.ForeignKey(
+        AssetGroup, on_delete=models.CASCADE, related_name='members', verbose_name='Groupe',
+    )
+    asset = models.ForeignKey(
+        Asset, on_delete=models.CASCADE, related_name='+', verbose_name='Actif',
+    )
+    # Recopié depuis le groupe (voir save) : porte la contrainte d'unicité.
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='+', verbose_name='Entreprise',
+    )
+
+    class Meta:
+        verbose_name = 'Membre de groupe'
+        verbose_name_plural = 'Membres de groupe'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['company', 'asset'],
+                name='asset_group_member_one_group_per_company',
+                violation_error_message=(
+                    "Cet actif appartient déjà à un groupe de cette entreprise."
+                ),
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.group.name} - {self.asset.name}'
+
+    def save(self, *args, **kwargs):
+        self.company_id = self.group.company_id
+        super().save(*args, **kwargs)
 
 
 # ── Flux : table Flow unique (spec 2026-09-18) ────────────────────────────────

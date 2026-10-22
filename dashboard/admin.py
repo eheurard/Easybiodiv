@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Country, SubnationalRegion, Commodity, Sector, SubSector,
-    Asset, Company, Ownership,
+    Asset, AssetGroup, AssetGroupMember, Company, Ownership,
     Company_Revenue, Company_Revenue_Sector,
     Policy_Type, Policy_Subcategory, Policy_Level, Company_Policy,
     DisclosureRequirement, E4Assessment, ESG_data,
@@ -80,6 +80,27 @@ class OwnershipAdmin(admin.ModelAdmin):
     @admin.display(description='Part de détention')
     def share_percent(self, obj):
         return obj.share_label
+
+    def save_model(self, request, obj, form, change):
+        if not change and obj.created_by_id is None:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+class AssetGroupMemberInline(admin.TabularInline):
+    model = AssetGroupMember
+    fields = ('asset',)
+    autocomplete_fields = ('asset',)
+    extra = 0
+
+
+@admin.register(AssetGroup)
+class AssetGroupAdmin(admin.ModelAdmin):
+    search_fields = ('name', 'company__name')
+    list_display = ('name', 'company')
+    autocomplete_fields = ('company',)
+    exclude = ('created_by',)
+    inlines = [AssetGroupMemberInline]
 
     def save_model(self, request, obj, form, change):
         if not change and obj.created_by_id is None:

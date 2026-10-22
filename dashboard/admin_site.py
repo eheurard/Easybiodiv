@@ -20,8 +20,8 @@ GROUPS = [
         m.Sector, m.SubSector, m.Commodity, m.Currency, m.SectorCreditProfile,
     ]),
     ('Entreprises & actifs', [
-        m.Company, m.Asset, m.Ownership, m.Company_Revenue,
-        m.Company_Revenue_Sector, m.ESG_data,
+        m.Company, m.Asset, m.Ownership, m.AssetGroup,
+        m.Company_Revenue, m.Company_Revenue_Sector, m.ESG_data,
     ]),
     ('Flux', [m.Flow]),
     ('Impacts & inventaire (ACV)', [
