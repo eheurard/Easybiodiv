@@ -243,7 +243,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', closeMenu);
     userDropdown.addEventListener('click', (e) => e.stopPropagation());
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { closeMenu(); userMenuBtn.focus(); }
+      // Seulement menu ouvert : sinon Échap volerait le focus aux autres composants.
+      if (e.key === 'Escape' && !userDropdown.hasAttribute('hidden')) {
+        closeMenu();
+        userMenuBtn.focus();
+      }
     });
   }
 
