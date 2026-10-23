@@ -1,0 +1,2 @@
+# Scripts exécutés sur le serveur Linux : fins de ligne LF quel que soit le poste.
+*.sh text eol=lf

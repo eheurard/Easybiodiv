@@ -1,0 +1,69 @@
+<p>
+  In accordance with article 6-III of French law no. 2004-575 of 21 June 2004 on confidence in
+  the digital economy (LCEN), the publisher and host of the website
+  <strong>{{ request.get_host }}</strong> (hereinafter "Easybiodiv" or "the site") are identified
+  below. This English version is provided for convenience; the French version prevails.
+</p>
+
+<h2>Publisher</h2>
+{% if not legal.editor_professional %}
+<p>
+  The site is published by a private individual, on a non-professional basis. In accordance with
+  article 6-III-2 of the LCEN, their personal contact details have been provided to the host
+  below, which holds them.
+</p>
+{% endif %}
+<address>
+  <strong>{{ legal.editor_name }}</strong>{% if legal.editor_status %}, {{ legal.editor_status }}{% endif %}<br>
+  {% if legal.editor_address %}{{ legal.editor_address }}<br>{% endif %}
+  {% if legal.editor_phone %}Phone: {{ legal.editor_phone }}<br>{% endif %}
+  Email: {% if legal.contact_email and '@' in legal.contact_email %}<a href="mailto:{{ legal.contact_email }}">{{ legal.contact_email }}</a>{% else %}{{ legal.contact_email }}{% endif %}
+  {% if legal.editor_siren %}<br>SIREN: {{ legal.editor_siren }}{% endif %}
+  {% if legal.editor_rcs %}<br>{{ legal.editor_rcs }}{% endif %}
+  {% if legal.editor_vat %}<br>EU VAT number: {{ legal.editor_vat }}{% endif %}
+</address>
+
+{% if legal.publication_director %}
+<h2>Publication director</h2>
+<p>{{ legal.publication_director }}</p>
+{% endif %}
+
+<h2>Host</h2>
+<address>
+  <strong>{{ legal.host_name }}</strong>{% if legal.host_status %}, {{ legal.host_status }}{% endif %}<br>
+  {{ legal.host_address }}<br>
+  Phone: {{ legal.host_phone }}<br>
+  {% if legal.host_siret %}SIRET: {{ legal.host_siret }}<br>{% endif %}
+  Website: <a href="{{ legal.host_url }}" rel="noopener">{{ legal.host_url }}</a>
+</address>
+<p>The site's data is hosted in France.</p>
+
+<h2>Intellectual property</h2>
+<p>
+  The structure of the site, its texts, graphics, logos and code belong to the publisher unless
+  stated otherwise. Any full or partial reproduction or representation without prior permission
+  is prohibited (articles L. 335-2 et seq. of the French Intellectual Property Code).
+</p>
+<p>The site includes third-party components, used under their respective licences:</p>
+<ul>
+  <li>base maps © <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a> contributors (ODbL licence), served by <a href="https://openfreemap.org" rel="noopener">OpenFreeMap</a>; satellite imagery © Esri and its suppliers;</li>
+  <li>the MapLibre GL JS (BSD-3 licence) and Chart.js (MIT licence) libraries;</li>
+  <li>the Inter typeface (SIL Open Font License 1.1).</li>
+</ul>
+<p>
+  Company data comes from public or self-reported sources and is provided for information only;
+  see the <a href="{% url 'legal:terms' %}">terms of use</a>.
+</p>
+
+<h2>Personal data and cookies</h2>
+<p>
+  How your personal data is processed is described in the
+  <a href="{% url 'legal:privacy' %}">privacy policy</a>, and the use of cookies on the
+  <a href="{% url 'legal:cookies' %}">cookies and local storage</a> page.
+</p>
+
+<h2>Reporting content</h2>
+<p>
+  To report unlawful content or an error, write to the contact address above, stating the page
+  concerned and the reason for your report.
+</p>

@@ -1,0 +1,63 @@
+<p>
+  A cookie is a small file placed on your device by the site you visit. Local storage
+  (<code>localStorage</code>) is a similar mechanism built into your browser. Both are governed by
+  article 82 of the French Data Protection Act. This English version is provided for convenience;
+  the French version prevails.
+</p>
+
+<h2>What Easybiodiv uses</h2>
+<p>
+  <strong>Easybiodiv uses no advertising, analytics, social media or tracking cookies.</strong>
+  The only cookies set are strictly necessary for the site to work or for a feature you requested.
+  They are exempt from consent (CNIL guidelines and recommendation of 17 September 2020), which is
+  why no pop-up asks you to accept them.
+</p>
+
+<h3>Cookies</h3>
+<div class="legal-page__table-wrap">
+  <table class="legal-page__table">
+    <thead>
+      <tr><th scope="col">Name</th><th scope="col">Purpose</th><th scope="col">Lifetime</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>sessionid</code></td><td>Keeps you logged in to your account. Only set when you log in.</td><td>2 weeks, or until you log out</td></tr>
+      <tr><td><code>csrftoken</code></td><td>Security: protects forms against cross-site request forgery.</td><td>1 year</td></tr>
+      <tr><td><code>django_language</code></td><td>Remembers the language chosen with the flag in the header.</td><td>End of the browsing session</td></tr>
+      <tr><td><code>messages</code></td><td>Shows a confirmation message after an action (administration console), then deleted.</td><td>Until the message is shown</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Browser local storage</h3>
+<p>
+  This information stays on your device and is never sent to our servers. It only remembers
+  display preferences:
+</p>
+<div class="legal-page__table-wrap">
+  <table class="legal-page__table">
+    <thead>
+      <tr><th scope="col">Key</th><th scope="col">Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>theme</code></td><td>Light or dark mode</td></tr>
+      <tr><td><code>sidebar-collapsed</code></td><td>Side menu collapsed or expanded</td></tr>
+      <tr><td><code>selected-company-id</code></td><td>Last company viewed, kept from one page to the next</td></tr>
+      <tr><td><code>overview-mode</code>, <code>esg-city-compare</code></td><td>Last settings of the overview and comparison views</td></tr>
+      <tr><td><code>cookie-notice-dismissed</code></td><td>Stop showing the cookie information banner</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2>Third-party services</h2>
+<p>
+  Base maps and chart libraries are loaded from third-party services (details in the
+  <a href="{% url 'legal:privacy' %}">privacy policy</a>). They do not set cookies through
+  Easybiodiv.
+</p>
+
+<h2>Deleting or blocking this data</h2>
+<p>
+  You can clear cookies and site data at any time from your browser settings ("Privacy" or
+  "Browsing data" section). Blocking the <code>sessionid</code> and <code>csrftoken</code> cookies
+  will, however, prevent you from logging in to your account.
+</p>

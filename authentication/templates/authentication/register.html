@@ -89,6 +89,35 @@
       {% endif %}
     </div>
 
+    <div class="auth-form__group">
+      <div class="auth-form__check">
+        <input
+          type="checkbox"
+          id="{{ form.accept_terms.id_for_label }}"
+          name="{{ form.accept_terms.html_name }}"
+          {% if form.accept_terms.value %}checked{% endif %}
+          required
+          aria-describedby="id_terms_help{% if form.accept_terms.errors %} id_terms_errors{% endif %}"
+        >
+        <label for="{{ form.accept_terms.id_for_label }}">
+          {% url 'legal:terms' as terms_url %}
+          {% blocktranslate %}J'accepte les <a href="{{ terms_url }}" target="_blank" rel="noopener">conditions générales d'utilisation</a>{% endblocktranslate %}
+        </label>
+      </div>
+      {% if form.accept_terms.errors %}
+        <ul class="auth-form__errors" id="id_terms_errors">
+          {% for error in form.accept_terms.errors %}
+            <li class="auth-form__error">{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <p class="auth-form__privacy" id="id_terms_help">
+      {% url 'legal:privacy' as privacy_url %}
+      {% blocktranslate %}Votre adresse email sert uniquement à gérer votre compte et à réinitialiser votre mot de passe. Détails et exercice de vos droits : <a href="{{ privacy_url }}" target="_blank" rel="noopener">politique de confidentialité</a>.{% endblocktranslate %}
+    </p>
+
     <button class="auth-btn auth-btn--primary" type="submit">{% translate "Créer mon compte" %}</button>
   </form>
 

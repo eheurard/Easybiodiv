@@ -9,5 +9,7 @@ urlpatterns = [
     # Bascule FR/EN (vue set_language, POST) et catalogue de traductions JS.
     path('i18n/', include('django.conf.urls.i18n')),
     path('jsi18n/', JavaScriptCatalog.as_view(), name='javascript-catalog'),
+    # Mentions légales, confidentialité, cookies, CGU — à la racine du site.
+    path('', include('legal.urls')),
     path('', include('dashboard.urls')),
 ]

@@ -1,0 +1,206 @@
+/* Pages légales, pied de page légal et bandeau d'information cookies.
+   Chargé à la fois sous style.css (dashboard) et sous auth.css (connexion,
+   inscription), dont les jetons de couleur ne portent pas les mêmes noms :
+   chaque couleur passe donc par une chaîne de var() avec repli. */
+
+/* ─── Pied de page légal ─────────────────────────────────────────────────── */
+.legal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+  flex-shrink: 0;
+  padding: 14px var(--space-gutter, 24px);
+  border-top: 1px solid var(--color-outline-variant, var(--color-outline, #dac1ba));
+  font-size: 12px;
+  color: var(--color-on-surface-variant, var(--color-on-variant, #54433e));
+}
+
+.legal-footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+
+.legal-footer a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.legal-footer a:hover,
+.legal-footer a:focus-visible {
+  color: var(--color-primary, #91452d);
+  text-decoration: underline;
+}
+
+/* Pages carte : la carte occupe la hauteur restante, le pied se fait discret. */
+.app-layout.map-page .legal-footer {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+/* Pages d'authentification : pied centré sous la carte de connexion. */
+.legal-footer--auth {
+  justify-content: center;
+  border-top: 0;
+  margin-top: 24px;
+}
+
+/* ─── Bandeau d'information cookies ──────────────────────────────────────── */
+.cookie-notice {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  z-index: 9000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  max-width: 560px;
+  margin-left: auto;
+  padding: 14px 16px;
+  border: 1px solid var(--color-outline-variant, var(--color-outline, #dac1ba));
+  border-radius: 8px;
+  background: var(--color-surface-container-lowest, var(--color-surface, #fbf9f4));
+  color: var(--color-on-surface, #1b1c19);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .12);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cookie-notice[hidden] {
+  display: none;
+}
+
+.cookie-notice__text {
+  flex: 1 1 260px;
+  margin: 0;
+}
+
+.cookie-notice__text a {
+  color: var(--color-primary, #91452d);
+}
+
+.cookie-notice__close {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--color-primary, #91452d);
+  color: var(--color-on-primary, #ffffff);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cookie-notice__close:focus-visible {
+  outline: 2px solid var(--color-primary, #91452d);
+  outline-offset: 2px;
+}
+
+/* ─── Pages légales ──────────────────────────────────────────────────────── */
+.legal-page {
+  max-width: 780px;
+  margin: 0 auto;
+  color: var(--color-on-surface, #1b1c19);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.legal-page__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.legal-page__tab {
+  padding: 6px 12px;
+  border: 1px solid var(--color-outline-variant, #dac1ba);
+  border-radius: 999px;
+  color: var(--color-on-surface-variant, #54433e);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.legal-page__tab:hover {
+  background: var(--color-surface-container-low, #f5f3ee);
+}
+
+.legal-page__tab[aria-current="page"] {
+  border-color: var(--color-primary, #91452d);
+  background: var(--color-primary, #91452d);
+  color: var(--color-on-primary, #ffffff);
+}
+
+.legal-page__title {
+  margin: 0 0 24px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.legal-page__body h2 {
+  margin: 32px 0 8px;
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.legal-page__body h3 {
+  margin: 20px 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.legal-page__body p,
+.legal-page__body ul {
+  margin: 0 0 12px;
+}
+
+.legal-page__body ul {
+  padding-left: 20px;
+}
+
+.legal-page__body a {
+  color: var(--color-primary, #91452d);
+}
+
+.legal-page__body address {
+  font-style: normal;
+}
+
+.legal-page__table-wrap {
+  overflow-x: auto;
+  margin: 0 0 16px;
+}
+
+.legal-page__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.legal-page__table th,
+.legal-page__table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-outline-variant, #dac1ba);
+  text-align: left;
+  vertical-align: top;
+}
+
+.legal-page__table th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.legal-page__table code {
+  font-size: 13px;
+}
+
+.legal-page__updated {
+  margin-top: 40px;
+  color: var(--color-on-surface-variant, #54433e);
+  font-size: 13px;
+}

@@ -22,3 +22,10 @@ class User(AbstractUser):
         default=SUBSCRIBER,
         verbose_name='Rôle',
     )
+    # Preuve de l'acceptation des CGU à l'inscription (null : compte créé avant
+    # leur mise en place, ou par un administrateur).
+    terms_accepted_at = models.DateTimeField(
+        verbose_name="Date d'acceptation des CGU",
+        null=True,
+        blank=True,
+    )

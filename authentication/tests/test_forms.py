@@ -9,6 +9,7 @@ class RegisterFormTest(TestCase):
         'email': 'new@example.com',
         'password1': 'TestPass123!',
         'password2': 'TestPass123!',
+        'accept_terms': 'on',
     }
 
     def test_valid_form(self):
@@ -32,6 +33,18 @@ class RegisterFormTest(TestCase):
         self.assertTrue(form.is_valid())
         user = form.save()
         self.assertEqual(user.role, User.SUBSCRIBER)
+
+    def test_terms_must_be_accepted(self):
+        data = {k: v for k, v in self.valid_data.items() if k != 'accept_terms'}
+        form = RegisterForm(data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('accept_terms', form.errors)
+
+    def test_save_records_terms_acceptance(self):
+        form = RegisterForm(self.valid_data)
+        self.assertTrue(form.is_valid())
+        user = form.save()
+        self.assertIsNotNone(user.terms_accepted_at)
 
     def test_save_stores_email(self):
         form = RegisterForm(self.valid_data)

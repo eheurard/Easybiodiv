@@ -1,3 +1,4 @@
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 from authentication.models import User
@@ -9,6 +10,7 @@ class RegisterViewTest(TestCase):
         'email': 'new@example.com',
         'password1': 'TestPass123!',
         'password2': 'TestPass123!',
+        'accept_terms': 'on',
     }
 
     def test_get_returns_200(self):
@@ -32,6 +34,17 @@ class RegisterViewTest(TestCase):
         self.client.post(reverse('authentication:register'), self.valid_data)
         response = self.client.get(reverse('dashboard:index'))
         self.assertTrue(response.wsgi_request.user.is_authenticated)
+
+    def test_post_without_terms_creates_no_user(self):
+        data = {k: v for k, v in self.valid_data.items() if k != 'accept_terms'}
+        response = self.client.post(reverse('authentication:register'), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.filter(username='newuser').exists())
+
+    def test_get_links_terms_and_privacy(self):
+        response = self.client.get(reverse('authentication:register'))
+        self.assertContains(response, reverse('legal:terms'))
+        self.assertContains(response, reverse('legal:privacy'))
 
     def test_invalid_post_returns_200_with_form(self):
         response = self.client.post(reverse('authentication:register'), {})
@@ -74,3 +87,21 @@ class LogoutViewTest(TestCase):
     def test_post_logout_redirects_to_dashboard(self):
         response = self.client.post(reverse('authentication:logout'))
         self.assertRedirects(response, reverse('dashboard:index'))
+
+
+class PasswordResetEmailTest(TestCase):
+
+    def test_reset_sends_email_with_confirmation_link(self):
+        User.objects.create_user(username='alice', email='alice@example.com', password='x')
+        response = self.client.post(
+            reverse('authentication:password_reset'), {'email': 'alice@example.com'})
+        self.assertRedirects(response, reverse('authentication:password_reset_done'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['alice@example.com'])
+        self.assertIn('/auth/password-reset/confirm/', mail.outbox[0].body)
+
+    def test_unknown_address_sends_nothing(self):
+        response = self.client.post(
+            reverse('authentication:password_reset'), {'email': 'nobody@example.com'})
+        self.assertRedirects(response, reverse('authentication:password_reset_done'))
+        self.assertEqual(len(mail.outbox), 0)

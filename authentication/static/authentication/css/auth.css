@@ -179,6 +179,37 @@ body {
   color: var(--color-error);
 }
 
+/* Case à cocher avec libellé contenant un lien (acceptation des CGU) */
+.auth-form__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-on-surface);
+}
+
+.auth-form__check input {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  accent-color: var(--color-primary);
+}
+
+.auth-form__check a,
+.auth-form__privacy a {
+  color: var(--color-primary);
+}
+
+/* Information RGPD au point de collecte (art. 13) */
+.auth-form__privacy {
+  margin: -6px 0 18px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
 /* Messages d'erreur non-field (ex: login incorrect) */
 .auth-form__global-errors {
   background: var(--color-error-bg);
