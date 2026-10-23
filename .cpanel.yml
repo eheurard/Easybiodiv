@@ -15,3 +15,6 @@ deployment:
     - $VENV/python manage.py backup_sqlite && $VENV/python manage.py migrate --noinput
     - $VENV/python manage.py collectstatic --noinput
     - /bin/touch tmp/restart.txt
+    # Après le redémarrage, pour qu'un échec ici ne bloque pas la mise en ligne.
+    # Tâche cron mensuelle de purge des comptes inactifs (deploy/install_cron.sh).
+    - /bin/bash deploy/install_cron.sh $VENV
