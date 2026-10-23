@@ -16,6 +16,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from easybiodiv.db import database_config
+from easybiodiv.mail import email_config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -163,8 +164,10 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 LOGIN_REDIRECT_URL = 'dashboard:index'
 LOGOUT_REDIRECT_URL = 'dashboard:index'
 
-# Email (console en dev — configurer SMTP en prod)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Emails (réinitialisation de mot de passe) : SMTP dès que EMAIL_HOST est défini
+# dans l'environnement, console sinon. Pose EMAIL_BACKEND, EMAIL_HOST…,
+# DEFAULT_FROM_EMAIL — voir easybiodiv/mail.py et docs/deploiement-production.md §10.
+globals().update(email_config(os.environ))
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -224,6 +227,10 @@ LOGGING = {
     },
     'loggers': {
         'imports': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        # Un échec d'envoi SMTP de la réinitialisation de mot de passe est
+        # journalisé ici par Django, sans erreur visible. Hors DEBUG, le logger
+        # `django` par défaut le tairait : on le rend visible dans le journal.
+        'django.contrib.auth': {'handlers': ['console'], 'level': 'ERROR', 'propagate': False},
     },
 }
 

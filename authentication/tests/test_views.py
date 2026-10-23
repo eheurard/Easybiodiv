@@ -1,3 +1,4 @@
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 from authentication.models import User
@@ -86,3 +87,21 @@ class LogoutViewTest(TestCase):
     def test_post_logout_redirects_to_dashboard(self):
         response = self.client.post(reverse('authentication:logout'))
         self.assertRedirects(response, reverse('dashboard:index'))
+
+
+class PasswordResetEmailTest(TestCase):
+
+    def test_reset_sends_email_with_confirmation_link(self):
+        User.objects.create_user(username='alice', email='alice@example.com', password='x')
+        response = self.client.post(
+            reverse('authentication:password_reset'), {'email': 'alice@example.com'})
+        self.assertRedirects(response, reverse('authentication:password_reset_done'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['alice@example.com'])
+        self.assertIn('/auth/password-reset/confirm/', mail.outbox[0].body)
+
+    def test_unknown_address_sends_nothing(self):
+        response = self.client.post(
+            reverse('authentication:password_reset'), {'email': 'nobody@example.com'})
+        self.assertRedirects(response, reverse('authentication:password_reset_done'))
+        self.assertEqual(len(mail.outbox), 0)
