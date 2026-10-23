@@ -6,7 +6,8 @@ from .models import User
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     fieldsets = BaseUserAdmin.fieldsets + (
-        ('Rôle & Profil', {'fields': ('role', 'profile_photo')}),
+        ('Rôle & Profil', {'fields': ('role', 'profile_photo', 'terms_accepted_at')}),
     )
+    readonly_fields = ('terms_accepted_at',)
     list_display = ('username', 'email', 'role', 'is_staff', 'is_active')
     list_filter = ('role', 'is_staff', 'is_active')
