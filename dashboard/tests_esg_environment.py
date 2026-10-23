@@ -177,6 +177,10 @@ class EsgEnvironmentPageTests(TestCase):
         response = self.client.get(reverse('dashboard:esg'))
         for element_id in ('esg-pollution-media', 'esg-resource-kpis', 'esg-ias-rows'):
             self.assertContains(response, f'id="{element_id}"')
+        # Resource use : les tuiles KPI pilotent un tableau de répartition unique.
+        self.assertContains(response, 'id="esg-resource-rows"')
+        self.assertNotContains(response, 'id="esg-resource-inventory-rows"')
+        self.assertNotContains(response, 'id="esg-resource-scarcity-rows"')
         for placeholder in ('Pollution — à venir', 'Resource use — à venir',
                             'Invasive species — à venir'):
             self.assertNotContains(response, placeholder)

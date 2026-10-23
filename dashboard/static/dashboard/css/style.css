@@ -3534,9 +3534,12 @@ a.app-header__avatar {
 .esg-seg__btn:hover { background: var(--color-surface-container); }
 .esg-seg__btn[aria-pressed="true"] { background: var(--color-primary); color: var(--color-on-primary); }
 
-/* Tuiles de KPI (Resource use) */
+/* Tuiles de KPI sélectionnables (Resource use) : la tuile choisie pilote le tableau */
 .esg-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 8px; }
-.esg-kpi { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border: 1px solid var(--color-outline-variant); border-radius: 8px; border-top: 3px solid var(--bar-accent); }
+.esg-kpi { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; padding: 14px 16px; text-align: left; border: 1px solid var(--color-outline-variant); border-radius: 8px; border-top: 3px solid var(--bar-accent); background: transparent; color: var(--color-on-surface); font-family: var(--font-family); cursor: pointer; transition: background .15s, border-color .15s, box-shadow .15s; }
+.esg-kpi:hover { background: var(--color-surface-container-low); }
+.esg-kpi:focus-visible { outline: 2px solid var(--bar-accent); outline-offset: 2px; }
+.esg-kpi[aria-pressed="true"] { background: var(--color-surface-container-low); border-color: var(--bar-accent); box-shadow: inset 0 0 0 1px var(--bar-accent); }
 .esg-kpi--modelled { border-top-style: dashed; }
 .esg-kpi__value { font-size: 20px; font-weight: 600; color: var(--color-on-surface); font-variant-numeric: tabular-nums; }
 .esg-kpi__unit { font-size: 12px; font-weight: 500; color: var(--color-on-surface-variant); margin-left: 4px; }

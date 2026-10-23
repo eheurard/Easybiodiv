@@ -301,6 +301,14 @@ msgstr "Pressure"
 msgid "Part"
 msgstr "Share"
 
+#: .\dashboard\static\dashboard\js\esg.js:471
+msgid "Impact"
+msgstr "Impact"
+
+#: .\dashboard\static\dashboard\js\esg.js:471
+msgid "Quantité"
+msgstr "Quantity"
+
 #: .\dashboard\static\dashboard\js\esg.js:399
 msgid "Déclaré groupe :"
 msgstr "Reported by group:"

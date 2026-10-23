@@ -145,22 +145,16 @@
             <p class="esg-chart__sub">{% translate "Consommations mesurées des actifs détenus et raréfaction des ressources (ReCiPe 2016 midpoint)" %}</p>
           </div>
         </div>
-        <div class="esg-kpi-grid" id="esg-resource-kpis"></div>
+        <div class="esg-kpi-grid" id="esg-resource-kpis" role="group" aria-label="{% translate 'Indicateur de ressource' %}"></div>
 
-        <h4 class="esg-env__section label-caps">{% translate "Inventaire mesuré par actif" %}</h4>
-        <div class="esg-table__wrap">
-          <table class="esg-table">
-            <thead id="esg-resource-inventory-head"></thead>
-            <tbody id="esg-resource-inventory-rows"></tbody>
-          </table>
-        </div>
-
-        <h4 class="esg-env__section label-caps">{% translate "Raréfaction des ressources par actif" %}</h4>
-        <div class="esg-table__wrap">
-          <table class="esg-table">
-            <thead id="esg-resource-scarcity-head"></thead>
-            <tbody id="esg-resource-scarcity-rows"></tbody>
-          </table>
+        <div class="esg-env__breakdown" id="esg-resource-breakdown">
+          <h4 class="esg-env__section label-caps" id="esg-resource-selected">—</h4>
+          <div class="esg-table__wrap">
+            <table class="esg-table">
+              <thead id="esg-resource-head"></thead>
+              <tbody id="esg-resource-rows"></tbody>
+            </table>
+          </div>
         </div>
         <p class="esg-empty" id="esg-resource-empty" hidden>{% translate "Aucun actif détenu par cette entreprise." %}</p>
         <p class="esg-note">

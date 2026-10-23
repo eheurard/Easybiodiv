@@ -2,7 +2,9 @@
 
 const ESG_COMPANY_KEY = 'selected-company-id';
 
-const ESG_STATE = { data: null, pollutionKey: null, pollutionView: 'assets', city: null };
+const ESG_STATE = {
+  data: null, pollutionKey: null, pollutionView: 'assets', resourceKey: null, city: null,
+};
 
 let esgScopeView = false;
 const SCOPE_COLORS = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc948'];
@@ -381,72 +383,113 @@ function esgInitPollutionView() {
 }
 
 
+// Indicateurs de Resource use à plat : inventaire mesuré puis raréfaction modélisée.
+function esgResourceIndicators(resource) {
+  return resource.inventory.map(i => Object.assign({ modelled: false }, i))
+    .concat(resource.scarcity.map(s => Object.assign({ modelled: true }, s)));
+}
+
+
+// Valeur d'un actif pour l'indicateur, ou null. Raréfaction à zéro = aucun
+// facteur de caractérisation pour les productions de l'actif.
+function esgResourceAssetValue(asset, indicator) {
+  if (indicator.modelled) {
+    const value = asset.scarcity && asset.scarcity[indicator.key];
+    return value ? { value: value, year: asset.scarcity_year } : null;
+  }
+  return asset[indicator.key] || null;
+}
+
+
 function esgRenderResourceUse(resource) {
   const kpis = document.getElementById('esg-resource-kpis');
   if (!kpis || !resource) return;
 
-  const tile = (label, total, unit, sub, modelled) =>
-    '<div class="esg-kpi' + (modelled ? ' esg-kpi--modelled' : '') + '">' +
-    '<span class="esg-kpi__label label-caps">' + escHtml(label) + '</span>' +
-    '<span class="esg-kpi__value">' + esgFmtQty(total) +
-    (total != null ? '<span class="esg-kpi__unit">' + escHtml(unit) + '</span>' : '') + '</span>' +
-    '<span class="esg-kpi__sub">' + sub + '</span>' +
-    '</div>';
-  kpis.innerHTML =
-    resource.inventory.map(i => tile(
-      i.name, i.total, i.unit,
-      i.declared_group
-        ? escHtml(gettext('Déclaré groupe :')) + ' ' + esgFmtQty(i.declared_group.value) + ' ' +
-          escHtml(i.unit) + ' (' + i.declared_group.year + ')'
-        : escHtml(i.total != null
-          ? gettext('Mesuré, somme des actifs') : gettext('Aucune donnée mesurée')),
-      false,
-    )).join('') +
-    resource.scarcity.map(s => tile(
-      s.name, s.total, s.unit, escHtml(gettext('Modélisé, ReCiPe 2016')), true,
-    )).join('');
-
-  const assets = resource.assets;
+  const indicators = esgResourceIndicators(resource);
   const empty = document.getElementById('esg-resource-empty');
-  if (empty) empty.hidden = assets.length > 0;
+  const breakdown = document.getElementById('esg-resource-breakdown');
+  if (empty) empty.hidden = resource.assets.length > 0;
+  if (breakdown) breakdown.hidden = resource.assets.length === 0;
 
-  const table = (headId, rowsId, columns, valueOf, yearOf, noneMessage) => {
-    const head = document.getElementById(headId);
-    const rows = document.getElementById(rowsId);
-    if (!head || !rows) return;
-    if (!assets.length) {
-      head.innerHTML = '';
-      rows.innerHTML = '';
-      return;
+  // L'indicateur choisi survit au changement d'entreprise ; sinon le premier
+  // qui a des données.
+  if (!indicators.some(i => i.key === ESG_STATE.resourceKey)) {
+    const first = indicators.find(i => i.total != null) || indicators[0];
+    ESG_STATE.resourceKey = first ? first.key : null;
+  }
+
+  const sub = (i) => {
+    if (i.modelled) return escHtml(gettext('Modélisé, ReCiPe 2016'));
+    if (i.declared_group) {
+      return escHtml(gettext('Déclaré groupe :')) + ' ' + esgFmtQty(i.declared_group.value) + ' ' +
+        escHtml(i.unit) + ' (' + i.declared_group.year + ')';
     }
-    head.innerHTML = '<tr>' + esgHeadCell(gettext('Actif')) + esgHeadCell(gettext('Pays')) +
-      columns.map(c => esgHeadCell(c.name, c.unit, true)).join('') + '</tr>';
-    const maxes = columns.map(c => Math.max(0, ...assets.map(a => valueOf(a, c.key) || 0)));
-    const measured = assets.some(a => columns.some(c => valueOf(a, c.key) != null));
-    rows.innerHTML = measured
-      ? assets.map(a =>
-          '<tr>' +
-          '<th scope="row">' + escHtml(a.name) + '</th>' +
-          '<td>' + escHtml(a.country || '—') + '</td>' +
-          columns.map((c, idx) => esgQtyCell(valueOf(a, c.key), maxes[idx], yearOf(a, c.key))).join('') +
-          '</tr>'
-        ).join('')
-      : esgEmptyRow(columns.length + 2, noneMessage);
+    return escHtml(i.total != null
+      ? gettext('Mesuré, somme des actifs') : gettext('Aucune donnée mesurée'));
   };
+  kpis.innerHTML = indicators.map(i =>
+    '<button type="button" class="esg-kpi' + (i.modelled ? ' esg-kpi--modelled' : '') + '"' +
+    ' data-key="' + escHtml(i.key) + '"' +
+    ' aria-pressed="' + (i.key === ESG_STATE.resourceKey) + '">' +
+    '<span class="esg-kpi__label label-caps">' + escHtml(i.name) + '</span>' +
+    '<span class="esg-kpi__value">' + esgFmtQty(i.total) +
+    (i.total != null ? '<span class="esg-kpi__unit">' + escHtml(i.unit) + '</span>' : '') + '</span>' +
+    '<span class="esg-kpi__sub">' + sub(i) + '</span>' +
+    '</button>'
+  ).join('');
 
-  table(
-    'esg-resource-inventory-head', 'esg-resource-inventory-rows', resource.inventory,
-    (a, key) => (a[key] ? a[key].value : null),
-    (a, key) => (a[key] ? a[key].year : null),
-    gettext('Aucune mesure par actif : seules des valeurs consolidées sont déclarées.'),
-  );
-  table(
-    'esg-resource-scarcity-head', 'esg-resource-scarcity-rows', resource.scarcity,
-    // Zéro = aucun facteur de caractérisation pour les productions de l'actif.
-    (a, key) => (a.scarcity && a.scarcity[key] ? a.scarcity[key] : null),
-    (a) => a.scarcity_year,
-    gettext('Aucun facteur de raréfaction pour les productions de ces actifs.'),
-  );
+  kpis.querySelectorAll('.esg-kpi').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ESG_STATE.resourceKey = btn.dataset.key;
+      kpis.querySelectorAll('.esg-kpi').forEach(b => {
+        b.setAttribute('aria-pressed', String(b === btn));
+      });
+      esgRenderResourceBreakdown();
+    });
+  });
+  esgRenderResourceBreakdown();
+}
+
+
+function esgRenderResourceBreakdown() {
+  const resource = ESG_STATE.data && ESG_STATE.data.resource_use;
+  const head = document.getElementById('esg-resource-head');
+  const rows = document.getElementById('esg-resource-rows');
+  const title = document.getElementById('esg-resource-selected');
+  if (!resource || !head || !rows) return;
+
+  const indicator = esgResourceIndicators(resource).find(i => i.key === ESG_STATE.resourceKey);
+  if (!indicator || !resource.assets.length) {
+    head.innerHTML = '';
+    rows.innerHTML = '';
+    return;
+  }
+  if (title) title.textContent = indicator.name;
+
+  const items = resource.assets
+    .map(a => ({ asset: a, entry: esgResourceAssetValue(a, indicator) }))
+    .filter(r => r.entry)
+    .sort((a, b) => b.entry.value - a.entry.value);
+  const max = Math.max(0, ...items.map(r => r.entry.value));
+  head.innerHTML = '<tr>' +
+    esgHeadCell(gettext('Actif')) +
+    esgHeadCell(gettext('Pays')) +
+    esgHeadCell(indicator.modelled ? gettext('Impact') : gettext('Quantité'), indicator.unit, true) +
+    esgHeadCell(gettext('Part'), '', true) +
+    '</tr>';
+  rows.innerHTML = items.length
+    ? items.map(r =>
+        '<tr>' +
+        '<th scope="row">' + escHtml(r.asset.name) + '</th>' +
+        '<td>' + escHtml(r.asset.country || '—') + '</td>' +
+        esgQtyCell(r.entry.value, max, r.entry.year) +
+        '<td class="esg-table__num esg-table__share">' +
+        esgFmtShare(r.entry.value, indicator.total) + '</td>' +
+        '</tr>'
+      ).join('')
+    : esgEmptyRow(4, indicator.modelled
+      ? gettext('Aucun facteur de raréfaction pour les productions de ces actifs.')
+      : gettext('Aucune mesure par actif : seules des valeurs consolidées sont déclarées.'));
 }
 
 

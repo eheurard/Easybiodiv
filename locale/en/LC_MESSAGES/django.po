@@ -1245,13 +1245,9 @@ msgid ""
 "Consommations mesurées des actifs détenus et raréfaction des ressources (ReCiPe 2016 midpoint)"
 msgstr "Measured consumption of owned assets and resource scarcity (ReCiPe 2016 midpoint)"
 
-#: .\dashboard\templates\dashboard\esg.html:150
-msgid "Inventaire mesuré par actif"
-msgstr "Measured inventory by asset"
-
-#: .\dashboard\templates\dashboard\esg.html:158
-msgid "Raréfaction des ressources par actif"
-msgstr "Resource scarcity by asset"
+#: .\dashboard\templates\dashboard\esg.html:148
+msgid "Indicateur de ressource"
+msgstr "Resource indicator"
 
 #: .\dashboard\templates\dashboard\esg.html:167
 #, python-format
