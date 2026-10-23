@@ -1,0 +1,134 @@
+<p>
+  Cette politique explique quelles données personnelles Easybiodiv traite, pourquoi, combien de
+  temps, et comment exercer vos droits, conformément au règlement (UE) 2016/679 (RGPD) et à la
+  loi n° 78-17 du 6 janvier 1978 modifiée (loi « Informatique et Libertés »).
+</p>
+
+<h2>Responsable du traitement</h2>
+<p>
+  {{ legal.editor_name }}{% if legal.editor_address %}, {{ legal.editor_address }}{% endif %}.<br>
+  Contact : {% if legal.contact_email and '@' in legal.contact_email %}<a href="mailto:{{ legal.contact_email }}">{{ legal.contact_email }}</a>{% else %}{{ legal.contact_email }}{% endif %}
+</p>
+
+<h2>Données traitées, finalités et durées de conservation</h2>
+<div class="legal-page__table-wrap">
+  <table class="legal-page__table">
+    <thead>
+      <tr><th scope="col">Données</th><th scope="col">Finalité</th><th scope="col">Base légale</th><th scope="col">Conservation</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Compte : identifiant, adresse électronique, mot de passe (stocké sous forme hachée, jamais en clair), rôle, photo de profil et nom si renseignés, dates d'inscription, de dernière connexion et d'acceptation des CGU</td>
+        <td>Créer et gérer votre compte, vous authentifier, vous permettre de réinitialiser votre mot de passe</td>
+        <td>Exécution du contrat — les CGU (art. 6.1.b RGPD)</td>
+        <td>Jusqu'à la suppression du compte. Un compte utilisateur sans connexion depuis 3 ans est supprimé automatiquement.</td>
+      </tr>
+      <tr>
+        <td>Comptes contributeurs (rôle « créateur ») : mêmes données, et mention de l'auteur sur les données qu'ils saisissent ou importent</td>
+        <td>Traçabilité des données publiées (qui a saisi quoi, et quand), exigée par la démarche de reporting CSRD</td>
+        <td>Intérêt légitime (art. 6.1.f RGPD)</td>
+        <td>Tant que le contributeur garde ce rôle ; à la suppression du compte, ses données saisies sont conservées sans mention de l'auteur.</td>
+      </tr>
+      <tr>
+        <td>Journal des exports de la base : identifiant, date, volume exporté</td>
+        <td>Sécurité : savoir qui a extrait des données d'entreprises</td>
+        <td>Intérêt légitime (art. 6.1.f RGPD)</td>
+        <td>Durée de conservation des journaux de l'hébergeur</td>
+      </tr>
+      <tr>
+        <td>Journaux techniques du serveur : adresse IP, date et heure, page demandée, navigateur</td>
+        <td>Sécurité du service, diagnostic des erreurs, obligations légales de l'hébergeur</td>
+        <td>Intérêt légitime et obligation légale (art. 6.1.c et f RGPD)</td>
+        <td>12 mois au plus</td>
+      </tr>
+      <tr>
+        <td>Cookies et stockage local : voir la page <a href="{% url 'legal:cookies' %}">cookies</a></td>
+        <td>Fonctionnement du site et mémorisation de vos préférences</td>
+        <td>Intérêt légitime ; traceurs exemptés de consentement</td>
+        <td>Voir la page cookies</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<p>
+  Les données publiées sur les entreprises (actifs, flux, indicateurs ESG…) concernent des
+  personnes morales et ne sont pas des données personnelles. Easybiodiv ne pratique ni profilage,
+  ni décision automatisée, ni prospection commerciale, et ne vend aucune donnée.
+</p>
+
+<h2>Destinataires</h2>
+<p>Vos données sont accessibles uniquement :</p>
+<ul>
+  <li>à l'éditeur et aux administrateurs du site, dans la limite de leurs fonctions ;</li>
+  <li>à l'hébergeur {{ legal.host_name }} ({{ legal.host_address }}), sous-traitant au sens du RGPD, qui stocke le site et sa base de données en France.</li>
+</ul>
+
+<h2>Services tiers chargés par votre navigateur</h2>
+<p>
+  Pour afficher les cartes et les graphiques, votre navigateur télécharge des fichiers depuis les
+  services ci-dessous. Comme pour toute requête web, ils reçoivent votre adresse IP et des
+  informations techniques sur votre navigateur. Aucun de ces services ne dépose de cookie par
+  l'intermédiaire d'Easybiodiv.
+</p>
+<div class="legal-page__table-wrap">
+  <table class="legal-page__table">
+    <thead>
+      <tr><th scope="col">Service</th><th scope="col">Usage</th><th scope="col">Localisation</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="https://openfreemap.org/privacy/" rel="noopener">OpenFreeMap</a> (Hyperknot Software Kft.)</td>
+        <td>Fonds de carte</td>
+        <td>Union européenne (Hongrie)</td>
+      </tr>
+      <tr>
+        <td><a href="https://www.esri.com/en-us/privacy/overview" rel="noopener">Esri</a> — World Imagery</td>
+        <td>Imagerie satellite, uniquement si vous choisissez la vue satellite</td>
+        <td>États-Unis</td>
+      </tr>
+      <tr>
+        <td><a href="https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net" rel="noopener">jsDelivr</a> et unpkg</td>
+        <td>Réseaux de diffusion (CDN) des bibliothèques Chart.js et MapLibre</td>
+        <td>Réseaux mondiaux, opérés notamment par des sociétés établies aux États-Unis</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<p>
+  Les transferts vers les États-Unis s'appuient sur la décision d'adéquation de la Commission
+  européenne du 10 juillet 2023 (Data Privacy Framework) pour les sociétés certifiées, ou à
+  défaut sur les clauses contractuelles types de la Commission. La police de caractères est
+  hébergée sur nos propres serveurs : aucune donnée n'est transmise à Google Fonts.
+</p>
+
+<h2>Sécurité</h2>
+<p>
+  Le site n'est accessible qu'en HTTPS (HSTS activé). Les mots de passe sont hachés
+  (algorithme PBKDF2), les formulaires protégés contre la falsification de requêtes (CSRF), et
+  l'accès aux fonctions d'administration est réservé aux comptes habilités.
+</p>
+
+<h2>Vos droits</h2>
+<p>Vous disposez des droits suivants sur vos données :</p>
+<ul>
+  <li>droit d'accès, de rectification et d'effacement ;</li>
+  <li>droit à la limitation du traitement et droit d'opposition (pour les traitements fondés sur l'intérêt légitime) ;</li>
+  <li>droit à la portabilité des données que vous avez fournies ;</li>
+  <li>droit de définir des directives relatives au sort de vos données après votre décès (article 85 de la loi Informatique et Libertés).</li>
+</ul>
+<p>
+  Pour les exercer, y compris pour supprimer votre compte, écrivez à
+  {% if legal.contact_email and '@' in legal.contact_email %}<a href="mailto:{{ legal.contact_email }}">{{ legal.contact_email }}</a>{% else %}{{ legal.contact_email }}{% endif %}
+  depuis l'adresse associée à votre compte. Une réponse vous sera apportée dans un délai d'un
+  mois. Si vous estimez, après nous avoir contactés, que vos droits ne sont pas respectés, vous
+  pouvez adresser une réclamation à la CNIL :
+  <a href="https://www.cnil.fr/fr/plaintes" rel="noopener">www.cnil.fr/fr/plaintes</a>,
+  3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07.
+</p>
+
+<h2>Modification de cette politique</h2>
+<p>
+  Cette politique peut évoluer, notamment si de nouveaux services sont ajoutés. La date de
+  dernière mise à jour figure en bas de page ; en cas de changement important, les titulaires
+  d'un compte en seront informés.
+</p>

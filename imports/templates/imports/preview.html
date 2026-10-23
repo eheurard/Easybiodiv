@@ -11,6 +11,7 @@
   <link rel="preload" href="{% static 'dashboard/fonts/inter-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'dashboard/css/fonts.css' %}">
   <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'legal/css/legal.css' %}">
   <style>
     #page-loader{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#fbf9f4;transition:opacity .4s ease,visibility .4s ease}
     #page-loader.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
@@ -304,5 +305,7 @@
     })();
   </script>
 
+  {% include "includes/legal_footer.html" %}
+  {% include "includes/cookie_notice.html" %}
 </body>
 </html>

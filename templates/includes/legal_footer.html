@@ -1,0 +1,15 @@
+{% load i18n %}
+{% comment %}
+  Pied de page légal, inclus par tous les gabarits de page complète. La LCEN
+  impose que les mentions légales soient accessibles depuis chaque page.
+  `legal_footer_class` permet au gabarit appelant d'ajouter une classe de placement.
+{% endcomment %}
+<footer class="legal-footer {{ legal_footer_class }}">
+  <span class="legal-footer__copy">© {% now "Y" %} Easybiodiv</span>
+  <nav class="legal-footer__nav" aria-label="{% translate 'Informations légales' %}">
+    <a href="{% url 'legal:notice' %}">{% translate "Mentions légales" %}</a>
+    <a href="{% url 'legal:privacy' %}">{% translate "Confidentialité" %}</a>
+    <a href="{% url 'legal:cookies' %}">{% translate "Cookies" %}</a>
+    <a href="{% url 'legal:terms' %}">{% translate "CGU" %}</a>
+  </nav>
+</footer>

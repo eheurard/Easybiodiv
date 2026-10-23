@@ -33,6 +33,7 @@
   <link rel="preload" href="{% static 'dashboard/fonts/inter-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'dashboard/css/fonts.css' %}">
   <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'legal/css/legal.css' %}">
 
   <!-- Écran de chargement : styles critiques inline pour un affichage instantané -->
   <style>
@@ -349,10 +350,14 @@
         {% block content %}{% endblock %}
       </main>
 
+      {% include "includes/legal_footer.html" %}
+
     </div>
     <!-- ── /Main area ─────────────────────────────────────────────────── -->
 
   </div><!-- /.app-layout -->
+
+  {% include "includes/cookie_notice.html" %}
 
   <!-- Catalogue de traductions JS : définit gettext()/interpolate() avant les modules -->
   <script src="{% url 'javascript-catalog' %}"></script>

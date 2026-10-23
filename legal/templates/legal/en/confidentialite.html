@@ -1,0 +1,132 @@
+<p>
+  This policy explains which personal data Easybiodiv processes, why, for how long, and how to
+  exercise your rights, in accordance with Regulation (EU) 2016/679 (GDPR) and the amended French
+  Data Protection Act of 6 January 1978. This English version is provided for convenience; the
+  French version prevails.
+</p>
+
+<h2>Data controller</h2>
+<p>
+  {{ legal.editor_name }}{% if legal.editor_address %}, {{ legal.editor_address }}{% endif %}.<br>
+  Contact: {% if legal.contact_email and '@' in legal.contact_email %}<a href="mailto:{{ legal.contact_email }}">{{ legal.contact_email }}</a>{% else %}{{ legal.contact_email }}{% endif %}
+</p>
+
+<h2>Data processed, purposes and retention periods</h2>
+<div class="legal-page__table-wrap">
+  <table class="legal-page__table">
+    <thead>
+      <tr><th scope="col">Data</th><th scope="col">Purpose</th><th scope="col">Legal basis</th><th scope="col">Retention</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Account: username, email address, password (stored hashed, never in plain text), role, profile photo and name if provided, sign-up, last login and terms acceptance dates</td>
+        <td>Creating and managing your account, authenticating you, letting you reset your password</td>
+        <td>Performance of a contract — the terms of use (GDPR art. 6(1)(b))</td>
+        <td>Until the account is deleted. A user account with no login for 3 years is deleted automatically.</td>
+      </tr>
+      <tr>
+        <td>Contributor accounts ("creator" role): the same data, plus authorship of the data they enter or import</td>
+        <td>Traceability of published data (who entered what, and when), required by CSRD reporting practice</td>
+        <td>Legitimate interest (GDPR art. 6(1)(f))</td>
+        <td>As long as the contributor holds this role; when the account is deleted, the data they entered is kept without authorship.</td>
+      </tr>
+      <tr>
+        <td>Database export log: username, date, volume exported</td>
+        <td>Security: knowing who extracted company data</td>
+        <td>Legitimate interest (GDPR art. 6(1)(f))</td>
+        <td>The host's log retention period</td>
+      </tr>
+      <tr>
+        <td>Server logs: IP address, date and time, requested page, browser</td>
+        <td>Service security, error diagnosis, the host's legal obligations</td>
+        <td>Legitimate interest and legal obligation (GDPR art. 6(1)(c) and (f))</td>
+        <td>12 months at most</td>
+      </tr>
+      <tr>
+        <td>Cookies and local storage: see the <a href="{% url 'legal:cookies' %}">cookies</a> page</td>
+        <td>Operating the site and remembering your preferences</td>
+        <td>Legitimate interest; trackers exempt from consent</td>
+        <td>See the cookies page</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<p>
+  Published company data (assets, flows, ESG indicators…) relates to legal entities and is not
+  personal data. Easybiodiv does not carry out profiling, automated decision-making or marketing,
+  and does not sell any data.
+</p>
+
+<h2>Recipients</h2>
+<p>Your data is only accessible to:</p>
+<ul>
+  <li>the publisher and the site administrators, within the limits of their duties;</li>
+  <li>the host {{ legal.host_name }} ({{ legal.host_address }}), a processor within the meaning of the GDPR, which stores the site and its database in France.</li>
+</ul>
+
+<h2>Third-party services loaded by your browser</h2>
+<p>
+  To display maps and charts, your browser downloads files from the services below. As with any
+  web request, they receive your IP address and technical information about your browser. None of
+  these services sets a cookie through Easybiodiv.
+</p>
+<div class="legal-page__table-wrap">
+  <table class="legal-page__table">
+    <thead>
+      <tr><th scope="col">Service</th><th scope="col">Use</th><th scope="col">Location</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="https://openfreemap.org/privacy/" rel="noopener">OpenFreeMap</a> (Hyperknot Software Kft.)</td>
+        <td>Base maps</td>
+        <td>European Union (Hungary)</td>
+      </tr>
+      <tr>
+        <td><a href="https://www.esri.com/en-us/privacy/overview" rel="noopener">Esri</a> — World Imagery</td>
+        <td>Satellite imagery, only if you choose the satellite view</td>
+        <td>United States</td>
+      </tr>
+      <tr>
+        <td><a href="https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net" rel="noopener">jsDelivr</a> and unpkg</td>
+        <td>Content delivery networks (CDN) for the Chart.js and MapLibre libraries</td>
+        <td>Global networks, operated in particular by companies based in the United States</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<p>
+  Transfers to the United States rely on the European Commission's adequacy decision of 10 July
+  2023 (Data Privacy Framework) for certified companies, or otherwise on the Commission's standard
+  contractual clauses. The typeface is hosted on our own servers: no data is sent to Google Fonts.
+</p>
+
+<h2>Security</h2>
+<p>
+  The site is only reachable over HTTPS (HSTS enabled). Passwords are hashed (PBKDF2), forms are
+  protected against cross-site request forgery (CSRF), and administration features are restricted
+  to authorised accounts.
+</p>
+
+<h2>Your rights</h2>
+<p>You have the following rights over your data:</p>
+<ul>
+  <li>the right of access, rectification and erasure;</li>
+  <li>the right to restriction of processing and the right to object (for processing based on legitimate interest);</li>
+  <li>the right to portability of the data you provided;</li>
+  <li>the right to set instructions for what happens to your data after your death (article 85 of the French Data Protection Act).</li>
+</ul>
+<p>
+  To exercise them, including to delete your account, write to
+  {% if legal.contact_email and '@' in legal.contact_email %}<a href="mailto:{{ legal.contact_email }}">{{ legal.contact_email }}</a>{% else %}{{ legal.contact_email }}{% endif %}
+  from the address linked to your account. You will receive an answer within one month. If, after
+  contacting us, you believe your rights have not been respected, you may lodge a complaint with
+  the CNIL, the French data protection authority:
+  <a href="https://www.cnil.fr/fr/plaintes" rel="noopener">www.cnil.fr/fr/plaintes</a>,
+  3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07, France.
+</p>
+
+<h2>Changes to this policy</h2>
+<p>
+  This policy may change, in particular if new services are added. The date of the last update
+  appears at the bottom of the page; account holders will be informed of significant changes.
+</p>

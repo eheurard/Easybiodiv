@@ -88,6 +88,9 @@ easybiodiv/
 ├── imports/                 # Upload Excel, parsing, validation, mapping
 │   ├── services/ templates/
 │   └── tests/
+├── legal/                   # mentions légales, confidentialité, cookies, CGU (FR/EN)
+│   ├── static/ templates/legal/{fr,en}/
+│   └── tests/
 ├── templates/               # templates globaux : base.html, admin/, dashboard/
 ├── media/                   # uploads utilisateur (gitignored)
 └── docs/
@@ -95,8 +98,8 @@ easybiodiv/
     └── superpowers/
 ```
 
-**Cette arborescence est plate, pas en `apps/`.** Les trois applications Django sont
-`authentication`, `dashboard` et `imports`, à la racine. Il n'y a ni paquet `apps/`,
+**Cette arborescence est plate, pas en `apps/`.** Les quatre applications Django sont
+`authentication`, `dashboard`, `imports` et `legal`, à la racine. Il n'y a ni paquet `apps/`,
 ni paquet `config/`, ni dossier `static/` ou `tests/` racine : le statique et les
 tests vivent dans chaque app.
 
@@ -111,7 +114,8 @@ l'environnement python est ./venv/scripts/activate.ps1
 
 Tous les modèles métier vivent dans **`dashboard/models.py`** (~28 modèles).
 `authentication` ne porte que `User` ; **`imports` n'a aucun modèle** (parsing et
-vues uniquement, sans trace d'import persistée).
+vues uniquement, sans trace d'import persistée), pas plus que `legal` (pages
+statiques ; coordonnées de l'éditeur dans `settings.LEGAL`).
 
 ### Identité et périmètre
 
@@ -242,7 +246,7 @@ vues uniquement, sans trace d'import persistée).
 
 - Framework : **pytest-django** (préféré) avec `Django TestCase` pour les cas
   nécessitant des transactions complexes.
-- Organisation : un dossier `tests/` par app pour `authentication` et `imports`
+- Organisation : un dossier `tests/` par app pour `authentication`, `imports` et `legal`
   (`test_models.py`, `test_views.py`, `test_forms.py`…). `dashboard` utilise encore
   des fichiers plats à la racine de l'app (`tests.py`, `tests_admin_console.py`,
   `tests_stress_test.py`, `tests_flow.py`, `tests_flow_map.py`, `tests_ownership.py`,

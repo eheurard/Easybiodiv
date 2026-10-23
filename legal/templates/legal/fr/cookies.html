@@ -1,0 +1,64 @@
+<p>
+  Un cookie est un petit fichier déposé sur votre appareil par le site que vous consultez. Le
+  stockage local (<code>localStorage</code>) est un mécanisme voisin, propre à votre navigateur.
+  Tous deux sont encadrés par l'article 82 de la loi Informatique et Libertés.
+</p>
+
+<h2>Ce qu'utilise Easybiodiv</h2>
+<p>
+  <strong>Easybiodiv n'utilise aucun cookie publicitaire, de mesure d'audience, de réseau social
+  ni de pistage.</strong> Les seuls cookies déposés sont strictement nécessaires au fonctionnement
+  du site ou à une fonctionnalité que vous avez demandée. Ils sont exemptés de consentement
+  (lignes directrices et recommandation de la CNIL du 17 septembre 2020) : c'est pourquoi aucune
+  fenêtre ne vous demande de les accepter.
+</p>
+
+<h3>Cookies</h3>
+<div class="legal-page__table-wrap">
+  <table class="legal-page__table">
+    <thead>
+      <tr><th scope="col">Nom</th><th scope="col">Rôle</th><th scope="col">Durée</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>sessionid</code></td><td>Maintenir votre connexion à votre compte. Déposé uniquement lorsque vous vous connectez.</td><td>2 semaines, ou jusqu'à la déconnexion</td></tr>
+      <tr><td><code>csrftoken</code></td><td>Sécurité : protéger les formulaires contre la falsification de requêtes.</td><td>1 an</td></tr>
+      <tr><td><code>django_language</code></td><td>Mémoriser la langue choisie avec le drapeau de l'en-tête.</td><td>Fin de la session de navigation</td></tr>
+      <tr><td><code>messages</code></td><td>Afficher un message de confirmation après une action (console d'administration), puis supprimé.</td><td>Jusqu'à l'affichage du message</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Stockage local du navigateur</h3>
+<p>
+  Ces informations restent sur votre appareil et ne sont jamais transmises à nos serveurs. Elles
+  mémorisent uniquement des préférences d'affichage :
+</p>
+<div class="legal-page__table-wrap">
+  <table class="legal-page__table">
+    <thead>
+      <tr><th scope="col">Clé</th><th scope="col">Rôle</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>theme</code></td><td>Mode jour ou nuit</td></tr>
+      <tr><td><code>sidebar-collapsed</code></td><td>Menu latéral replié ou déplié</td></tr>
+      <tr><td><code>selected-company-id</code></td><td>Dernière entreprise consultée, retrouvée d'une page à l'autre</td></tr>
+      <tr><td><code>overview-mode</code>, <code>esg-city-compare</code></td><td>Derniers réglages des vues d'ensemble et de comparaison</td></tr>
+      <tr><td><code>cookie-notice-dismissed</code></td><td>Ne plus afficher le bandeau d'information sur les cookies</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2>Services tiers</h2>
+<p>
+  Les fonds de carte et les bibliothèques de graphiques sont chargés depuis des services tiers
+  (détail dans la <a href="{% url 'legal:privacy' %}">politique de confidentialité</a>). Ils ne
+  déposent pas de cookie par l'intermédiaire d'Easybiodiv.
+</p>
+
+<h2>Supprimer ou bloquer ces données</h2>
+<p>
+  Vous pouvez à tout moment effacer les cookies et les données de site depuis les réglages de
+  votre navigateur (rubrique « Confidentialité » ou « Données de navigation »). Bloquer les
+  cookies <code>sessionid</code> et <code>csrftoken</code> empêche toutefois la connexion à votre
+  compte.
+</p>

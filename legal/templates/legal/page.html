@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} — Easybiodiv{% endblock %}
+
+{% block content %}
+<article class="legal-page" aria-labelledby="legal-page-title">
+  <nav class="legal-page__tabs" aria-label="{% translate 'Informations légales' %}">
+    <a href="{% url 'legal:notice' %}" class="legal-page__tab"{% if page == 'mentions' %} aria-current="page"{% endif %}>{% translate "Mentions légales" %}</a>
+    <a href="{% url 'legal:privacy' %}" class="legal-page__tab"{% if page == 'confidentialite' %} aria-current="page"{% endif %}>{% translate "Confidentialité" %}</a>
+    <a href="{% url 'legal:cookies' %}" class="legal-page__tab"{% if page == 'cookies' %} aria-current="page"{% endif %}>{% translate "Cookies" %}</a>
+    <a href="{% url 'legal:terms' %}" class="legal-page__tab"{% if page == 'cgu' %} aria-current="page"{% endif %}>{% translate "CGU" %}</a>
+  </nav>
+
+  <h1 class="legal-page__title" id="legal-page-title">{{ page_title }}</h1>
+
+  <div class="legal-page__body">
+    {% include body_template %}
+  </div>
+
+  <p class="legal-page__updated">
+    {% blocktranslate with date=texts_updated|date:"DATE_FORMAT" %}Dernière mise à jour : {{ date }}{% endblocktranslate %}
+  </p>
+</article>
+{% endblock %}

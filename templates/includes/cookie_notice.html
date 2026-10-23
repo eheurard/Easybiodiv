@@ -1,0 +1,18 @@
+{% load i18n static %}
+{% comment %}
+  Bandeau d'INFORMATION, pas de consentement : le site ne dépose que des
+  cookies strictement nécessaires (session, CSRF, langue), exemptés de
+  consentement (loi Informatique et Libertés, art. 82 ; lignes directrices CNIL
+  du 17 septembre 2020). Ajouter un traceur soumis à consentement (mesure
+  d'audience non exemptée, vidéo intégrée, etc.) imposerait de remplacer ce
+  bandeau par un vrai recueil de consentement (Accepter / Refuser au même niveau).
+  Masqué par défaut ; legal/js/cookie_notice.js l'affiche tant qu'il n'a pas été fermé.
+{% endcomment %}
+<div class="cookie-notice" id="cookie-notice" role="region" aria-label="{% translate 'Information sur les cookies' %}" hidden>
+  <p class="cookie-notice__text">
+    {% translate "Easybiodiv n'utilise que des cookies indispensables à son fonctionnement (connexion, sécurité, langue). Aucun cookie publicitaire ni de mesure d'audience." %}
+    <a href="{% url 'legal:cookies' %}">{% translate "En savoir plus" %}</a>
+  </p>
+  <button type="button" class="cookie-notice__close" id="cookie-notice-close">{% translate "J'ai compris" %}</button>
+</div>
+<script src="{% static 'legal/js/cookie_notice.js' %}" defer></script>

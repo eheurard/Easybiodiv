@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'authentication',
     'dashboard.apps.DashboardConfig',
     'imports',
+    'legal',
 ]
 
 MIDDLEWARE = [
@@ -169,6 +170,44 @@ MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 LOGIN_URL = '/auth/login/'
+
+# Informations affichées par les mentions légales (LCEN, art. 6-III) et la
+# politique de confidentialité (RGPD, art. 13) — app `legal`. Publiques par
+# nature, donc versionnées ici, sauf l'adresse de contact qui dépend du domaine
+# de production. Tant qu'un champ obligatoire (legal.info.required_fields) est
+# vide, les pages affichent « [à compléter] » et, hors DEBUG, `manage.py check`
+# (lancé par migrate au déploiement) avertit.
+LEGAL = {
+    # False : éditeur particulier, sans activité professionnelle. La LCEN
+    # (art. 6-III-2) le dispense de publier adresse et téléphone, à condition de
+    # les avoir communiqués à l'hébergeur (c'est le cas : contrat o2switch).
+    # Passer à True dès qu'il y a une activité professionnelle : adresse,
+    # téléphone et directeur de la publication deviennent obligatoires.
+    'editor_professional': False,
+    # Éditeur et responsable du traitement RGPD : nom, prénom ou raison sociale.
+    'editor_name': 'Elouan Heurard',
+    # Champs professionnels, affichés seulement s'ils sont renseignés.
+    'editor_status': '',  # ex. « Entrepreneur individuel », « SAS au capital de 1 000 € »
+    'editor_address': '',
+    'editor_phone': '',
+    'editor_siren': '',
+    'editor_rcs': '',
+    'editor_vat': '',
+    # Contact public, y compris pour l'exercice des droits RGPD : la boîte
+    # dédiée du domaine, qui expédie aussi les emails (EMAIL_HOST_USER).
+    'contact_email': (
+        os.environ.get('CONTACT_EMAIL', '').strip()
+        or os.environ.get('EMAIL_HOST_USER', '').strip()
+    ),
+    'publication_director': 'Elouan Heurard',
+    # Hébergeur (vérifié au registre SIRENE le 2026-10-23).
+    'host_name': 'O2SWITCH',
+    'host_status': 'SAS',
+    'host_siret': '510 909 807 00032',
+    'host_address': 'Chemin des Pardiaux, 63000 Clermont-Ferrand, France',
+    'host_phone': '+33 4 44 44 60 40',
+    'host_url': 'https://www.o2switch.fr',
+}
 
 # Journal d'audit : les exports de la base (imports.views) sont tracés, car elle
 # porte des données d'entreprises potentiellement sensibles. Sortie console,

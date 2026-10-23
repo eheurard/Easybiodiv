@@ -1,0 +1,69 @@
+<p>
+  Conformément à l'article 6-III de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans
+  l'économie numérique (LCEN), voici les informations relatives à l'éditeur et à l'hébergeur
+  du site <strong>{{ request.get_host }}</strong> (ci-après « Easybiodiv » ou « le site »).
+</p>
+
+<h2>Éditeur du site</h2>
+{% if not legal.editor_professional %}
+<p>
+  Le site est édité par un particulier, à titre non professionnel. Conformément à l'article
+  6-III-2 de la LCEN, ses coordonnées personnelles ont été communiquées à l'hébergeur
+  ci-dessous, qui les détient.
+</p>
+{% endif %}
+<address>
+  <strong>{{ legal.editor_name }}</strong>{% if legal.editor_status %}, {{ legal.editor_status }}{% endif %}<br>
+  {% if legal.editor_address %}{{ legal.editor_address }}<br>{% endif %}
+  {% if legal.editor_phone %}Téléphone : {{ legal.editor_phone }}<br>{% endif %}
+  Courriel : {% if legal.contact_email and '@' in legal.contact_email %}<a href="mailto:{{ legal.contact_email }}">{{ legal.contact_email }}</a>{% else %}{{ legal.contact_email }}{% endif %}
+  {% if legal.editor_siren %}<br>SIREN : {{ legal.editor_siren }}{% endif %}
+  {% if legal.editor_rcs %}<br>{{ legal.editor_rcs }}{% endif %}
+  {% if legal.editor_vat %}<br>N° de TVA intracommunautaire : {{ legal.editor_vat }}{% endif %}
+</address>
+
+{% if legal.publication_director %}
+<h2>Directeur de la publication</h2>
+<p>{{ legal.publication_director }}</p>
+{% endif %}
+
+<h2>Hébergeur</h2>
+<address>
+  <strong>{{ legal.host_name }}</strong>{% if legal.host_status %}, {{ legal.host_status }}{% endif %}<br>
+  {{ legal.host_address }}<br>
+  Téléphone : {{ legal.host_phone }}<br>
+  {% if legal.host_siret %}SIRET : {{ legal.host_siret }}<br>{% endif %}
+  Site : <a href="{{ legal.host_url }}" rel="noopener">{{ legal.host_url }}</a>
+</address>
+<p>Les données du site sont hébergées en France.</p>
+
+<h2>Propriété intellectuelle</h2>
+<p>
+  La structure du site, ses textes, graphismes, logos et son code sont la propriété de l'éditeur,
+  sauf mention contraire. Toute reproduction ou représentation, totale ou partielle, sans
+  autorisation préalable est interdite (articles L. 335-2 et suivants du Code de la propriété
+  intellectuelle).
+</p>
+<p>Le site intègre des éléments de tiers, utilisés selon leurs licences respectives :</p>
+<ul>
+  <li>fonds de carte © contributeurs <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a> (licence ODbL), servis par <a href="https://openfreemap.org" rel="noopener">OpenFreeMap</a> ; imagerie satellite © Esri et ses fournisseurs ;</li>
+  <li>bibliothèques MapLibre GL JS (licence BSD-3) et Chart.js (licence MIT) ;</li>
+  <li>police de caractères Inter (SIL Open Font License 1.1).</li>
+</ul>
+<p>
+  Les données relatives aux entreprises proviennent de sources publiques ou déclaratives et sont
+  fournies à titre informatif ; voir les <a href="{% url 'legal:terms' %}">conditions générales d'utilisation</a>.
+</p>
+
+<h2>Données personnelles et cookies</h2>
+<p>
+  Le traitement de vos données personnelles est décrit dans la
+  <a href="{% url 'legal:privacy' %}">politique de confidentialité</a>, et l'usage des cookies
+  sur la page <a href="{% url 'legal:cookies' %}">cookies et stockage local</a>.
+</p>
+
+<h2>Signaler un contenu</h2>
+<p>
+  Pour signaler un contenu illicite ou une erreur, écrivez à l'adresse de contact ci-dessus en
+  précisant la page concernée et le motif du signalement.
+</p>
