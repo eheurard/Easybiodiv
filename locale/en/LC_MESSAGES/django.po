@@ -2742,3 +2742,90 @@ msgstr "Owned from"
 
 msgid "Sans année de fin."
 msgstr "No end year."
+
+#: .\authentication\forms.py:13
+msgid "J'accepte les conditions générales d'utilisation"
+msgstr "I accept the terms of use"
+
+#: .\authentication\forms.py:15
+msgid "Vous devez accepter les conditions générales d'utilisation."
+msgstr "You must accept the terms of use."
+
+#: .\authentication\templates\authentication\register.html:104
+#, python-format
+msgid ""
+"J'accepte les <a href=\"%(terms_url)s\" target=\"_blank\" rel=\"noopener\">conditions générales "
+"d'utilisation</a>"
+msgstr "I accept the <a href=\"%(terms_url)s\" target=\"_blank\" rel=\"noopener\">terms of use</a>"
+
+#: .\authentication\templates\authentication\register.html:118
+#, python-format
+msgid ""
+"Votre adresse email sert uniquement à gérer votre compte et à réinitialiser votre mot de passe. "
+"Détails et exercice de vos droits : <a href=\"%(privacy_url)s\" target=\"_blank\" "
+"rel=\"noopener\">politique de confidentialité</a>."
+msgstr ""
+"Your email address is only used to manage your account and reset your password. Details and how "
+"to exercise your rights: <a href=\"%(privacy_url)s\" target=\"_blank\" rel=\"noopener\">privacy "
+"policy</a>."
+
+#: .\legal\info.py:32
+msgid "[à compléter]"
+msgstr "[to be completed]"
+
+#: .\legal\templates\legal\page.html:8 .\templates\includes\legal_footer.html:9
+msgid "Informations légales"
+msgstr "Legal information"
+
+#: .\legal\templates\legal\page.html:9 .\legal\urls.py:10 .\templates\includes\legal_footer.html:10
+msgid "Mentions légales"
+msgstr "Legal notice"
+
+#: .\legal\templates\legal\page.html:10 .\templates\includes\legal_footer.html:11
+msgid "Confidentialité"
+msgstr "Privacy"
+
+#: .\legal\templates\legal\page.html:11 .\templates\includes\legal_footer.html:12
+msgid "Cookies"
+msgstr "Cookies"
+
+#: .\legal\templates\legal\page.html:12 .\templates\includes\legal_footer.html:13
+msgid "CGU"
+msgstr "Terms of use"
+
+#: .\legal\templates\legal\page.html:22
+#, python-format
+msgid "Dernière mise à jour : %(date)s"
+msgstr "Last updated: %(date)s"
+
+#: .\legal\urls.py:13
+msgid "Politique de confidentialité"
+msgstr "Privacy policy"
+
+#: .\legal\urls.py:16
+msgid "Cookies et stockage local"
+msgstr "Cookies and local storage"
+
+#: .\legal\urls.py:19
+msgid "Conditions générales d'utilisation"
+msgstr "Terms of use"
+
+#: .\templates\includes\cookie_notice.html:11
+msgid "Information sur les cookies"
+msgstr "Cookie information"
+
+#: .\templates\includes\cookie_notice.html:13
+msgid ""
+"Easybiodiv n'utilise que des cookies indispensables à son fonctionnement (connexion, sécurité, "
+"langue). Aucun cookie publicitaire ni de mesure d'audience."
+msgstr ""
+"Easybiodiv only uses cookies that are essential for it to work (login, security, language). No "
+"advertising or analytics cookies."
+
+#: .\templates\includes\cookie_notice.html:14
+msgid "En savoir plus"
+msgstr "Learn more"
+
+#: .\templates\includes\cookie_notice.html:16
+msgid "J'ai compris"
+msgstr "Got it"
