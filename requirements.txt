@@ -2,7 +2,7 @@ asgiref==3.11.1
 Django==6.0.8
 sqlparse==0.6.0
 tzdata==2026.2
-Pillow==12.3.0
+Pillow==13.0.0
 openpyxl==3.1.5
 et-xmlfile==2.0.0
 whitenoise==6.12.0
