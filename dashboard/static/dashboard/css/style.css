@@ -1,6 +1,6 @@
-/* La police Inter est chargée via <link> dans le <head> des templates
-   (préconnexion + chargement parallèle), et non par @import — un @import ici
-   sérialise le téléchargement (CSS → @import → police) et retarde le rendu. */
+/* La police Inter est auto-hébergée (fonts.css, chargé via <link> dans le <head>
+   des templates avec un preload du fichier latin), et non par @import — un
+   @import ici sérialise le téléchargement (CSS → @import → police). */
 
 /* ─── Design tokens ─────────────────────────────────────────────────────── */
 :root {

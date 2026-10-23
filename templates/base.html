@@ -24,15 +24,14 @@
   <link rel="icon" type="image/x-icon" href="{% static 'dashboard/img/favicon.ico' %}">
   <link rel="apple-touch-icon" href="{% static 'dashboard/img/apple-touch-icon.png' %}">
 
-  <!-- Perf : préconnexion aux origines externes (polices + CDN cartes/graphes) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Perf : résolution DNS anticipée des CDN cartes/graphes -->
   <link rel="dns-prefetch" href="https://unpkg.com">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <link rel="dns-prefetch" href="https://tiles.openfreemap.org">
 
-  <!-- Police chargée en parallèle du CSS (évite la chaîne @import bloquante) -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <!-- Police auto-hébergée : rien n'est envoyé à Google Fonts -->
+  <link rel="preload" href="{% static 'dashboard/fonts/inter-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'dashboard/css/fonts.css' %}">
   <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}">
 
   <!-- Écran de chargement : styles critiques inline pour un affichage instantané -->
