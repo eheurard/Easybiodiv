@@ -285,3 +285,48 @@ class ModifierPropagationTests(TestCase):
         self.assertEqual(before, 40.0)
         self._tick(self.flow, -50, self.land)
         self.assertAlmostEqual(measured_vs_modeled(self.asset, 'water', 2024)['modeled'], 20.0)
+
+
+class LeapPrepareModifierTests(TestCase):
+    """LEAP Prepare : facteur par ligne (actif, commodité) pondéré par les quantités."""
+
+    def setUp(self):
+        self.company = Company.objects.create(name='Acme')
+        self.country = Country.objects.create(name='BR')
+        self.asset = Asset.objects.create(
+            name='Ferme', latitude=1.0, longitude=2.0, country=self.country,
+        )
+        Ownership.objects.create(asset=self.asset, company=self.company, share=1)
+        self.soy = Commodity.objects.create(name='Soja')
+        self.eco = ImpactCategory.objects.filter(key=CAT_ECOSYSTEM_DIVERSITY).first() \
+            or _category(CAT_ECOSYSTEM_DIVERSITY)
+        CharacterizationFactor.objects.create(
+            category=self.eco, commodity=self.soy, value=1.0,
+        )
+
+    def _data(self):
+        from .views import _get_leap_prepare_data
+        return _get_leap_prepare_data(self.company)
+
+    def test_line_factor_weighted_by_quantity(self):
+        certified = make_production(
+            commodity=self.soy, year=2024, production=30000, asset=self.asset,
+        )
+        make_production(commodity=self.soy, year=2024, production=15000, asset=self.asset)
+        mod = CommodityModifier.objects.create(commodity=self.soy, name='Certifié')
+        ModifierEffect.objects.create(modifier=mod, category=self.eco, percent=-10)
+        certified.modifiers.add(mod)
+        lines = self._data()['assets'][0]['lines']
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(lines[0]['qty'], 45000)
+        self.assertAlmostEqual(
+            lines[0]['impact_factor'], (30000 * 0.9 + 15000 * 1.0) / 45000,
+        )
+
+    def test_line_factor_without_modifier_equals_commodity_factor(self):
+        make_production(commodity=self.soy, year=2024, production=10, asset=self.asset)
+        data = self._data()
+        self.assertEqual(
+            data['assets'][0]['lines'][0]['impact_factor'],
+            data['commodities'][0]['impact_factor'],
+        )

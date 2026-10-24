@@ -1012,9 +1012,10 @@ class LeapPrepareDataTests(TestCase):
         self.assertEqual(len(data['assets']), 1)
         asset = data['assets'][0]
         self.assertEqual(asset['name'], 'Site A')
-        self.assertEqual(asset['lines'], [
-            {'commodity_id': self.commodity.pk, 'qty': 100.0, 'unit': 'tonnes'}
-        ])
+        self.assertEqual(asset['lines'], [{
+            'commodity_id': self.commodity.pk, 'qty': 100.0, 'unit': 'tonnes',
+            'impact_factor': data['commodities'][0]['impact_factor'],
+        }])
 
     def test_commodity_impact_factor(self):
         from .views import _get_leap_prepare_data

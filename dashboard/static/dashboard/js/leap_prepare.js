@@ -202,8 +202,8 @@ function lpComputeItems() {
       const comm = commMap[l.commodity_id];
       if (!comm) return;
       const id = LP_STATE.impactDelta[l.commodity_id] || 0;
-      const cur = l.qty * comm.impact_factor;
-      const fut = l.qty * (1 + pd) * comm.impact_factor * (1 + id);
+      const cur = l.qty * l.impact_factor;
+      const fut = l.qty * (1 + pd) * l.impact_factor * (1 + id);
       totalCur += cur; totalFut += fut;
 
       if (!byAsset[a.id]) byAsset[a.id] = { key: a.id, name: a.name, current: 0, future: 0 };
@@ -299,8 +299,8 @@ function lpCommByImpact() {
       const comm = commMap[l.commodity_id];
       if (!comm) return;
       const id = LP_STATE.impactDelta[l.commodity_id] || 0;
-      const cur = l.qty * comm.impact_factor;
-      const fut = l.qty * (1 + pd) * comm.impact_factor * (1 + id);
+      const cur = l.qty * l.impact_factor;
+      const fut = l.qty * (1 + pd) * l.impact_factor * (1 + id);
       if (!byCommodity[comm.id]) byCommodity[comm.id] = { name: comm.name, current: 0, future: 0 };
       byCommodity[comm.id].current += cur;
       byCommodity[comm.id].future += fut;

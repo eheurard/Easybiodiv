@@ -5,6 +5,7 @@
       "lines": [
         {
           "commodity_id": 4,
+          "impact_factor": 0.0095,
           "qty": 235000.0,
           "unit": "tonnes"
         }
@@ -16,6 +17,7 @@
       "lines": [
         {
           "commodity_id": 3,
+          "impact_factor": 0.0048,
           "qty": 195000.0,
           "unit": "tonnes"
         }
@@ -27,6 +29,7 @@
       "lines": [
         {
           "commodity_id": 3,
+          "impact_factor": 0.0048,
           "qty": 102000.0,
           "unit": "tonnes"
         }
@@ -38,11 +41,13 @@
       "lines": [
         {
           "commodity_id": 1,
+          "impact_factor": 0.0014,
           "qty": 45000.0,
           "unit": "tonnes"
         },
         {
           "commodity_id": 2,
+          "impact_factor": 0.0017,
           "qty": 30000.0,
           "unit": "tonnes"
         }
@@ -54,6 +59,7 @@
       "lines": [
         {
           "commodity_id": 4,
+          "impact_factor": 0.0095,
           "qty": 88000.0,
           "unit": "tonnes"
         }

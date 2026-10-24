@@ -750,6 +750,8 @@ def _get_leap_prepare_data(company):
         years.append(latest)
 
         line_qty = defaultdict(float)
+        line_weighted = defaultdict(float)
+        line_base = {}
         line_unit = {}
         for p in prods:
             if p.year != latest:
@@ -762,11 +764,20 @@ def _get_leap_prepare_data(company):
                     cf_index, c.pk, CAT_ECOSYSTEM_DIVERSITY,
                 ),
             })
+            factor = flow_cf_value(cf_index, p, CAT_ECOSYSTEM_DIVERSITY)
             line_qty[c.pk] += p.quantity
+            line_weighted[c.pk] += p.quantity * factor
+            line_base.setdefault(c.pk, factor)
             line_unit[c.pk] = c.unit
 
         lines = [
-            {'commodity_id': cid, 'qty': round(q, 4), 'unit': line_unit[cid]}
+            {
+                'commodity_id': cid,
+                'qty': round(q, 4),
+                'unit': line_unit[cid],
+                # Moyenne des facteurs ajustés des flux, pondérée par les quantités.
+                'impact_factor': line_weighted[cid] / q if q else line_base[cid],
+            }
             for cid, q in line_qty.items()
         ]
         if lines:
