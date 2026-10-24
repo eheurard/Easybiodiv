@@ -15,7 +15,9 @@ from .models import (
 )
 from .forms import StressTestForm, PortfolioForm, PortfolioHoldingForm
 from .services.market import get_market_data, DEFAULT_RANGE
-from .services.impacts import build_cf_index, cf_value, CAT_ECOSYSTEM_DIVERSITY
+from .services.impacts import (
+    build_cf_index, cf_value, flow_cf_value, CAT_ECOSYSTEM_DIVERSITY,
+)
 from .services.supply import TIER_LABELS, TIER_TO_SCOPE
 from .services.hazards import PHYSICAL_RISKS
 from .services.stress_test import get_stress_test_data
@@ -308,8 +310,8 @@ def _get_company_data(company):
         recent_prods = [p for p in prods_all if p.year == latest_year] if latest_year else []
 
         footprint = sum(
-            p.quantity * cf_value(
-                cf_index, p.what_id, CAT_ECOSYSTEM_DIVERSITY,
+            p.quantity * flow_cf_value(
+                cf_index, p, CAT_ECOSYSTEM_DIVERSITY,
                 asset.subnational_region_id, asset.country_id,
             )
             for p in recent_prods
@@ -330,8 +332,8 @@ def _get_company_data(company):
                 biodiv_loss
                 * restoration_cost
                 * p.quantity
-                * cf_value(
-                    cf_index, p.what_id, CAT_ECOSYSTEM_DIVERSITY,
+                * flow_cf_value(
+                    cf_index, p, CAT_ECOSYSTEM_DIVERSITY,
                     asset.subnational_region_id, asset.country_id,
                 )
             )
@@ -449,8 +451,8 @@ def _get_mesure_empreinte_data(company):
 
     for p in productions:
         asset = p.from_asset
-        impact = p.quantity * cf_value(
-            cf_index, p.what_id, CAT_ECOSYSTEM_DIVERSITY,
+        impact = p.quantity * flow_cf_value(
+            cf_index, p, CAT_ECOSYSTEM_DIVERSITY,
             asset.subnational_region_id, asset.country_id,
         )
         commodity_impact[p.what.name] += impact
@@ -688,8 +690,8 @@ def _get_leap_evaluate_data(company):
         ai = asset_impacts[p.from_asset_id]
         region_id, country_id = asset_loc.get(p.from_asset_id, (None, None))
         for f in _evaluate_keys:
-            ai[f] += p.quantity * cf_value(
-                cf_index, p.what_id, f, region_id, country_id,
+            ai[f] += p.quantity * flow_cf_value(
+                cf_index, p, f, region_id, country_id,
             )
 
     assets_out = []
@@ -837,8 +839,8 @@ def _get_dette_ecologique_data(company):
             biodiv_loss
             * restoration
             * p.quantity
-            * cf_value(
-                cf_index, p.what_id, CAT_ECOSYSTEM_DIVERSITY,
+            * flow_cf_value(
+                cf_index, p, CAT_ECOSYSTEM_DIVERSITY,
                 asset.subnational_region_id, asset.country_id,
             )
         )
@@ -1104,8 +1106,8 @@ def _get_comparison_data(company):
     for p in productions:
         asset = asset_map.get(p.from_asset_id)
         for f in _impact_keys:
-            impact_totals[f] += p.quantity * cf_value(
-                cf_index, p.what_id, f,
+            impact_totals[f] += p.quantity * flow_cf_value(
+                cf_index, p, f,
                 asset.subnational_region_id if asset else None,
                 asset.country_id if asset else None,
             )
@@ -1120,8 +1122,8 @@ def _get_comparison_data(company):
                 getattr(asset.country, biodiv_field, 0.0)
                 * asset.subnational_region.restoration_cost_m2
                 * p.quantity
-                * cf_value(
-                    cf_index, p.what_id, CAT_ECOSYSTEM_DIVERSITY,
+                * flow_cf_value(
+                    cf_index, p, CAT_ECOSYSTEM_DIVERSITY,
                     asset.subnational_region_id, asset.country_id,
                 )
             )
@@ -1911,8 +1913,8 @@ def _company_endpoint_impacts(company, category_keys):
     )
     for p in productions:
         for key in category_keys:
-            totals[key] += p.quantity * cf_value(
-                cf_index, p.what_id, key,
+            totals[key] += p.quantity * flow_cf_value(
+                cf_index, p, key,
                 p.from_asset.subnational_region_id, p.from_asset.country_id,
             )
     return totals
@@ -2113,8 +2115,8 @@ def _company_ecological_debt(company):
         restoration = asset.subnational_region.restoration_cost_m2
         lbiodiv = (
             biodiv_loss * restoration * p.quantity
-            * cf_value(
-                cf_index, p.what_id, CAT_ECOSYSTEM_DIVERSITY,
+            * flow_cf_value(
+                cf_index, p, CAT_ECOSYSTEM_DIVERSITY,
                 asset.subnational_region_id, asset.country_id,
             )
         )

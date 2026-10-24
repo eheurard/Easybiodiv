@@ -5,16 +5,21 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connection, transaction
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
+from django.urls import reverse
 
 from .models import (
     Asset, CharacterizationFactor, Commodity, CommodityModifier, CommoditySource,
-    Company, Country, SubnationalRegion,
+    Company, Country, Ownership, SubnationalRegion,
     Flow, ImpactCategory, ImpactMethod, ModifierEffect,
     invalid_modifiers, source_codes,
 )
+from .services.esg_environment import owned_asset_impacts
 from .services.flows import productions
-from .services.impacts import build_cf_index, flow_cf_value
-from .testing import make_production
+from .services.impacts import (
+    CAT_ECOSYSTEM_DIVERSITY, build_cf_index, flow_cf_value, measured_vs_modeled,
+)
+from .services.stress_test import get_stress_test_data
+from .testing import make_production, make_supply
 
 
 def _category(key='climate'):
@@ -199,3 +204,84 @@ class ModifierFormulaTests(TestCase):
             )
             self._tick(flow, -10, -5)
         self.assertEqual(count_queries(), one)
+
+
+class ModifierPropagationTests(TestCase):
+    """Les modificateurs cochés sur une production ajustent les vues d'impact."""
+
+    def setUp(self):
+        self.company = Company.objects.create(name='Acme')
+        self.country = Country.objects.create(name='BR')
+        self.region = SubnationalRegion.objects.create(
+            name='MT', country=self.country, restoration_cost_m2=1.0,
+        )
+        self.asset = Asset.objects.create(
+            name='Ferme', latitude=1.0, longitude=2.0, country=self.country,
+            subnational_region=self.region,
+        )
+        Ownership.objects.create(asset=self.asset, company=self.company, share=1)
+        self.soy = Commodity.objects.create(name='Soja')
+        self.eco = ImpactCategory.objects.filter(key=CAT_ECOSYSTEM_DIVERSITY).first()             or _category(CAT_ECOSYSTEM_DIVERSITY)
+        self.land = _category('land_use')
+        for cat in (self.eco, self.land):
+            CharacterizationFactor.objects.create(
+                category=cat, commodity=self.soy, value=10.0,
+            )
+        self.flow = make_production(
+            commodity=self.soy, year=2024, production=4, asset=self.asset,
+        )
+
+    def _tick(self, flow, percent, *categories):
+        mod = CommodityModifier.objects.create(commodity=flow.what, name=f'M{flow.pk}')
+        for cat in categories:
+            ModifierEffect.objects.create(modifier=mod, category=cat, percent=percent)
+        flow.modifiers.add(mod)
+
+    def _get(self, name):
+        response = self.client.get(reverse(f'dashboard:{name}', args=[self.company.pk]))
+        self.assertEqual(response.status_code, 200)
+        return response.json()
+
+    def _footprint(self):
+        return self._get('company_data')['geojson']['features'][0]['properties']['footprint']
+
+    def test_overview_footprint_uses_modifier(self):
+        before = self._footprint()
+        self.assertEqual(before, 40.0)
+        self._tick(self.flow, -50, self.eco)
+        self.assertAlmostEqual(self._footprint(), before / 2)
+
+    def test_esg_environment_uses_modifier(self):
+        assets = [self.asset]
+        self._tick(self.flow, -50, self.land)
+        by_asset, by_commodity = owned_asset_impacts(assets, ['land_use'])
+        self.assertAlmostEqual(by_asset[self.asset.pk]['land_use'], 20.0)
+        self.assertEqual(list(by_commodity), ['Soja'])
+        self.assertAlmostEqual(by_commodity['Soja']['land_use'], 20.0)
+
+    def test_supply_modifier_changes_nothing(self):
+        other = Asset.objects.create(
+            name='Silo', latitude=3.0, longitude=4.0, country=self.country,
+            subnational_region=self.region,
+        )
+        supply = make_supply(
+            what=self.soy, year=2024, quantity=5, origin=other, destination=self.asset,
+        )
+        names = ('company_data', 'mesure_empreinte_data', 'dette_ecologique_data')
+        before = {name: self._get(name) for name in names}
+        self._tick(supply, -50, self.eco, self.land)
+        after = {name: self._get(name) for name in names}
+        self.assertEqual(before, after)
+
+    def test_stress_test_ignores_modifier(self):
+        before = get_stress_test_data(self.company)
+        self._tick(self.flow, -50, self.eco, self.land)
+        self.assertEqual(get_stress_test_data(self.company), before)
+
+    def test_measured_vs_modeled_uses_modifier(self):
+        self.land.theme = 'water'
+        self.land.save()
+        before = measured_vs_modeled(self.asset, 'water', 2024)['modeled']
+        self.assertEqual(before, 40.0)
+        self._tick(self.flow, -50, self.land)
+        self.assertAlmostEqual(measured_vs_modeled(self.asset, 'water', 2024)['modeled'], 20.0)

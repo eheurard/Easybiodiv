@@ -115,8 +115,8 @@ def measured_vs_modeled(asset, theme, year):
         if p.year != year:
             continue
         for key in cat_keys:
-            modeled += p.quantity * cf_value(
-                cf_index, p.what_id, key,
+            modeled += p.quantity * flow_cf_value(
+                cf_index, p, key,
                 asset.subnational_region_id, asset.country_id,
             )
     return {'measured': measured, 'modeled': modeled}

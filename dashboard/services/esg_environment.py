@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 
 from ..models import Asset, ImpactCategory, TECHNICAL_COMMODITIES
 from . import flows as flow_service
-from .impacts import build_cf_index, cf_value
+from .impacts import build_cf_index, flow_cf_value
 
 # Unités ReCiPe 2016 midpoint, utilisées quand la catégorie n'a pas d'unité en base.
 RECIPE_MIDPOINT_UNITS = {
@@ -101,8 +101,8 @@ def owned_asset_impacts(assets, category_keys):
             asset.pk, {'year': p.year, **{key: 0.0 for key in category_keys}},
         )
         for key in category_keys:
-            value = p.quantity * cf_value(
-                cf_index, p.what_id, key, asset.subnational_region_id, asset.country_id,
+            value = p.quantity * flow_cf_value(
+                cf_index, p, key, asset.subnational_region_id, asset.country_id,
             )
             entry[key] += value
             by_commodity[p.what.name][key] += value
