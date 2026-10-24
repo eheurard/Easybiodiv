@@ -18,11 +18,14 @@ _ENDPOINT_RELATIONS = (
     'to_asset', 'to_region', 'to_country', 'to_company',
 )
 
+# Précharge les modificateurs cochés et leurs effets (impacts.modifier_multiplier).
+MODIFIER_PREFETCH = 'modifiers__effects__category'
+
 
 def flows_with_endpoints():
     """Tous les flux, avec leurs extrémités préchargées (imports/services/
     excel_parser.py : détection des doublons de la feuille Flow)."""
-    return Flow.objects.select_related(*_ENDPOINT_RELATIONS)
+    return Flow.objects.select_related(*_ENDPOINT_RELATIONS).prefetch_related(MODIFIER_PREFETCH)
 
 
 def _touches_q(company, asset_ids):
@@ -52,6 +55,7 @@ def perimeter_flows(company, year, touching=None):
         Flow.objects.filter(year=year)
         .filter(_touches_q(company, asset_ids))
         .select_related(*_ENDPOINT_RELATIONS)
+        .prefetch_related(MODIFIER_PREFETCH)
         .order_by('pk')
     )
     return _touching(flows, touching)
@@ -89,6 +93,7 @@ def range_perimeter_flows(company, start, end, touching=None):
         Flow.objects.filter(year__gte=start, year__lte=end)
         .filter(_touches_q(company, ownerships.values('asset_id')))
         .select_related(*_ENDPOINT_RELATIONS)
+        .prefetch_related(MODIFIER_PREFETCH)
         .order_by('year', 'pk'),
         touching,
     )
@@ -199,6 +204,7 @@ def productions(asset_ids):
     return list(
         Flow.objects.filter(kind=FlowKind.PRODUCTION, from_asset_id__in=asset_ids)
         .select_related('what', 'from_asset__country', 'from_asset__subnational_region')
+        .prefetch_related(MODIFIER_PREFETCH)
         .order_by('pk')
     )
 

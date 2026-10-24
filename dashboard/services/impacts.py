@@ -71,6 +71,27 @@ def cf_value(cf_index, commodity_id, category_key, region_id=None,
     )
 
 
+def modifier_multiplier(flow, category_key):
+    """Multiplicateur `max(0, 1 + Σ percent / 100)` des modificateurs cochés sur
+    `flow` pour la catégorie. Lit uniquement les relations préchargées
+    (`flows.MODIFIER_PREFETCH`) : aucun `.filter()`, donc pas de N+1."""
+    total = sum(
+        effect.percent
+        for modifier in flow.modifiers.all()
+        for effect in modifier.effects.all()
+        if effect.category.key == category_key
+    )
+    return max(0.0, 1 + total / 100)
+
+
+def flow_cf_value(cf_index, flow, category_key, region_id=None, country_id=None):
+    """CF résolu pour la commodité du flux, ajusté par ses modificateurs."""
+    return (
+        cf_value(cf_index, flow.what_id, category_key, region_id, country_id)
+        * modifier_multiplier(flow, category_key)
+    )
+
+
 def legacy_cf_rows(values):
     """(col_name, valeur) pour les 16 colonnes legacy ; défaut 0.0 si absente."""
     return [(col, values.get(col, 0.0)) for col in LEGACY_IMPACT_COLUMNS]

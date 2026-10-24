@@ -2,14 +2,18 @@ import importlib
 
 from django.apps import apps
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connection, transaction
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 
 from .models import (
-    CharacterizationFactor, Commodity, CommodityModifier, CommoditySource, Company,
+    Asset, CharacterizationFactor, Commodity, CommodityModifier, CommoditySource,
+    Company, Country, SubnationalRegion,
     Flow, ImpactCategory, ImpactMethod, ModifierEffect,
     invalid_modifiers, source_codes,
 )
+from .services.flows import productions
+from .services.impacts import build_cf_index, flow_cf_value
 from .testing import make_production
 
 
@@ -112,3 +116,86 @@ class CommodityModelTests(TestCase):
         self.assertEqual(cf2.commodity_source, source)
         self.assertIsNone(cf3.commodity_source)
         self.assertEqual((cf1.value, cf2.value, cf3.value), (1.5, 2.5, 3.5))
+
+
+class ModifierFormulaTests(TestCase):
+    def setUp(self):
+        self.soy = Commodity.objects.create(name='Soja')
+        self.land = _category('land_use')
+        self.climate = _category('climate')
+        CharacterizationFactor.objects.create(
+            category=self.land, commodity=self.soy, value=1000.0,
+        )
+        self.country = Country.objects.create(name='BR')
+        self.asset = Asset.objects.create(
+            name='Ferme', latitude=1.0, longitude=2.0, country=self.country,
+        )
+        self.flow = make_production(
+            commodity=self.soy, year=2024, production=10, asset=self.asset,
+        )
+
+    def _tick(self, flow, *percents, category=None):
+        for i, pct in enumerate(percents):
+            mod = CommodityModifier.objects.create(
+                commodity=flow.what, name=f'M{flow.pk}-{i}',
+            )
+            ModifierEffect.objects.create(
+                modifier=mod, category=category or self.land, percent=pct,
+            )
+            flow.modifiers.add(mod)
+
+    def _value(self, key='land_use', **kwargs):
+        flow = productions([self.asset.pk])[0]
+        return flow_cf_value(build_cf_index(), flow, key, **kwargs)
+
+    def test_no_modifier_unchanged(self):
+        self.assertEqual(self._value(), 1000.0)
+
+    def test_single_modifier(self):
+        self._tick(self.flow, -10)
+        self.assertAlmostEqual(self._value(), 900.0)
+
+    def test_modifiers_add_up(self):
+        self._tick(self.flow, -10, -5)
+        self.assertAlmostEqual(self._value(), 850.0)
+
+    def test_floor_at_zero(self):
+        self._tick(self.flow, -80, -40)
+        self.assertEqual(self._value(), 0.0)
+
+    def test_positive_effect(self):
+        self._tick(self.flow, 20)
+        self.assertAlmostEqual(self._value(), 1200.0)
+
+    def test_category_without_effect_unchanged(self):
+        CharacterizationFactor.objects.create(
+            category=self.climate, commodity=self.soy, value=50.0,
+        )
+        self._tick(self.flow, -10)
+        self.assertEqual(self._value('climate'), 50.0)
+
+    def test_regional_factor_with_modifier(self):
+        region = SubnationalRegion.objects.create(name='MT', country=self.country)
+        CharacterizationFactor.objects.create(
+            category=self.land, commodity=self.soy, region=region, value=2000.0,
+        )
+        self._tick(self.flow, -10)
+        self.assertAlmostEqual(self._value(region_id=region.pk), 1800.0)
+
+    def test_productions_prefetch_no_n_plus_one(self):
+        cf_index = build_cf_index()
+
+        def count_queries():
+            with CaptureQueriesContext(connection) as ctx:
+                for flow in productions([self.asset.pk]):
+                    flow_cf_value(cf_index, flow, 'land_use')
+            return len(ctx)
+
+        self._tick(self.flow, -10, -5)
+        one = count_queries()
+        for _ in range(4):
+            flow = make_production(
+                commodity=self.soy, year=2024, production=1, asset=self.asset,
+            )
+            self._tick(flow, -10, -5)
+        self.assertEqual(count_queries(), one)
