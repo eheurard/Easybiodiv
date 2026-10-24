@@ -995,6 +995,10 @@ class Flow(models.Model):
     )
     source = models.CharField(max_length=255, blank=True, verbose_name='Source')
     reference = models.CharField(max_length=255, blank=True, verbose_name='Référence')
+    modifiers = models.ManyToManyField(
+        'CommodityModifier', blank=True, related_name='flows',
+        verbose_name=_('Modificateurs'),
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
     created_by = models.ForeignKey(
@@ -1222,6 +1226,47 @@ CF_LOCATION_HELP_TEXT = (
 )
 
 
+class CommoditySource(models.Model):
+    """Source documentaire d'une commodité (base ACV, article, certification…)."""
+
+    class Kind(models.TextChoices):
+        AGRIBALYSE = 'AGRIBALYSE', _('Agribalyse')
+        ECOINVENT = 'ECOINVENT', _('ecoinvent')
+        ARTICLE = 'ARTICLE', _('Article scientifique')
+        CERTIFICATION = 'CERTIFICATION', _('Certification')
+        OTHER = 'OTHER', _('Autre')
+
+    commodity = models.ForeignKey(
+        Commodity, on_delete=models.CASCADE, related_name='sources',
+        verbose_name=_('Commodité'),
+    )
+    kind = models.CharField(
+        max_length=20, choices=Kind.choices, default=Kind.OTHER, verbose_name=_('Type'),
+    )
+    title = models.CharField(max_length=255, verbose_name=_('Titre'))
+    reference = models.CharField(max_length=255, blank=True, verbose_name=_('Référence'))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Créé le'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Modifié le'))
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name=_('Créé par'),
+    )
+
+    class Meta:
+        ordering = ('pk',)
+        verbose_name = _('Source de commodité')
+        verbose_name_plural = _('Sources de commodité')
+
+    def __str__(self):
+        return self.title
+
+
+def source_codes(commodity):
+    """Codes courts des sources d'une commodité : `{pk: 'S1', …}` par ordre de pk."""
+    pks = CommoditySource.objects.filter(commodity=commodity).order_by('pk')
+    return {pk: f'S{i}' for i, pk in enumerate(pks.values_list('pk', flat=True), 1)}
+
+
 class CharacterizationFactor(models.Model):
     """Facteur de caractérisation régionalisé : impact par unité de commodity.
 
@@ -1251,6 +1296,10 @@ class CharacterizationFactor(models.Model):
     )
     source = models.CharField(max_length=255, blank=True, verbose_name='Source')
     reference = models.CharField(max_length=255, blank=True, verbose_name='Référence')
+    commodity_source = models.ForeignKey(
+        CommoditySource, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='factors', verbose_name=_('Source documentée'),
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Créé le')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Modifié le')
 
@@ -1262,8 +1311,99 @@ class CharacterizationFactor(models.Model):
         verbose_name = 'Facteur de caractérisation'
         verbose_name_plural = 'Facteurs de caractérisation'
 
+    def clean(self):
+        super().clean()
+        source = self.commodity_source
+        if source is not None and source.commodity_id != self.commodity_id:
+            raise ValidationError({
+                'commodity_source': _("La source doit appartenir à la même commodité."),
+            })
+
     def __str__(self):
         return f'{self.commodity.name} — {self.category.key}'
+
+
+class CommodityModifier(models.Model):
+    """Pratique ou label d'une commodité (bio, certifié…) qui ajuste en % les
+    facteurs de caractérisation de la production qui le porte."""
+
+    commodity = models.ForeignKey(
+        Commodity, on_delete=models.CASCADE, related_name='modifiers',
+        verbose_name=_('Commodité'),
+    )
+    name = models.CharField(max_length=255, verbose_name=_('Nom'))
+    description = models.TextField(blank=True, verbose_name=_('Description'))
+    source = models.ForeignKey(
+        CommoditySource, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='modifiers', verbose_name=_('Source'),
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Créé le'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Modifié le'))
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name=_('Créé par'),
+    )
+
+    class Meta:
+        ordering = ('name',)
+        verbose_name = _('Modificateur de commodité')
+        verbose_name_plural = _('Modificateurs de commodité')
+        constraints = [
+            models.UniqueConstraint(
+                fields=('commodity', 'name'), name='uniq_modifier_name_per_commodity',
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        source = self.source
+        if source is not None and source.commodity_id != self.commodity_id:
+            raise ValidationError({
+                'source': _("La source doit appartenir à la même commodité."),
+            })
+
+    def __str__(self):
+        return self.name
+
+
+class ModifierEffect(models.Model):
+    """Variation en % du facteur d'une catégorie d'impact (effets additifs)."""
+
+    modifier = models.ForeignKey(
+        CommodityModifier, on_delete=models.CASCADE, related_name='effects',
+        verbose_name=_('Modificateur'),
+    )
+    category = models.ForeignKey(
+        ImpactCategory, on_delete=models.CASCADE, related_name='modifier_effects',
+        verbose_name=_("Catégorie d'impact"),
+    )
+    percent = models.FloatField(
+        validators=[MinValueValidator(-100)], verbose_name=_('Variation (%)'),
+        help_text=_('Variation du facteur en pourcentage (−100 = facteur annulé).'),
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Créé le'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Modifié le'))
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name=_('Créé par'),
+    )
+
+    class Meta:
+        verbose_name = _('Effet de modificateur')
+        verbose_name_plural = _('Effets de modificateur')
+        constraints = [
+            models.UniqueConstraint(
+                fields=('modifier', 'category'), name='uniq_modifier_effect_per_category',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.modifier} — {self.category.key} : {self.percent:+g} %'
+
+
+def invalid_modifiers(commodity, modifiers):
+    """Modificateurs qui n'appartiennent pas à `commodity`."""
+    return [m for m in modifiers if m.commodity_id != commodity.pk]
 
 
 class ClimateScenario(models.Model):

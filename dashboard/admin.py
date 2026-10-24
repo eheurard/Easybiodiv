@@ -11,6 +11,7 @@ from .models import (
     DisclosureRequirement, E4Assessment, ESG_data,
     Currency,
     ImpactMethod, ImpactCategory, CharacterizationFactor,
+    CommoditySource, CommodityModifier, ModifierEffect,
     Flow,
     ClimateScenario, ScenarioVariable, SectorCreditProfile,
 )
@@ -239,6 +240,35 @@ class CharacterizationFactorAdmin(admin.ModelAdmin):
     list_display = ('commodity', 'category', 'region', 'country', 'value')
     list_filter = ('category__method', 'category__level')
     autocomplete_fields = ('category', 'commodity', 'region', 'country')
+
+
+@admin.register(CommoditySource)
+class CommoditySourceAdmin(admin.ModelAdmin):
+    search_fields = ('title', 'commodity__name')
+    list_display = ('title', 'commodity', 'kind', 'reference')
+    list_filter = ('kind',)
+    autocomplete_fields = ('commodity',)
+
+
+class ModifierEffectInline(admin.TabularInline):
+    model = ModifierEffect
+    extra = 0
+    autocomplete_fields = ('category',)
+
+
+@admin.register(CommodityModifier)
+class CommodityModifierAdmin(admin.ModelAdmin):
+    search_fields = ('name', 'commodity__name')
+    list_display = ('name', 'commodity', 'source')
+    autocomplete_fields = ('commodity',)
+    inlines = [ModifierEffectInline]
+
+
+@admin.register(ModifierEffect)
+class ModifierEffectAdmin(admin.ModelAdmin):
+    search_fields = ('modifier__name', 'category__key')
+    list_display = ('modifier', 'category', 'percent')
+    autocomplete_fields = ('modifier', 'category')
 
 
 def _endpoint_label(flow, side):

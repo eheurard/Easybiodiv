@@ -26,6 +26,7 @@ GROUPS = [
     ('Flux', [m.Flow]),
     ('Impacts & inventaire (ACV)', [
         m.ImpactMethod, m.ImpactCategory, m.CharacterizationFactor,
+        m.CommoditySource, m.CommodityModifier, m.ModifierEffect,
     ]),
     ('Politiques & vulnérabilité', [
         m.Policy_Type, m.Policy_Subcategory, m.Policy_Level, m.Company_Policy,
