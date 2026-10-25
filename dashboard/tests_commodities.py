@@ -482,3 +482,191 @@ class CommodityPageTests(TestCase):
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 200)
         self.assertFalse(CommoditySource.objects.exists())
+
+
+class CommoditySheetServiceTests(TestCase):
+    def setUp(self):
+        from .services import commodity_sheet
+        self.svc = commodity_sheet
+        self.soy = Commodity.objects.create(name='Soja')
+        self.brazil = Country.objects.create(name='Brésil')
+        self.mato = SubnationalRegion.objects.create(name='Mato Grosso', country=self.brazil)
+        method, _ = ImpactMethod.objects.get_or_create(name='M')
+        Level = ImpactCategory.Level
+        self.mid_a = ImpactCategory.objects.create(
+            method=method, key='t9_mid_a', name='Mid A', level=Level.MIDPOINT)
+        self.mid_b = ImpactCategory.objects.create(
+            method=method, key='t9_mid_b', name='Mid B', level=Level.MIDPOINT)
+        self.end_a = ImpactCategory.objects.create(
+            method=method, key='t9_end_a', name='End A', level=Level.ENDPOINT)
+
+    def _row(self, rows, category):
+        return next(r for r in rows if r['category'] == category)
+
+    def test_parse_location(self):
+        parse = self.svc.parse_location
+        self.assertEqual(parse('global'), ('global', None))
+        self.assertEqual(parse(None), ('global', None))
+        self.assertEqual(parse('country-4'), ('country', 4))
+        self.assertEqual(parse('region-7'), ('region', 7))
+        for bad in ('country-x', 'region-', 'foo-1', '', 'country-0', 'country--1'):
+            self.assertEqual(parse(bad), ('global', None))
+
+    def test_inherited_from_country_then_global(self):
+        CharacterizationFactor.objects.create(
+            category=self.mid_a, commodity=self.soy, value=42.0)
+        CharacterizationFactor.objects.create(
+            category=self.mid_b, commodity=self.soy, country=self.brazil, value=2400.0)
+        CharacterizationFactor.objects.create(
+            category=self.mid_b, commodity=self.soy, value=7.0)
+        rows = self.svc.factor_rows(
+            self.soy, ('region', self.mato.pk), ImpactCategory.Level.MIDPOINT)
+        row_b = self._row(rows, self.mid_b)
+        self.assertEqual((row_b['inherited'], row_b['inherited_from']), (2400.0, 'Brésil'))
+        row_a = self._row(rows, self.mid_a)
+        self.assertEqual((row_a['inherited'], row_a['inherited_from']), (42.0, 'Global'))
+        self.assertIsNone(row_a['value'])
+
+    def test_region_inherits_global_when_country_empty(self):
+        CharacterizationFactor.objects.create(
+            category=self.mid_a, commodity=self.soy, value=42.0)
+        rows = self.svc.factor_rows(
+            self.soy, ('region', self.mato.pk), ImpactCategory.Level.MIDPOINT)
+        row = self._row(rows, self.mid_a)
+        self.assertEqual((row['inherited'], row['inherited_from']), (42.0, 'Global'))
+
+    def test_global_has_no_inheritance(self):
+        rows = self.svc.factor_rows(self.soy, ('global', None), ImpactCategory.Level.MIDPOINT)
+        self.assertTrue(all(r['inherited'] is None for r in rows))
+
+    def test_own_value_and_source(self):
+        source = CommoditySource.objects.create(commodity=self.soy, title='A')
+        CharacterizationFactor.objects.create(
+            category=self.mid_a, commodity=self.soy, region=self.mato, value=5.0,
+            commodity_source=source)
+        rows = self.svc.factor_rows(
+            self.soy, ('region', self.mato.pk), ImpactCategory.Level.MIDPOINT)
+        row = self._row(rows, self.mid_a)
+        self.assertEqual((row['value'], row['source_id']), (5.0, source.pk))
+
+    def test_midpoint_and_endpoint_rows_separated(self):
+        mid = self.svc.factor_rows(self.soy, ('global', None), ImpactCategory.Level.MIDPOINT)
+        end = self.svc.factor_rows(self.soy, ('global', None), ImpactCategory.Level.ENDPOINT)
+        self.assertTrue(all(
+            r['category'].level == ImpactCategory.Level.MIDPOINT for r in mid))
+        self.assertTrue(all(
+            r['category'].level == ImpactCategory.Level.ENDPOINT for r in end))
+        self.assertIn(self.mid_a, [r['category'] for r in mid])
+        self.assertIn(self.end_a, [r['category'] for r in end])
+
+    def test_chips_list_locations_with_factors(self):
+        argentina = Country.objects.create(name='Argentine')
+        CharacterizationFactor.objects.create(
+            category=self.mid_a, commodity=self.soy, region=self.mato, value=1.0)
+        CharacterizationFactor.objects.create(
+            category=self.mid_a, commodity=self.soy, country=argentina, value=1.0)
+        chips = self.svc.location_chips(self.soy, ('global', None))
+        self.assertEqual([c['key'] for c in chips],
+                         ['global', f'country-{argentina.pk}', f'region-{self.mato.pk}'])
+        self.assertEqual(chips[2]['label'], 'Brésil › Mato Grosso')
+        self.assertEqual([c['active'] for c in chips], [True, False, False])
+
+    def test_chips_include_current_location_without_factor(self):
+        chips = self.svc.location_chips(self.soy, ('country', self.brazil.pk))
+        self.assertEqual([c['key'] for c in chips], ['global', f'country-{self.brazil.pk}'])
+        self.assertEqual([c['active'] for c in chips], [False, True])
+
+    def test_save_zero_kept_none_deletes(self):
+        loc = ('region', self.mato.pk)
+        self.svc.save_factors(self.soy, loc, {self.mid_a.pk: (0.0, None)}, None)
+        cf = CharacterizationFactor.objects.get(commodity=self.soy, category=self.mid_a)
+        self.assertEqual((cf.value, cf.region_id, cf.country_id), (0.0, self.mato.pk, None))
+        self.svc.save_factors(self.soy, loc, {self.mid_a.pk: (3.0, None)}, None)
+        self.assertEqual(CharacterizationFactor.objects.filter(commodity=self.soy).count(), 1)
+        self.svc.save_factors(self.soy, loc, {self.mid_a.pk: (None, None)}, None)
+        self.assertFalse(CharacterizationFactor.objects.filter(commodity=self.soy).exists())
+
+    def test_save_global_does_not_touch_other_locations(self):
+        CharacterizationFactor.objects.create(
+            category=self.mid_a, commodity=self.soy, country=self.brazil, value=9.0)
+        self.svc.save_factors(self.soy, ('global', None), {self.mid_a.pk: (1.0, None)}, None)
+        self.svc.save_factors(self.soy, ('global', None), {self.mid_a.pk: (None, None)}, None)
+        self.assertEqual(CharacterizationFactor.objects.filter(commodity=self.soy).count(), 1)
+
+
+class FactorGridViewTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.creator = user_model.objects.create_user('createur', password='x', role='CREATOR')
+        self.subscriber = user_model.objects.create_user('abonne', password='x')
+        self.soy = Commodity.objects.create(name='Soja')
+        self.brazil = Country.objects.create(name='Brésil')
+        self.mato = SubnationalRegion.objects.create(name='Mato Grosso', country=self.brazil)
+        method, _ = ImpactMethod.objects.get_or_create(name='M')
+        self.cat = ImpactCategory.objects.create(
+            method=method, key='t9_view', name='Vue', level=ImpactCategory.Level.MIDPOINT)
+        self.url = reverse('dashboard:commodity_factors', args=[self.soy.pk])
+        self.detail = reverse('dashboard:commodity_detail', args=[self.soy.pk])
+
+    def _post(self, value, lieu='global', **extra):
+        data = {'lieu': lieu, f'value_{self.cat.pk}': value, f'source_{self.cat.pk}': ''}
+        data.update(extra)
+        return self.client.post(self.url, data)
+
+    def test_zero_is_kept_empty_deletes(self):
+        self.client.force_login(self.creator)
+        self._post('0')
+        cf = CharacterizationFactor.objects.get(commodity=self.soy, category=self.cat)
+        self.assertEqual(cf.value, 0.0)
+        self._post('')
+        self.assertFalse(CharacterizationFactor.objects.filter(
+            commodity=self.soy, category=self.cat).exists())
+
+    def test_comma_decimal_accepted(self):
+        self.client.force_login(self.creator)
+        self._post('3 200,5')
+        self.assertEqual(CharacterizationFactor.objects.get(category=self.cat).value, 3200.5)
+        self._post('-10,5')
+        self.assertEqual(CharacterizationFactor.objects.get(category=self.cat).value, -10.5)
+
+    def test_invalid_number_is_field_error_and_saves_nothing(self):
+        self.client.force_login(self.creator)
+        response = self._post('abc')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(f'value_{self.cat.pk}', response.context['factor_form'].errors)
+        self.assertFalse(CharacterizationFactor.objects.exists())
+
+    def test_redirect_keeps_lieu_and_saves_region(self):
+        self.client.force_login(self.creator)
+        lieu = f'region-{self.mato.pk}'
+        response = self._post('5', lieu=lieu)
+        self.assertRedirects(
+            response, f'{self.detail}?lieu={lieu}', fetch_redirect_response=False)
+        cf = CharacterizationFactor.objects.get(category=self.cat)
+        self.assertEqual(cf.region_id, self.mato.pk)
+
+    def test_source_of_other_commodity_rejected(self):
+        other = CommoditySource.objects.create(
+            commodity=Commodity.objects.create(name='Blé'), title='X')
+        self.client.force_login(self.creator)
+        response = self._post('1', **{f'source_{self.cat.pk}': str(other.pk)})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(CharacterizationFactor.objects.exists())
+
+    def test_subscriber_forbidden_and_read_only_page(self):
+        self.client.force_login(self.subscriber)
+        self.assertEqual(self._post('1').status_code, 403)
+        page = self.client.get(self.detail)
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, 'id="commodity-factors-form"')
+
+    def test_page_shows_grid_chips_and_selector_for_creator(self):
+        CharacterizationFactor.objects.create(
+            category=self.cat, commodity=self.soy, value=2400.0)
+        self.client.force_login(self.creator)
+        page = self.client.get(self.detail, {'lieu': f'region-{self.mato.pk}'})
+        self.assertContains(page, 'id="commodity-factors-form"')
+        self.assertContains(page, 'aria-current="true"')
+        self.assertContains(page, '<optgroup label="Brésil">')
+        self.assertContains(page, 'Brésil › Mato Grosso')
+        self.assertContains(page, f'name="value_{self.cat.pk}"')

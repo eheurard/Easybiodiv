@@ -7,8 +7,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .decorators import creator_required
-from .forms_commodities import CommodityIdentityForm, CommoditySourceFormSet
-from .models import Commodity, source_codes
+from .forms_commodities import (
+    CommodityIdentityForm, CommoditySourceFormSet, FactorGridForm,
+)
+from .models import Commodity, Country, SubnationalRegion, source_codes
+from .services.commodity_sheet import (
+    location_chips, location_key, parse_location, save_factors,
+)
 
 SOURCES_PREFIX = 'sources'
 
@@ -24,8 +29,21 @@ def _detail_url(commodity, request):
     return f'{url}?{urlencode({"lieu": lieu})}' if lieu else url
 
 
-def _detail_context(request, commodity, *, identity_form=None, source_formset=None):
-    """Contexte de la fiche ; les tâches suivantes y ajoutent facteurs et modificateurs."""
+def _location_options():
+    """Sélecteur « + pays ou région » : pays, puis régions groupées par pays."""
+    countries = [(f'country-{c.pk}', c.name) for c in Country.objects.order_by('name')]
+    groups = {}
+    regions = SubnationalRegion.objects.select_related('country').order_by(
+        'country__name', 'name')
+    for region in regions:
+        groups.setdefault(region.country.name, []).append(
+            (f'region-{region.pk}', region.name))
+    return countries, list(groups.items())
+
+
+def _detail_context(request, commodity, *, identity_form=None, source_formset=None,
+                    factor_form=None):
+    """Contexte de la fiche ; la tâche suivante y ajoute les modificateurs."""
     codes = source_codes(commodity)
     sources = list(commodity.sources.all())
     for source in sources:
@@ -34,10 +52,20 @@ def _detail_context(request, commodity, *, identity_form=None, source_formset=No
         instance=commodity, prefix=SOURCES_PREFIX)
     for form in source_formset:
         form.code = codes.get(form.instance.pk, '')
+    location = parse_location(request.GET.get('lieu') or request.POST.get('lieu'))
+    factor_form = factor_form or FactorGridForm(commodity, location)
+    countries, region_groups = _location_options()
     return {
         'commodity': commodity,
         'can_edit': _can_edit(request.user),
         'lieu': request.GET.get('lieu', ''),
+        'location': location,
+        'location_key': location_key(location),
+        'chips': location_chips(commodity, location),
+        'factor_form': factor_form,
+        'factor_blocks': factor_form.bound_blocks(),
+        'location_countries': countries,
+        'location_region_groups': region_groups,
         'identity_form': identity_form or CommodityIdentityForm(instance=commodity),
         'source_formset': source_formset,
         'source_codes': codes,
@@ -109,3 +137,17 @@ def commodity_sources(request, pk):
             source.delete()
         return redirect(_detail_url(commodity, request))
     return _render_detail(request, commodity, source_formset=formset)
+
+
+@creator_required
+@require_POST
+def commodity_factors(request, pk):
+    commodity = get_object_or_404(Commodity, pk=pk)
+    location = parse_location(request.POST.get('lieu'))
+    form = FactorGridForm(commodity, location, request.POST)
+    if form.is_valid():
+        save_factors(commodity, location, form.cleaned_data['factors'], request.user)
+        url = redirect('dashboard:commodity_detail', pk=commodity.pk).url
+        key = location_key(location)
+        return redirect(f'{url}?{urlencode({"lieu": key})}' if key != 'global' else url)
+    return _render_detail(request, commodity, factor_form=form)

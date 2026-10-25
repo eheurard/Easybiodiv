@@ -51,6 +51,8 @@ urlpatterns = [
          name='commodity_identity'),
     path('commodites/<int:pk>/sources/', views_commodities.commodity_sources,
          name='commodity_sources'),
+    path('commodites/<int:pk>/facteurs/', views_commodities.commodity_factors,
+         name='commodity_factors'),
     path('flux/', views_flow_map.flow_map, name='flow_map'),
     path('api/flow-map/<int:company_pk>/', views_flow_map.flow_map_data,
          name='flow_map_data'),

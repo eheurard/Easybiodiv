@@ -111,7 +111,91 @@
     {% endif %}
   </section>
 
-  {# Tâche 9 : section « Facteurs de caractérisation » (sélecteur de lieu, grilles). #}
+  {# ── Facteurs de caractérisation ──────────────────────────────────────── #}
+  <section class="card commodity-card" aria-labelledby="commodity-factors-title">
+    <h2 class="commodity-section-title" id="commodity-factors-title">{% translate "Facteurs de caractérisation" %}</h2>
+    <p class="commodity-help">{% translate "Un facteur vide hérite du lieu parent (région, puis pays, puis global) ; 0 est un facteur à part entière." %}</p>
+
+    <nav class="commodity-chips" aria-label="{% translate 'Lieux' %}">
+      {% for chip in chips %}
+      <a class="commodity-chip{% if chip.active %} commodity-chip--active{% endif %}"
+         href="?lieu={{ chip.key|urlencode }}"{% if chip.active %} aria-current="true"{% endif %}>{{ chip.label }}</a>
+      {% endfor %}
+      <form method="get" class="commodity-chips__add">
+        <label class="visually-hidden" for="commodity-location-select">{% translate "Ajouter un pays ou une région" %}</label>
+        <select name="lieu" id="commodity-location-select" class="form-input">
+          <option value="">{% translate "+ pays ou région" %}</option>
+          {% for key, name in location_countries %}<option value="{{ key }}">{{ name }}</option>{% endfor %}
+          {% for country_name, regions in location_region_groups %}
+          <optgroup label="{{ country_name }}">
+            {% for key, name in regions %}<option value="{{ key }}">{{ name }}</option>{% endfor %}
+          </optgroup>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn">{% translate "Afficher" %}</button>
+      </form>
+    </nav>
+
+    {% if can_edit %}
+    <form method="post" id="commodity-factors-form" action="{% url 'dashboard:commodity_factors' commodity.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="lieu" value="{{ location_key }}">
+    {% endif %}
+      {% for block in factor_blocks %}
+      <h3 class="commodity-subtitle">
+        <span class="commodity-level commodity-level--{% if block.is_endpoint %}endpoint{% else %}midpoint{% endif %}">{{ block.title }}</span>
+      </h3>
+      {% if block.rows %}
+      <table class="commodity-table">
+        <thead>
+          <tr>
+            <th scope="col">{% translate "Catégorie d'impact" %}</th>
+            <th scope="col">{% translate "Facteur" %}</th>
+            <th scope="col">{% translate "Unité" %}</th>
+            <th scope="col">{% translate "Source" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in block.rows %}
+          <tr>
+            <th scope="row">{{ row.category.name }}</th>
+            <td>
+              {% if can_edit %}
+              <label class="visually-hidden" for="{{ row.value_field.id_for_label }}">{% blocktranslate with name=row.category.name %}Facteur : {{ name }}{% endblocktranslate %}</label>
+              <input type="text" inputmode="decimal" class="form-input commodity-table__num"
+                     name="{{ row.value_field.html_name }}" id="{{ row.value_field.id_for_label }}"
+                     value="{{ row.value_field.value|default_if_none:'' }}"
+                     {% if row.inherited is not None %}placeholder="{{ row.inherited|floatformat:'-4g' }} ← {{ row.inherited_from }}"{% endif %}>
+              {% for error in row.value_field.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+              {% elif row.value is not None %}
+              <span class="commodity-table__num">{{ row.value|floatformat:'-4g' }}</span>
+              {% elif row.inherited is not None %}
+              <span class="commodity-inherited">{{ row.inherited|floatformat:'-4g' }} ← {{ row.inherited_from }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>{{ row.category.unit }}</td>
+            <td>
+              {% if can_edit %}
+              <label class="visually-hidden" for="{{ row.source_field.id_for_label }}">{% blocktranslate with name=row.category.name %}Source : {{ name }}{% endblocktranslate %}</label>
+              {{ row.source_field }}
+              {% elif row.source_id %}<span class="commodity-code">{{ row.source_code }}</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="commodity-empty">{% translate "Aucune catégorie d'impact à ce niveau." %}</p>
+      {% endif %}
+      {% endfor %}
+    {% if can_edit %}
+      <div class="commodity-actions">
+        <button type="submit" class="btn btn--primary">{% translate "Enregistrer les facteurs" %}</button>
+      </div>
+    </form>
+    {% endif %}
+  </section>
+
   {# Tâche 10 : section « Modificateurs » (cartes). #}
 </div>
 {% endblock %}
