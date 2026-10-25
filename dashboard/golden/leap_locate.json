@@ -252,27 +252,6 @@
           "supplier": "Mato Grosso"
         },
         "type": "Feature"
-      },
-      {
-        "geometry": {
-          "coordinates": [
-            [
-              -55.0,
-              -12.5
-            ],
-            [
-              -2.76,
-              48.51
-            ]
-          ],
-          "type": "LineString"
-        },
-        "properties": {
-          "asset": "Usine de transformation Bretagne",
-          "commodity": "Soja",
-          "supplier": "Mato Grosso"
-        },
-        "type": "Feature"
       }
     ],
     "type": "FeatureCollection"

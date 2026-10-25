@@ -580,6 +580,7 @@ def _get_leap_locate_data(company):
     # coordonnées). Dernière année connue de chaque destination.
     suppliers = {}          # 'asset-<pk>' / 'region-<pk>' -> Feature point
     supplier_links = []     # une LineString fournisseur -> asset par lien
+    seen_links = set()      # (fournisseur, asset, commodité) : un seul trait par triplet
     for flow in flow_service.supplies_to(asset_ids, company=company):
         if flow.from_asset_id:
             sup = flow.from_asset
@@ -620,6 +621,10 @@ def _get_leap_locate_data(company):
         if cons_asset is None:
             continue  # destination = la société : point fournisseur sans trait
 
+        link_key = (sup_id, cons_asset.pk, flow.what_id)
+        if link_key in seen_links:
+            continue  # lignes scindées (ex. certifié / classique) : même trait
+        seen_links.add(link_key)
         supplier_links.append({
             'type': 'Feature',
             'geometry': {

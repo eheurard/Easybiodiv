@@ -974,3 +974,26 @@ class PopulateAcmeSoyTests(TestCase):
         self.assertEqual(self._soy_supply()[1], {2023: 40_000, 2024: 45_000})
         call_command('populate_acme')
         self._assert_split()
+
+
+class LeapLocateSplitSupplyTests(TestCase):
+    """Deux lignes de même fournisseur (scission certifié / classique) = un seul trait."""
+
+    def test_split_supply_draws_one_link(self):
+        from .views import _get_leap_locate_data
+        country = Country.objects.create(name='Brésil')
+        region = SubnationalRegion.objects.create(
+            name='Mato Grosso', country=country, Mean_X=-55.0, Mean_Y=-13.0)
+        company = Company.objects.create(name='Acme split')
+        asset = Asset.objects.create(
+            name='Site Bretagne', latitude=48.0, longitude=-3.0, country=country)
+        Ownership.objects.create(asset=asset, company=company, share=1)
+        soy = Commodity.objects.create(name='Soja')
+        modifier = CommodityModifier.objects.create(commodity=soy, name='Certifié')
+        make_supply(what=soy, year=2024, quantity=25.0, tier=2, origin=region,
+                    destination=asset).modifiers.add(modifier)
+        make_supply(what=soy, year=2024, quantity=15.0, tier=2, origin=region,
+                    destination=asset)
+        data = _get_leap_locate_data(company)
+        self.assertEqual(len(data['supplier_links']['features']), 1)
+        self.assertEqual(len(data['suppliers']['features']), 1)
