@@ -1,0 +1,60 @@
+{% load i18n %}
+{# Formulaire d'un modificateur : variables `form`, `formset`, `action`, `submit_label`. #}
+<form method="post" action="{{ action }}{% if lieu %}?lieu={{ lieu|urlencode }}{% endif %}">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<p class="commodity-error" role="alert">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+  <label class="modifier-field">
+    <span class="modifier-field__label">{% translate "Nom" %}</span>
+    {{ form.name }}
+    {% for error in form.name.errors %}<span class="commodity-error" role="alert">{{ error }}</span>{% endfor %}
+  </label>
+  <label class="modifier-field">
+    <span class="modifier-field__label">{% translate "Description" %}</span>
+    {{ form.description }}
+  </label>
+  <label class="modifier-field">
+    <span class="modifier-field__label">{% translate "Source" %}</span>
+    {{ form.source }}
+    {% for error in form.source.errors %}<span class="commodity-error" role="alert">{{ error }}</span>{% endfor %}
+  </label>
+
+  {{ formset.management_form }}
+  {% if formset.non_form_errors %}<p class="commodity-error" role="alert">{{ formset.non_form_errors|join:" " }}</p>{% endif %}
+  <table class="commodity-table">
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Catégorie d'impact" %}</th>
+        <th scope="col">{% translate "Variation (%)" %}</th>
+        <th scope="col">{% translate "Supprimer" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for eform in formset %}
+      <tr>
+        <td>
+          {% for hidden in eform.hidden_fields %}{{ hidden }}{% endfor %}
+          <label class="visually-hidden" for="{{ eform.category.id_for_label }}">{% translate "Catégorie d'impact" %}</label>
+          {{ eform.category }}
+          {% for error in eform.category.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+          {% for error in eform.non_field_errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+        </td>
+        <td>
+          <label class="visually-hidden" for="{{ eform.percent.id_for_label }}">{% translate "Variation (%)" %}</label>
+          {{ eform.percent }}
+          {% for error in eform.percent.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+        </td>
+        <td>
+          {% if eform.instance.pk %}
+          <label class="visually-hidden" for="{{ eform.DELETE.id_for_label }}">{% translate "Supprimer cet effet" %}</label>
+          {{ eform.DELETE }}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="commodity-help">{% translate "La dernière ligne vide sert à ajouter un effet. Virgule décimale acceptée ; −100 au minimum." %}</p>
+  <div class="commodity-actions">
+    <button type="submit" class="btn btn--primary">{{ submit_label }}</button>
+  </div>
+</form>

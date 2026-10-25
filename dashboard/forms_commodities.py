@@ -5,7 +5,10 @@ from django.forms import inlineformset_factory
 from django.utils.formats import number_format
 from django.utils.translation import gettext as _
 
-from .models import Commodity, CommoditySource, ImpactCategory, source_codes
+from .models import (
+    Commodity, CommodityModifier, CommoditySource, ImpactCategory, ModifierEffect,
+    source_codes,
+)
 from .services.commodity_sheet import factor_rows
 
 def format_factor(value):
@@ -137,3 +140,59 @@ class FactorGridForm(forms.Form):
             factors[pk] = (value, int(source) if source else None)
         cleaned['factors'] = factors
         return cleaned
+
+
+class CommodityModifierForm(forms.ModelForm):
+    """Nom, description et source d'un modificateur ; la commodité est fixée par la vue."""
+
+    class Meta:
+        model = CommodityModifier
+        fields = ('name', 'description', 'source')
+        widgets = {'description': forms.Textarea(attrs={'rows': 2})}
+
+    def __init__(self, commodity, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instance.commodity = commodity
+        self.fields['source'].queryset = CommoditySource.objects.filter(commodity=commodity)
+        self.fields['source'].empty_label = '—'
+        for field in self.fields.values():
+            field.widget.attrs.setdefault('class', 'form-input')
+
+    def clean_name(self):
+        name = self.cleaned_data['name'].strip()
+        duplicates = CommodityModifier.objects.filter(
+            commodity=self.instance.commodity, name=name).exclude(pk=self.instance.pk)
+        if duplicates.exists():
+            raise forms.ValidationError(
+                _('Un modificateur porte déjà ce nom pour cette commodité.'))
+        return name
+
+
+class ModifierEffectForm(forms.ModelForm):
+    """Effet en % ; `percent` accepte la virgule décimale et les espaces."""
+
+    percent = forms.CharField(label=_('Variation (%)'), widget=forms.TextInput(
+        attrs={'class': 'form-input commodity-table__num', 'inputmode': 'decimal'}))
+
+    class Meta:
+        model = ModifierEffect
+        fields = ('category', 'percent')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['category'].widget.attrs.setdefault('class', 'form-input')
+
+    def clean_percent(self):
+        try:
+            value = FactorGridForm._parse_number(self.cleaned_data['percent'])
+        except forms.ValidationError:
+            raise forms.ValidationError(_('Nombre invalide.'))
+        if value is None:
+            raise forms.ValidationError(self.fields['percent'].error_messages['required'])
+        return value
+
+
+ModifierEffectFormSet = inlineformset_factory(
+    CommodityModifier, ModifierEffect, form=ModifierEffectForm,
+    fields=('category', 'percent'), extra=1, can_delete=True,
+)

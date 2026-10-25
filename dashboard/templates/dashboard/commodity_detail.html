@@ -196,6 +196,72 @@
     {% endif %}
   </section>
 
-  {# Tâche 10 : section « Modificateurs » (cartes). #}
+  {# ── Modificateurs ────────────────────────────────────────────────────── #}
+  <section class="card commodity-card" aria-labelledby="commodity-modifiers-title">
+    <h2 class="commodity-section-title" id="commodity-modifiers-title">{% blocktranslate with name=commodity.name %}Modificateurs de {{ name }}{% endblocktranslate %}</h2>
+    <p class="commodity-help">{% translate "Propres à cette commodité. Les effets de plusieurs modificateurs cochés s'additionnent ; le facteur ne descend jamais sous 0." %}</p>
+
+    {% for card in modifier_cards %}
+    <article class="modifier-card" aria-labelledby="modifier-{{ card.modifier.pk }}-name">
+      <div class="modifier-card__head">
+        <h3 class="modifier-card__name" id="modifier-{{ card.modifier.pk }}-name">{{ card.modifier.name }}</h3>
+        {% if card.source_code %}<span class="commodity-code">{{ card.source_code }}</span>{% endif %}
+        <span class="modifier-card__meta">{% blocktranslate count n=card.flow_count %}Coché sur {{ n }} flux{% plural %}Coché sur {{ n }} flux{% endblocktranslate %}</span>
+      </div>
+      {% if card.modifier.description %}<p class="modifier-card__meta">{{ card.modifier.description }}</p>{% endif %}
+      {% if card.effects %}
+      <table class="commodity-table">
+        <thead>
+          <tr>
+            <th scope="col">{% translate "Niveau" %}</th>
+            <th scope="col">{% translate "Catégorie d'impact" %}</th>
+            <th scope="col">{% translate "Variation (%)" %}</th>
+            <th scope="col">{% translate "Facteur ajusté" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in card.effects %}
+          <tr>
+            <td><span class="commodity-level commodity-level--{% if item.is_endpoint %}endpoint{% else %}midpoint{% endif %}">{{ item.level.label }}</span></td>
+            <th scope="row">{{ item.effect.category.name }}</th>
+            <td class="commodity-table__num">{{ item.effect.percent|floatformat:"-2" }} %</td>
+            <td class="commodity-table__num">{{ item.adjusted_display|default:'—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="commodity-empty">{% translate "Aucun effet." %}</p>
+      {% endif %}
+
+      {% if can_edit %}
+      <details class="modifier-card__edit"{% if card.has_errors %} open{% endif %}>
+        <summary>{% translate "Modifier" %}</summary>
+        {% url 'dashboard:commodity_modifier_update' commodity.pk card.modifier.pk as update_url %}
+        {% translate "Enregistrer le modificateur" as save_label %}
+        {% include "dashboard/_commodity_modifier_form.html" with form=card.form formset=card.formset action=update_url submit_label=save_label %}
+      </details>
+      <form method="post" class="modifier-card__delete"
+            action="{% url 'dashboard:commodity_modifier_delete' commodity.pk card.modifier.pk %}{% if lieu %}?lieu={{ lieu|urlencode }}{% endif %}">
+        {% csrf_token %}
+        <button type="submit" class="btn" data-confirm="{{ card.confirm }}">{% translate "Supprimer le modificateur" %}</button>
+      </form>
+      {% endif %}
+    </article>
+    {% empty %}
+    <p class="commodity-empty">{% translate "Aucun modificateur." %}</p>
+    {% endfor %}
+
+    {% if can_edit %}
+    <details class="modifier-card__edit"{% if new_modifier_has_errors %} open{% endif %}>
+      <summary>{% translate "+ Nouveau modificateur" %}</summary>
+      {% url 'dashboard:commodity_modifier_create' commodity.pk as create_url %}
+      {% translate "Créer le modificateur" as create_label %}
+      {% include "dashboard/_commodity_modifier_form.html" with form=new_modifier_form formset=new_effects_formset action=create_url submit_label=create_label %}
+    </details>
+    {% endif %}
+  </section>
 </div>
 {% endblock %}
+
+{% block extra_js %}<script src="{% static 'dashboard/js/commodities.js' %}" defer></script>{% endblock %}

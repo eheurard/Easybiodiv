@@ -683,3 +683,116 @@ class FactorGridViewTests(TestCase):
         self.client.force_login(self.subscriber)
         page = self.client.get(self.detail, {'lieu': region})
         self.assertContains(page, '0,0000003 ← Global')
+
+
+class ModifierPageTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.creator = user_model.objects.create_user('createur10', password='x', role='CREATOR')
+        self.subscriber = user_model.objects.create_user('abonne10', password='x')
+        self.soy = Commodity.objects.create(name='Soja')
+        method, _unused = ImpactMethod.objects.get_or_create(name='M')
+        self.land = ImpactCategory.objects.create(
+            method=method, key='t10_land', name='Usage des sols',
+            level=ImpactCategory.Level.MIDPOINT)
+        self.div = ImpactCategory.objects.create(
+            method=method, key='t10_div', name='Diversité',
+            level=ImpactCategory.Level.ENDPOINT)
+        self.detail = reverse('dashboard:commodity_detail', args=[self.soy.pk])
+        self.create_url = reverse('dashboard:commodity_modifier_create', args=[self.soy.pk])
+        self.client.force_login(self.creator)
+
+    def _data(self, name='Bio', rows=(), prefix='mod-new', eprefix='effects-new', **extra):
+        data = {f'{prefix}-name': name, f'{prefix}-description': '', f'{prefix}-source': '',
+                f'{eprefix}-TOTAL_FORMS': str(len(rows)), f'{eprefix}-INITIAL_FORMS': '0',
+                f'{eprefix}-MIN_NUM_FORMS': '0', f'{eprefix}-MAX_NUM_FORMS': '1000'}
+        for i, (category, percent) in enumerate(rows):
+            data[f'{eprefix}-{i}-category'] = str(category.pk)
+            data[f'{eprefix}-{i}-percent'] = percent
+        data.update(extra)
+        return data
+
+    def test_create_modifier_with_effects(self):
+        response = self.client.post(
+            self.create_url, self._data(rows=[(self.land, '-10'), (self.div, '-15')]))
+        self.assertEqual(response.status_code, 302)
+        modifier = CommodityModifier.objects.get(commodity=self.soy, name='Bio')
+        self.assertEqual(modifier.created_by, self.creator)
+        self.assertEqual(
+            {e.category_id: e.percent for e in modifier.effects.all()},
+            {self.land.pk: -10.0, self.div.pk: -15.0})
+
+    def test_duplicate_name_rejected(self):
+        CommodityModifier.objects.create(commodity=self.soy, name='Bio')
+        response = self.client.post(self.create_url, self._data(name='Bio'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['new_modifier_form'].errors['name'])
+        self.assertEqual(CommodityModifier.objects.count(), 1)
+
+    def test_effect_below_minus_100_rejected(self):
+        response = self.client.post(self.create_url, self._data(rows=[(self.land, '-101')]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(CommodityModifier.objects.exists())
+
+    def test_percent_comma_accepted(self):
+        self.client.post(self.create_url, self._data(rows=[(self.land, '-10,5')]))
+        self.assertEqual(ModifierEffect.objects.get().percent, -10.5)
+
+    def test_update_modifier_effects(self):
+        modifier = CommodityModifier.objects.create(commodity=self.soy, name='Bio')
+        effect = ModifierEffect.objects.create(
+            modifier=modifier, category=self.land, percent=-5)
+        url = reverse('dashboard:commodity_modifier_update', args=[self.soy.pk, modifier.pk])
+        p, e = f'mod-{modifier.pk}', f'effects-{modifier.pk}'
+        data = self._data(name='Bio 2', prefix=p, eprefix=e, rows=[(self.land, '-7,5')])
+        data.update({f'{e}-INITIAL_FORMS': '1', f'{e}-0-id': str(effect.pk),
+                     f'{e}-0-modifier': str(modifier.pk)})
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        modifier.refresh_from_db()
+        effect.refresh_from_db()
+        self.assertEqual((modifier.name, effect.percent), ('Bio 2', -7.5))
+
+    def test_delete_used_modifier(self):
+        modifier = CommodityModifier.objects.create(commodity=self.soy, name='Bio')
+        flows = [make_production(commodity=self.soy, year=2024 + i, production=1,
+                                 company=Company.objects.create(name=f'C{i}'))
+                 for i in range(2)]
+        for flow in flows:
+            flow.modifiers.add(modifier)
+        page = self.client.get(self.detail)
+        self.assertEqual(page.context['modifier_cards'][0]['flow_count'], 2)
+        self.assertContains(page, 'data-confirm=')
+        url = reverse('dashboard:commodity_modifier_delete', args=[self.soy.pk, modifier.pk])
+        self.assertEqual(self.client.post(url).status_code, 302)
+        self.assertFalse(CommodityModifier.objects.exists())
+        for flow in flows:
+            flow.refresh_from_db()
+            self.assertEqual(flow.modifiers.count(), 0)
+
+    def test_modifier_of_other_commodity_404(self):
+        other = CommodityModifier.objects.create(
+            commodity=Commodity.objects.create(name='Blé'), name='Bio')
+        for name in ('commodity_modifier_update', 'commodity_modifier_delete'):
+            url = reverse(f'dashboard:{name}', args=[self.soy.pk, other.pk])
+            self.assertEqual(self.client.post(url, {}).status_code, 404)
+        self.assertTrue(CommodityModifier.objects.filter(pk=other.pk).exists())
+
+    def test_adjusted_preview(self):
+        CharacterizationFactor.objects.create(
+            category=self.land, commodity=self.soy, value=3200.0)
+        modifier = CommodityModifier.objects.create(commodity=self.soy, name='Bio')
+        ModifierEffect.objects.create(modifier=modifier, category=self.land, percent=-10)
+        ModifierEffect.objects.create(modifier=modifier, category=self.div, percent=-10)
+        from .services.commodity_sheet import modifier_cards
+        effects = modifier_cards(self.soy, ('global', None))[0]['effects']
+        by_cat = {e['effect'].category_id: e for e in effects}
+        self.assertAlmostEqual(by_cat[self.land.pk]['adjusted'], 2880)
+        self.assertIsNone(by_cat[self.div.pk]['adjusted'])
+
+    def test_subscriber_forbidden_and_read_only(self):
+        CommodityModifier.objects.create(commodity=self.soy, name='Bio')
+        self.client.force_login(self.subscriber)
+        self.assertEqual(self.client.post(self.create_url, self._data()).status_code, 403)
+        page = self.client.get(self.detail)
+        self.assertContains(page, 'Bio')
+        self.assertNotContains(page, 'data-confirm')

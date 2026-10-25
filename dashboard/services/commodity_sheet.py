@@ -1,9 +1,11 @@
 """Fiche commodité : facteurs de caractérisation par lieu (global, pays, région)."""
 from django.db import transaction
+from django.db.models import Count
 from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 
 from ..models import (
-    CharacterizationFactor, Country, ImpactCategory, SubnationalRegion,
+    CharacterizationFactor, Country, ImpactCategory, SubnationalRegion, source_codes,
 )
 
 GLOBAL = 'global'
@@ -116,6 +118,47 @@ def factor_rows(commodity, location, level):
             'inherited_from': inherited_from,
         })
     return rows
+
+
+def modifier_cards(commodity, location):
+    """Cartes des modificateurs d'une commodité pour le lieu courant.
+
+    `adjusted` = facteur résolu du lieu (propre, sinon hérité) × max(0, 1 + percent/100),
+    `None` quand aucun facteur n'existe pour la catégorie.
+    """
+    if isinstance(location, str):
+        location = parse_location(location)
+    resolved = {}
+    for level in ImpactCategory.Level.values:
+        for row in factor_rows(commodity, location, level):
+            value = row['value'] if row['value'] is not None else row['inherited']
+            resolved[row['category'].pk] = value
+    codes = source_codes(commodity)
+    modifiers = (commodity.modifiers.select_related('source')
+                 .prefetch_related('effects__category')
+                 .annotate(flow_count=Count('flows', distinct=True)))
+    cards = []
+    for modifier in modifiers:
+        effects = []
+        for effect in sorted(modifier.effects.all(), key=lambda e: e.category_id):
+            base = resolved.get(effect.category_id)
+            effects.append({
+                'effect': effect,
+                'level': ImpactCategory.Level(effect.category.level),
+                'adjusted': (None if base is None
+                             else base * max(0.0, 1 + effect.percent / 100)),
+            })
+        confirm = ngettext(
+            "Supprimer « %(name)s » ? Il est coché sur %(n)s flux, dont les impacts "
+            "seront recalculés.",
+            "Supprimer « %(name)s » ? Il est coché sur %(n)s flux, dont les impacts "
+            "seront recalculés.",
+            modifier.flow_count) % {'name': modifier.name, 'n': modifier.flow_count}
+        cards.append({
+            'modifier': modifier, 'flow_count': modifier.flow_count, 'effects': effects,
+            'source_code': codes.get(modifier.source_id, ''), 'confirm': confirm,
+        })
+    return cards
 
 
 @transaction.atomic

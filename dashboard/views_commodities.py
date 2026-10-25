@@ -2,20 +2,34 @@
 from urllib.parse import urlencode
 
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .decorators import creator_required
 from .forms_commodities import (
-    CommodityIdentityForm, CommoditySourceFormSet, FactorGridForm,
+    CommodityIdentityForm, CommodityModifierForm, CommoditySourceFormSet, FactorGridForm,
+    ModifierEffectFormSet, format_factor,
 )
-from .models import Commodity, Country, SubnationalRegion, source_codes
+from .models import (
+    Commodity, CommodityModifier, Country, ImpactCategory, SubnationalRegion,
+    source_codes,
+)
 from .services.commodity_sheet import (
-    location_chips, location_key, parse_location, save_factors,
+    location_chips, location_key, modifier_cards, parse_location, save_factors,
 )
 
 SOURCES_PREFIX = 'sources'
+NEW_MODIFIER = 'new'
+
+
+def _modifier_forms(commodity, modifier, data=None):
+    """Formulaire et formset d'un modificateur (`modifier` sans pk = création)."""
+    key = modifier.pk or NEW_MODIFIER
+    form = CommodityModifierForm(commodity, data, instance=modifier, prefix=f'mod-{key}')
+    formset = ModifierEffectFormSet(data, instance=modifier, prefix=f'effects-{key}')
+    return form, formset
 
 
 def _can_edit(user):
@@ -42,8 +56,8 @@ def _location_options():
 
 
 def _detail_context(request, commodity, *, identity_form=None, source_formset=None,
-                    factor_form=None):
-    """Contexte de la fiche ; la tâche suivante y ajoute les modificateurs."""
+                    factor_form=None, modifier_forms=None):
+    """Contexte de la fiche. `modifier_forms` : `(modificateur, form, formset)` en erreur."""
     codes = source_codes(commodity)
     sources = list(commodity.sources.all())
     for source in sources:
@@ -55,9 +69,31 @@ def _detail_context(request, commodity, *, identity_form=None, source_formset=No
     location = parse_location(request.GET.get('lieu') or request.POST.get('lieu'))
     factor_form = factor_form or FactorGridForm(commodity, location)
     countries, region_groups = _location_options()
+    can_edit = _can_edit(request.user)
+    cards = modifier_cards(commodity, location)
+    for card in cards:
+        for item in card['effects']:
+            item['adjusted_display'] = format_factor(item['adjusted'])
+            item['is_endpoint'] = item['level'] == ImpactCategory.Level.ENDPOINT
+    failed = modifier_forms[0].pk if modifier_forms else None
+    new_has_errors = bool(modifier_forms) and failed is None
+    new_form, new_formset = (
+        modifier_forms[1:] if new_has_errors
+        else _modifier_forms(commodity, CommodityModifier(commodity=commodity)))
+    if can_edit:
+        for card in cards:
+            if modifier_forms and failed == card['modifier'].pk:
+                card['form'], card['formset'] = modifier_forms[1:]
+                card['has_errors'] = True
+            else:
+                card['form'], card['formset'] = _modifier_forms(commodity, card['modifier'])
     return {
+        'modifier_cards': cards,
+        'new_modifier_form': new_form,
+        'new_effects_formset': new_formset,
+        'new_modifier_has_errors': new_has_errors,
         'commodity': commodity,
-        'can_edit': _can_edit(request.user),
+        'can_edit': can_edit,
         'lieu': request.GET.get('lieu', ''),
         'location': location,
         'location_key': location_key(location),
@@ -151,3 +187,46 @@ def commodity_factors(request, pk):
         key = location_key(location)
         return redirect(f'{url}?{urlencode({"lieu": key})}' if key != 'global' else url)
     return _render_detail(request, commodity, factor_form=form)
+
+
+def _modifier_submit(request, commodity, modifier):
+    form, formset = _modifier_forms(commodity, modifier, request.POST)
+    if form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            if modifier.pk is None:
+                modifier.created_by = request.user
+            modifier = form.save()
+            formset.instance = modifier
+            for effect in formset.save(commit=False):
+                if effect.pk is None:
+                    effect.created_by = request.user
+                effect.save()
+            for effect in formset.deleted_objects:
+                effect.delete()
+        return redirect(_detail_url(commodity, request))
+    # Les instances invalides ont été modifiées en mémoire : on repart de la base.
+    fresh = Commodity.objects.get(pk=commodity.pk)
+    return _render_detail(request, fresh, modifier_forms=(modifier, form, formset))
+
+
+@creator_required
+@require_POST
+def commodity_modifier_create(request, pk):
+    commodity = get_object_or_404(Commodity, pk=pk)
+    return _modifier_submit(request, commodity, CommodityModifier(commodity=commodity))
+
+
+@creator_required
+@require_POST
+def commodity_modifier_update(request, pk, mpk):
+    commodity = get_object_or_404(Commodity, pk=pk)
+    modifier = get_object_or_404(CommodityModifier, pk=mpk, commodity=commodity)
+    return _modifier_submit(request, commodity, modifier)
+
+
+@creator_required
+@require_POST
+def commodity_modifier_delete(request, pk, mpk):
+    commodity = get_object_or_404(Commodity, pk=pk)
+    get_object_or_404(CommodityModifier, pk=mpk, commodity=commodity).delete()
+    return redirect(_detail_url(commodity, request))

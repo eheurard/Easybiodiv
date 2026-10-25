@@ -290,3 +290,58 @@
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+/* ── Modificateurs ─────────────────────────────────────────────────────── */
+.modifier-card {
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg, 12px);
+  padding: 16px;
+  margin-bottom: 16px;
+  background-color: var(--color-surface-container-lowest, var(--color-surface));
+}
+
+.modifier-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+}
+
+.modifier-card__name {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.modifier-card__meta {
+  color: var(--color-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.modifier-card__edit {
+  margin-top: 12px;
+}
+
+.modifier-card__edit summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.modifier-card__edit summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.modifier-card__delete {
+  margin-top: 12px;
+}
+
+.modifier-field {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.modifier-field__label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
