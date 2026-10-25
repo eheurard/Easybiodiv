@@ -18,7 +18,7 @@ from .models import (
     source_codes,
 )
 from .services.commodity_sheet import (
-    location_chips, location_key, modifier_cards, parse_location, save_factors, sheet_kpis,
+    location_chips, location_key, modifier_cards, parse_location, save_factors,
 )
 
 SOURCES_PREFIX = 'sources'
@@ -102,7 +102,6 @@ def _detail_context(request, commodity, *, identity_form=None, source_formset=No
     identity_form = identity_form or CommodityIdentityForm(instance=commodity)
     chips = location_chips(commodity, location)
     return {
-        'kpis': sheet_kpis(commodity, factor_blocks, len(cards)),
         # Facteur résolu (propre, sinon hérité) par catégorie : aperçu de la modale.
         'resolved_factors': {
             str(row['category'].pk): (row['value'] if row['value'] is not None

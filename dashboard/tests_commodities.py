@@ -1008,7 +1008,7 @@ class LeapLocateSplitSupplyTests(TestCase):
 
 
 class CommodityDashboardTests(TestCase):
-    """Fiche en tableau de bord : indicateurs d'en-tête, modales, édition en place."""
+    """Fiche en tableau de bord : modales et édition en place."""
 
     def setUp(self):
         user_model = get_user_model()
@@ -1026,36 +1026,6 @@ class CommodityDashboardTests(TestCase):
         self.end = ImpactCategory.objects.create(
             method=method, key='dash_end', name='Diversité', level=ImpactCategory.Level.ENDPOINT)
         self.detail = reverse('dashboard:commodity_detail', args=[self.soy.pk])
-
-    def test_kpis_count_own_and_inherited_factors_at_location(self):
-        CharacterizationFactor.objects.create(commodity=self.soy, category=self.mid, value=1.0)
-        CharacterizationFactor.objects.create(
-            commodity=self.soy, category=self.mid2, country=self.brazil, value=2.0)
-        self.client.force_login(self.subscriber)
-        kpis = self.client.get(self.detail, {'lieu': f'region-{self.mato.pk}'}).context['kpis']
-        midpoints = ImpactCategory.objects.filter(level=ImpactCategory.Level.MIDPOINT).count()
-        self.assertEqual((kpis['midpoint']['filled'], kpis['midpoint']['total']), (2, midpoints))
-        self.assertEqual(kpis['endpoint']['filled'], 0)
-        self.assertEqual(kpis['locations'], ['Brésil'])
-        global_kpis = self.client.get(self.detail).context['kpis']
-        self.assertEqual(global_kpis['midpoint']['filled'], 1)
-
-    def test_kpis_count_distinct_flows_and_last_update(self):
-        bio = CommodityModifier.objects.create(commodity=self.soy, name='Bio')
-        rtrs = CommodityModifier.objects.create(commodity=self.soy, name='RTRS')
-        flow = make_production(commodity=self.soy, year=2024, production=1,
-                               company=Company.objects.create(name='C'))
-        flow.modifiers.add(bio, rtrs)
-        self.client.force_login(self.subscriber)
-        kpis = self.client.get(self.detail).context['kpis']
-        self.assertEqual((kpis['modifiers'], kpis['flows']), (2, 1))
-        self.assertIsNotNone(kpis['updated'])
-
-    def test_no_update_date_without_data(self):
-        self.client.force_login(self.subscriber)
-        response = self.client.get(self.detail)
-        self.assertIsNone(response.context['kpis']['updated'])
-        self.assertNotContains(response, 'Mis à jour le')
 
     def test_creator_gets_modals_and_resolved_factors(self):
         CharacterizationFactor.objects.create(commodity=self.soy, category=self.mid, value=3200)

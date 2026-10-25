@@ -297,8 +297,3 @@ def declared_emissions(company):
     for flow in rows:
         raw[flow.year][str(flow.scope)] += flow.quantity
     return {year: resolve_scopes(dict(values)) for year, values in sorted(raw.items())}
-
-
-def flows_with_modifiers_count(commodity):
-    """Nombre de flux portant au moins un modificateur de `commodity` (fiche commodité)."""
-    return Flow.objects.filter(modifiers__commodity=commodity).distinct().count()

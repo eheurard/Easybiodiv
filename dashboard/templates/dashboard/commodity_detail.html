@@ -8,43 +8,11 @@
 
 {% block content %}
 <div class="cdash">
-  <p class="cdash-crumbs"><a href="{% url 'dashboard:commodity_list' %}">{% translate "Commodités" %}</a> › {{ commodity.name }}</p>
-
-  {# ── En-tête ──────────────────────────────────────────────────────────── #}
-  <header class="cdash-hero">
-    <div class="cdash-hero__id">
-      <span class="cdash-label">{% translate "Commodité" %} · {{ identity_form.biodiversity_loss_display }}</span>
-      <h1 class="cdash-hero__title">{{ commodity.name }}</h1>
-      <div class="cdash-pills">
-        <span class="cdash-pill">{% blocktranslate with unit=commodity.unit %}Unité : {{ unit }}{% endblocktranslate %}</span>
-        <span class="cdash-pill">{% blocktranslate count n=sources|length %}{{ n }} source{% plural %}{{ n }} sources{% endblocktranslate %}</span>
-        {% if kpis.updated %}<span class="cdash-pill">{% blocktranslate with date=kpis.updated|date:"j M Y" %}Mis à jour le {{ date }}{% endblocktranslate %}</span>{% endif %}
-        {% if commodity.key %}<span class="cdash-pill" title="{% translate 'Clé technique (non modifiable)' %}">{% translate "Clé" %} <code>{{ commodity.key }}</code></span>{% endif %}
-      </div>
-    </div>
-    <dl class="cdash-kpis">
-      <div class="cdash-kpi">
-        <dt class="cdash-label">{% translate "Facteurs midpoint" %}</dt>
-        <dd class="cdash-kpi__value">{{ kpis.midpoint.filled }} <small>/ {{ kpis.midpoint.total }}</small></dd>
-        <dd class="cdash-meter" aria-hidden="true"><span style="width: {{ kpis.midpoint.percent }}%"></span></dd>
-      </div>
-      <div class="cdash-kpi">
-        <dt class="cdash-label">{% translate "Facteurs endpoint" %}</dt>
-        <dd class="cdash-kpi__value">{{ kpis.endpoint.filled }} <small>/ {{ kpis.endpoint.total }}</small></dd>
-        <dd class="cdash-meter cdash-meter--endpoint" aria-hidden="true"><span style="width: {{ kpis.endpoint.percent }}%"></span></dd>
-      </div>
-      <div class="cdash-kpi">
-        <dt class="cdash-label">{% translate "Lieux régionalisés" %}</dt>
-        <dd class="cdash-kpi__value">{{ kpis.locations|length }}</dd>
-        <dd class="cdash-meta">{{ kpis.locations|join:" · "|default:_("Global uniquement") }}</dd>
-      </div>
-      <div class="cdash-kpi">
-        <dt class="cdash-label">{% translate "Modificateurs" %}</dt>
-        <dd class="cdash-kpi__value">{{ kpis.modifiers }}</dd>
-        <dd class="cdash-meta">{% blocktranslate count n=kpis.flows %}cochés sur {{ n }} flux{% plural %}cochés sur {{ n }} flux{% endblocktranslate %}</dd>
-      </div>
-    </dl>
-  </header>
+  <div class="cdash-crumbs">
+    <a href="{% url 'dashboard:commodity_list' %}">{% translate "Commodités" %}</a>
+    <span aria-hidden="true">›</span>
+    <h1 class="cdash-crumbs__current">{{ commodity.name }}</h1>
+  </div>
 
   <div class="cdash-grid">
     {# ── Colonne gauche : identité, dépendances, sources ─────────────────── #}
@@ -69,6 +37,7 @@
               <div><dt class="cdash-label">{% translate "Nom" %}</dt><dd>{{ commodity.name }}</dd></div>
               <div><dt class="cdash-label">{% translate "Unité de mesure" %}</dt><dd>{{ commodity.unit }}</dd></div>
               <div><dt class="cdash-label">{{ identity_form.biodiversity_loss_class.label }}</dt><dd>{{ identity_form.biodiversity_loss_display }}</dd></div>
+              {% if commodity.key %}<div><dt class="cdash-label">{% translate "Clé technique" %}</dt><dd><code>{{ commodity.key }}</code></dd></div>{% endif %}
               {% if commodity.description %}<div><dt class="cdash-label">{% translate "Description" %}</dt><dd class="cdash-dl__text">{{ commodity.description }}</dd></div>{% endif %}
             </dl>
             {% if can_edit %}
