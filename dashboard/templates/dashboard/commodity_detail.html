@@ -165,12 +165,12 @@
               <input type="text" inputmode="decimal" class="form-input commodity-table__num"
                      name="{{ row.value_field.html_name }}" id="{{ row.value_field.id_for_label }}"
                      value="{{ row.value_field.value|default_if_none:'' }}"
-                     {% if row.inherited is not None %}placeholder="{{ row.inherited|floatformat:'-4g' }} ← {{ row.inherited_from }}"{% endif %}>
+                     {% if row.inherited is not None %}placeholder="{{ row.inherited_display }} ← {{ row.inherited_from }}"{% endif %}>
               {% for error in row.value_field.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
               {% elif row.value is not None %}
-              <span class="commodity-table__num">{{ row.value|floatformat:'-4g' }}</span>
+              <span class="commodity-table__num">{{ row.value_display }}</span>
               {% elif row.inherited is not None %}
-              <span class="commodity-inherited">{{ row.inherited|floatformat:'-4g' }} ← {{ row.inherited_from }}</span>
+              <span class="commodity-inherited">{{ row.inherited_display }} ← {{ row.inherited_from }}</span>
               {% else %}—{% endif %}
             </td>
             <td>{{ row.category.unit }}</td>

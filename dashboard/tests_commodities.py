@@ -670,3 +670,16 @@ class FactorGridViewTests(TestCase):
         self.assertContains(page, '<optgroup label="Brésil">')
         self.assertContains(page, 'Brésil › Mato Grosso')
         self.assertContains(page, f'name="value_{self.cat.pk}"')
+
+    def test_tiny_inherited_factor_not_rounded_to_zero(self):
+        CharacterizationFactor.objects.create(
+            category=self.cat, commodity=self.soy, value=3e-7)
+        region = f'region-{self.mato.pk}'
+        self.client.force_login(self.creator)
+        page = self.client.get(self.detail, {'lieu': region})
+        self.assertContains(page, '0,0000003 ← Global')
+        self.assertNotContains(page, 'placeholder="0 ←')
+        self.client.logout()
+        self.client.force_login(self.subscriber)
+        page = self.client.get(self.detail, {'lieu': region})
+        self.assertContains(page, '0,0000003 ← Global')

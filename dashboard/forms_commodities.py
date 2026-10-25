@@ -1,9 +1,20 @@
+from decimal import Decimal
+
 from django import forms
 from django.forms import inlineformset_factory
+from django.utils.formats import number_format
 from django.utils.translation import gettext as _
 
 from .models import Commodity, CommoditySource, ImpactCategory, source_codes
 from .services.commodity_sheet import factor_rows
+
+def format_factor(value):
+    """Facteur en 6 chiffres significatifs, séparateur localisé, sans exposant."""
+    if value is None:
+        return ''
+    number = Decimal(format(value, '.6g'))
+    return number_format(number, use_l10n=True, force_grouping=True)
+
 
 DEPENDENCY_FIELDS = (
     'dependency_water', 'dependency_pollination', 'dependency_soil_quality',
@@ -87,7 +98,9 @@ class FactorGridForm(forms.Form):
             'level': block['level'],
             'is_endpoint': block['level'] == ImpactCategory.Level.ENDPOINT,
             'title': ImpactCategory.Level(block['level']).label,
-            'rows': [dict(row, value_field=self[f'value_{row["category"].pk}'],
+            'rows': [dict(row, value_display=format_factor(row['value']),
+                          inherited_display=format_factor(row['inherited']),
+                          value_field=self[f'value_{row["category"].pk}'],
                           source_field=self[f'source_{row["category"].pk}'],
                           source_code=self.codes.get(row['source_id'], ''))
                      for row in block['rows']],
