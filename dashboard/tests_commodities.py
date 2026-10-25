@@ -42,6 +42,14 @@ class CommodityModelTests(TestCase):
         CommoditySource.objects.create(commodity=self.soy, title='C')
         self.assertEqual(source_codes(self.coffee), {s1.pk: 'S1', s2.pk: 'S2'})
 
+    def test_source_reference_accepts_500_characters(self):
+        source = CommoditySource(commodity=self.coffee, title='A', reference='r' * 500)
+        source.full_clean()
+        source.reference = 'r' * 501
+        with self.assertRaises(ValidationError) as ctx:
+            source.full_clean()
+        self.assertIn('reference', ctx.exception.message_dict)
+
     def test_effect_below_minus_100_rejected(self):
         mod = CommodityModifier.objects.create(commodity=self.coffee, name='Bio')
         cat = _category()

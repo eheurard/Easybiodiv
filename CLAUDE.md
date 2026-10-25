@@ -189,8 +189,10 @@ statiques ; coordonnées de l'éditeur dans `settings.LEGAL`).
 
 - `created_at` / `updated_at` ne sont présents que sur les modèles récents
   (`E4Assessment`, `CharacterizationFactor`, `Flow`, `Ownership`,
-  `ClimateScenario`, `SectorCreditProfile`, `Portfolio`) ; `created_by` sur
-  `E4Assessment`, `Flow`, `Ownership` et `Portfolio`. Les tables de référence
+  `ClimateScenario`, `SectorCreditProfile`, `Portfolio`, `CommoditySource`,
+  `CommodityModifier`, `ModifierEffect`) ; `created_by` sur `E4Assessment`, `Flow`,
+  `Ownership`, `Portfolio`, `CommoditySource`, `CommodityModifier` et
+  `ModifierEffect`. Les tables de référence
   historiques n'en ont pas — les ajouter sur **tout nouveau modèle métier**, sans
   rétrofit massif de l'existant.
 - Aucun champ `geom` PostGIS n'existe aujourd'hui : la géo passe par

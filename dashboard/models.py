@@ -1244,7 +1244,7 @@ class CommoditySource(models.Model):
         max_length=20, choices=Kind.choices, default=Kind.OTHER, verbose_name=_('Type'),
     )
     title = models.CharField(max_length=255, verbose_name=_('Titre'))
-    reference = models.CharField(max_length=255, blank=True, verbose_name=_('Référence'))
+    reference = models.CharField(max_length=500, blank=True, verbose_name=_('Référence'))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Créé le'))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Modifié le'))
     created_by = models.ForeignKey(
