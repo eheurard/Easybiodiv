@@ -155,6 +155,18 @@ class ModifierFormulaTests(TestCase):
         flow = productions([self.asset.pk])[0]
         return flow_cf_value(build_cf_index(), flow, key, **kwargs)
 
+    def test_modifier_of_previous_commodity_ignored_after_change(self):
+        # Changement de commodité hors formulaire (admin, ORM) : le modificateur du
+        # soja resté coché ne doit pas ajuster le facteur du maïs.
+        maize = Commodity.objects.create(name='Maïs')
+        CharacterizationFactor.objects.create(
+            category=self.land, commodity=maize, value=800.0,
+        )
+        self._tick(self.flow, -50)
+        self.assertEqual(self._value(), 500.0)
+        Flow.objects.filter(pk=self.flow.pk).update(what=maize)
+        self.assertEqual(self._value(), 800.0)
+
     def test_no_modifier_unchanged(self):
         self.assertEqual(self._value(), 1000.0)
 

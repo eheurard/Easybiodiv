@@ -73,11 +73,13 @@ def cf_value(cf_index, commodity_id, category_key, region_id=None,
 
 def modifier_multiplier(flow, category_key):
     """Multiplicateur `max(0, 1 + Σ percent / 100)` des modificateurs cochés sur
-    `flow` pour la catégorie. Lit uniquement les relations préchargées
+    `flow` pour la catégorie, hors ceux d'une autre commodité (flux rebasculé hors
+    formulaire). Lit uniquement les relations préchargées
     (`flows.MODIFIER_PREFETCH`) : aucun `.filter()`, donc pas de N+1."""
     total = sum(
         effect.percent
         for modifier in flow.modifiers.all()
+        if modifier.commodity_id == flow.what_id
         for effect in modifier.effects.all()
         if effect.category.key == category_key
     )
