@@ -1,12 +1,13 @@
 """Fiche commodité : facteurs de caractérisation par lieu (global, pays, région)."""
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Max
 from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
 
 from ..models import (
     CharacterizationFactor, Country, ImpactCategory, SubnationalRegion, source_codes,
 )
+from .flows import flows_with_modifiers_count
 
 GLOBAL = 'global'
 COUNTRY = 'country'
@@ -52,11 +53,8 @@ def _label(location):
     return f'{region.country.name} › {region.name}' if region.country_id else region.name
 
 
-def location_chips(commodity, current):
-    """Pastilles de lieux : Global, puis les lieux ayant un CF (tri par libellé)."""
-    if isinstance(current, str):
-        current = parse_location(current)
-    current = tuple(current)
+def factor_locations(commodity):
+    """Lieux régionalisés (pays ou région) ayant au moins un CF propre."""
     found = set()
     cfs = CharacterizationFactor.objects.filter(commodity=commodity)
     for region_id, country_id in cfs.values_list('region_id', 'country_id').distinct():
@@ -64,6 +62,15 @@ def location_chips(commodity, current):
             found.add((REGION, region_id))
         elif country_id:
             found.add((COUNTRY, country_id))
+    return found
+
+
+def location_chips(commodity, current):
+    """Pastilles de lieux : Global, puis les lieux ayant un CF (tri par libellé)."""
+    if isinstance(current, str):
+        current = parse_location(current)
+    current = tuple(current)
+    found = factor_locations(commodity)
     if current != (GLOBAL, None):
         found.add(current)
     labelled = sorted((_label(loc), loc) for loc in found)
@@ -159,6 +166,41 @@ def modifier_cards(commodity, location):
             'source_code': codes.get(modifier.source_id, ''), 'confirm': confirm,
         })
     return cards
+
+
+def last_updated(commodity):
+    """Dernière modification parmi les facteurs, sources et modificateurs ; `None` sinon."""
+    dates = [
+        CharacterizationFactor.objects.filter(commodity=commodity).aggregate(
+            last=Max('updated_at'))['last'],
+        commodity.sources.aggregate(last=Max('updated_at'))['last'],
+        commodity.modifiers.aggregate(last=Max('updated_at'))['last'],
+    ]
+    dates = [d for d in dates if d is not None]
+    return max(dates) if dates else None
+
+
+def sheet_kpis(commodity, factor_blocks, modifier_count):
+    """Indicateurs de l'en-tête de la fiche.
+
+    Facteurs renseignés = catégories ayant une valeur au lieu courant, propre ou héritée.
+    """
+    kpis = {}
+    for block in factor_blocks:
+        rows = block['rows']
+        filled = sum(1 for r in rows if r['value'] is not None or r['inherited'] is not None)
+        kpis['endpoint' if block['is_endpoint'] else 'midpoint'] = {
+            'filled': filled, 'total': len(rows),
+            'percent': round(100 * filled / len(rows)) if rows else 0,
+        }
+    locations = sorted(_label(loc) for loc in factor_locations(commodity))
+    kpis.update({
+        'locations': locations,
+        'modifiers': modifier_count,
+        'flows': flows_with_modifiers_count(commodity) if modifier_count else 0,
+        'updated': last_updated(commodity),
+    })
+    return kpis
 
 
 @transaction.atomic

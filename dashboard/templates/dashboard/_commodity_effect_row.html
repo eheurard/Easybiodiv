@@ -1,0 +1,28 @@
+{% load i18n %}
+{# Ligne d'effet de la modale d'un modificateur. Attend `eform` (formulaire du formset). #}
+<tr class="cdialog__effect" data-effect-row{% if not eform.instance.pk %} data-effect-new{% endif %}>
+  <td>
+    {% for hidden in eform.hidden_fields %}{{ hidden }}{% endfor %}
+    <label class="visually-hidden" for="{{ eform.category.id_for_label }}">{% translate "Catégorie d'impact" %}</label>
+    {{ eform.category }}
+    {% for error in eform.category.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+    {% for error in eform.non_field_errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+  </td>
+  <td>
+    <span class="cdialog__pct">
+      <label class="visually-hidden" for="{{ eform.percent.id_for_label }}">{% translate "Variation (%)" %}</label>
+      {{ eform.percent }} %
+    </span>
+    {% for error in eform.percent.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+  </td>
+  <td class="cdialog__preview" data-effect-preview>—</td>
+  <td class="cdialog__remove">
+    {% if eform.instance.pk %}
+    <label class="cdialog__delete" title="{% translate 'Retirer cet effet' %}">
+      {{ eform.DELETE }}<span class="visually-hidden">{% translate "Retirer cet effet" %}</span><span aria-hidden="true">&times;</span>
+    </label>
+    {% else %}
+    <button type="button" class="cdialog__close" data-effect-clear aria-label="{% translate 'Retirer cet effet' %}">&times;</button>
+    {% endif %}
+  </td>
+</tr>

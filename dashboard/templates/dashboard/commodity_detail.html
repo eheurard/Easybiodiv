@@ -7,260 +7,331 @@
 {% block header_left %}<span class="commodity-header-title">{% translate "Commodités" %}</span>{% endblock %}
 
 {% block content %}
-<div class="commodity-page">
-  <p><a class="commodity-back" href="{% url 'dashboard:commodity_list' %}">&larr; {% translate "Toutes les commodités" %}</a></p>
-  <h1 class="commodity-title">{{ commodity.name }}</h1>
+<div class="cdash">
+  <p class="cdash-crumbs"><a href="{% url 'dashboard:commodity_list' %}">{% translate "Commodités" %}</a> › {{ commodity.name }}</p>
 
-  {# ── Identité ─────────────────────────────────────────────────────────── #}
-  <section class="card commodity-card" aria-labelledby="commodity-identity-title">
-    <h2 class="commodity-section-title" id="commodity-identity-title">{% translate "Identité" %}</h2>
-    {% if commodity.key %}
-    <p class="commodity-key">{% translate "Clé technique" %} : <code>{{ commodity.key }}</code>
-      <span class="commodity-help">{% translate "(non modifiable)" %}</span></p>
-    {% endif %}
-    {% if can_edit %}
-    <form method="post" id="commodity-identity-form"
-          action="{% url 'dashboard:commodity_identity' commodity.pk %}{% if lieu %}?lieu={{ lieu|urlencode }}{% endif %}">
-      {% csrf_token %}
-      {% with form=identity_form %}{% include "dashboard/_commodity_identity_fields.html" %}{% endwith %}
-      <div class="commodity-actions">
-        <button type="submit" class="btn btn--primary">{% translate "Enregistrer l'identité" %}</button>
+  {# ── En-tête ──────────────────────────────────────────────────────────── #}
+  <header class="cdash-hero">
+    <div class="cdash-hero__id">
+      <span class="cdash-label">{% translate "Commodité" %} · {{ identity_form.biodiversity_loss_display }}</span>
+      <h1 class="cdash-hero__title">{{ commodity.name }}</h1>
+      <div class="cdash-pills">
+        <span class="cdash-pill">{% blocktranslate with unit=commodity.unit %}Unité : {{ unit }}{% endblocktranslate %}</span>
+        <span class="cdash-pill">{% blocktranslate count n=sources|length %}{{ n }} source{% plural %}{{ n }} sources{% endblocktranslate %}</span>
+        {% if kpis.updated %}<span class="cdash-pill">{% blocktranslate with date=kpis.updated|date:"j M Y" %}Mis à jour le {{ date }}{% endblocktranslate %}</span>{% endif %}
+        {% if commodity.key %}<span class="cdash-pill" title="{% translate 'Clé technique (non modifiable)' %}">{% translate "Clé" %} <code>{{ commodity.key }}</code></span>{% endif %}
       </div>
-    </form>
-    {% else %}
-    <dl class="commodity-dl">
-      <dt>{% translate "Unité" %}</dt><dd>{{ commodity.unit }}</dd>
-      {% if commodity.description %}<dt>{% translate "Description" %}</dt><dd>{{ commodity.description }}</dd>{% endif %}
-      <dt>{{ identity_form.biodiversity_loss_class.label }}</dt>
-      <dd>{{ identity_form.biodiversity_loss_display }}</dd>
+    </div>
+    <dl class="cdash-kpis">
+      <div class="cdash-kpi">
+        <dt class="cdash-label">{% translate "Facteurs midpoint" %}</dt>
+        <dd class="cdash-kpi__value">{{ kpis.midpoint.filled }} <small>/ {{ kpis.midpoint.total }}</small></dd>
+        <dd class="cdash-meter" aria-hidden="true"><span style="width: {{ kpis.midpoint.percent }}%"></span></dd>
+      </div>
+      <div class="cdash-kpi">
+        <dt class="cdash-label">{% translate "Facteurs endpoint" %}</dt>
+        <dd class="cdash-kpi__value">{{ kpis.endpoint.filled }} <small>/ {{ kpis.endpoint.total }}</small></dd>
+        <dd class="cdash-meter cdash-meter--endpoint" aria-hidden="true"><span style="width: {{ kpis.endpoint.percent }}%"></span></dd>
+      </div>
+      <div class="cdash-kpi">
+        <dt class="cdash-label">{% translate "Lieux régionalisés" %}</dt>
+        <dd class="cdash-kpi__value">{{ kpis.locations|length }}</dd>
+        <dd class="cdash-meta">{{ kpis.locations|join:" · "|default:_("Global uniquement") }}</dd>
+      </div>
+      <div class="cdash-kpi">
+        <dt class="cdash-label">{% translate "Modificateurs" %}</dt>
+        <dd class="cdash-kpi__value">{{ kpis.modifiers }}</dd>
+        <dd class="cdash-meta">{% blocktranslate count n=kpis.flows %}cochés sur {{ n }} flux{% plural %}cochés sur {{ n }} flux{% endblocktranslate %}</dd>
+      </div>
     </dl>
-    <details class="commodity-deps">
-      <summary>{% translate "Dépendances aux services écosystémiques" %}</summary>
-      <dl class="commodity-dl">
-        {% for label, display in identity_form.dependency_display %}
-        <dt>{{ label }}</dt><dd>{{ display }}</dd>
-        {% endfor %}
-      </dl>
-    </details>
-    {% endif %}
-  </section>
+  </header>
 
-  {# ── Sources ──────────────────────────────────────────────────────────── #}
-  <section class="card commodity-card" aria-labelledby="commodity-sources-title">
-    <h2 class="commodity-section-title" id="commodity-sources-title">{% translate "Sources" %}</h2>
-    {% if can_edit %}
-    <form method="post" id="commodity-sources-form"
-          action="{% url 'dashboard:commodity_sources' commodity.pk %}{% if lieu %}?lieu={{ lieu|urlencode }}{% endif %}">
-      {% csrf_token %}
-      {{ source_formset.management_form }}
-      {% if source_formset.non_form_errors %}
-      <p class="commodity-error" role="alert">{{ source_formset.non_form_errors|join:" " }}</p>
-      {% endif %}
-      <table class="commodity-table">
-        <thead>
-          <tr>
-            <th scope="col">{% translate "Code" %}</th>
-            <th scope="col">{% translate "Type" %}</th>
-            <th scope="col">{% translate "Titre" %}</th>
-            <th scope="col">{% translate "Référence" %}</th>
-            <th scope="col">{% translate "Supprimer" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for form in source_formset %}
-          <tr>
-            <td>{% if form.code %}<span class="commodity-code">{{ form.code }}</span>{% endif %}</td>
-            <td>
-              {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
-              <label class="visually-hidden" for="{{ form.kind.id_for_label }}">{% translate "Type" %}</label>
-              {{ form.kind }}
-            </td>
-            <td>
-              <label class="visually-hidden" for="{{ form.title.id_for_label }}">{% translate "Titre" %}</label>
-              {{ form.title }}
-              {% for error in form.title.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
-            </td>
-            <td>
-              <label class="visually-hidden" for="{{ form.reference.id_for_label }}">{% translate "Référence" %}</label>
-              {{ form.reference }}
-            </td>
-            <td>
-              {% if form.instance.pk %}
-              <label class="visually-hidden" for="{{ form.DELETE.id_for_label }}">{% translate "Supprimer cette source" %}</label>
-              {{ form.DELETE }}
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <p class="commodity-help">{% translate "La dernière ligne vide sert à ajouter une source." %}</p>
-      <div class="commodity-actions">
-        <button type="submit" class="btn btn--primary">{% translate "Enregistrer les sources" %}</button>
-      </div>
-    </form>
-    {% elif sources %}
-    <ul class="commodity-sources">
-      {% for source in sources %}
-      <li><span class="commodity-code">{{ source.code }}</span>
-        {{ source.get_kind_display }} — {{ source.title }}{% if source.reference %} ({{ source.reference }}){% endif %}</li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p class="commodity-empty">{% translate "Aucune source." %}</p>
-    {% endif %}
-  </section>
-
-  {# ── Facteurs de caractérisation ──────────────────────────────────────── #}
-  <section class="card commodity-card" aria-labelledby="commodity-factors-title">
-    <h2 class="commodity-section-title" id="commodity-factors-title">{% translate "Facteurs de caractérisation" %}</h2>
-    <p class="commodity-help">{% translate "Un facteur vide hérite du lieu parent (région, puis pays, puis global) ; 0 est un facteur à part entière." %}</p>
-
-    <nav class="commodity-chips" aria-label="{% translate 'Lieux' %}">
-      {% for chip in chips %}
-      <a class="commodity-chip{% if chip.active %} commodity-chip--active{% endif %}"
-         href="?lieu={{ chip.key|urlencode }}"{% if chip.active %} aria-current="true"{% endif %}>{{ chip.label }}</a>
-      {% endfor %}
-      <form method="get" class="commodity-chips__add">
-        <label class="visually-hidden" for="commodity-location-select">{% translate "Ajouter un pays ou une région" %}</label>
-        <select name="lieu" id="commodity-location-select" class="form-input">
-          <option value="">{% translate "+ pays ou région" %}</option>
-          {% for key, name in location_countries %}<option value="{{ key }}">{{ name }}</option>{% endfor %}
-          {% for country_name, regions in location_region_groups %}
-          <optgroup label="{{ country_name }}">
-            {% for key, name in regions %}<option value="{{ key }}">{{ name }}</option>{% endfor %}
-          </optgroup>
-          {% endfor %}
-        </select>
-        <button type="submit" class="btn">{% translate "Afficher" %}</button>
-      </form>
-    </nav>
-
-    {% if can_edit %}
-    <form method="post" id="commodity-factors-form" action="{% url 'dashboard:commodity_factors' commodity.pk %}">
-      {% csrf_token %}
-      <input type="hidden" name="lieu" value="{{ location_key }}">
-    {% endif %}
-      {% for block in factor_blocks %}
-      <h3 class="commodity-subtitle">
-        <span class="commodity-level commodity-level--{% if block.is_endpoint %}endpoint{% else %}midpoint{% endif %}">{{ block.title }}</span>
-      </h3>
-      {% if block.rows %}
-      <table class="commodity-table">
-        <thead>
-          <tr>
-            <th scope="col">{% translate "Catégorie d'impact" %}</th>
-            <th scope="col">{% translate "Facteur" %}</th>
-            <th scope="col">{% translate "Unité" %}</th>
-            <th scope="col">{% translate "Source" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in block.rows %}
-          <tr>
-            <th scope="row">{{ row.category.name }}</th>
-            <td>
-              {% if can_edit %}
-              <label class="visually-hidden" for="{{ row.value_field.id_for_label }}">{% blocktranslate with name=row.category.name %}Facteur : {{ name }}{% endblocktranslate %}</label>
-              <input type="text" inputmode="decimal" class="form-input commodity-table__num"
-                     name="{{ row.value_field.html_name }}" id="{{ row.value_field.id_for_label }}"
-                     value="{{ row.value_field.value|default_if_none:'' }}"
-                     {% if row.inherited is not None %}placeholder="{{ row.inherited_display }} ← {{ row.inherited_from }}"{% endif %}>
-              {% for error in row.value_field.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
-              {% elif row.value is not None %}
-              <span class="commodity-table__num">{{ row.value_display }}</span>
-              {% elif row.inherited is not None %}
-              <span class="commodity-inherited">{{ row.inherited_display }} ← {{ row.inherited_from }}</span>
-              {% else %}—{% endif %}
-            </td>
-            <td>{{ row.category.unit }}</td>
-            <td>
-              {% if can_edit %}
-              <label class="visually-hidden" for="{{ row.source_field.id_for_label }}">{% blocktranslate with name=row.category.name %}Source : {{ name }}{% endblocktranslate %}</label>
-              {{ row.source_field }}
-              {% elif row.source_id %}<span class="commodity-code">{{ row.source_code }}</span>{% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <div class="cdash-grid">
+    {# ── Colonne gauche : identité, dépendances, sources ─────────────────── #}
+    <aside class="cdash-side">
+      {% if can_edit %}
+      <form method="post" id="commodity-identity-form" class="cdash-stack" data-edit-scope
+            data-editing="{% if identity_editing %}true{% else %}false{% endif %}"
+            action="{% url 'dashboard:commodity_identity' commodity.pk %}{% if lieu %}?lieu={{ lieu|urlencode }}{% endif %}">
+        {% csrf_token %}
       {% else %}
-      <p class="commodity-empty">{% translate "Aucune catégorie d'impact à ce niveau." %}</p>
+      <div class="cdash-stack">
       {% endif %}
-      {% endfor %}
-    {% if can_edit %}
-      <div class="commodity-actions">
-        <button type="submit" class="btn btn--primary">{% translate "Enregistrer les facteurs" %}</button>
-      </div>
-    </form>
-    {% endif %}
-  </section>
 
-  {# ── Modificateurs ────────────────────────────────────────────────────── #}
-  <section class="card commodity-card" aria-labelledby="commodity-modifiers-title">
-    <h2 class="commodity-section-title" id="commodity-modifiers-title">{% blocktranslate with name=commodity.name %}Modificateurs de {{ name }}{% endblocktranslate %}</h2>
-    <p class="commodity-help">{% translate "Propres à cette commodité. Les effets de plusieurs modificateurs cochés s'additionnent ; le facteur ne descend jamais sous 0." %}</p>
+        <section class="cdash-card" aria-labelledby="commodity-identity-title">
+          <div class="cdash-card__head">
+            <h2 class="cdash-card__title" id="commodity-identity-title">{% translate "Identité" %}</h2>
+            {% if can_edit %}<button type="button" class="cdash-icon-btn" data-edit-toggle data-read-only>✎ {% translate "Modifier" %}</button>{% endif %}
+          </div>
+          <div class="cdash-card__body">
+            {% if can_edit and identity_form.non_field_errors %}<p class="commodity-error" role="alert">{{ identity_form.non_field_errors|join:" " }}</p>{% endif %}
+            <dl class="cdash-dl" data-read-only>
+              <div><dt class="cdash-label">{% translate "Nom" %}</dt><dd>{{ commodity.name }}</dd></div>
+              <div><dt class="cdash-label">{% translate "Unité de mesure" %}</dt><dd>{{ commodity.unit }}</dd></div>
+              <div><dt class="cdash-label">{{ identity_form.biodiversity_loss_class.label }}</dt><dd>{{ identity_form.biodiversity_loss_display }}</dd></div>
+              {% if commodity.description %}<div><dt class="cdash-label">{% translate "Description" %}</dt><dd class="cdash-dl__text">{{ commodity.description }}</dd></div>{% endif %}
+            </dl>
+            {% if can_edit %}
+            <div class="cdash-fields" data-edit-only>
+              {% for field in identity_form.main_fields %}
+              <div class="cdash-field">
+                <label class="cdash-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<p class="cdash-help">{{ field.help_text }}</p>{% endif %}
+                {% for error in field.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+        </section>
 
-    {% for card in modifier_cards %}
-    <article class="modifier-card" aria-labelledby="modifier-{{ card.modifier.pk }}-name">
-      <div class="modifier-card__head">
-        <h3 class="modifier-card__name" id="modifier-{{ card.modifier.pk }}-name">{{ card.modifier.name }}</h3>
-        {% if card.source_code %}<span class="commodity-code">{{ card.source_code }}</span>{% endif %}
-        <span class="modifier-card__meta">{% blocktranslate count n=card.flow_count %}Coché sur {{ n }} flux{% plural %}Coché sur {{ n }} flux{% endblocktranslate %}</span>
-      </div>
-      {% if card.modifier.description %}<p class="modifier-card__meta">{{ card.modifier.description }}</p>{% endif %}
-      {% if card.effects %}
-      <table class="commodity-table">
-        <thead>
-          <tr>
-            <th scope="col">{% translate "Niveau" %}</th>
-            <th scope="col">{% translate "Catégorie d'impact" %}</th>
-            <th scope="col">{% translate "Variation (%)" %}</th>
-            <th scope="col">{% translate "Facteur ajusté" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in card.effects %}
-          <tr>
-            <td><span class="commodity-level commodity-level--{% if item.is_endpoint %}endpoint{% else %}midpoint{% endif %}">{{ item.level.label }}</span></td>
-            <th scope="row">{{ item.effect.category.name }}</th>
-            <td class="commodity-table__num">{{ item.percent_display }} %</td>
-            <td class="commodity-table__num">{{ item.adjusted_display|default:'—' }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p class="commodity-empty">{% translate "Aucun effet." %}</p>
-      {% endif %}
+        <section class="cdash-card" aria-labelledby="commodity-deps-title">
+          <div class="cdash-card__head">
+            <h2 class="cdash-card__title" id="commodity-deps-title">{% translate "Dépendances écosystémiques" %}</h2>
+            {% if can_edit %}<button type="button" class="cdash-icon-btn" data-edit-toggle data-read-only aria-label="{% translate 'Modifier les dépendances' %}">✎</button>{% endif %}
+          </div>
+          <div class="cdash-card__body">
+            <dl class="cdash-deps" data-read-only>
+              {% for dep in identity_form.dependency_display %}
+              <div class="cdash-dep">
+                <dt>{{ dep.label }}<span class="cdash-dots" aria-hidden="true">{% for i in "12345" %}<i{% if forloop.counter <= dep.level %} class="on"{% endif %}></i>{% endfor %}</span></dt>
+                <dd>{{ dep.display }}</dd>
+              </div>
+              {% endfor %}
+            </dl>
+            {% if can_edit %}
+            <div class="cdash-fields" data-edit-only>
+              {% for dep in identity_form.dependency_display %}
+              <div class="cdash-field cdash-field--inline">
+                <label class="cdash-label" for="{{ dep.field.id_for_label }}">{{ dep.label }}</label>
+                {{ dep.field }}
+                {% for error in dep.field.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+        </section>
 
       {% if can_edit %}
-      <details class="modifier-card__edit"{% if card.has_errors %} open{% endif %}>
-        <summary>{% translate "Modifier" %}</summary>
-        {% url 'dashboard:commodity_modifier_update' commodity.pk card.modifier.pk as update_url %}
-        {% translate "Enregistrer le modificateur" as save_label %}
-        {% include "dashboard/_commodity_modifier_form.html" with form=card.form formset=card.formset action=update_url submit_label=save_label %}
-      </details>
-      <form method="post" class="modifier-card__delete"
-            action="{% url 'dashboard:commodity_modifier_delete' commodity.pk card.modifier.pk %}{% if lieu %}?lieu={{ lieu|urlencode }}{% endif %}">
-        {% csrf_token %}
-        <button type="submit" class="btn" data-confirm="{{ card.confirm }}">{% translate "Supprimer le modificateur" %}</button>
+        <div class="cdash-editbar" data-edit-only>
+          <button type="button" class="btn btn--secondary" data-edit-cancel>{% translate "Annuler" %}</button>
+          <button type="submit" class="btn btn--primary">{% translate "Enregistrer l'identité" %}</button>
+        </div>
       </form>
+      {% else %}
+      </div>
       {% endif %}
-    </article>
-    {% empty %}
-    <p class="commodity-empty">{% translate "Aucun modificateur." %}</p>
-    {% endfor %}
 
-    {% if can_edit %}
-    <details class="modifier-card__edit"{% if new_modifier_has_errors %} open{% endif %}>
-      <summary>{% translate "+ Nouveau modificateur" %}</summary>
-      {% url 'dashboard:commodity_modifier_create' commodity.pk as create_url %}
-      {% translate "Créer le modificateur" as create_label %}
-      {% include "dashboard/_commodity_modifier_form.html" with form=new_modifier_form formset=new_effects_formset action=create_url submit_label=create_label %}
-    </details>
-    {% endif %}
-  </section>
+      <section class="cdash-card" aria-labelledby="commodity-sources-title">
+        <div class="cdash-card__head">
+          <h2 class="cdash-card__title" id="commodity-sources-title">{% translate "Sources" %}</h2>
+          {% if can_edit %}<button type="button" class="cdash-icon-btn" data-edit-toggle data-read-only data-edit-target="commodity-sources-form">✎ {% translate "Modifier" %}</button>{% endif %}
+        </div>
+        <div class="cdash-card__body">
+          {% if can_edit %}
+          <form method="post" id="commodity-sources-form" data-edit-scope
+                data-editing="{% if sources_editing %}true{% else %}false{% endif %}"
+                action="{% url 'dashboard:commodity_sources' commodity.pk %}{% if lieu %}?lieu={{ lieu|urlencode }}{% endif %}">
+            {% csrf_token %}
+          {% endif %}
+            <ul class="cdash-sources" data-read-only>
+              {% for source in sources %}
+              <li class="cdash-source">
+                <span class="cdash-code">{{ source.code }}</span>
+                <div>
+                  <div class="cdash-source__title"><span class="cdash-type">{{ source.get_kind_display }}</span>{{ source.title }}</div>
+                  {% if source.reference %}<div class="cdash-meta">{{ source.reference }}</div>{% endif %}
+                </div>
+              </li>
+              {% empty %}
+              <li class="cdash-empty">{% translate "Aucune source." %}</li>
+              {% endfor %}
+            </ul>
+          {% if can_edit %}
+            <div class="cdash-fields" data-edit-only>
+              {{ source_formset.management_form }}
+              {% if source_formset.non_form_errors %}<p class="commodity-error" role="alert">{{ source_formset.non_form_errors|join:" " }}</p>{% endif %}
+              {% for form in source_formset %}
+              <div class="cdash-source-edit">
+                {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                <div class="cdash-source-edit__head">
+                  <span class="cdash-code">{% if form.code %}{{ form.code }}{% else %}+{% endif %}</span>
+                  <label class="visually-hidden" for="{{ form.kind.id_for_label }}">{% translate "Type" %}</label>
+                  {{ form.kind }}
+                  {% if form.instance.pk %}
+                  <label class="cdash-remove">{{ form.DELETE }} {% translate "Supprimer" %}</label>
+                  {% endif %}
+                </div>
+                <label class="visually-hidden" for="{{ form.title.id_for_label }}">{% translate "Titre" %}</label>
+                {{ form.title }}
+                {% for error in form.title.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+                <label class="visually-hidden" for="{{ form.reference.id_for_label }}">{% translate "Référence" %}</label>
+                {{ form.reference }}
+              </div>
+              {% endfor %}
+              <p class="cdash-help">{% translate "La dernière ligne vide sert à ajouter une source." %}</p>
+              <div class="cdash-editbar cdash-editbar--inline">
+                <button type="button" class="btn btn--secondary" data-edit-cancel>{% translate "Annuler" %}</button>
+                <button type="submit" class="btn btn--primary">{% translate "Enregistrer les sources" %}</button>
+              </div>
+            </div>
+          </form>
+          {% endif %}
+        </div>
+      </section>
+    </aside>
+
+    {# ── Colonne droite : impacts et modificateurs ───────────────────────── #}
+    <div class="cdash-main">
+      <section class="cdash-card cdash-impacts" aria-labelledby="commodity-factors-title">
+        <div class="cdash-card__head">
+          <h2 class="cdash-card__title" id="commodity-factors-title">{% translate "Facteurs d'impact" %}</h2>
+          <span class="cdash-meta">{% translate "Un facteur vide hérite du lieu parent (région, puis pays, puis global) ; 0 est un facteur à part entière." %}</span>
+        </div>
+
+        <nav class="cdash-locbar" aria-label="{% translate 'Lieux' %}">
+          <span class="cdash-label">{% translate "Lieu" %}</span>
+          {% for chip in chips %}
+          <a class="cdash-chip" href="?lieu={{ chip.key|urlencode }}"{% if chip.active %} aria-current="true"{% endif %}>{{ chip.label }}</a>
+          {% endfor %}
+          <form method="get" class="cdash-locbar__add" data-autosubmit>
+            <label class="visually-hidden" for="commodity-location-select">{% translate "Ajouter un pays ou une région" %}</label>
+            <select name="lieu" id="commodity-location-select" class="cdash-chip cdash-chip--add">
+              <option value="">{% translate "+ pays ou région" %}</option>
+              {% for key, name in location_countries %}<option value="{{ key }}">{{ name }}</option>{% endfor %}
+              {% for country_name, regions in location_region_groups %}
+              <optgroup label="{{ country_name }}">
+                {% for key, name in regions %}<option value="{{ key }}">{{ name }}</option>{% endfor %}
+              </optgroup>
+              {% endfor %}
+            </select>
+            <button type="submit" class="cdash-icon-btn" data-autosubmit-button>{% translate "Afficher" %}</button>
+          </form>
+        </nav>
+
+        {% if can_edit %}
+        <form method="post" id="commodity-factors-form" action="{% url 'dashboard:commodity_factors' commodity.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="lieu" value="{{ location_key }}">
+        {% endif %}
+          <div class="cdash-split">
+            {% for block in factor_blocks %}
+            <section class="cdash-level{% if block.is_endpoint %} cdash-level--endpoint{% endif %}" aria-labelledby="level-{{ forloop.counter }}">
+              <div class="cdash-level__band">
+                <h3 class="cdash-level__title" id="level-{{ forloop.counter }}">{{ block.title }}</h3>
+                <span class="cdash-meta">{% blocktranslate with unit=commodity.unit %}par {{ unit }}{% endblocktranslate %}</span>
+              </div>
+              {% if block.rows %}
+              <table class="cdash-table">
+                <thead>
+                  <tr>
+                    <th scope="col" class="cdash-label">{% translate "Catégorie" %}</th>
+                    <th scope="col" class="cdash-label cdash-table__num">{% translate "Facteur" %}</th>
+                    <th scope="col" class="cdash-label">{% translate "Source" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in block.rows %}
+                  <tr>
+                    <th scope="row" class="cdash-cat">{{ row.category.name }}{% if row.category.unit %}<small>{{ row.category.unit }}</small>{% endif %}</th>
+                    <td class="cdash-table__num">
+                      {% if can_edit %}
+                      <label class="visually-hidden" for="{{ row.value_field.id_for_label }}">{% blocktranslate with name=row.category.name %}Facteur : {{ name }}{% endblocktranslate %}</label>
+                      <input type="text" inputmode="decimal" class="cdash-input cdash-input--num"
+                             name="{{ row.value_field.html_name }}" id="{{ row.value_field.id_for_label }}"
+                             value="{{ row.value_field.value|default_if_none:'' }}"
+                             {% if row.inherited is not None %}placeholder="{{ row.inherited_display }} ← {{ row.inherited_from }}"{% else %}placeholder="—"{% endif %}>
+                      {% for error in row.value_field.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+                      {% elif row.value is not None %}
+                      <span class="cdash-value">{{ row.value_display }}</span>
+                      {% elif row.inherited is not None %}
+                      <span class="cdash-inherited">{{ row.inherited_display }}<em>{{ row.inherited_from }}</em></span>
+                      {% else %}<span class="cdash-empty">—</span>{% endif %}
+                    </td>
+                    <td class="cdash-table__src">
+                      {% if can_edit %}
+                      <label class="visually-hidden" for="{{ row.source_field.id_for_label }}">{% blocktranslate with name=row.category.name %}Source : {{ name }}{% endblocktranslate %}</label>
+                      {{ row.source_field }}
+                      {% elif row.source_code %}<span class="cdash-src">{{ row.source_code }}</span>{% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <p class="cdash-empty cdash-level__empty">{% translate "Aucune catégorie d'impact à ce niveau." %}</p>
+              {% endif %}
+            </section>
+            {% endfor %}
+          </div>
+        {% if can_edit %}
+          <div class="cdash-card__foot">
+            <button type="submit" class="btn btn--primary">{% blocktranslate with place=location_label %}Enregistrer les facteurs — {{ place }}{% endblocktranslate %}</button>
+          </div>
+        </form>
+        {% endif %}
+      </section>
+
+      <section class="cdash-card" aria-labelledby="commodity-modifiers-title">
+        <div class="cdash-card__head">
+          <h2 class="cdash-card__title" id="commodity-modifiers-title">{% translate "Modificateurs de pratiques" %}</h2>
+          <span class="cdash-meta">{% blocktranslate with name=commodity.name %}Propres à : {{ name }}{% endblocktranslate %}</span>
+        </div>
+        <div class="cdash-card__body">
+          <p class="cdash-help">{% translate "Propres à cette commodité. Les effets de plusieurs modificateurs cochés s'additionnent ; le facteur ne descend jamais sous 0." %}</p>
+          <div class="cdash-mods">
+            {% for card in modifier_cards %}
+            <article class="cdash-mod" aria-labelledby="modifier-{{ card.modifier.pk }}-name">
+              <div class="cdash-mod__top">
+                <div>
+                  <h3 class="cdash-mod__name" id="modifier-{{ card.modifier.pk }}-name">{{ card.modifier.name }}</h3>
+                  <p class="cdash-meta">
+                    {% if card.source_code %}{% blocktranslate with code=card.source_code %}Source {{ code }}{% endblocktranslate %} · {% endif %}
+                    {% blocktranslate count n=card.flow_count %}Coché sur {{ n }} flux{% plural %}Coché sur {{ n }} flux{% endblocktranslate %}
+                  </p>
+                </div>
+                {% if can_edit %}<button type="button" class="cdash-icon-btn" data-dialog-open="modifier-dialog-{{ card.modifier.pk }}" aria-label="{% blocktranslate with name=card.modifier.name %}Modifier {{ name }}{% endblocktranslate %}">✎</button>{% endif %}
+              </div>
+              {% if card.modifier.description %}<p class="cdash-mod__desc">{{ card.modifier.description }}</p>{% endif %}
+              <ul class="cdash-effects">
+                {% for item in card.effects %}
+                <li class="cdash-effect{% if item.effect.percent < 0 %} cdash-effect--down{% elif item.effect.percent > 0 %} cdash-effect--up{% endif %}"
+                    title="{{ item.level.label }}{% if item.adjusted_display %} · {% translate 'facteur ajusté' %} {{ item.adjusted_display }}{% endif %}">
+                  {{ item.effect.category.name }}<b>{{ item.percent_display }} %</b>
+                </li>
+                {% empty %}
+                <li class="cdash-empty">{% translate "Aucun effet." %}</li>
+                {% endfor %}
+              </ul>
+            </article>
+            {% endfor %}
+            {% if can_edit %}
+            <button type="button" class="cdash-mod cdash-mod--new" data-dialog-open="modifier-dialog-new">{% translate "+ Nouveau modificateur" %}</button>
+            {% elif not modifier_cards %}
+            <p class="cdash-empty">{% translate "Aucun modificateur." %}</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  {% if can_edit %}
+  {% for card in modifier_cards %}
+  {% url 'dashboard:commodity_modifier_update' commodity.pk card.modifier.pk as update_url %}
+  {% url 'dashboard:commodity_modifier_delete' commodity.pk card.modifier.pk as delete_url %}
+  {% translate "Enregistrer le modificateur" as save_label %}
+  {% blocktranslate with name=card.modifier.name asvar edit_title %}Modifier « {{ name }} »{% endblocktranslate %}
+  {% include "dashboard/_commodity_modifier_form.html" with form=card.form formset=card.formset action=update_url submit_label=save_label title=edit_title dialog_id=card.dialog_id open=card.has_errors delete_url=delete_url confirm=card.confirm %}
+  {% endfor %}
+  {% url 'dashboard:commodity_modifier_create' commodity.pk as create_url %}
+  {% translate "Créer le modificateur" as create_label %}
+  {% translate "Nouveau modificateur" as new_title %}
+  {% include "dashboard/_commodity_modifier_form.html" with form=new_modifier_form formset=new_effects_formset action=create_url submit_label=create_label title=new_title dialog_id="modifier-dialog-new" open=new_modifier_has_errors delete_url="" %}
+  {{ resolved_factors|json_script:"commodity-resolved-factors" }}
+  {% endif %}
 </div>
 {% endblock %}
 

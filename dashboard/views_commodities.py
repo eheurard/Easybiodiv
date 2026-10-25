@@ -18,7 +18,7 @@ from .models import (
     source_codes,
 )
 from .services.commodity_sheet import (
-    location_chips, location_key, modifier_cards, parse_location, save_factors,
+    location_chips, location_key, modifier_cards, parse_location, save_factors, sheet_kpis,
 )
 
 SOURCES_PREFIX = 'sources'
@@ -75,6 +75,7 @@ def _detail_context(request, commodity, *, identity_form=None, source_formset=No
     can_edit = _can_edit(request.user)
     cards = modifier_cards(commodity, location)
     for card in cards:
+        card['dialog_id'] = f'modifier-dialog-{card["modifier"].pk}'
         for item in card['effects']:
             percent = item['effect'].percent
             item['percent_display'] = (
@@ -97,7 +98,18 @@ def _detail_context(request, commodity, *, identity_form=None, source_formset=No
             else:
                 card['form'], card['formset'] = _modifier_forms(
                     commodity, card['modifier'], category_choices=choices)
+    factor_blocks = factor_form.bound_blocks()
+    identity_form = identity_form or CommodityIdentityForm(instance=commodity)
+    chips = location_chips(commodity, location)
     return {
+        'kpis': sheet_kpis(commodity, factor_blocks, len(cards)),
+        # Facteur résolu (propre, sinon hérité) par catégorie : aperçu de la modale.
+        'resolved_factors': {
+            str(row['category'].pk): (row['value'] if row['value'] is not None
+                                      else row['inherited'])
+            for block in factor_blocks for row in block['rows']},
+        'identity_editing': identity_form.is_bound and bool(identity_form.errors),
+        'sources_editing': source_formset.is_bound and not source_formset.is_valid(),
         'modifier_cards': cards,
         'new_modifier_form': new_form,
         'new_effects_formset': new_formset,
@@ -107,12 +119,13 @@ def _detail_context(request, commodity, *, identity_form=None, source_formset=No
         'lieu': request.GET.get('lieu', ''),
         'location': location,
         'location_key': location_key(location),
-        'chips': location_chips(commodity, location),
+        'chips': chips,
+        'location_label': next((c['label'] for c in chips if c['active']), _('Global')),
         'factor_form': factor_form,
-        'factor_blocks': factor_form.bound_blocks(),
+        'factor_blocks': factor_blocks,
         'location_countries': countries,
         'location_region_groups': region_groups,
-        'identity_form': identity_form or CommodityIdentityForm(instance=commodity),
+        'identity_form': identity_form,
         'source_formset': source_formset,
         'source_codes': codes,
         'sources': sources,

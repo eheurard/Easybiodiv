@@ -12,6 +12,7 @@ from .models import (
 )
 from .services.commodity_sheet import factor_rows
 
+
 def format_factor(value):
     """Facteur en 6 chiffres significatifs, séparateur localisé, sans exposant."""
     if value is None:
@@ -32,6 +33,16 @@ DEPENDENCY_FIELDS = (
 DEPENDENCY_LABELS = {
     'VL': _l('Très faible'), 'L': _l('Faible'), 'M': _l('Moyen'),
     'H': _l('Fort'), 'VH': _l('Très fort'),
+}
+DEPENDENCY_ORDER = ('VL', 'L', 'M', 'H', 'VH')
+# Libellés courts de la carte « Dépendances écosystémiques » de la fiche.
+DEPENDENCY_SHORT_LABELS = {
+    'dependency_water': _l('Eau'),
+    'dependency_pollination': _l('Pollinisation'),
+    'dependency_soil_quality': _l('Qualité des sols'),
+    'dependency_carbon_sequestration': _l('Séquestration carbone'),
+    'dependency_water_purification': _l("Épuration de l'eau"),
+    'dependency_pest_control': _l('Contrôle des ravageurs'),
 }
 LOSS_CLASS_LABELS = {
     'Agriculture': _l('Agriculture'),
@@ -95,10 +106,17 @@ class CommodityIdentityForm(forms.ModelForm):
 
     @property
     def dependency_display(self):
-        """Couples (libellé du champ, libellé du choix) pour la lecture seule."""
-        return [(self[name].label,
-                 DEPENDENCY_LABELS.get(getattr(self.instance, name), getattr(self.instance, name)))
-                for name in DEPENDENCY_FIELDS]
+        """Lecture seule : `{label, field, display, level}` par dépendance, `level` de 1 à 5."""
+        rows = []
+        for name in DEPENDENCY_FIELDS:
+            code = getattr(self.instance, name)
+            rows.append({
+                'label': DEPENDENCY_SHORT_LABELS[name],
+                'field': self[name],
+                'display': DEPENDENCY_LABELS.get(code, code),
+                'level': DEPENDENCY_ORDER.index(code) + 1 if code in DEPENDENCY_ORDER else 0,
+            })
+        return rows
 
     @property
     def biodiversity_loss_display(self):

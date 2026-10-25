@@ -703,7 +703,7 @@ class FactorGridViewTests(TestCase):
         self.client.logout()
         self.client.force_login(self.subscriber)
         page = self.client.get(self.detail, {'lieu': region})
-        self.assertContains(page, '0,0000003 ← Global')
+        self.assertContains(page, '0,0000003<em>Global</em>')
 
 
 class ModifierPageTests(TestCase):
@@ -883,7 +883,7 @@ class CommodityIdentityTranslationTests(TestCase):
     def test_english_read_only_labels(self):
         response = self._get(self.subscriber, 'en')
         self.assertContains(response, '<dd>Very low</dd>')
-        self.assertContains(response, 'Dependency — water supply')
+        self.assertContains(response, '<dt>Water<span')
         self.assertContains(response, '<dd>Agriculture</dd>')
         self.assertNotContains(response, 'Dépendance — ')
         self.assertNotContains(response, 'Classe de perte')
@@ -891,7 +891,7 @@ class CommodityIdentityTranslationTests(TestCase):
     def test_french_read_only_choices(self):
         response = self._get(self.subscriber, 'fr')
         self.assertContains(response, '<dd>Très faible</dd>')
-        self.assertContains(response, 'Dépendance — approvisionnement en eau')
+        self.assertContains(response, '<dt>Eau<span')
         self.assertNotContains(response, 'Very low')
 
     def test_english_creator_form(self):
@@ -1005,3 +1005,97 @@ class LeapLocateSplitSupplyTests(TestCase):
         data = _get_leap_locate_data(company)
         self.assertEqual(len(data['supplier_links']['features']), 1)
         self.assertEqual(len(data['suppliers']['features']), 1)
+
+
+class CommodityDashboardTests(TestCase):
+    """Fiche en tableau de bord : indicateurs d'en-tête, modales, édition en place."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.creator = user_model.objects.create_user('createur-d', password='x', role='CREATOR')
+        self.subscriber = user_model.objects.create_user('abonne-d', password='x')
+        self.soy = Commodity.objects.create(name='Soja')
+        self.brazil = Country.objects.create(name='Brésil')
+        self.mato = SubnationalRegion.objects.create(name='Mato Grosso', country=self.brazil)
+        method, _unused = ImpactMethod.objects.get_or_create(name='M')
+        self.mid = ImpactCategory.objects.create(
+            method=method, key='dash_mid', name='Usage des sols',
+            level=ImpactCategory.Level.MIDPOINT)
+        self.mid2 = ImpactCategory.objects.create(
+            method=method, key='dash_mid2', name='Climat', level=ImpactCategory.Level.MIDPOINT)
+        self.end = ImpactCategory.objects.create(
+            method=method, key='dash_end', name='Diversité', level=ImpactCategory.Level.ENDPOINT)
+        self.detail = reverse('dashboard:commodity_detail', args=[self.soy.pk])
+
+    def test_kpis_count_own_and_inherited_factors_at_location(self):
+        CharacterizationFactor.objects.create(commodity=self.soy, category=self.mid, value=1.0)
+        CharacterizationFactor.objects.create(
+            commodity=self.soy, category=self.mid2, country=self.brazil, value=2.0)
+        self.client.force_login(self.subscriber)
+        kpis = self.client.get(self.detail, {'lieu': f'region-{self.mato.pk}'}).context['kpis']
+        midpoints = ImpactCategory.objects.filter(level=ImpactCategory.Level.MIDPOINT).count()
+        self.assertEqual((kpis['midpoint']['filled'], kpis['midpoint']['total']), (2, midpoints))
+        self.assertEqual(kpis['endpoint']['filled'], 0)
+        self.assertEqual(kpis['locations'], ['Brésil'])
+        global_kpis = self.client.get(self.detail).context['kpis']
+        self.assertEqual(global_kpis['midpoint']['filled'], 1)
+
+    def test_kpis_count_distinct_flows_and_last_update(self):
+        bio = CommodityModifier.objects.create(commodity=self.soy, name='Bio')
+        rtrs = CommodityModifier.objects.create(commodity=self.soy, name='RTRS')
+        flow = make_production(commodity=self.soy, year=2024, production=1,
+                               company=Company.objects.create(name='C'))
+        flow.modifiers.add(bio, rtrs)
+        self.client.force_login(self.subscriber)
+        kpis = self.client.get(self.detail).context['kpis']
+        self.assertEqual((kpis['modifiers'], kpis['flows']), (2, 1))
+        self.assertIsNotNone(kpis['updated'])
+
+    def test_no_update_date_without_data(self):
+        self.client.force_login(self.subscriber)
+        response = self.client.get(self.detail)
+        self.assertIsNone(response.context['kpis']['updated'])
+        self.assertNotContains(response, 'Mis à jour le')
+
+    def test_creator_gets_modals_and_resolved_factors(self):
+        CharacterizationFactor.objects.create(commodity=self.soy, category=self.mid, value=3200)
+        CommodityModifier.objects.create(commodity=self.soy, name='Bio')
+        self.client.force_login(self.creator)
+        response = self.client.get(self.detail)
+        bio = CommodityModifier.objects.get(name='Bio')
+        self.assertContains(response, 'id="modifier-dialog-new"')
+        self.assertContains(response, f'id="modifier-dialog-{bio.pk}"')
+        self.assertContains(response, 'data-dialog-open="modifier-dialog-new"')
+        self.assertContains(response, 'id="commodity-resolved-factors"')
+        self.assertEqual(response.context['resolved_factors'][str(self.mid.pk)], 3200)
+        self.assertNotContains(response, 'data-open-on-load')
+        self.assertContains(response, 'data-editing="false"')
+
+    def test_subscriber_has_no_modal_nor_edit_button(self):
+        CommodityModifier.objects.create(commodity=self.soy, name='Bio')
+        self.client.force_login(self.subscriber)
+        response = self.client.get(self.detail)
+        self.assertNotContains(response, '<dialog')
+        self.assertNotContains(response, 'data-edit-toggle')
+        self.assertNotContains(response, 'Nouveau modificateur')
+
+    def test_invalid_new_modifier_reopens_its_modal(self):
+        self.client.force_login(self.creator)
+        url = reverse('dashboard:commodity_modifier_create', args=[self.soy.pk])
+        response = self.client.post(url, {
+            'mod-new-name': '', 'effects-new-TOTAL_FORMS': '0',
+            'effects-new-INITIAL_FORMS': '0', 'effects-new-MIN_NUM_FORMS': '0',
+            'effects-new-MAX_NUM_FORMS': '1000'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, 'id="modifier-dialog-new" aria-labelledby="modifier-dialog-new-title"'
+                      ' data-open-on-load')
+
+    def test_invalid_identity_opens_edit_mode(self):
+        self.client.force_login(self.creator)
+        url = reverse('dashboard:commodity_identity', args=[self.soy.pk])
+        response = self.client.post(url, {'name': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['identity_editing'])
+        self.assertFalse(response.context['sources_editing'])
+        self.assertContains(response, 'data-editing="true"', count=1)

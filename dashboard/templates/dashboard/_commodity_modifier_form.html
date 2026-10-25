@@ -1,60 +1,81 @@
 {% load i18n %}
-{# Formulaire d'un modificateur : variables `form`, `formset`, `action`, `submit_label`. #}
-<form method="post" action="{{ action }}{% if lieu %}?lieu={{ lieu|urlencode }}{% endif %}">
-  {% csrf_token %}
-  {% if form.non_field_errors %}<p class="commodity-error" role="alert">{{ form.non_field_errors|join:" " }}</p>{% endif %}
-  <label class="modifier-field">
-    <span class="modifier-field__label">{% translate "Nom" %}</span>
-    {{ form.name }}
-    {% for error in form.name.errors %}<span class="commodity-error" role="alert">{{ error }}</span>{% endfor %}
-  </label>
-  <label class="modifier-field">
-    <span class="modifier-field__label">{% translate "Description" %}</span>
-    {{ form.description }}
-  </label>
-  <label class="modifier-field">
-    <span class="modifier-field__label">{% translate "Source" %}</span>
-    {{ form.source }}
-    {% for error in form.source.errors %}<span class="commodity-error" role="alert">{{ error }}</span>{% endfor %}
-  </label>
+{# Modale d'un modificateur (création ou modification). Variables : `form`, `formset`, `action`, #}
+{# `submit_label`, `title`, `dialog_id`, `open` (rouverte sur erreur), `delete_url`, `confirm`. #}
+<dialog class="cdialog" id="{{ dialog_id }}" aria-labelledby="{{ dialog_id }}-title"{% if open %} data-open-on-load{% endif %}>
+  <form method="post" class="cdialog__form" action="{{ action }}{% if lieu %}?lieu={{ lieu|urlencode }}{% endif %}"
+        data-effects-prefix="{{ formset.prefix }}">
+    {% csrf_token %}
+    <header class="cdialog__head">
+      <div>
+        <span class="cdash-label">{{ commodity.name }}</span>
+        <h2 class="cdialog__title" id="{{ dialog_id }}-title">{{ title }}</h2>
+        <p class="cdash-meta">{% blocktranslate with place=location_label %}Aperçu calculé sur le lieu affiché : {{ place }}{% endblocktranslate %}</p>
+      </div>
+      <button type="button" class="cdialog__close" data-dialog-close aria-label="{% translate 'Fermer' %}">&times;</button>
+    </header>
 
-  {{ formset.management_form }}
-  {% if formset.non_form_errors %}<p class="commodity-error" role="alert">{{ formset.non_form_errors|join:" " }}</p>{% endif %}
-  <table class="commodity-table">
-    <thead>
-      <tr>
-        <th scope="col">{% translate "Catégorie d'impact" %}</th>
-        <th scope="col">{% translate "Variation (%)" %}</th>
-        <th scope="col">{% translate "Supprimer" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for eform in formset %}
-      <tr>
-        <td>
-          {% for hidden in eform.hidden_fields %}{{ hidden }}{% endfor %}
-          <label class="visually-hidden" for="{{ eform.category.id_for_label }}">{% translate "Catégorie d'impact" %}</label>
-          {{ eform.category }}
-          {% for error in eform.category.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
-          {% for error in eform.non_field_errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
-        </td>
-        <td>
-          <label class="visually-hidden" for="{{ eform.percent.id_for_label }}">{% translate "Variation (%)" %}</label>
-          {{ eform.percent }}
-          {% for error in eform.percent.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
-        </td>
-        <td>
-          {% if eform.instance.pk %}
-          <label class="visually-hidden" for="{{ eform.DELETE.id_for_label }}">{% translate "Supprimer cet effet" %}</label>
-          {{ eform.DELETE }}
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  <p class="commodity-help">{% translate "La dernière ligne vide sert à ajouter un effet. Virgule décimale acceptée ; −100 au minimum." %}</p>
-  <div class="commodity-actions">
-    <button type="submit" class="btn btn--primary">{{ submit_label }}</button>
-  </div>
-</form>
+    <div class="cdialog__body">
+      {% if form.non_field_errors %}<p class="commodity-error" role="alert">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+      <div class="cdialog__row">
+        <div class="cdash-field">
+          <label class="cdash-label" for="{{ form.name.id_for_label }}">{% translate "Nom" %}</label>
+          {{ form.name }}
+          {% for error in form.name.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="cdash-field">
+          <label class="cdash-label" for="{{ form.source.id_for_label }}">{% translate "Source" %}</label>
+          {{ form.source }}
+          {% for error in form.source.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+        </div>
+      </div>
+      <div class="cdash-field">
+        <label class="cdash-label" for="{{ form.description.id_for_label }}">{% translate "Description" %}</label>
+        {{ form.description }}
+      </div>
+
+      <fieldset class="cdialog__effects">
+        <legend class="cdash-label">{% translate "Effets par catégorie" %}</legend>
+        {{ formset.management_form }}
+        {% if formset.non_form_errors %}<p class="commodity-error" role="alert">{{ formset.non_form_errors|join:" " }}</p>{% endif %}
+        <table class="cdialog__table">
+          <thead>
+            <tr>
+              <th scope="col" class="cdash-label">{% translate "Catégorie d'impact" %}</th>
+              <th scope="col" class="cdash-label">{% translate "Effet" %}</th>
+              <th scope="col" class="cdash-label">{% translate "Facteur ajusté" %}</th>
+              <th scope="col"><span class="visually-hidden">{% translate "Retirer" %}</span></th>
+            </tr>
+          </thead>
+          <tbody data-effects-rows>
+            {% for eform in formset %}
+            {% include "dashboard/_commodity_effect_row.html" with eform=eform %}
+            {% endfor %}
+          </tbody>
+        </table>
+        <template data-effects-template>
+          {% include "dashboard/_commodity_effect_row.html" with eform=formset.empty_form %}
+        </template>
+        <button type="button" class="cdash-add" data-effects-add>{% translate "+ Ajouter un effet" %}</button>
+      </fieldset>
+
+      <p class="cdialog__info">{% translate "Les catégories non listées restent inchangées. Un effet doit être supérieur ou égal à −100 % ; virgule décimale acceptée." %}</p>
+    </div>
+
+    <footer class="cdialog__foot">
+      <div>
+        {% if delete_url %}
+        <button type="submit" class="btn btn--danger-ghost" form="{{ dialog_id }}-delete" data-confirm="{{ confirm }}">{% translate "Supprimer le modificateur" %}</button>
+        {% endif %}
+      </div>
+      <div class="cdialog__actions">
+        <button type="button" class="btn btn--secondary" data-dialog-close>{% translate "Annuler" %}</button>
+        <button type="submit" class="btn btn--primary">{{ submit_label }}</button>
+      </div>
+    </footer>
+  </form>
+  {% if delete_url %}
+  <form method="post" id="{{ dialog_id }}-delete" action="{{ delete_url }}{% if lieu %}?lieu={{ lieu|urlencode }}{% endif %}" hidden>
+    {% csrf_token %}
+  </form>
+  {% endif %}
+</dialog>

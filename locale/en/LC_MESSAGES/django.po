@@ -3108,3 +3108,114 @@ msgstr "Unit in which the productions and exchanges of this commodity are expres
 
 msgid "Détermine lequel des trois taux de perte du pays s’applique : agriculture, urbanisation ou extraction minière."
 msgstr "Determines which of the country's three loss rates applies: agriculture, urbanization or mining."
+
+#, python-format
+msgid "Unité : %(unit)s"
+msgstr "Unit: %(unit)s"
+
+#, python-format
+msgid "Mis à jour le %(date)s"
+msgstr "Updated %(date)s"
+
+msgid "Clé technique (non modifiable)"
+msgstr "Technical key (read-only)"
+
+msgid "Clé"
+msgstr "Key"
+
+msgid "Facteurs midpoint"
+msgstr "Midpoint factors"
+
+msgid "Facteurs endpoint"
+msgstr "Endpoint factors"
+
+msgid "Lieux régionalisés"
+msgstr "Regionalised locations"
+
+msgid "Global uniquement"
+msgstr "Global only"
+
+msgid "Dépendances écosystémiques"
+msgstr "Ecosystem dependencies"
+
+msgid "Modifier les dépendances"
+msgstr "Edit dependencies"
+
+msgid "Facteurs d'impact"
+msgstr "Impact factors"
+
+msgid "Lieu"
+msgstr "Location"
+
+#, python-format
+msgid "par %(unit)s"
+msgstr "per %(unit)s"
+
+msgid "Catégorie"
+msgstr "Category"
+
+#, python-format
+msgid "Enregistrer les facteurs — %(place)s"
+msgstr "Save factors — %(place)s"
+
+msgid "Modificateurs de pratiques"
+msgstr "Practice modifiers"
+
+#, python-format
+msgid "Propres à : %(name)s"
+msgstr "Specific to: %(name)s"
+
+#, python-format
+msgid "Source %(code)s"
+msgstr "Source %(code)s"
+
+#, python-format
+msgid "Modifier %(name)s"
+msgstr "Edit %(name)s"
+
+msgid "facteur ajusté"
+msgstr "adjusted factor"
+
+#, python-format
+msgid "Modifier « %(name)s »"
+msgstr "Edit “%(name)s”"
+
+msgid "Nouveau modificateur"
+msgstr "New modifier"
+
+#, python-format
+msgid "Aperçu calculé sur le lieu affiché : %(place)s"
+msgstr "Preview computed for the displayed location: %(place)s"
+
+msgid "Fermer"
+msgstr "Close"
+
+msgid "Effets par catégorie"
+msgstr "Effects by category"
+
+msgid "Effet"
+msgstr "Effect"
+
+msgid "Retirer"
+msgstr "Remove"
+
+msgid "+ Ajouter un effet"
+msgstr "+ Add an effect"
+
+msgid "Les catégories non listées restent inchangées. Un effet doit être supérieur ou égal à −100 % ; virgule décimale acceptée."
+msgstr "Unlisted categories stay unchanged. An effect must be greater than or equal to −100%; decimal comma accepted."
+
+msgid "Retirer cet effet"
+msgstr "Remove this effect"
+
+#, python-format
+msgid "%(n)s source"
+msgid_plural "%(n)s sources"
+msgstr[0] "%(n)s source"
+msgstr[1] "%(n)s sources"
+
+#, python-format
+msgid "cochés sur %(n)s flux"
+msgid_plural "cochés sur %(n)s flux"
+msgstr[0] "ticked on %(n)s flow"
+msgstr[1] "ticked on %(n)s flows"
