@@ -3048,3 +3048,12 @@ msgstr "This commodity no longer exists."
 #, python-format
 msgid "Modificateur introuvable pour la commodité « %(what)s » : « %(name)s »"
 msgstr "Modifier not found for commodity \"%(what)s\": \"%(name)s\""
+
+msgid "Enregistrer l'identité"
+msgstr "Save identity"
+
+msgid "Aucune catégorie d'impact à ce niveau."
+msgstr "No impact category at this level."
+
+msgid "Propres à cette commodité. Les effets de plusieurs modificateurs cochés s'additionnent ; le facteur ne descend jamais sous 0."
+msgstr "Specific to this commodity. The effects of several ticked modifiers add up; the factor never drops below 0."
