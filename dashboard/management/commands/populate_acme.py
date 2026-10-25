@@ -639,17 +639,23 @@ class Command(BaseCommand):
                 (certified, True, "Achats certifiés RTRS auprès de producteurs tiers"),
                 (standard, False, "Achats classiques auprès de producteurs tiers de la région"),
             ]:
-                flow, created = Flow.objects.get_or_create(
+                lookup = dict(
                     kind=FlowKind.SUPPLY, what=soja, year=year, tier=2,
                     from_region=mato_grosso, to_asset=a_bretagne,
-                    **({'modifiers__isnull': False} if ticked else {'modifiers__isnull': True}),
-                    defaults={
-                        'quantity': float(qty), 'source': DEMO_SOURCE,
-                        'reference': reference, 'created_by': demo_user,
-                    },
+                    modifiers__isnull=not ticked,
                 )
-                if created and ticked:
-                    flow.modifiers.add(rtrs)
+                defaults = {
+                    'quantity': float(qty), 'source': DEMO_SOURCE,
+                    'reference': reference, 'created_by': demo_user,
+                }
+                if ticked:
+                    flow, created = Flow.objects.get_or_create(defaults=defaults, **lookup)
+                    if created:
+                        flow.modifiers.add(rtrs)
+                else:
+                    # La ligne classique converge vers sa part même si une base antérieure
+                    # à la scission y garde la ligne unique 40 000 / 45 000.
+                    Flow.objects.update_or_create(defaults=defaults, **lookup)
 
         # ── Revenus ───────────────────────────────────────────────────────────
 

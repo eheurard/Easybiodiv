@@ -924,3 +924,41 @@ class ModifierEffectCategoryChoicesTests(TestCase):
         response = self.client.get(self.url)
         self.assertContains(response, f'>{self.category.name}</option>')
         self.assertNotContains(response, f'— {self.category.key}</option>')
+
+
+class PopulateAcmeSoyTests(TestCase):
+    """Le soja du Mato Grosso garde les totaux 40 000 / 45 000 à chaque exécution."""
+
+    def _soy_supply(self):
+        from django.db.models import Sum
+        rows = Flow.objects.filter(
+            kind='SUPPLY', what__name='Soja', from_region__name='Mato Grosso',
+            to_asset__name__icontains='Bretagne')
+        totals = {row['year']: row['total'] for row in
+                  rows.values('year').annotate(total=Sum('quantity'))}
+        return rows, totals
+
+    def _assert_split(self):
+        rows, totals = self._soy_supply()
+        self.assertEqual(totals, {2023: 40_000, 2024: 45_000})
+        for year in (2023, 2024):
+            self.assertEqual(rows.filter(year=year, modifiers__isnull=False).count(), 1)
+            self.assertEqual(rows.filter(year=year, modifiers__isnull=True).count(), 1)
+
+    def test_fresh_and_second_run(self):
+        from django.core.management import call_command
+        call_command('populate_acme')
+        self._assert_split()
+        call_command('populate_acme')
+        self._assert_split()
+
+    def test_rerun_on_legacy_unsplit_database(self):
+        from django.core.management import call_command
+        call_command('populate_acme')
+        rows, _ = self._soy_supply()
+        rows.filter(modifiers__isnull=False).delete()
+        for year, total in ((2023, 40_000), (2024, 45_000)):
+            rows.filter(year=year).update(quantity=total)
+        self.assertEqual(self._soy_supply()[1], {2023: 40_000, 2024: 45_000})
+        call_command('populate_acme')
+        self._assert_split()
