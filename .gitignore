@@ -68,3 +68,4 @@ dashboard/management/commands/populate_*.py
 dashboard/tests_antofagasta.py
 dashboard/tests_rio_tinto.py
 dashboard/tests_bhp.py
+.superpowers/

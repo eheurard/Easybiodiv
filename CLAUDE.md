@@ -84,6 +84,7 @@ easybiodiv/
 │   ├── tests_flow.py
 │   ├── tests_flow_map.py
 │   ├── tests_ownership.py
+│   ├── tests_commodities.py
 │   └── tests_stress_test.py
 ├── imports/                 # Upload Excel, parsing, validation, mapping
 │   ├── services/ templates/
@@ -160,6 +161,17 @@ statiques ; coordonnées de l'éditeur dans `settings.LEGAL`).
 - Inventaire mesuré (eau, énergie, CO₂, déchets, surface) et approvisionnement :
   flux `Flow` (CONSUMPTION, EMISSION, WASTE, SUPPLY). Les commodités techniques
   lues par le code ont une `Commodity.key` (`TECHNICAL_COMMODITIES`).
+- `CommoditySource` : sources documentées d'une commodité (Agribalyse, ecoinvent,
+  article, certification…) ; `CharacterizationFactor.commodity_source` indique d'où
+  vient un facteur. `CommodityModifier` + `ModifierEffect` : modificateurs propres à
+  une commodité (ex. « Certifié RTRS »), chacun portant des variations en pourcentage
+  par `ImpactCategory`. Ils se cochent sur les flux (`Flow.modifiers`, M2M) et
+  ajustent le facteur : `facteur × max(0, 1 + Σ percent / 100)` (voir
+  `services/impacts.py`, `modifier_multiplier` et `flow_cf_value`). Seuls les flux
+  PRODUCTION des actifs détenus voient leur impact ajusté ; ailleurs les
+  modificateurs sont de simples labels. Édition sur la page `/commodites/`
+  (`views_commodities.py`, `services/commodity_sheet.py`) ; cases à cocher dans la
+  *Carte des flux* ; colonne `modifiers` de la feuille Flow de l'import Excel.
 
 ### Conformité et risque
 
@@ -250,6 +262,7 @@ statiques ; coordonnées de l'éditeur dans `settings.LEGAL`).
   (`test_models.py`, `test_views.py`, `test_forms.py`…). `dashboard` utilise encore
   des fichiers plats à la racine de l'app (`tests.py`, `tests_admin_console.py`,
   `tests_stress_test.py`, `tests_flow.py`, `tests_flow_map.py`, `tests_ownership.py`,
+  `tests_commodities.py`,
   `tests_backup.py`)
   — d'où le `python_files` élargi dans `pytest.ini`. `dashboard/testing.py` porte
   les fabriques `make_*` utilisées par ces tests ; il ne correspond à aucun de ces
