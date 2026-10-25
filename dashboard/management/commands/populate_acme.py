@@ -6,7 +6,8 @@ from django.db import transaction
 
 from dashboard.models import (
     Asset, CharacterizationFactor, Commodity, Company, Company_Policy,
-    Company_Revenue, Company_Revenue_Sector, Country, Currency,
+    Company_Revenue, Company_Revenue_Sector, CommodityModifier, CommoditySource,
+    Country, Currency, ModifierEffect,
     DisclosureRequirement, E4Assessment, ESG_data, Flow, FlowKind, FlowScope,
     ImpactCategory, Ownership, Policy_Level, Policy_Subcategory, Policy_Type,
     Portfolio, PortfolioHolding, Sector, SectorCreditProfile, SubSector,
@@ -595,8 +596,6 @@ class Command(BaseCommand):
              165_000, 172_000, "Soja du Mato Grosso trituré en Bretagne"),
             (soja, {'from_asset': a_para}, {'to_company': acme}, 1,
              88_000, 94_000, "Soja du Pará vendu depuis le négoce groupe"),
-            (soja, {'from_region': mato_grosso}, {'to_asset': a_bretagne}, 2,
-             40_000, 45_000, "Achats auprès de producteurs tiers de la région"),
             (palme, {'from_region': sumatra}, {'to_asset': a_bretagne}, 2,
              55_000, 60_000, "Achats auprès de petits planteurs de Riau"),
             (ble, {'from_country': france}, {'to_asset': a_occitanie}, 3,
@@ -611,6 +610,46 @@ class Command(BaseCommand):
                     FlowKind.SUPPLY, what, year, qty, reference, demo_user,
                     tier=tier, **origin, **destination,
                 )
+
+        # Soja de la région du Mato Grosso : une part certifiée RTRS, une part
+        # classique. Les totaux (40 000 / 45 000) sont ceux d'une ligne unique ;
+        # la ligne certifiée coche le modificateur « Certifié RTRS ».
+        rtrs_source, _ = CommoditySource.objects.get_or_create(
+            commodity=soja, title="Rapport RTRS",
+            defaults={
+                'kind': CommoditySource.Kind.CERTIFICATION,
+                'created_by': demo_user,
+            },
+        )
+        rtrs, _ = CommodityModifier.objects.get_or_create(
+            commodity=soja, name="Certifié RTRS",
+            defaults={'source': rtrs_source, 'created_by': demo_user},
+        )
+        for category_key, percent in [
+            ('impact_midpoint_ReCiPe2016_land_use', -10.0),
+            ('impact_endpoint_ReCiPe2016_ecosystem_diversity', -15.0),
+        ]:
+            ModifierEffect.objects.get_or_create(
+                modifier=rtrs,
+                category=ImpactCategory.objects.get(key=category_key),
+                defaults={'percent': percent, 'created_by': demo_user},
+            )
+        for year, certified, standard in [(2023, 25_000, 15_000), (2024, 30_000, 15_000)]:
+            for qty, ticked, reference in [
+                (certified, True, "Achats certifiés RTRS auprès de producteurs tiers"),
+                (standard, False, "Achats classiques auprès de producteurs tiers de la région"),
+            ]:
+                flow, created = Flow.objects.get_or_create(
+                    kind=FlowKind.SUPPLY, what=soja, year=year, tier=2,
+                    from_region=mato_grosso, to_asset=a_bretagne,
+                    **({'modifiers__isnull': False} if ticked else {'modifiers__isnull': True}),
+                    defaults={
+                        'quantity': float(qty), 'source': DEMO_SOURCE,
+                        'reference': reference, 'created_by': demo_user,
+                    },
+                )
+                if created and ticked:
+                    flow.modifiers.add(rtrs)
 
         # ── Revenus ───────────────────────────────────────────────────────────
 

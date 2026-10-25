@@ -215,6 +215,27 @@
         "geometry": {
           "coordinates": [
             [
+              102.0,
+              0.5
+            ],
+            [
+              -2.76,
+              48.51
+            ]
+          ],
+          "type": "LineString"
+        },
+        "properties": {
+          "asset": "Usine de transformation Bretagne",
+          "commodity": "Huile de palme",
+          "supplier": "Sumatra"
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            [
               -55.0,
               -12.5
             ],
@@ -236,8 +257,8 @@
         "geometry": {
           "coordinates": [
             [
-              102.0,
-              0.5
+              -55.0,
+              -12.5
             ],
             [
               -2.76,
@@ -248,8 +269,8 @@
         },
         "properties": {
           "asset": "Usine de transformation Bretagne",
-          "commodity": "Huile de palme",
-          "supplier": "Sumatra"
+          "commodity": "Soja",
+          "supplier": "Mato Grosso"
         },
         "type": "Feature"
       }
@@ -258,24 +279,6 @@
   },
   "suppliers": {
     "features": [
-      {
-        "geometry": {
-          "coordinates": [
-            -55.0,
-            -12.5
-          ],
-          "type": "Point"
-        },
-        "properties": {
-          "commodities": [
-            "Soja"
-          ],
-          "country": "Brésil",
-          "id": "region-3",
-          "name": "Mato Grosso"
-        },
-        "type": "Feature"
-      },
       {
         "geometry": {
           "coordinates": [
@@ -291,6 +294,24 @@
           "country": "Indonésie",
           "id": "region-5",
           "name": "Sumatra"
+        },
+        "type": "Feature"
+      },
+      {
+        "geometry": {
+          "coordinates": [
+            -55.0,
+            -12.5
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "commodities": [
+            "Soja"
+          ],
+          "country": "Brésil",
+          "id": "region-3",
+          "name": "Mato Grosso"
         },
         "type": "Feature"
       }
