@@ -1,6 +1,7 @@
 import importlib
 
 from django.apps import apps
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connection, transaction
@@ -390,7 +391,7 @@ class CommodityPageTests(TestCase):
     def test_detail_read_only_shows_dependency_labels(self):
         self.client.force_login(self.subscriber)
         response = self.client.get(self.detail_url)
-        self.assertContains(response, '<dd>Very low</dd>')
+        self.assertContains(response, '<dd>Très faible</dd>')
         self.assertNotContains(response, '<dd>VL</dd>')
 
     def test_detail_editable_for_creator(self):
@@ -842,3 +843,49 @@ class ModifierPageTests(TestCase):
         page = self.client.get(self.detail)
         self.assertContains(page, '+20 %')
         self.assertContains(page, '−10 %')
+
+
+class CommodityIdentityTranslationTests(TestCase):
+    """Les libellés et choix du formulaire d'identité suivent la langue de l'interface."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.creator = user_model.objects.create_user('cr_i18n', password='x', role='CREATOR')
+        self.subscriber = user_model.objects.create_user('ab_i18n', password='x')
+        self.soy = Commodity.objects.create(name='Soja')
+        self.url = reverse('dashboard:commodity_detail', args=[self.soy.pk])
+
+    def _get(self, user, language):
+        self.client.force_login(user)
+        self.client.cookies[settings.LANGUAGE_COOKIE_NAME] = language
+        return self.client.get(self.url)
+
+    def test_english_read_only_labels(self):
+        response = self._get(self.subscriber, 'en')
+        self.assertContains(response, '<dd>Very low</dd>')
+        self.assertContains(response, 'Dependency — water supply')
+        self.assertContains(response, '<dd>Agriculture</dd>')
+        self.assertNotContains(response, 'Dépendance — ')
+        self.assertNotContains(response, 'Classe de perte')
+
+    def test_french_read_only_choices(self):
+        response = self._get(self.subscriber, 'fr')
+        self.assertContains(response, '<dd>Très faible</dd>')
+        self.assertContains(response, 'Dépendance — approvisionnement en eau')
+        self.assertNotContains(response, 'Very low')
+
+    def test_english_creator_form(self):
+        response = self._get(self.creator, 'en')
+        self.assertContains(response, '>Very low</option>')
+        self.assertContains(response, '>Very high</option>')
+        self.assertContains(response, '>Urbanization</option>')
+        self.assertContains(response, 'Unit of measure')
+        self.assertNotContains(response, 'Dépendance — ')
+        self.assertNotContains(response, 'Unité de mesure')
+        self.assertNotContains(response, 'Détermine lequel')
+
+    def test_french_creator_form_keeps_codes(self):
+        response = self._get(self.creator, 'fr')
+        self.assertContains(response, '<option value="VL" selected>Très faible</option>')
+        self.assertContains(response, '<option value="Mining">Extraction minière</option>')
+        self.assertNotContains(response, 'Very low')

@@ -32,7 +32,7 @@
       <dt>{% translate "Unité" %}</dt><dd>{{ commodity.unit }}</dd>
       {% if commodity.description %}<dt>{% translate "Description" %}</dt><dd>{{ commodity.description }}</dd>{% endif %}
       <dt>{{ identity_form.biodiversity_loss_class.label }}</dt>
-      <dd>{{ commodity.get_biodiversity_loss_class_display }}</dd>
+      <dd>{{ identity_form.biodiversity_loss_display }}</dd>
     </dl>
     <details class="commodity-deps">
       <summary>{% translate "Dépendances aux services écosystémiques" %}</summary>

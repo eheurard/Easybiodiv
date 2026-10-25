@@ -3057,3 +3057,54 @@ msgstr "No impact category at this level."
 
 msgid "Propres à cette commodité. Les effets de plusieurs modificateurs cochés s'additionnent ; le facteur ne descend jamais sous 0."
 msgstr "Specific to this commodity. The effects of several ticked modifiers add up; the factor never drops below 0."
+
+msgid "Très faible"
+msgstr "Very low"
+
+msgid "Moyen"
+msgstr "Medium"
+
+msgid "Fort"
+msgstr "High"
+
+msgid "Très fort"
+msgstr "Very high"
+
+msgid "Agriculture"
+msgstr "Agriculture"
+
+msgid "Urbanisation"
+msgstr "Urbanization"
+
+msgid "Extraction minière"
+msgstr "Mining"
+
+msgid "Unité de mesure"
+msgstr "Unit of measure"
+
+msgid "Classe de perte de biodiversité pour le calcul de dette biodiversité"
+msgstr "Biodiversity loss class for the biodiversity debt calculation"
+
+msgid "Dépendance — approvisionnement en eau"
+msgstr "Dependency — water supply"
+
+msgid "Dépendance — pollinisation"
+msgstr "Dependency — pollination"
+
+msgid "Dépendance — qualité des sols"
+msgstr "Dependency — soil quality"
+
+msgid "Dépendance — séquestration carbone"
+msgstr "Dependency — carbon sequestration"
+
+msgid "Dépendance — épuration de l'eau"
+msgstr "Dependency — water purification"
+
+msgid "Dépendance — contrôle des ravageurs"
+msgstr "Dependency — pest control"
+
+msgid "Unité dans laquelle les productions et les échanges de cette commodité sont exprimés (par défaut : tonnes)."
+msgstr "Unit in which the productions and exchanges of this commodity are expressed (default: tonnes)."
+
+msgid "Détermine lequel des trois taux de perte du pays s’applique : agriculture, urbanisation ou extraction minière."
+msgstr "Determines which of the country's three loss rates applies: agriculture, urbanization or mining."

@@ -4,6 +4,7 @@ from django import forms
 from django.forms import inlineformset_factory
 from django.utils.formats import number_format
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _l
 
 from .models import (
     Commodity, CommodityModifier, CommoditySource, ImpactCategory, ModifierEffect,
@@ -26,6 +27,27 @@ DEPENDENCY_FIELDS = (
 )
 
 
+# Libellés traduits (msgid en français) : les verbose_name du modèle sont du français brut
+# et les codes de DEPENDENCY_CHOICES des mots anglais ; les codes stockés ne changent pas.
+DEPENDENCY_LABELS = {
+    'VL': _l('Très faible'), 'L': _l('Faible'), 'M': _l('Moyen'),
+    'H': _l('Fort'), 'VH': _l('Très fort'),
+}
+LOSS_CLASS_LABELS = {
+    'Agriculture': _l('Agriculture'),
+    'Urbanisation': _l('Urbanisation'),
+    'Mining': _l('Extraction minière'),
+}
+DEPENDENCY_FIELD_LABELS = {
+    'dependency_water': _l('Dépendance — approvisionnement en eau'),
+    'dependency_pollination': _l('Dépendance — pollinisation'),
+    'dependency_soil_quality': _l('Dépendance — qualité des sols'),
+    'dependency_carbon_sequestration': _l('Dépendance — séquestration carbone'),
+    'dependency_water_purification': _l("Dépendance — épuration de l'eau"),
+    'dependency_pest_control': _l('Dépendance — contrôle des ravageurs'),
+}
+
+
 class CommodityIdentityForm(forms.ModelForm):
     """Identité d'une commodité. La clé technique n'est jamais éditable."""
 
@@ -33,10 +55,29 @@ class CommodityIdentityForm(forms.ModelForm):
         model = Commodity
         fields = ('name', 'unit', 'description', 'biodiversity_loss_class') + DEPENDENCY_FIELDS
         widgets = {'description': forms.Textarea(attrs={'rows': 3})}
+        labels = {
+            'name': _l('Nom'),
+            'unit': _l('Unité de mesure'),
+            'description': _l('Description'),
+            'biodiversity_loss_class': _l(
+                'Classe de perte de biodiversité pour le calcul de dette biodiversité'),
+            **DEPENDENCY_FIELD_LABELS,
+        }
+        help_texts = {
+            'unit': _l(
+                'Unité dans laquelle les productions et les échanges de cette '
+                'commodité sont exprimés (par défaut : tonnes).'),
+            'biodiversity_loss_class': _l(
+                'Détermine lequel des trois taux de perte du pays s’applique : '
+                'agriculture, urbanisation ou extraction minière.'),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['unit'].required = False
+        for name in DEPENDENCY_FIELDS:
+            self.fields[name].choices = list(DEPENDENCY_LABELS.items())
+        self.fields['biodiversity_loss_class'].choices = list(LOSS_CLASS_LABELS.items())
         for field in self.fields.values():
             field.widget.attrs.setdefault(
                 'class', 'form-input')
@@ -55,8 +96,14 @@ class CommodityIdentityForm(forms.ModelForm):
     @property
     def dependency_display(self):
         """Couples (libellé du champ, libellé du choix) pour la lecture seule."""
-        return [(self[name].label, getattr(self.instance, f'get_{name}_display')())
+        return [(self[name].label,
+                 DEPENDENCY_LABELS.get(getattr(self.instance, name), getattr(self.instance, name)))
                 for name in DEPENDENCY_FIELDS]
+
+    @property
+    def biodiversity_loss_display(self):
+        value = self.instance.biodiversity_loss_class
+        return LOSS_CLASS_LABELS.get(value, value)
 
     @property
     def dependency_has_errors(self):
