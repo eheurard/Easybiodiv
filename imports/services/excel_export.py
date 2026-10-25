@@ -127,14 +127,16 @@ def _commodity_row(c):
 
 
 def _cf_row(cf):
+    # La source saisie sur la fiche commodité (FK) prime sur le texte historique.
+    linked = cf.commodity_source
     return {
         'category_key': cf.category.key,
         'commodity_name': cf.commodity.name,
         'country_name': _name(cf.country),
         'subnational_region_name': _name(cf.region),
         'value': cf.value,
-        'source': cf.source,
-        'reference': cf.reference,
+        'source': linked.title if linked else cf.source,
+        'reference': linked.reference if linked else cf.reference,
     }
 
 
@@ -249,7 +251,7 @@ _SHEETS = {
     'Commodity': (lambda: Commodity.objects.order_by('pk'), _commodity_row),
     'CharacterizationFactor': (
         lambda: CharacterizationFactor.objects.select_related(
-            'category', 'commodity', 'country', 'region').order_by('pk'),
+            'category', 'commodity', 'country', 'region', 'commodity_source').order_by('pk'),
         _cf_row),
     'Policy_Type': (lambda: Policy_Type.objects.order_by('pk'), _plain_row('Policy_Type')),
     'Policy_Subcategory': (

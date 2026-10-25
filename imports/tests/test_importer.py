@@ -1,7 +1,7 @@
 from django.test import TestCase
 from dashboard.models import (
     Asset, CharacterizationFactor, ClimateScenario, Commodity, CommoditySource,
-    Company, Company_Policy, Country, Policy_Level, Policy_Subcategory,
+    Company, Company_Policy, Country, ImpactCategory, Policy_Level, Policy_Subcategory,
     Policy_Type, ScenarioVariable, Sector, SectorCreditProfile,
     SubnationalRegion,
 )
@@ -279,3 +279,42 @@ class ImporterCompanyPolicyTest(TestCase):
         ]})
         self.assertEqual(counts['Company_Policy'], 1)
         self.assertEqual(Company_Policy.objects.get().comment, 'validé en CA')
+
+
+class ImporterCharacterizationSourceTest(TestCase):
+    def setUp(self):
+        self.commodity = Commodity.objects.create(name='Soy')
+
+    def _row(self, **extra):
+        data = {'category_key': CAT_ECOSYSTEM, 'commodity_name': 'Soy',
+                'country_name': '', 'subnational_region_name': '', 'value': '1',
+                'source': 'Agribalyse', 'reference': 'v3.1'}
+        data.update(extra)
+        return {'CharacterizationFactor': [_ok(data)]}
+
+    def test_two_identical_existing_sources_do_not_abort_the_import(self):
+        for _i in range(2):
+            CommoditySource.objects.create(
+                commodity=self.commodity, kind=CommoditySource.Kind.OTHER,
+                title='Agribalyse', reference='v3.1')
+        first = CommoditySource.objects.order_by('pk').first()
+        counts = save_import(self._row())
+        self.assertEqual(counts['CharacterizationFactor'], 1)
+        self.assertEqual(CommoditySource.objects.count(), 2)
+        self.assertEqual(CharacterizationFactor.objects.get().commodity_source, first)
+
+    def test_existing_source_of_another_kind_is_reused(self):
+        existing = CommoditySource.objects.create(
+            commodity=self.commodity, kind=CommoditySource.Kind.CERTIFICATION,
+            title='Agribalyse', reference='v3.1')
+        save_import(self._row())
+        self.assertEqual(CommoditySource.objects.count(), 1)
+        self.assertEqual(CharacterizationFactor.objects.get().commodity_source, existing)
+
+    def test_existing_factor_creates_no_orphan_source(self):
+        category = ImpactCategory.objects.get(key=CAT_ECOSYSTEM)
+        CharacterizationFactor.objects.create(
+            category=category, commodity=self.commodity, value=9.0)
+        counts = save_import(self._row())
+        self.assertEqual(counts['CharacterizationFactor'], 0)
+        self.assertEqual(CommoditySource.objects.count(), 0)

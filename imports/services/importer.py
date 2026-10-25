@@ -150,30 +150,40 @@ def _import_characterization_factor(rows, lookup):
         commodity = _get(lookup, 'commodity', d['commodity_name'])
         if not category or not commodity:
             continue
-        source = _s(d.get('source')).strip()
-        reference = _s(d.get('reference')).strip()
-        commodity_source = None
-        if source or reference:
-            # Même règle que la migration 0059 : (commodité, source, référence).
-            commodity_source, _created = CommoditySource.objects.get_or_create(
-                commodity=commodity, kind=CommoditySource.Kind.OTHER,
-                title=source or reference, reference=reference,
-            )
-        _, was_created = CharacterizationFactor.objects.get_or_create(
+        lookup_cf = dict(
             category=category,
             commodity=commodity,
             region=_get(lookup, 'subnational_region', d.get('subnational_region_name', '')),
             country=_get(lookup, 'country', d.get('country_name', '')),
-            defaults={
-                'value': _f(d.get('value')),
-                'source': _s(d.get('source')),
-                'reference': _s(d.get('reference')),
-                'commodity_source': commodity_source,
-            },
         )
-        if was_created:
-            created += 1
+        if CharacterizationFactor.objects.filter(**lookup_cf).exists():
+            continue
+        source = _s(d.get('source')).strip()
+        reference = _s(d.get('reference')).strip()
+        commodity_source = None
+        if source or reference:
+            # Même règle que la migration 0059 : (commodité, source, référence). On
+            # réutilise la source existante quel qu'en soit le type (la fiche permet
+            # des doublons : on prend la plus ancienne) et on n'en crée qu'au besoin.
+            title = source or reference
+            commodity_source = CommoditySource.objects.filter(
+                commodity=commodity, title=title, reference=reference,
+            ).order_by('pk').first()
+            if commodity_source is None:
+                commodity_source = CommoditySource.objects.create(
+                    commodity=commodity, kind=CommoditySource.Kind.OTHER,
+                    title=title, reference=reference,
+                )
+        CharacterizationFactor.objects.create(
+            value=_f(d.get('value')),
+            source=_s(d.get('source')),
+            reference=_s(d.get('reference')),
+            commodity_source=commodity_source,
+            **lookup_cf,
+        )
+        created += 1
     return created
+
 
 
 def _import_policy_type(rows, lookup):

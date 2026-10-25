@@ -195,3 +195,53 @@ class FullExportTests(TestCase):
         self.assertEqual(counts['Company_Policy'], 2)
         statuses = [row['status'] for row in parse_file(buffer)['Company_Policy']]
         self.assertIn('error', statuses)
+
+
+class CharacterizationFactorSourceExportTests(TestCase):
+    """Les sources saisies sur la fiche commodité voyagent dans l'export Excel."""
+
+    CATEGORY = 'impact_endpoint_ReCiPe2016_ecosystem_diversity'
+
+    def setUp(self):
+        from dashboard.models import CharacterizationFactor, CommoditySource, ImpactCategory
+        self.commodity = Commodity.objects.create(name='Soja')
+        self.source = CommoditySource.objects.create(
+            commodity=self.commodity, kind=CommoditySource.Kind.CERTIFICATION,
+            title='Rapport RTRS', reference='RTRS 2024, p. 12')
+        self.factor = CharacterizationFactor.objects.create(
+            category=ImpactCategory.objects.get(key=self.CATEGORY),
+            commodity=self.commodity, value=2.5, commodity_source=self.source)
+
+    def _cf_data(self):
+        buffer, _ = build_full_export()
+        rows = parse_file(buffer)['CharacterizationFactor']
+        return [row['data'] for row in rows]
+
+    def test_export_uses_the_linked_source(self):
+        (data,) = self._cf_data()
+        self.assertEqual((data['source'], data['reference']),
+                         ('Rapport RTRS', 'RTRS 2024, p. 12'))
+
+    def test_export_follows_a_source_edited_on_the_page(self):
+        self.factor.source = 'ancien texte'
+        self.factor.save()
+        self.source.title = 'Nouveau titre'
+        self.source.save()
+        (data,) = self._cf_data()
+        self.assertEqual(data['source'], 'Nouveau titre')
+
+    def test_export_falls_back_to_legacy_text(self):
+        from dashboard.models import CharacterizationFactor
+        CharacterizationFactor.objects.filter(pk=self.factor.pk).update(
+            commodity_source=None, source='Agribalyse', reference='v3.1')
+        (data,) = self._cf_data()
+        self.assertEqual((data['source'], data['reference']), ('Agribalyse', 'v3.1'))
+
+    def test_round_trip_keeps_the_link_without_new_source(self):
+        from dashboard.models import CharacterizationFactor, CommoditySource
+        buffer, _ = build_full_export()
+        CharacterizationFactor.objects.all().delete()
+        save_import(parse_file(buffer))
+        factor = CharacterizationFactor.objects.get(commodity=self.commodity)
+        self.assertEqual(factor.commodity_source, self.source)
+        self.assertEqual(CommoditySource.objects.count(), 1)
