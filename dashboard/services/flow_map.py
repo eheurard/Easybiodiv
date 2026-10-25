@@ -168,15 +168,16 @@ def _serialize_flow(flow):
         'scope': flow.scope,
         'source': flow.source,
         'reference': flow.reference,
+        'modifiers': [{'id': m.pk, 'name': m.name} for m in flow.modifiers.all()],
     }
 
 
 def flow_key(flow):
     """Identité d'un « même flux » d'une année à l'autre (spec §10.1) : nature,
-    commodité, origine, destination et scope."""
+    commodité, origine, destination, scope et jeu de modificateurs."""
     return (
         flow.kind, flow.what_id, endpoint_key(flow, 'from'), endpoint_key(flow, 'to'),
-        flow.scope,
+        flow.scope, tuple(sorted(m.pk for m in flow.modifiers.all())),
     )
 
 

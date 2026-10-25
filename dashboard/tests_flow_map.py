@@ -12,7 +12,7 @@ from django.utils.http import urlencode
 
 from .models import (
     ENDPOINT_COMPANY, FLOW_RULES, SUPPLY_SELF_LOOP_MESSAGE, Asset, AssetGroup,
-    AssetGroupMember, Commodity, Company, Country, Flow, FlowKind, Ownership,
+    AssetGroupMember, Commodity, CommodityModifier, Company, Country, Flow, FlowKind, Ownership,
     REVENUE_PRODUCTION_ONLY_MESSAGE, SubnationalRegion,
 )
 from .services.flow_map import (
@@ -20,6 +20,7 @@ from .services.flow_map import (
     endpoint_key, flow_key, flow_years, latest_flows, owned_assets_in_range, parse_key, unlink,
     unlink_preview,
 )
+from .services.flow_map import _serialize_flow
 from .services.flows import perimeter_flows, perimeter_years, range_perimeter_flows
 from .testing import make_declared_emission, make_inventory, make_production, make_supply
 
@@ -317,7 +318,7 @@ class BuildFlowMapTests(TestCase):
             'from': f'company:{self.cargill.pk}', 'to': f'asset:{self.vevey.pk}',
             'what': {'id': self.soja.pk, 'name': 'Soja', 'unit': 't'},
             'quantity': 5.0, 'year': 2024, 'tier': 0, 'scope': 'undefined',
-            'source': '', 'reference': '',
+            'source': '', 'reference': '', 'modifiers': [],
         })
 
     def test_unknown_origin_block(self):
@@ -536,7 +537,7 @@ class RangeFlowMapTests(TestCase):
                             origin=self.brazil, destination=self.vevey)
         self.assertEqual(flow_key(old), (
             'SUPPLY', self.soja.pk, f'company:{self.cargill.pk}', f'asset:{self.vevey.pk}',
-            'undefined'))
+            'undefined', ()))
         self.assertEqual(flow_key(old), flow_key(new))
         self.assertEqual(latest_flows([new, old, other]), [other, new])
 
@@ -1018,6 +1019,116 @@ class FlowWriteApiTests(TestCase):
         r = self._delete(acme, flows[2], {'start': 2022, 'end': 2024, 'years': [2024]})
         self.assertEqual(r.status_code, 403)
         self.assertEqual(Flow.objects.count(), 3)
+
+
+class FlowModifierApiTests(TestCase):
+    """Modificateurs de commodité cochés sur un flux (API de la carte)."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.creator = user_model.objects.create_user('createur', password='x', role='CREATOR')
+        self.client.force_login(self.creator)
+        self.cargill = Company.objects.create(name='Cargill')
+        self.brazil = Country.objects.create(
+            name='Brésil', water_ownership='Public', land_ownership='Private')
+        self.mato = SubnationalRegion.objects.create(name='Mato Grosso', country=self.brazil)
+        self.soja = Commodity.objects.create(name='Soja')
+        self.maize = Commodity.objects.create(name='Maïs')
+        self.certified = CommodityModifier.objects.create(commodity=self.soja, name='Certifié')
+        self.bio = CommodityModifier.objects.create(commodity=self.soja, name='Bio')
+        self.maize_bio = CommodityModifier.objects.create(commodity=self.maize, name='Bio maïs')
+        self.vevey = Asset.objects.create(
+            name='Vevey', latitude=1.0, longitude=2.0, country=self.brazil)
+
+    def _post(self, name, body, *args):
+        return self.client.post(
+            reverse(name, args=args), data=json.dumps(body), content_type='application/json')
+
+    def _body(self, **extra):
+        body = {'kind': 'SUPPLY', 'what_id': self.soja.pk, 'quantity': 12, 'year': 2024,
+                'from': f'company:{self.cargill.pk}', 'to': f'asset:{self.vevey.pk}'}
+        body.update(extra)
+        return body
+
+    def _flow(self, what=None, modifiers=()):
+        flow = make_supply(what=what or self.soja, year=2024, quantity=1,
+                           origin=self.cargill, destination=self.vevey)
+        flow.modifiers.set(modifiers)
+        return flow
+
+    def test_create_flow_with_modifiers(self):
+        r = self._post('dashboard:flow_map_flow_create', self._body(
+            modifier_ids=[self.certified.pk, self.bio.pk]))
+        self.assertEqual(r.status_code, 201, r.content)
+        flow = Flow.objects.get(pk=r.json()['id'])
+        self.assertEqual(set(flow.modifiers.all()), {self.certified, self.bio})
+
+    def test_modifier_of_other_commodity_rejected(self):
+        r = self._post('dashboard:flow_map_flow_create', self._body(
+            modifier_ids=[self.maize_bio.pk]))
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('modifiers', r.json()['errors'])
+        self.assertEqual(Flow.objects.count(), 0)
+
+    def test_update_changing_commodity_without_modifier_ids_clears_them(self):
+        flow = self._flow(modifiers=[self.certified])
+        r = self._post('dashboard:flow_map_flow_update',
+                       self._body(what_id=self.maize.pk), flow.pk)
+        self.assertEqual(r.status_code, 200, r.content)
+        flow.refresh_from_db()
+        self.assertEqual(flow.what, self.maize)
+        self.assertEqual(flow.modifiers.count(), 0)
+
+    def test_update_without_modifier_ids_keeps_them_when_commodity_unchanged(self):
+        flow = self._flow(modifiers=[self.certified])
+        r = self._post('dashboard:flow_map_flow_update', self._body(quantity=7), flow.pk)
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertEqual(list(flow.modifiers.all()), [self.certified])
+
+    def test_update_with_explicit_modifier_ids(self):
+        flow = self._flow(modifiers=[self.certified])
+        r = self._post('dashboard:flow_map_flow_update',
+                       self._body(modifier_ids=[self.bio.pk]), flow.pk)
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertEqual(list(flow.modifiers.all()), [self.bio])
+        r = self._post('dashboard:flow_map_flow_update', self._body(modifier_ids=[]), flow.pk)
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertEqual(flow.modifiers.count(), 0)
+
+    def test_serialized_flow_lists_modifiers(self):
+        flow = self._flow(modifiers=[self.certified, self.bio])
+        self.assertEqual(_serialize_flow(flow)['modifiers'], [
+            {'id': self.bio.pk, 'name': 'Bio'},
+            {'id': self.certified.pk, 'name': 'Certifié'},
+        ])
+        self.assertEqual(_serialize_flow(self._flow())['modifiers'], [])
+
+    def test_flow_key_distinguishes_modifier_sets(self):
+        acme = Company.objects.create(name='Acme')
+        Ownership.objects.create(
+            asset=self.vevey, company=acme, share=1, start_year=2015, end_year=None)
+        plain = make_supply(what=self.soja, year=2024, quantity=1,
+                            origin=self.mato, destination=self.vevey)
+        certified = make_supply(what=self.soja, year=2024, quantity=1,
+                                origin=self.mato, destination=self.vevey)
+        certified.modifiers.set([self.certified])
+        self.assertNotEqual(flow_key(plain), flow_key(certified))
+        self.assertEqual(flow_years(acme, 2020, 2024, plain), [{'year': 2024, 'count': 1}])
+        self.assertEqual(delete_flow_years(acme, 2020, 2024, plain, [2024]), 1)
+        self.assertEqual(set(Flow.objects.values_list('pk', flat=True)), {certified.pk})
+
+    def test_commodity_modifiers_endpoint(self):
+        self.client.logout()
+        r = self.client.get(reverse('dashboard:flow_map_commodity_modifiers',
+                                    args=[self.soja.pk]))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), {'modifiers': [
+            {'id': self.bio.pk, 'name': 'Bio'},
+            {'id': self.certified.pk, 'name': 'Certifié'},
+        ]})
+        r = self.client.get(reverse('dashboard:flow_map_commodity_modifiers', args=[999999]))
+        self.assertEqual(r.status_code, 404)
+        self.assertIn('__all__', r.json()['errors'])
 
 
 class MapApiTests(TestCase):

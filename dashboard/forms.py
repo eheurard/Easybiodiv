@@ -7,8 +7,9 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from .models import (
-    REVENUE_PRODUCTION_ONLY_MESSAGE, Asset, AssetGroup, AssetGroupMember, ClimateScenario, Commodity, Company, Flow,
-    Ownership, Portfolio, PortfolioHolding,
+    REVENUE_PRODUCTION_ONLY_MESSAGE, Asset, AssetGroup, AssetGroupMember, ClimateScenario,
+    Commodity, CommodityModifier, Company, Flow, Ownership, Portfolio, PortfolioHolding,
+    invalid_modifiers,
 )
 from .services.stress_test import HORIZONS, PD_MAX
 
@@ -91,11 +92,13 @@ class FlowMapFlowForm(forms.ModelForm):
 
     quantity = forms.CharField()
     year = forms.IntegerField(min_value=YEAR_MIN, max_value=YEAR_MAX)
+    modifiers = forms.ModelMultipleChoiceField(
+        queryset=CommodityModifier.objects.all(), required=False)
 
     class Meta:
         model = Flow
         fields = [
-            'kind', 'what', 'scope',
+            'kind', 'what', 'scope', 'modifiers',
             'from_asset', 'from_region', 'from_country', 'from_company', 'from_environment',
             'to_asset', 'to_region', 'to_country', 'to_company', 'to_environment',
             'year', 'quantity', 'tier', 'source', 'reference',
@@ -121,6 +124,9 @@ class FlowMapFlowForm(forms.ModelForm):
         if (self.instance.pk and self.instance.estimated_revenue is not None
                 and cleaned.get('kind') != Flow.Kind.PRODUCTION):
             raise forms.ValidationError(REVENUE_PRODUCTION_ONLY_MESSAGE)
+        what, modifiers = cleaned.get('what'), cleaned.get('modifiers')
+        if what is not None and modifiers and invalid_modifiers(what, modifiers):
+            self.add_error('modifiers', _("Ce modificateur n'appartient pas à cette commodité."))
         return cleaned
 
 

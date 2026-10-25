@@ -124,6 +124,17 @@ def _payload(request):
     return payload if isinstance(payload, dict) else None
 
 
+def _modifier_ids(payload, instance):
+    """Modificateurs du corps. Absents à la modification : ceux du flux, sauf si la
+    commodité change (ceux de l'ancienne commodité ne doivent jamais survivre)."""
+    if 'modifier_ids' in payload:
+        ids = payload['modifier_ids']
+        return ids if isinstance(ids, list) else []
+    if instance is None or str(payload.get('what_id')) != str(instance.what_id):
+        return []
+    return [modifier.pk for modifier in instance.modifiers.all()]
+
+
 def _form_data(payload, endpoints, instance=None):
     """Données du formulaire de flux. À la modification, une clé absente du corps
     conserve la valeur du flux (une valeur vide explicite, elle, la réinitialise)."""
@@ -141,6 +152,7 @@ def _form_data(payload, endpoints, instance=None):
         'tier': optional('tier', 0),
         'source': optional('source', ''),
         'reference': optional('reference', ''),
+        'modifiers': _modifier_ids(payload, instance),
     }
     for name, value in endpoints.items():
         if value is not None and value is not False:
@@ -189,6 +201,7 @@ def flow_map_flow_create(request):
     flow = form.save(commit=False)
     flow.created_by = request.user
     flow.save()
+    form.save_m2m()
     return JsonResponse({'id': flow.pk}, status=201)
 
 
@@ -223,6 +236,17 @@ def flow_map_flow_years(request, company_pk, pk):
     if refused:
         return refused
     return JsonResponse({'years': flow_years(company, start, end, flow)})
+
+
+@require_GET
+def flow_map_commodity_modifiers(request, pk):
+    """Modificateurs d'une commodité, par nom (lecture ouverte)."""
+    commodity = Commodity.objects.filter(pk=pk).first()
+    if commodity is None:
+        return _error(_("Cette commodité n'existe plus."), status=404)
+    return JsonResponse({'modifiers': [
+        {'id': modifier.pk, 'name': modifier.name} for modifier in commodity.modifiers.all()
+    ]})
 
 
 @require_POST
