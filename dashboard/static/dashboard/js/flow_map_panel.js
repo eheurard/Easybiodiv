@@ -46,6 +46,8 @@ window.FlowMapPanel = (function () {
   var sheet = null;         // fiche ouverte {mode: 'new'|'edit', options, option, edge, flow}
   var opener = null;        // sélecteur de l'élément de la carte qui a ouvert la fiche
   var what = null;          // commodité choisie {id, name, unit}
+  var pickedModifiers = []; // ids des modificateurs cochés
+  var modifiersRequest = 0; // réponse la plus récente seule appliquée
   var whatCombo = null;     // recherche des commodités (FlowMapUI.combobox)
   var createName = '';
   var busy = false;
@@ -364,8 +366,8 @@ window.FlowMapPanel = (function () {
         if (input.checked) selectFlow(flow);
       });
       var text = document.createElement('span');
-      text.textContent = flow.what.name + ' · ' + quantityText(flow.quantity, true) + ' '
-        + flow.what.unit + ' · ' + flow.year;
+      text.textContent = flow.what.name + modifierNames(flow) + ' · '
+        + quantityText(flow.quantity, true) + ' ' + flow.what.unit + ' · ' + flow.year;
       label.appendChild(input);
       label.appendChild(text);
       var member = memberOf(flow, edge);
@@ -377,6 +379,12 @@ window.FlowMapPanel = (function () {
       }
       els.flowList.appendChild(label);
     });
+  }
+
+  // « · Certifié RTRS, Bio » (vide sans modificateur).
+  function modifierNames(flow) {
+    var names = (flow.modifiers || []).map(function (m) { return m.name; });
+    return names.length ? ' · ' + names.join(', ') : '';
   }
 
   function renderKinds(list, selected) {
@@ -409,13 +417,28 @@ window.FlowMapPanel = (function () {
     sheet.option = option;
     els.route.textContent = routeText(option.from, option.to);
     els.scopeField.hidden = option.kind !== 'EMISSION';
+    updateModifiersNote();
+  }
+
+  // Seule la production d'un actif détenu ajuste l'impact : ailleurs, ce sont des labels.
+  function adjustsImpact(option) {
+    if (!option || option.kind !== 'PRODUCTION' || String(option.from).indexOf('asset:') !== 0) {
+      return false;
+    }
+    var model = FlowMap.model();
+    var block = model && model.blocks.find(function (b) { return b.key === option.from; });
+    return !!block && !!block.owned;
+  }
+
+  function updateModifiersNote() {
+    els.modifiersNote.hidden = adjustsImpact(sheet && sheet.option);
   }
 
   function fillForm(flow) {
     clearErrors();
     hideList();
     hideCreate();
-    setWhat(flow ? flow.what : null);
+    setWhat(flow ? flow.what : null, flow ? flow.modifiers : null);
     els.what.value = flow ? flow.what.name : '';
     els.quantity.value = flow ? quantityText(flow.quantity, false) : '';
     els.year.value = String(flow ? flow.year : FlowMap.model().end);
@@ -519,6 +542,7 @@ window.FlowMapPanel = (function () {
       tier: parseInt(els.tier.value, 10) || 0,
       source: els.source.value.trim(),
       reference: els.reference.value.trim(),
+      modifier_ids: what ? pickedModifiers.slice() : [],
     };
     if (option.kind === 'EMISSION') payload.scope = els.scope.value;
     var creating = sheet.mode === 'new';
@@ -606,9 +630,50 @@ window.FlowMapPanel = (function () {
   }
 
   // ── Commodité : recherche et création ────────────────────────────────────
-  function setWhat(item) {
+  // `selected` : [{id, name}] des modificateurs à cocher (flux existant) ; sinon aucun.
+  function setWhat(item, selected) {
     what = item ? { id: item.id, name: item.name, unit: item.unit } : null;
     els.unit.textContent = what && what.unit ? what.unit : '—';
+    pickedModifiers = (selected || []).map(function (m) { return m.id; });
+    loadModifiers();
+  }
+
+  // Modificateurs de la commodité choisie : cases à cocher, bloc caché s'il n'y en a pas.
+  function loadModifiers() {
+    modifiersRequest += 1;
+    var request = modifiersRequest;
+    els.modifiersList.textContent = '';
+    els.modifiers.hidden = true;
+    if (!what) return;
+    FlowMapUI.getJson(FlowMapUI.idUrl(urls.commodityModifiers, what.id))
+      .then(function (res) {
+        if (request !== modifiersRequest || !res.ok) return;
+        renderModifiers(res.data.modifiers || []);
+      })
+      .catch(function () { /* champ facultatif : le panneau reste utilisable */ });
+  }
+
+  function renderModifiers(list) {
+    els.modifiersList.textContent = '';
+    els.modifiers.hidden = !list.length;
+    list.forEach(function (modifier) {
+      var label = document.createElement('label');
+      label.className = 'fm-modifiers__item';
+      var input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = String(modifier.id);
+      input.checked = pickedModifiers.indexOf(modifier.id) >= 0;
+      input.addEventListener('change', function () {
+        pickedModifiers = pickedModifiers.filter(function (id) { return id !== modifier.id; });
+        if (input.checked) pickedModifiers.push(modifier.id);
+      });
+      var text = document.createElement('span');
+      text.textContent = modifier.name;
+      label.appendChild(input);
+      label.appendChild(text);
+      els.modifiersList.appendChild(label);
+    });
+    updateModifiersNote();
   }
 
   function onWhatInput() {
@@ -963,6 +1028,9 @@ window.FlowMapPanel = (function () {
       createOk: document.getElementById('fm-what-create-ok'),
       createCancel: document.getElementById('fm-what-create-cancel'),
       unit: document.getElementById('fm-unit'),
+      modifiers: document.getElementById('fm-modifiers'),
+      modifiersList: document.getElementById('fm-modifiers-list'),
+      modifiersNote: document.getElementById('fm-modifiers-note'),
       quantity: document.getElementById('fm-quantity'),
       year: document.getElementById('fm-year'),
       more: document.getElementById('fm-panel-more'),

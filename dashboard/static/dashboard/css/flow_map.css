@@ -820,6 +820,46 @@
   color: var(--color-on-surface-variant);
 }
 
+/* Modificateurs de la commodité */
+.fm-modifiers {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.fm-modifiers[hidden] {
+  display: none;
+}
+
+.fm-modifiers__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 10rem;
+  overflow-y: auto;
+}
+
+.fm-modifiers__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.fm-modifiers__item input {
+  accent-color: var(--color-primary);
+}
+
+.fm-modifiers__note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+}
+
+.fm-modifiers__note[hidden] {
+  display: none;
+}
+
 /* Commodité : liste de suggestions et création */
 .fm-combo {
   position: relative;

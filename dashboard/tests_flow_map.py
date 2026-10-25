@@ -1445,6 +1445,16 @@ class FlowMapPageTests(TestCase):
         self.assertContains(r, 'flow_map_blocks.js')
         self.assertIn({'value': 'Mine', 'label': 'Mine'}, r.context['asset_types'])
 
+    def test_panel_renders_modifier_fieldset(self):
+        User = get_user_model()
+        self.client.force_login(User.objects.create_user('c', password='pw', role='CREATOR'))
+        r = self.client.get(reverse('dashboard:flow_map'))
+        self.assertContains(r, 'id="fm-modifiers"')
+        self.assertContains(r, 'id="fm-modifiers-list"')
+        self.assertContains(r, 'id="fm-modifiers-note"')
+        self.assertContains(
+            r, reverse('dashboard:flow_map_commodity_modifiers', args=[0]))
+
     def test_page_without_company(self):
         Flow.objects.all().delete()
         Company.objects.all().delete()

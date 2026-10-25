@@ -47,6 +47,14 @@
       <p class="fm-panel__error" id="fm-error-what" hidden></p>
     </div>
 
+    <fieldset class="fm-panel__field fm-modifiers" id="fm-modifiers" hidden>
+      <legend class="form-label">{% translate "Modificateurs" %}</legend>
+      <div class="fm-modifiers__list" id="fm-modifiers-list"></div>
+      <p class="fm-modifiers__note" id="fm-modifiers-note" hidden>
+        {% translate "Sur ce flux, les modificateurs sont des labels : ils ne changent pas les calculs d’impact." %}
+      </p>
+    </fieldset>
+
     <div class="fm-panel__row">
       <div class="fm-panel__field fm-panel__field--wide">
         <label class="form-label" for="fm-quantity">{% translate "Quantité" %}</label>
