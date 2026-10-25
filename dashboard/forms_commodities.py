@@ -182,6 +182,14 @@ class ModifierEffectForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['category'].widget.attrs.setdefault('class', 'form-input')
 
+    def validate_unique(self):
+        # L'unicité (modificateur, catégorie) est vérifiée par le formset, qui ignore les
+        # lignes supprimées ; ici, la ligne à supprimer existe encore en base.
+        pass
+
+    def validate_constraints(self):
+        pass
+
     def clean_percent(self):
         try:
             value = FactorGridForm._parse_number(self.cleaned_data['percent'])

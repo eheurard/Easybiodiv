@@ -796,3 +796,49 @@ class ModifierPageTests(TestCase):
         page = self.client.get(self.detail)
         self.assertContains(page, 'Bio')
         self.assertNotContains(page, 'data-confirm')
+
+    def _existing(self, *pairs):
+        modifier = CommodityModifier.objects.create(commodity=self.soy, name='Bio')
+        effects = [ModifierEffect.objects.create(modifier=modifier, category=c, percent=p)
+                   for c, p in pairs]
+        url = reverse('dashboard:commodity_modifier_update', args=[self.soy.pk, modifier.pk])
+        e = f'effects-{modifier.pk}'
+        return modifier, effects, url, e
+
+    def _post_effects(self, modifier, url, e, effects, rows):
+        """rows : (effect|None, category, percent, delete)."""
+        data = self._data(prefix=f'mod-{modifier.pk}', eprefix=e, rows=[])
+        data[f'{e}-TOTAL_FORMS'] = str(len(rows))
+        data[f'{e}-INITIAL_FORMS'] = str(len(effects))
+        for i, (effect, category, percent, delete) in enumerate(rows):
+            data[f'{e}-{i}-category'] = str(category.pk)
+            data[f'{e}-{i}-percent'] = percent
+            if effect:
+                data[f'{e}-{i}-id'] = str(effect.pk)
+                data[f'{e}-{i}-modifier'] = str(modifier.pk)
+            if delete:
+                data[f'{e}-{i}-DELETE'] = 'on'
+        return self.client.post(url, data)
+
+    def test_delete_and_readd_same_category(self):
+        modifier, effects, url, e = self._existing((self.land, -5))
+        response = self._post_effects(modifier, url, e, effects, [
+            (effects[0], self.land, '-5', True), (None, self.land, '-20', False)])
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            [x.percent for x in modifier.effects.filter(category=self.land)], [-20.0])
+
+    def test_swap_categories_never_500(self):
+        modifier, effects, url, e = self._existing((self.land, -5), (self.div, -6))
+        response = self._post_effects(modifier, url, e, effects, [
+            (effects[0], self.div, '-5', False), (effects[1], self.land, '-6', False)])
+        self.assertIn(response.status_code, (200, 302))
+        self.assertEqual(modifier.effects.count(), 2)
+
+    def test_percent_is_signed(self):
+        modifier = CommodityModifier.objects.create(commodity=self.soy, name='Bio')
+        ModifierEffect.objects.create(modifier=modifier, category=self.land, percent=20)
+        ModifierEffect.objects.create(modifier=modifier, category=self.div, percent=-10)
+        page = self.client.get(self.detail)
+        self.assertContains(page, '+20 %')
+        self.assertContains(page, '−10 %')

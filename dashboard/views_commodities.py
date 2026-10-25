@@ -2,9 +2,10 @@
 from urllib.parse import urlencode
 
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .decorators import creator_required
@@ -73,6 +74,10 @@ def _detail_context(request, commodity, *, identity_form=None, source_formset=No
     cards = modifier_cards(commodity, location)
     for card in cards:
         for item in card['effects']:
+            percent = item['effect'].percent
+            item['percent_display'] = (
+                ('+' if percent > 0 else '−' if percent < 0 else '')
+                + format_factor(abs(percent)))
             item['adjusted_display'] = format_factor(item['adjusted'])
             item['is_endpoint'] = item['level'] == ImpactCategory.Level.ENDPOINT
     failed = modifier_forms[0].pk if modifier_forms else None
@@ -192,18 +197,27 @@ def commodity_factors(request, pk):
 def _modifier_submit(request, commodity, modifier):
     form, formset = _modifier_forms(commodity, modifier, request.POST)
     if form.is_valid() and formset.is_valid():
-        with transaction.atomic():
-            if modifier.pk is None:
-                modifier.created_by = request.user
-            modifier = form.save()
-            formset.instance = modifier
-            for effect in formset.save(commit=False):
-                if effect.pk is None:
-                    effect.created_by = request.user
-                effect.save()
-            for effect in formset.deleted_objects:
-                effect.delete()
-        return redirect(_detail_url(commodity, request))
+        was_new = modifier.pk is None
+        try:
+            with transaction.atomic():
+                if was_new:
+                    modifier.created_by = request.user
+                modifier = form.save()
+                formset.instance = modifier
+                changed = formset.save(commit=False)
+                # Suppressions d'abord : (modificateur, catégorie) est unique.
+                for effect in formset.deleted_objects:
+                    effect.delete()
+                for effect in changed:
+                    if effect.pk is None:
+                        effect.created_by = request.user
+                    effect.save()
+            return redirect(_detail_url(commodity, request))
+        except IntegrityError:
+            if was_new:
+                modifier.pk = None
+            form.add_error(None, _(
+                "Deux effets ne peuvent pas porter sur la même catégorie d'impact."))
     # Les instances invalides ont été modifiées en mémoire : on repart de la base.
     fresh = Commodity.objects.get(pk=commodity.pk)
     return _render_detail(request, fresh, modifier_forms=(modifier, form, formset))

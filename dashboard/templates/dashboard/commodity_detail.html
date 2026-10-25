@@ -224,7 +224,7 @@
           <tr>
             <td><span class="commodity-level commodity-level--{% if item.is_endpoint %}endpoint{% else %}midpoint{% endif %}">{{ item.level.label }}</span></td>
             <th scope="row">{{ item.effect.category.name }}</th>
-            <td class="commodity-table__num">{{ item.effect.percent|floatformat:"-2" }} %</td>
+            <td class="commodity-table__num">{{ item.percent_display }} %</td>
             <td class="commodity-table__num">{{ item.adjusted_display|default:'—' }}</td>
           </tr>
           {% endfor %}
