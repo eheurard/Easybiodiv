@@ -387,6 +387,12 @@ class CommodityPageTests(TestCase):
         self.assertNotContains(response, 'id="commodity-sources-form"')
         self.assertFalse(response.context['can_edit'])
 
+    def test_detail_read_only_shows_dependency_labels(self):
+        self.client.force_login(self.subscriber)
+        response = self.client.get(self.detail_url)
+        self.assertContains(response, '<dd>Very low</dd>')
+        self.assertNotContains(response, '<dd>VL</dd>')
+
     def test_detail_editable_for_creator(self):
         self.client.force_login(self.creator)
         response = self.client.get(self.detail_url)

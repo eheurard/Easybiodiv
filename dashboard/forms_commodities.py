@@ -37,6 +37,12 @@ class CommodityIdentityForm(forms.ModelForm):
         return [self[name] for name in DEPENDENCY_FIELDS]
 
     @property
+    def dependency_display(self):
+        """Couples (libellé du champ, libellé du choix) pour la lecture seule."""
+        return [(self[name].label, getattr(self.instance, f'get_{name}_display')())
+                for name in DEPENDENCY_FIELDS]
+
+    @property
     def dependency_has_errors(self):
         return any(name in self.errors for name in DEPENDENCY_FIELDS)
 

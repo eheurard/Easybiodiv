@@ -37,8 +37,8 @@
     <details class="commodity-deps">
       <summary>{% translate "Dépendances aux services écosystémiques" %}</summary>
       <dl class="commodity-dl">
-        {% for field in identity_form.dependency_fields %}
-        <dt>{{ field.label }}</dt><dd>{{ field.value }}</dd>
+        {% for label, display in identity_form.dependency_display %}
+        <dt>{{ label }}</dt><dd>{{ display }}</dd>
         {% endfor %}
       </dl>
     </details>
