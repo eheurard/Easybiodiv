@@ -1,6 +1,6 @@
 from django.test import TestCase
 from dashboard.models import (
-    Asset, CharacterizationFactor, ClimateScenario, Commodity,
+    Asset, CharacterizationFactor, ClimateScenario, Commodity, CommoditySource,
     Company, Company_Policy, Country, Policy_Level, Policy_Subcategory,
     Policy_Type, ScenarioVariable, Sector, SectorCreditProfile,
     SubnationalRegion,
@@ -129,6 +129,28 @@ class ImporterCharacterizationFactorTest(TestCase):
             commodity=self.commodity, category__key=CAT_ECOSYSTEM,
             region=None, country=None)
         self.assertAlmostEqual(cf.value, 0.5)
+
+    def test_cf_import_links_commodity_source(self):
+        save_import({'CharacterizationFactor': [
+            _ok({'category_key': CAT_ECOSYSTEM, 'commodity_name': 'Soy',
+                 'country_name': 'France', 'subnational_region_name': '', 'value': '1.5',
+                 'source': ' Agribalyse ', 'reference': 'v3.1'}),
+            _ok({'category_key': CAT_ECOSYSTEM, 'commodity_name': 'Soy',
+                 'country_name': '', 'subnational_region_name': 'Bretagne', 'value': '2.5',
+                 'source': 'Agribalyse', 'reference': 'v3.1 '}),
+            _ok({'category_key': CAT_ECOSYSTEM, 'commodity_name': 'Soy',
+                 'country_name': '', 'subnational_region_name': '', 'value': '3',
+                 'source': '', 'reference': ''}),
+        ]})
+        source = CommoditySource.objects.get()
+        self.assertEqual(
+            (source.commodity, source.kind, source.title, source.reference),
+            (self.commodity, 'OTHER', 'Agribalyse', 'v3.1'))
+        linked = CharacterizationFactor.objects.filter(commodity_source=source)
+        self.assertEqual(linked.count(), 2)
+        self.assertEqual(
+            CharacterizationFactor.objects.get(country=None, region=None).commodity_source,
+            None)
 
     def test_region_and_country_factors_coexist(self):
         counts = save_import({'CharacterizationFactor': [

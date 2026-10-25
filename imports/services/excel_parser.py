@@ -5,7 +5,7 @@ import openpyxl
 
 from dashboard.models import (
     Asset, CharacterizationFactor, ClimateScenario,
-    Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
+    Commodity, CommodityModifier, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
     Country, Currency, ENDPOINT_ENVIRONMENT, ESG_data, FLOW_RULES, FlowKind,
     ImpactCategory, OWNERSHIP_OVERLAP_MESSAGE, Ownership, Policy_Level,
     Policy_Subcategory, Policy_Type, REVENUE_PRODUCTION_ONLY_MESSAGE,
@@ -197,10 +197,14 @@ def _build_row_check_context(wb, file_names, db_name_cache):
             commodity_names.setdefault(name.lower(), name.lower())
             if key:
                 commodity_names.setdefault(key.lower(), name.lower())
+    modifier_names = defaultdict(set)  # commodité -> noms de modificateurs (base)
+    for commodity, name in CommodityModifier.objects.values_list('commodity__name', 'name'):
+        modifier_names[commodity.lower()].add(name.lower())
     return {
         'file_names': file_names,
         'db_name_cache': db_name_cache,
         'commodity_names': commodity_names,
+        'modifier_names': modifier_names,
         'commodity_key_owner': {
             key.lower(): name.lower()
             for name, key in Commodity.objects.exclude(key=None).values_list('name', 'key')
@@ -282,6 +286,25 @@ def _flow_number_error(data):
     return None
 
 
+def _modifier_names(cell):
+    """Noms de la cellule `modifiers` (séparés par « ; »), en minuscules."""
+    return frozenset(
+        part.strip().lower() for part in (cell or '').split(';') if part.strip()
+    )
+
+
+def _flow_modifier_error(data, context):
+    """Premier modificateur de la cellule absent de la commodité, ou None."""
+    wanted = [part.strip() for part in (data.get('modifiers') or '').split(';')]
+    what = data['what'].strip().lower()
+    known = context['modifier_names'].get(context['commodity_names'].get(what, what), set())
+    for name in wanted:
+        if name and name.lower() not in known:
+            return _("Modificateur introuvable pour la commodité « %(what)s » : "
+                     "« %(name)s »") % {'what': data['what'].strip(), 'name': name}
+    return None
+
+
 def _flow_row_error(data, context):
     """Contrôles de la feuille Flow (spec §6.1) : commodité, nombres, extrémités,
     puis règles FLOW_RULES avec le message même de la contrainte en base."""
@@ -292,6 +315,9 @@ def _flow_row_error(data, context):
     number_error = _flow_number_error(data)
     if number_error:
         return number_error
+    modifier_error = _flow_modifier_error(data, context)
+    if modifier_error:
+        return modifier_error
     for side in ('from', 'to'):
         endpoint_type = data.get(f'{side}_type', '').strip().lower()
         name = data.get(f'{side}_name', '').strip()
@@ -339,6 +365,7 @@ def _flow_duplicate_key(data, context):
         data.get('to_type', '').strip().lower(),
         data.get('to_name', '').strip().lower(),
         data.get('year', '').strip(),
+        _modifier_names(data.get('modifiers')),
     )
 
 
@@ -358,6 +385,7 @@ def _existing_flow_keys():
         keys.add((
             flow.kind.lower(), flow.what.name.lower(), flow.scope.lower(),
             *_flow_end(flow, 'from'), *_flow_end(flow, 'to'), str(flow.year),
+            frozenset(m.name.lower() for m in flow.modifiers.all()),
         ))
     return keys
 

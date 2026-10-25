@@ -3,8 +3,9 @@ from django.test import TestCase
 
 from dashboard.models import (
     FLOW_RULES, REVENUE_PRODUCTION_ONLY_MESSAGE, SUPPLY_SELF_LOOP_MESSAGE, Asset, Commodity,
-    Company, Country, Flow, FlowKind,
+    Company, CommodityModifier, Country, Flow, FlowKind,
 )
+from imports.services.excel_export import build_flow_export
 from imports.services.excel_parser import parse_file
 from imports.services.excel_template import build_template
 from imports.services.importer import save_import
@@ -157,3 +158,75 @@ class FlowSheetTests(TestCase):
     def test_uppercase_endpoint_type_is_accepted(self):
         row = self._parse(self._row(from_type='ASSET', from_name='Mine'))['Flow'][0]
         self.assertEqual(row['status'], 'ok')
+
+
+class FlowModifiersSheetTests(TestCase):
+
+    def setUp(self):
+        self.brazil = Country.objects.create(
+            name='Brésil', water_ownership='pub', land_ownership='priv')
+        self.mine = Asset.objects.create(
+            name='Ferme', latitude=1.0, longitude=2.0, country=self.brazil)
+        self.soy = Commodity.objects.create(name='Soja')
+        self.rtrs = CommodityModifier.objects.create(commodity=self.soy, name='Certifié RTRS')
+        self.bio = CommodityModifier.objects.create(commodity=self.soy, name='Bio')
+
+    def _row(self, **values):
+        row = {
+            'kind': 'PRODUCTION', 'what': 'Soja', 'from_type': 'asset', 'from_name': 'Ferme',
+            'year': '2026', 'quantity': '100',
+        }
+        row.update(values)
+        return row
+
+    def _parse(self, *rows):
+        return parse_file(_make_xlsx({'Flow': _sheet('Flow', *rows)}))
+
+    def test_flow_modifiers_roundtrip(self):
+        flow = Flow.objects.create(
+            kind=FlowKind.PRODUCTION, what=self.soy, from_asset=self.mine, year=2026,
+            quantity=100.0)
+        flow.modifiers.set([self.rtrs, self.bio])
+        buffer, count = build_flow_export()
+        self.assertEqual(count, 1)
+        sheet = openpyxl.load_workbook(buffer)['Flow']
+        header = [c.value for c in sheet[1]]
+        self.assertEqual(header[-1], 'modifiers')
+        self.assertEqual(sheet.cell(2, len(header)).value, 'Bio; Certifié RTRS')
+        buffer.seek(0)
+        flow.delete()
+        parsed = parse_file(buffer)
+        self.assertEqual([r['status'] for r in parsed['Flow']], ['ok'])
+        save_import(parsed)
+        self.assertEqual(
+            set(Flow.objects.get().modifiers.all()), {self.rtrs, self.bio})
+
+    def test_modifier_cell_ignores_case_and_spaces(self):
+        parsed = self._parse(self._row(modifiers=' bio ;CERTIFIÉ rtrs'))
+        self.assertEqual(parsed['Flow'][0]['status'], 'ok')
+        save_import(parsed)
+        self.assertEqual(set(Flow.objects.get().modifiers.all()), {self.rtrs, self.bio})
+
+    def test_unknown_modifier_rejected(self):
+        row = self._parse(self._row(modifiers='Bio; Fantôme'))['Flow'][0]
+        self.assertEqual(row['status'], 'error')
+        self.assertEqual(
+            row['message'],
+            'Modificateur introuvable pour la commodité « Soja » : « Fantôme »')
+
+    def test_modifier_of_another_commodity_rejected(self):
+        wheat = Commodity.objects.create(name='Blé')
+        CommodityModifier.objects.create(commodity=wheat, name='Blé bio')
+        row = self._parse(self._row(modifiers='Blé bio'))['Flow'][0]
+        self.assertEqual(row['status'], 'error')
+
+    def test_certified_and_classic_rows_not_duplicates(self):
+        parsed = self._parse(
+            self._row(modifiers='Certifié RTRS'),
+            self._row(modifiers=''),
+        )
+        self.assertEqual([r['status'] for r in parsed['Flow']], ['ok', 'ok'])
+        self.assertEqual(save_import(parsed)['Flow'], 2)
+        self.assertEqual(Flow.objects.count(), 2)
+        again = self._parse(self._row(modifiers='Certifié RTRS'), self._row(modifiers=''))
+        self.assertEqual([r['status'] for r in again['Flow']], ['duplicate', 'duplicate'])

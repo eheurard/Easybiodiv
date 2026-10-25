@@ -47,7 +47,10 @@ _FLOW_RELATIONS = (
 def flows_of(companies):
     """Flux rattachés à ces entreprises : ceux qu'elles déclarent elles-mêmes et
     ceux qui partent de leurs actifs ou y arrivent. Sans entreprise, tous."""
-    queryset = Flow.objects.select_related(*_FLOW_RELATIONS).order_by('pk')
+    queryset = (
+        Flow.objects.select_related(*_FLOW_RELATIONS).prefetch_related('modifiers')
+        .order_by('pk')
+    )
     if not companies:
         return queryset
     condition = Q()
@@ -87,6 +90,7 @@ def flow_row(flow):
         'estimated_revenue': flow.estimated_revenue,
         'source': flow.source,
         'reference': flow.reference,
+        'modifiers': '; '.join(sorted(m.name for m in flow.modifiers.all())),
     }
 
 

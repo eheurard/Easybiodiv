@@ -74,6 +74,7 @@ SHEET_COLUMNS = {
     'Flow': [
         'kind', 'what', 'scope', 'from_type', 'from_name', 'to_type', 'to_name',
         'year', 'quantity', 'tier', 'estimated_revenue', 'source', 'reference',
+        'modifiers',
     ],
     # ── Données d'entreprise ──────────────────────────────────────────────────
     'Ownership': ['asset_name', 'company_name', 'share', 'start_year', 'end_year', 'description'],
@@ -161,7 +162,8 @@ DUPLICATE_CRITERIA = {
     'SectorCreditProfile': ['sector_name'],
     'Company': ['name'],
     'Asset': ['name', 'country_name'],
-    'Flow': ['kind', 'what', 'scope', 'from_type', 'from_name', 'to_type', 'to_name', 'year'],
+    'Flow': ['kind', 'what', 'scope', 'from_type', 'from_name', 'to_type', 'to_name', 'year',
+             'modifiers'],
     'Ownership': ['asset_name', 'company_name', 'start_year'],
     'Company_Revenue': ['company_name', 'year'],
     'Company_Revenue_Sector': ['company_name', 'subsector_name', 'year'],

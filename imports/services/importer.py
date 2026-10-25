@@ -3,7 +3,7 @@ from datetime import date
 from django.db import transaction
 from dashboard.models import (
     Asset, CharacterizationFactor, ClimateScenario,
-    Commodity, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
+    Commodity, CommoditySource, Company, Company_Policy, Company_Revenue, Company_Revenue_Sector,
     Country, Currency, ESG_data, Flow, FlowScope, ImpactCategory, Ownership,
     Policy_Level, Policy_Subcategory, Policy_Type, ScenarioVariable,
     Sector, SectorCreditProfile, SubnationalRegion, SubSector,
@@ -150,6 +150,15 @@ def _import_characterization_factor(rows, lookup):
         commodity = _get(lookup, 'commodity', d['commodity_name'])
         if not category or not commodity:
             continue
+        source = _s(d.get('source')).strip()
+        reference = _s(d.get('reference')).strip()
+        commodity_source = None
+        if source or reference:
+            # Même règle que la migration 0059 : (commodité, source, référence).
+            commodity_source, _created = CommoditySource.objects.get_or_create(
+                commodity=commodity, kind=CommoditySource.Kind.OTHER,
+                title=source or reference, reference=reference,
+            )
         _, was_created = CharacterizationFactor.objects.get_or_create(
             category=category,
             commodity=commodity,
@@ -159,6 +168,7 @@ def _import_characterization_factor(rows, lookup):
                 'value': _f(d.get('value')),
                 'source': _s(d.get('source')),
                 'reference': _s(d.get('reference')),
+                'commodity_source': commodity_source,
             },
         )
         if was_created:
@@ -548,7 +558,7 @@ def _import_flow(rows, lookup):
         if what is None or origin is None or destination is None:
             continue
         revenue = d.get('estimated_revenue')
-        Flow.objects.create(
+        flow = Flow.objects.create(
             kind=d['kind'].strip().upper(),
             what=what,
             scope=_SCOPES.get((d.get('scope') or '').strip().lower(), FlowScope.UNDEFINED),
@@ -560,6 +570,14 @@ def _import_flow(rows, lookup):
             reference=_s(d.get('reference')),
             **origin, **destination,
         )
+        modifier_names = {
+            part.strip().lower() for part in (d.get('modifiers') or '').split(';')
+            if part.strip()
+        }
+        if modifier_names:
+            flow.modifiers.set([
+                m for m in what.modifiers.all() if m.name.lower() in modifier_names
+            ])
         created += 1
     return created
 
