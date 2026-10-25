@@ -1,6 +1,7 @@
 import importlib
 
 from django.apps import apps
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connection, transaction
 from django.test import TestCase
@@ -330,3 +331,148 @@ class LeapPrepareModifierTests(TestCase):
             data['assets'][0]['lines'][0]['impact_factor'],
             data['commodities'][0]['impact_factor'],
         )
+
+
+class CommodityPageTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.creator = user_model.objects.create_user('createur', password='x', role='CREATOR')
+        self.subscriber = user_model.objects.create_user('abonne', password='x')
+        self.soy = Commodity.objects.create(name='Soja', unit='tonnes')
+        Commodity.objects.create(name='Café')
+        CommodityModifier.objects.create(commodity=self.soy, name='Certifié')
+        self.list_url = reverse('dashboard:commodity_list')
+        self.detail_url = reverse('dashboard:commodity_detail', args=[self.soy.pk])
+
+    def _identity_data(self, **extra):
+        data = {'name': 'Soja', 'unit': 'tonnes', 'description': '',
+                'biodiversity_loss_class': 'Agriculture'}
+        for field in ('water', 'pollination', 'soil_quality', 'carbon_sequestration',
+                      'water_purification', 'pest_control'):
+            data[f'dependency_{field}'] = 'VL'
+        data.update(extra)
+        return data
+
+    def _sources_data(self, rows):
+        data = {'sources-TOTAL_FORMS': str(len(rows)), 'sources-INITIAL_FORMS': '0',
+                'sources-MIN_NUM_FORMS': '0', 'sources-MAX_NUM_FORMS': '1000'}
+        for i, row in enumerate(rows):
+            for key, value in row.items():
+                data[f'sources-{i}-{key}'] = value
+        return data
+
+    def test_list_requires_login(self):
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/auth/login/', response['Location'])
+
+    def test_list_shows_counts(self):
+        CharacterizationFactor.objects.create(
+            commodity=self.soy, category=_category(), value=1.0)
+        self.client.force_login(self.subscriber)
+        response = self.client.get(self.list_url)
+        self.assertContains(response, 'Soja')
+        self.assertContains(response, 'Café')
+        row = next(r for r in response.context['rows'] if r['commodity'] == self.soy)
+        self.assertEqual((row['factor_count'], row['modifier_count']), (1, 1))
+        filtered = self.client.get(self.list_url, {'q': 'soj'})
+        names = [r['commodity'].name for r in filtered.context['rows']]
+        self.assertEqual(names, ['Soja'])
+
+    def test_detail_read_only_for_subscriber(self):
+        self.client.force_login(self.subscriber)
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'id="commodity-identity-form"')
+        self.assertNotContains(response, 'id="commodity-sources-form"')
+        self.assertFalse(response.context['can_edit'])
+
+    def test_detail_editable_for_creator(self):
+        self.client.force_login(self.creator)
+        response = self.client.get(self.detail_url)
+        self.assertTrue(response.context['can_edit'])
+        self.assertContains(response, 'id="commodity-identity-form"')
+        self.assertContains(response, 'id="commodity-sources-form"')
+
+    def test_subscriber_post_forbidden(self):
+        self.client.force_login(self.subscriber)
+        url = reverse('dashboard:commodity_identity', args=[self.soy.pk])
+        self.assertEqual(self.client.post(url, self._identity_data()).status_code, 403)
+        create = reverse('dashboard:commodity_create')
+        self.assertEqual(self.client.post(create, {'name': 'X'}).status_code, 403)
+
+    def test_anonymous_post_redirects_to_login(self):
+        url = reverse('dashboard:commodity_identity', args=[self.soy.pk])
+        self.assertEqual(self.client.post(url, self._identity_data()).status_code, 302)
+
+    def test_create_commodity(self):
+        self.client.force_login(self.creator)
+        data = self._identity_data(name='Blé', unit='')
+        response = self.client.post(reverse('dashboard:commodity_create'), data)
+        wheat = Commodity.objects.get(name='Blé')
+        self.assertRedirects(
+            response, reverse('dashboard:commodity_detail', args=[wheat.pk]))
+        self.assertEqual(wheat.unit, 'tonnes')
+
+    def test_create_commodity_missing_name(self):
+        self.client.force_login(self.creator)
+        response = self.client.post(
+            reverse('dashboard:commodity_create'), self._identity_data(name=''))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('name', response.context['form'].errors)
+
+    def test_identity_update_keeps_lieu(self):
+        self.client.force_login(self.creator)
+        url = reverse('dashboard:commodity_identity', args=[self.soy.pk]) + '?lieu=pays-3'
+        response = self.client.post(url, self._identity_data(name='Soja bio'))
+        self.assertRedirects(
+            response, self.detail_url + '?lieu=pays-3', fetch_redirect_response=False)
+        self.soy.refresh_from_db()
+        self.assertEqual(self.soy.name, 'Soja bio')
+
+    def test_identity_error_renders_detail(self):
+        self.client.force_login(self.creator)
+        url = reverse('dashboard:commodity_identity', args=[self.soy.pk])
+        response = self.client.post(url, self._identity_data(name=''))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('name', response.context['identity_form'].errors)
+        self.soy.refresh_from_db()
+        self.assertEqual(self.soy.name, 'Soja')
+
+    def test_technical_key_read_only(self):
+        water = Commodity.objects.get(key='water')
+        self.client.force_login(self.creator)
+        response = self.client.get(reverse('dashboard:commodity_detail', args=[water.pk]))
+        self.assertContains(response, 'water')
+        self.assertNotIn('key', response.context['identity_form'].fields)
+
+    def test_sources_formset_add_and_delete(self):
+        self.client.force_login(self.creator)
+        url = reverse('dashboard:commodity_sources', args=[self.soy.pk])
+        data = self._sources_data([
+            {'kind': 'ARTICLE', 'title': 'Étude', 'reference': 'doi:1'}])
+        response = self.client.post(url, data)
+        self.assertRedirects(response, self.detail_url, fetch_redirect_response=False)
+        source = CommoditySource.objects.get(commodity=self.soy)
+        self.assertEqual(source.created_by, self.creator)
+        self.assertEqual(source.title, 'Étude')
+        page = self.client.get(self.detail_url)
+        self.assertEqual(page.context['source_codes'][source.pk], 'S1')
+
+        delete = {
+            'sources-TOTAL_FORMS': '1', 'sources-INITIAL_FORMS': '1',
+            'sources-MIN_NUM_FORMS': '0', 'sources-MAX_NUM_FORMS': '1000',
+            'sources-0-id': str(source.pk), 'sources-0-commodity': str(self.soy.pk),
+            'sources-0-kind': 'ARTICLE', 'sources-0-title': 'Étude',
+            'sources-0-DELETE': 'on',
+        }
+        self.client.post(url, delete)
+        self.assertFalse(CommoditySource.objects.filter(commodity=self.soy).exists())
+
+    def test_sources_formset_error_renders_detail(self):
+        self.client.force_login(self.creator)
+        url = reverse('dashboard:commodity_sources', args=[self.soy.pk])
+        data = self._sources_data([{'kind': 'ARTICLE', 'title': '', 'reference': 'x'}])
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(CommoditySource.objects.exists())

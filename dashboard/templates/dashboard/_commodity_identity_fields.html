@@ -1,0 +1,27 @@
+{% load i18n %}
+{# Champs d'identité d'une commodité (création et fiche). Attend `form`. #}
+{% if form.non_field_errors %}
+<p class="commodity-error" role="alert">{{ form.non_field_errors|join:" " }}</p>
+{% endif %}
+<div class="commodity-grid">
+  {% for field in form.main_fields %}
+  <div class="form-group{% if field.name == 'description' %} commodity-grid__wide{% endif %}">
+    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% if field.help_text %}<p class="commodity-help">{{ field.help_text }}</p>{% endif %}
+    {% for error in field.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+  </div>
+  {% endfor %}
+</div>
+<details class="commodity-deps"{% if form.dependency_has_errors %} open{% endif %}>
+  <summary>{% translate "Dépendances aux services écosystémiques" %}</summary>
+  <div class="commodity-grid">
+    {% for field in form.dependency_fields %}
+    <div class="form-group">
+      <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% for error in field.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</details>

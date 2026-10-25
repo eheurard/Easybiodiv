@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{{ commodity.name }} — {% translate "Commodités" %} — Easybiodiv{% endblock %}
+{% block nav_commodities %}active{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'dashboard/css/commodities.css' %}">{% endblock %}
+{% block header_left %}<span class="commodity-header-title">{% translate "Commodités" %}</span>{% endblock %}
+
+{% block content %}
+<div class="commodity-page">
+  <p><a class="commodity-back" href="{% url 'dashboard:commodity_list' %}">&larr; {% translate "Toutes les commodités" %}</a></p>
+  <h1 class="commodity-title">{{ commodity.name }}</h1>
+
+  {# ── Identité ─────────────────────────────────────────────────────────── #}
+  <section class="card commodity-card" aria-labelledby="commodity-identity-title">
+    <h2 class="commodity-section-title" id="commodity-identity-title">{% translate "Identité" %}</h2>
+    {% if commodity.key %}
+    <p class="commodity-key">{% translate "Clé technique" %} : <code>{{ commodity.key }}</code>
+      <span class="commodity-help">{% translate "(non modifiable)" %}</span></p>
+    {% endif %}
+    {% if can_edit %}
+    <form method="post" id="commodity-identity-form"
+          action="{% url 'dashboard:commodity_identity' commodity.pk %}{% if lieu %}?lieu={{ lieu|urlencode }}{% endif %}">
+      {% csrf_token %}
+      {% with form=identity_form %}{% include "dashboard/_commodity_identity_fields.html" %}{% endwith %}
+      <div class="commodity-actions">
+        <button type="submit" class="btn btn--primary">{% translate "Enregistrer l'identité" %}</button>
+      </div>
+    </form>
+    {% else %}
+    <dl class="commodity-dl">
+      <dt>{% translate "Unité" %}</dt><dd>{{ commodity.unit }}</dd>
+      {% if commodity.description %}<dt>{% translate "Description" %}</dt><dd>{{ commodity.description }}</dd>{% endif %}
+      <dt>{{ identity_form.biodiversity_loss_class.label }}</dt>
+      <dd>{{ commodity.get_biodiversity_loss_class_display }}</dd>
+    </dl>
+    <details class="commodity-deps">
+      <summary>{% translate "Dépendances aux services écosystémiques" %}</summary>
+      <dl class="commodity-dl">
+        {% for field in identity_form.dependency_fields %}
+        <dt>{{ field.label }}</dt><dd>{{ field.value }}</dd>
+        {% endfor %}
+      </dl>
+    </details>
+    {% endif %}
+  </section>
+
+  {# ── Sources ──────────────────────────────────────────────────────────── #}
+  <section class="card commodity-card" aria-labelledby="commodity-sources-title">
+    <h2 class="commodity-section-title" id="commodity-sources-title">{% translate "Sources" %}</h2>
+    {% if can_edit %}
+    <form method="post" id="commodity-sources-form"
+          action="{% url 'dashboard:commodity_sources' commodity.pk %}{% if lieu %}?lieu={{ lieu|urlencode }}{% endif %}">
+      {% csrf_token %}
+      {{ source_formset.management_form }}
+      {% if source_formset.non_form_errors %}
+      <p class="commodity-error" role="alert">{{ source_formset.non_form_errors|join:" " }}</p>
+      {% endif %}
+      <table class="commodity-table">
+        <thead>
+          <tr>
+            <th scope="col">{% translate "Code" %}</th>
+            <th scope="col">{% translate "Type" %}</th>
+            <th scope="col">{% translate "Titre" %}</th>
+            <th scope="col">{% translate "Référence" %}</th>
+            <th scope="col">{% translate "Supprimer" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for form in source_formset %}
+          <tr>
+            <td>{% if form.code %}<span class="commodity-code">{{ form.code }}</span>{% endif %}</td>
+            <td>
+              {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+              <label class="visually-hidden" for="{{ form.kind.id_for_label }}">{% translate "Type" %}</label>
+              {{ form.kind }}
+            </td>
+            <td>
+              <label class="visually-hidden" for="{{ form.title.id_for_label }}">{% translate "Titre" %}</label>
+              {{ form.title }}
+              {% for error in form.title.errors %}<p class="commodity-error" role="alert">{{ error }}</p>{% endfor %}
+            </td>
+            <td>
+              <label class="visually-hidden" for="{{ form.reference.id_for_label }}">{% translate "Référence" %}</label>
+              {{ form.reference }}
+            </td>
+            <td>
+              {% if form.instance.pk %}
+              <label class="visually-hidden" for="{{ form.DELETE.id_for_label }}">{% translate "Supprimer cette source" %}</label>
+              {{ form.DELETE }}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="commodity-help">{% translate "La dernière ligne vide sert à ajouter une source." %}</p>
+      <div class="commodity-actions">
+        <button type="submit" class="btn btn--primary">{% translate "Enregistrer les sources" %}</button>
+      </div>
+    </form>
+    {% elif sources %}
+    <ul class="commodity-sources">
+      {% for source in sources %}
+      <li><span class="commodity-code">{{ source.code }}</span>
+        {{ source.get_kind_display }} — {{ source.title }}{% if source.reference %} ({{ source.reference }}){% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="commodity-empty">{% translate "Aucune source." %}</p>
+    {% endif %}
+  </section>
+
+  {# Tâche 9 : section « Facteurs de caractérisation » (sélecteur de lieu, grilles). #}
+  {# Tâche 10 : section « Modificateurs » (cartes). #}
+</div>
+{% endblock %}

@@ -1,0 +1,220 @@
+/* Page Commodités : liste, création et fiche. Couleurs par tokens de DESIGN.md. */
+
+.commodity-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--space-gutter);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-gutter);
+}
+
+.commodity-header-title {
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.commodity-title {
+  font-size: var(--text-headline-lg-size);
+  line-height: var(--text-headline-lg-lh);
+  font-weight: var(--text-headline-lg-weight);
+  color: var(--color-on-surface);
+  margin: 0;
+}
+
+.commodity-section-title {
+  font-size: var(--text-headline-md-size);
+  line-height: var(--text-headline-md-lh);
+  font-weight: var(--text-headline-md-weight);
+  color: var(--color-on-surface);
+  margin: 0 0 16px;
+}
+
+.commodity-back {
+  color: var(--color-primary);
+  font-size: var(--text-body-sm-size);
+}
+
+.commodity-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-x: auto;
+}
+
+.commodity-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.commodity-toolbar .commodity-title {
+  flex: 1 1 auto;
+}
+
+.commodity-search {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.commodity-search .form-label {
+  align-self: center;
+}
+
+/* Grille de champs : une colonne sur mobile, deux au-delà. */
+.commodity-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .commodity-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .commodity-grid__wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.commodity-grid .form-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.commodity-deps summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--color-primary);
+  margin-bottom: 12px;
+}
+
+.commodity-help {
+  margin: 0;
+  font-size: var(--text-body-sm-size);
+  color: var(--color-on-surface-variant);
+}
+
+.commodity-error {
+  margin: 0;
+  font-size: var(--text-body-sm-size);
+  color: var(--color-error);
+}
+
+.commodity-empty {
+  color: var(--color-on-surface-variant);
+}
+
+.commodity-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.commodity-key code {
+  background-color: var(--color-surface-container);
+  padding: 2px 6px;
+  border-radius: var(--radius-base);
+}
+
+.commodity-dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.commodity-dl dt {
+  font-weight: 500;
+  color: var(--color-on-surface-variant);
+}
+
+.commodity-dl dd {
+  margin: 0;
+  color: var(--color-on-surface);
+}
+
+.commodity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-body-sm-size);
+}
+
+.commodity-table th,
+.commodity-table td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: var(--border-card);
+  vertical-align: top;
+}
+
+.commodity-table thead th {
+  font-size: var(--text-label-caps-size);
+  letter-spacing: var(--text-label-caps-ls);
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+}
+
+.commodity-table tbody th a {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.commodity-table__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.commodity-table .form-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.commodity-code {
+  display: inline-block;
+  min-width: 2em;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-secondary-container);
+  color: var(--color-on-secondary-container);
+  font-size: var(--text-label-caps-size);
+  font-weight: 700;
+  text-align: center;
+}
+
+.commodity-sources {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-on-surface);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.commodity-page a:focus-visible,
+.commodity-page .btn:focus-visible,
+.commodity-deps summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Lien du pied de barre latérale, page en cours. */
+.sidebar__footer-link.active {
+  box-shadow: inset 0 0 0 2px var(--color-on-primary);
+}

@@ -230,6 +230,16 @@
           </svg>
           <span class="sidebar__footer-link-label">{% translate "Carte des flux" %}</span>
         </a>
+        {% if user.is_authenticated %}
+        <a href="{% url 'dashboard:commodity_list' %}" class="sidebar__footer-link {% block nav_commodities %}{% endblock %}"
+          aria-label="{% translate 'Commodités' %}">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M2 5l6-3 6 3-6 3-6-3zM2 8l6 3 6-3M2 11l6 3 6-3" stroke="currentColor" stroke-width="1.4"
+              stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span class="sidebar__footer-link-label">{% translate "Commodités" %}</span>
+        </a>
+        {% endif %}
         {% if user.is_authenticated and user.role == 'CREATOR' %}
         <a href="{% url 'imports:index' %}" class="sidebar__footer-link" aria-label="{% translate 'Import / export Excel' %}">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">

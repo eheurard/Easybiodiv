@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{% translate "Nouvelle commodité" %} — Easybiodiv{% endblock %}
+{% block nav_commodities %}active{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'dashboard/css/commodities.css' %}">{% endblock %}
+{% block header_left %}<span class="commodity-header-title">{% translate "Commodités" %}</span>{% endblock %}
+
+{% block content %}
+<div class="commodity-page">
+  <p><a class="commodity-back" href="{% url 'dashboard:commodity_list' %}">&larr; {% translate "Toutes les commodités" %}</a></p>
+  <h1 class="commodity-title">{% translate "Nouvelle commodité" %}</h1>
+  <form method="post" action="{% url 'dashboard:commodity_create' %}" class="card commodity-card"
+        id="commodity-create-form">
+    {% csrf_token %}
+    {% include "dashboard/_commodity_identity_fields.html" %}
+    <div class="commodity-actions">
+      <button type="submit" class="btn btn--primary">{% translate "Créer la commodité" %}</button>
+      <a class="btn btn--secondary" href="{% url 'dashboard:commodity_list' %}">{% translate "Annuler" %}</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

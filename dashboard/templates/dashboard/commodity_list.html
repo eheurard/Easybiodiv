@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{% translate "Commodités" %} — Easybiodiv{% endblock %}
+{% block nav_commodities %}active{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'dashboard/css/commodities.css' %}">{% endblock %}
+{% block header_left %}<span class="commodity-header-title">{% translate "Commodités" %}</span>{% endblock %}
+
+{% block content %}
+<div class="commodity-page">
+  <div class="commodity-toolbar">
+    <h1 class="commodity-title">{% translate "Commodités" %}</h1>
+    <form method="get" class="commodity-search" role="search">
+      <label class="form-label" for="commodity-q">{% translate "Rechercher" %}</label>
+      <input type="search" id="commodity-q" name="q" value="{{ q }}" class="form-input">
+      <button type="submit" class="btn btn--secondary">{% translate "Filtrer" %}</button>
+    </form>
+    {% if can_edit %}
+    <a class="btn btn--primary" href="{% url 'dashboard:commodity_create' %}">{% translate "Nouvelle commodité" %}</a>
+    {% endif %}
+  </div>
+
+  {% if rows %}
+  <div class="card commodity-card">
+    <table class="commodity-table">
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Nom" %}</th>
+          <th scope="col">{% translate "Unité" %}</th>
+          <th scope="col" class="commodity-table__num">{% translate "Facteurs" %}</th>
+          <th scope="col" class="commodity-table__num">{% translate "Modificateurs" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <th scope="row"><a href="{% url 'dashboard:commodity_detail' row.commodity.pk %}">{{ row.commodity.name }}</a></th>
+          <td>{{ row.commodity.unit }}</td>
+          <td class="commodity-table__num">{{ row.factor_count }}</td>
+          <td class="commodity-table__num">{{ row.modifier_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="commodity-empty">{% translate "Aucune commodité ne correspond." %}</p>
+  {% endif %}
+</div>
+{% endblock %}
