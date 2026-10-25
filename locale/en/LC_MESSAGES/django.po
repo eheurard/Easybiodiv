@@ -2825,3 +2825,226 @@ msgstr "Learn more"
 #: .\templates\includes\cookie_notice.html:16
 msgid "J'ai compris"
 msgstr "Got it"
+
+msgid "Ce modificateur n'appartient pas à cette commodité."
+msgstr "This modifier does not belong to this commodity."
+
+msgid "Variation (%)"
+msgstr "Change (%)"
+
+msgid "Facteur invalide."
+msgstr "Invalid factor."
+
+msgid "Un modificateur porte déjà ce nom pour cette commodité."
+msgstr "A modifier with this name already exists for this commodity."
+
+msgid "Nombre invalide."
+msgstr "Invalid number."
+
+msgid "Source de commodité"
+msgstr "Commodity source"
+
+msgid "Sources de commodité"
+msgstr "Commodity sources"
+
+msgid "Modificateur de commodité"
+msgstr "Commodity modifier"
+
+msgid "Modificateurs de commodité"
+msgstr "Commodity modifiers"
+
+msgid "Effet de modificateur"
+msgstr "Modifier effect"
+
+msgid "Effets de modificateur"
+msgstr "Modifier effects"
+
+msgid "Modificateurs"
+msgstr "Modifiers"
+
+msgid "Agribalyse"
+msgstr "Agribalyse"
+
+msgid "ecoinvent"
+msgstr "ecoinvent"
+
+msgid "Article scientifique"
+msgstr "Scientific article"
+
+msgid "Certification"
+msgstr "Certification"
+
+msgid "Titre"
+msgstr "Title"
+
+msgid "Créé le"
+msgstr "Created on"
+
+msgid "Modifié le"
+msgstr "Modified on"
+
+msgid "Créé par"
+msgstr "Created by"
+
+msgid "Source documentée"
+msgstr "Documented source"
+
+msgid "Description"
+msgstr "Description"
+
+msgid "Modificateur"
+msgstr "Modifier"
+
+msgid "Catégorie d'impact"
+msgstr "Impact category"
+
+msgid "Variation du facteur en pourcentage (−100 = facteur annulé)."
+msgstr "Change in the factor as a percentage (−100 = factor cancelled)."
+
+msgid "La source doit appartenir à la même commodité."
+msgstr "The source must belong to the same commodity."
+
+msgid "Global"
+msgstr "Global"
+
+#, python-format
+msgid "Supprimer « %(name)s » ? Il est coché sur %(n)s flux, dont les impacts seront recalculés."
+msgid_plural "Supprimer « %(name)s » ? Il est coché sur %(n)s flux, dont les impacts seront recalculés."
+msgstr[0] "Delete \"%(name)s\"? It is ticked on %(n)s flow, whose impacts will be recalculated."
+msgstr[1] "Delete \"%(name)s\"? It is ticked on %(n)s flows, whose impacts will be recalculated."
+
+msgid "Dépendances aux services écosystémiques"
+msgstr "Dependencies on ecosystem services"
+
+msgid "Supprimer cet effet"
+msgstr "Delete this effect"
+
+msgid "La dernière ligne vide sert à ajouter un effet. Virgule décimale acceptée ; −100 au minimum."
+msgstr "The last empty row is used to add an effect. Decimal comma accepted; −100 at minimum."
+
+msgid "Sur ce flux, les modificateurs sont des labels : ils ne changent pas les calculs d’impact."
+msgstr "On this flow, modifiers are labels: they do not change impact calculations."
+
+#, python-format
+msgid "Coché sur %(n)s flux"
+msgid_plural "Coché sur %(n)s flux"
+msgstr[0] "Ticked on %(n)s flow"
+msgstr[1] "Ticked on %(n)s flows"
+
+msgid "Toutes les commodités"
+msgstr "All commodities"
+
+msgid "Identité"
+msgstr "Identity"
+
+msgid "Clé technique"
+msgstr "Technical key"
+
+msgid "(non modifiable)"
+msgstr "(read-only)"
+
+msgid "Sources"
+msgstr "Sources"
+
+msgid "Code"
+msgstr "Code"
+
+msgid "Supprimer cette source"
+msgstr "Delete this source"
+
+msgid "La dernière ligne vide sert à ajouter une source."
+msgstr "The last empty row is used to add a source."
+
+msgid "Enregistrer les sources"
+msgstr "Save sources"
+
+msgid "Aucune source."
+msgstr "No sources."
+
+msgid "Facteurs de caractérisation"
+msgstr "Characterization factors"
+
+msgid "Un facteur vide hérite du lieu parent (région, puis pays, puis global) ; 0 est un facteur à part entière."
+msgstr "An empty factor inherits from the parent location (region, then country, then global); 0 is a factor in its own right."
+
+msgid "Lieux"
+msgstr "Locations"
+
+msgid "Ajouter un pays ou une région"
+msgstr "Add a country or region"
+
+msgid "+ pays ou région"
+msgstr "+ country or region"
+
+msgid "Afficher"
+msgstr "Show"
+
+msgid "Facteur"
+msgstr "Factor"
+
+#, python-format
+msgid "Facteur : %(name)s"
+msgstr "Factor: %(name)s"
+
+#, python-format
+msgid "Source : %(name)s"
+msgstr "Source: %(name)s"
+
+msgid "Enregistrer les facteurs"
+msgstr "Save factors"
+
+#, python-format
+msgid "Modificateurs de %(name)s"
+msgstr "Modifiers of %(name)s"
+
+msgid "Niveau"
+msgstr "Level"
+
+msgid "Facteur ajusté"
+msgstr "Adjusted factor"
+
+msgid "Aucun effet."
+msgstr "No effects."
+
+msgid "Modifier"
+msgstr "Edit"
+
+msgid "Enregistrer le modificateur"
+msgstr "Save modifier"
+
+msgid "Supprimer le modificateur"
+msgstr "Delete modifier"
+
+msgid "Aucun modificateur."
+msgstr "No modifiers."
+
+msgid "+ Nouveau modificateur"
+msgstr "+ New modifier"
+
+msgid "Créer le modificateur"
+msgstr "Create modifier"
+
+msgid "Nouvelle commodité"
+msgstr "New commodity"
+
+msgid "Créer la commodité"
+msgstr "Create commodity"
+
+msgid "Filtrer"
+msgstr "Filter"
+
+msgid "Facteurs"
+msgstr "Factors"
+
+msgid "Aucune commodité ne correspond."
+msgstr "No matching commodity."
+
+msgid "Deux effets ne peuvent pas porter sur la même catégorie d'impact."
+msgstr "Two effects cannot target the same impact category."
+
+msgid "Cette commodité n'existe plus."
+msgstr "This commodity no longer exists."
+
+#, python-format
+msgid "Modificateur introuvable pour la commodité « %(what)s » : « %(name)s »"
+msgstr "Modifier not found for commodity \"%(what)s\": \"%(name)s\""
