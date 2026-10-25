@@ -21,7 +21,8 @@
   </div>
 
   {% if rows %}
-  <div class="card commodity-card">
+  <div class="card commodity-card commodity-scroll" tabindex="0" role="region"
+       aria-label="{% translate 'Liste des commodités' %}">
     <table class="commodity-table">
       <thead>
         <tr>

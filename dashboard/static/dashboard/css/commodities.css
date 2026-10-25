@@ -158,6 +158,26 @@
   color: var(--color-on-surface-variant);
 }
 
+/* Liste : hauteur fixe, défilement interne, en-tête de colonnes toujours visible. */
+.commodity-scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-top: 0;
+}
+
+.commodity-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--color-surface-container-lowest);
+  padding-top: 16px;
+}
+
+.commodity-scroll:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .commodity-table tbody th a {
   color: var(--color-primary);
   font-weight: 600;

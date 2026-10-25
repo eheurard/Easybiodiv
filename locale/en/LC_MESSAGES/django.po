@@ -3219,3 +3219,6 @@ msgid "cochés sur %(n)s flux"
 msgid_plural "cochés sur %(n)s flux"
 msgstr[0] "ticked on %(n)s flow"
 msgstr[1] "ticked on %(n)s flows"
+
+msgid "Liste des commodités"
+msgstr "Commodity list"
