@@ -889,3 +889,38 @@ class CommodityIdentityTranslationTests(TestCase):
         self.assertContains(response, '<option value="VL" selected>Très faible</option>')
         self.assertContains(response, '<option value="Mining">Extraction minière</option>')
         self.assertNotContains(response, 'Very low')
+
+
+class ModifierEffectCategoryChoicesTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.creator = user_model.objects.create_user('cr_cat', password='x', role='CREATOR')
+        self.soy = Commodity.objects.create(name='Soja')
+        self.category = ImpactCategory.objects.get(
+            key='impact_midpoint_ReCiPe2016_climate_change')
+        self.client.force_login(self.creator)
+        self.url = reverse('dashboard:commodity_detail', args=[self.soy.pk])
+
+    def _add_modifiers(self, count):
+        start = CommodityModifier.objects.filter(commodity=self.soy).count()
+        for i in range(start, start + count):
+            modifier = CommodityModifier.objects.create(commodity=self.soy, name=f'Mod {i}')
+            ModifierEffect.objects.create(
+                modifier=modifier, category=self.category, percent=-10)
+
+    def _queries(self):
+        with CaptureQueriesContext(connection) as ctx:
+            self.assertEqual(self.client.get(self.url).status_code, 200)
+        return len(ctx)
+
+    def test_query_count_does_not_grow_per_modifier(self):
+        self._add_modifiers(1)
+        baseline = self._queries()
+        self._add_modifiers(5)
+        self.assertLessEqual(self._queries(), baseline + 10)
+
+    def test_category_options_show_name_not_method_and_key(self):
+        self._add_modifiers(1)
+        response = self.client.get(self.url)
+        self.assertContains(response, f'>{self.category.name}</option>')
+        self.assertNotContains(response, f'— {self.category.key}</option>')

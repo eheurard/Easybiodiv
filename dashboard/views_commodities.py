@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from .decorators import creator_required
 from .forms_commodities import (
     CommodityIdentityForm, CommodityModifierForm, CommoditySourceFormSet, FactorGridForm,
-    ModifierEffectFormSet, format_factor,
+    ModifierEffectFormSet, format_factor, impact_category_choices,
 )
 from .models import (
     Commodity, CommodityModifier, Country, ImpactCategory, SubnationalRegion,
@@ -25,11 +25,13 @@ SOURCES_PREFIX = 'sources'
 NEW_MODIFIER = 'new'
 
 
-def _modifier_forms(commodity, modifier, data=None):
+def _modifier_forms(commodity, modifier, data=None, category_choices=None):
     """Formulaire et formset d'un modificateur (`modifier` sans pk = création)."""
     key = modifier.pk or NEW_MODIFIER
     form = CommodityModifierForm(commodity, data, instance=modifier, prefix=f'mod-{key}')
-    formset = ModifierEffectFormSet(data, instance=modifier, prefix=f'effects-{key}')
+    formset = ModifierEffectFormSet(
+        data, instance=modifier, prefix=f'effects-{key}',
+        form_kwargs={'category_choices': category_choices})
     return form, formset
 
 
@@ -82,16 +84,19 @@ def _detail_context(request, commodity, *, identity_form=None, source_formset=No
             item['is_endpoint'] = item['level'] == ImpactCategory.Level.ENDPOINT
     failed = modifier_forms[0].pk if modifier_forms else None
     new_has_errors = bool(modifier_forms) and failed is None
+    choices = impact_category_choices()
     new_form, new_formset = (
         modifier_forms[1:] if new_has_errors
-        else _modifier_forms(commodity, CommodityModifier(commodity=commodity)))
+        else _modifier_forms(commodity, CommodityModifier(commodity=commodity),
+                             category_choices=choices))
     if can_edit:
         for card in cards:
             if modifier_forms and failed == card['modifier'].pk:
                 card['form'], card['formset'] = modifier_forms[1:]
                 card['has_errors'] = True
             else:
-                card['form'], card['formset'] = _modifier_forms(commodity, card['modifier'])
+                card['form'], card['formset'] = _modifier_forms(
+                    commodity, card['modifier'], category_choices=choices)
     return {
         'modifier_cards': cards,
         'new_modifier_form': new_form,

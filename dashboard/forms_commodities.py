@@ -215,6 +215,17 @@ class CommodityModifierForm(forms.ModelForm):
         return name
 
 
+def impact_category_choices():
+    """Choix de catégorie d'impact, groupés par niveau, sans lire la méthode."""
+    groups = {}
+    for pk, name, level in ImpactCategory.objects.order_by('level', 'pk').values_list(
+            'pk', 'name', 'level'):
+        groups.setdefault(level, []).append((pk, name))
+    return [('', '---------')] + [
+        (str(ImpactCategory.Level(level).label), options)
+        for level, options in groups.items()]
+
+
 class ModifierEffectForm(forms.ModelForm):
     """Effet en % ; `percent` accepte la virgule décimale et les espaces."""
 
@@ -225,9 +236,15 @@ class ModifierEffectForm(forms.ModelForm):
         model = ModifierEffect
         fields = ('category', 'percent')
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, category_choices=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['category'].widget.attrs.setdefault('class', 'form-input')
+        field = self.fields['category']
+        field.widget.attrs.setdefault('class', 'form-input')
+        # Choix calculés une fois par page (`category_choices`) : sinon chaque ligne
+        # d'effet relirait les catégories et leur méthode.
+        field.queryset = ImpactCategory.objects.order_by('level', 'pk')
+        field.choices = category_choices if category_choices is not None else (
+            impact_category_choices())
 
     def validate_unique(self):
         # L'unicité (modificateur, catégorie) est vérifiée par le formset, qui ignore les
