@@ -2560,11 +2560,8 @@ msgstr "Invalid years for this range."
 msgid "Retrait impossible : vérifiez le bloc, les années et la détention."
 msgstr "Cannot unlink: check the block, the years and the ownership."
 
-msgid "Origine inconnue"
-msgstr "Unknown origin"
-
-msgid "Destination inconnue"
-msgstr "Unknown destination"
+msgid "Marché global"
+msgstr "Global market"
 
 msgid "Accès réservé aux créateurs."
 msgstr "Access restricted to creators."

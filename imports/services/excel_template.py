@@ -100,7 +100,7 @@ def _build_reference_sheet(wb):
     enum_sections = [
         ("Flow — kind", CHOICE_FIELDS['Flow']['kind']),
         ("Flow — scope (vide = undefined)", CHOICE_FIELDS['Flow']['scope']),
-        ("Flow — from_type / to_type (vide = inconnu)", ENDPOINT_TYPES),
+        ("Flow — from_type / to_type (vide = marché global)", ENDPOINT_TYPES),
         ("Asset — type", CHOICE_FIELDS['Asset']['type']),
         ("Asset — sensitive_zone_type", CHOICE_FIELDS['Asset']['sensitive_zone_type']),
         ("ClimateScenario — family", CHOICE_FIELDS['ClimateScenario']['family']),

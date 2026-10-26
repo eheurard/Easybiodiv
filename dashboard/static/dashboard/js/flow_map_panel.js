@@ -3,8 +3,9 @@
 // Saisie des flux sur la carte (spec 2026-10-22 §5.1, §5.2), Créateurs seulement.
 //
 //   « + » droite / gauche d'un bloc : mode tracé, puis clic sur l'autre bloc, sur le
-//   bandeau Environnement ou sur le fond (extrémité inconnue) ; Échap annule.
-//   « + » du haut : fiche directe avec le milieu.
+//   bandeau Environnement ou sur le bandeau Marché global ; Échap ou clic sur le
+//   fond annule.
+//   « + » du haut : fiche directe avec le milieu ; « + » du bas : avec le marché global.
 //   Clic sur une flèche : panneau latéral en formulaire modifiable.
 //
 //   FlowMapPanel.openNewFlow(fromKey, toKey) -> bool   fiche de création (faux :
@@ -34,8 +35,7 @@
 // (flow_map.js recharge la carte).
 window.FlowMapPanel = (function () {
   var ENV = 'environment';
-  var UNKNOWN_IN = 'unknown-in';
-  var UNKNOWN_OUT = 'unknown-out';
+  var MARKET = 'market';
   var NOTICE_DELAY = 6000;
   var FIELDS = ['kind', 'what', 'quantity', 'year', 'tier', 'scope', 'source', 'reference'];
   var OPTIONAL_FIELDS = ['tier', 'scope', 'source', 'reference'];
@@ -89,20 +89,18 @@ window.FlowMapPanel = (function () {
   // Type d'extrémité d'une clé de bloc, au sens de FLOW_RULES.
   function typeOf(key) {
     if (key === ENV) return 'environment';
-    if (key === UNKNOWN_IN || key === UNKNOWN_OUT) return null;
+    if (key === MARKET) return null;
     return key.split(':')[0];
   }
 
   function blockName(key) {
     if (key === ENV) return gettext('Environnement');
+    if (key === MARKET) return gettext('Marché global');
     var model = FlowMap.model();
     var found = model && (model.blocks.concat(model.groups || [])).find(function (b) {
       return b.key === key;
     });
-    if (found) return found.name;
-    if (key === UNKNOWN_IN) return gettext('Origine inconnue');
-    if (key === UNKNOWN_OUT) return gettext('Destination inconnue');
-    return key;
+    return found ? found.name : key;
   }
 
   function kindLabel(kind) {
@@ -116,15 +114,20 @@ window.FlowMapPanel = (function () {
       && rule.destinations.indexOf(typeOf(toKey)) >= 0;
   }
 
-  // Natures permises entre deux blocs. Avec le milieu, le sens découle de la
+  function isBand(key) {
+    return key === ENV || key === MARKET;
+  }
+
+  // Natures permises entre deux blocs. Avec un bandeau, le sens découle de la
   // nature : les deux sens sont proposés (consommation milieu → bloc, émission
-  // et déchet bloc → milieu), celui du tracé d'abord.
+  // et déchet bloc → milieu ; approvisionnement et consommation marché → bloc,
+  // production et déchet bloc → marché), celui du tracé d'abord.
   function optionsFor(a, b, bothWays) {
     var list = [];
     FlowMap.kinds.forEach(function (k) {
       if (allowed(k.value, a, b)) list.push({ kind: k.value, from: a, to: b });
     });
-    if (bothWays && (a === ENV) !== (b === ENV)) {
+    if (bothWays && isBand(a) !== isBand(b)) {
       FlowMap.kinds.forEach(function (k) {
         var taken = list.some(function (o) { return o.kind === k.value; });
         if (!taken && allowed(k.value, b, a)) list.push({ kind: k.value, from: b, to: a });
@@ -216,13 +219,11 @@ window.FlowMapPanel = (function () {
     FlowMap.state.trace = trace;
     FlowMap.svg.classList.add('is-tracing');
     if (port === 'out') {
-      els.traceText.textContent = gettext('Cliquez le bloc de destination, le bandeau '
-        + 'Environnement, ou le fond pour une destination inconnue. Échap : annuler.');
-      els.traceUnknown.textContent = gettext('Destination inconnue');
+      els.traceText.textContent = gettext('Cliquez le bloc de destination ou un bandeau '
+        + '(Environnement, Marché global). Échap ou clic sur le fond : annuler.');
     } else {
-      els.traceText.textContent = gettext('Cliquez le bloc d’origine, le bandeau '
-        + 'Environnement, ou le fond pour une origine inconnue. Échap : annuler.');
-      els.traceUnknown.textContent = gettext('Origine inconnue');
+      els.traceText.textContent = gettext('Cliquez le bloc d’origine ou un bandeau '
+        + '(Environnement, Marché global). Échap ou clic sur le fond : annuler.');
     }
     els.trace.hidden = false;
     FlowMap.redraw();
@@ -238,12 +239,9 @@ window.FlowMapPanel = (function () {
     FlowMap.redraw();
   }
 
-  // Autre extrémité choisie : un bloc, le milieu ou null (inconnue).
+  // Autre extrémité choisie : un bloc, le milieu ou le marché global.
   function finishTrace(otherKey) {
     var t = trace;
-    if (otherKey === null || typeOf(otherKey) === null) {
-      otherKey = t.port === 'out' ? UNKNOWN_OUT : UNKNOWN_IN;
-    }
     cancelTrace();
     if (t.port === 'out') openNewFlow(t.key, otherKey);
     else openNewFlow(otherKey, t.key);
@@ -253,7 +251,7 @@ window.FlowMapPanel = (function () {
     if (!FlowMap.canEdit) return false;
     if (trace) {
       if (info.type === 'port') {
-        if (info.port === 'env') { cancelTrace(); openEnvironment(info.key); }
+        if (isBandPort(info.port)) { cancelTrace(); openBand(info.key, info.port); }
         else startTrace(info.key, info.port);
         return true;
       }
@@ -266,12 +264,16 @@ window.FlowMapPanel = (function () {
         finishTrace(info.key);
         return true;
       }
-      if (info.type === 'band') { finishTrace(ENV); return true; }
-      if (info.type === 'background') { finishTrace(null); return true; }
+      if (info.type === 'band') { finishTrace(info.key); return true; }
+      if (info.type === 'background') {
+        cancelTrace();
+        focusOpener();
+        return true;
+      }
       return true;   // flèches et cadres de groupe ignorés pendant le tracé
     }
     if (info.type === 'port') {
-      if (info.port === 'env') openEnvironment(info.key);
+      if (isBandPort(info.port)) openBand(info.key, info.port);
       else startTrace(info.key, info.port);
       return true;
     }
@@ -285,9 +287,14 @@ window.FlowMapPanel = (function () {
     return false;
   }
 
-  function openEnvironment(key) {
-    opener = portSelector(key, 'env');
-    openNewFlow(ENV, key);
+  // « + » du haut (milieu) ou du bas (marché global) d'un bloc.
+  function isBandPort(port) {
+    return port === 'env' || port === 'market';
+  }
+
+  function openBand(key, port) {
+    opener = portSelector(key, port);
+    openNewFlow(port === 'env' ? ENV : MARKET, key);
   }
 
   // ── Fiche ────────────────────────────────────────────────────────────────
@@ -952,8 +959,8 @@ window.FlowMapPanel = (function () {
       hideCreate();
       els.what.focus();
     });
-    els.traceUnknown.addEventListener('click', function () {
-      if (trace) finishTrace(null);
+    els.traceMarket.addEventListener('click', function () {
+      if (trace) finishTrace(MARKET);
     });
     els.traceCancel.addEventListener('click', function () {
       cancelTrace();
@@ -1047,7 +1054,7 @@ window.FlowMapPanel = (function () {
       menu: document.getElementById('flow-map-menu'),
       trace: document.getElementById('flow-map-trace'),
       traceText: document.getElementById('flow-map-trace-text'),
-      traceUnknown: document.getElementById('flow-map-trace-unknown'),
+      traceMarket: document.getElementById('flow-map-trace-market'),
       traceCancel: document.getElementById('flow-map-trace-cancel'),
       dialog: document.getElementById('flow-map-confirm'),
       confirmMessage: document.getElementById('flow-map-confirm-message'),

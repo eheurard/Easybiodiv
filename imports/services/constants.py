@@ -69,7 +69,7 @@ SHEET_COLUMNS = {
     ],
     # Flux : une quantité d'une commodité, une année, d'une origine vers une
     # destination. from_type / to_type : asset, region, country, company, milieu,
-    # ou vide (inconnu) ; *_name reste vide pour milieu et inconnu. `what` accepte
+    # ou vide (marché global) ; *_name reste vide pour milieu et marché. `what` accepte
     # le nom ou la clé technique de la commodité.
     'Flow': [
         'kind', 'what', 'scope', 'from_type', 'from_name', 'to_type', 'to_name',

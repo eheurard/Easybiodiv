@@ -13,6 +13,8 @@
   --fm-production:  #d08a3a;
   --fm-env:         #e3ecdf;
   --fm-env-line:    #6f8f68;
+  --fm-market:      #e7eaf1;
+  --fm-market-line: #5f6f8c;
   --fm-halo:        var(--color-surface-container-lowest);
 
   display: flex;
@@ -23,6 +25,8 @@
 :root[data-theme="dark"] .flow-map {
   --fm-env:      #243024;
   --fm-env-line: #8fb087;
+  --fm-market:      #232a36;
+  --fm-market-line: #9aabc8;
 }
 
 /* ── Barre d'outils ───────────────────────────────────────────────────────── */
@@ -289,15 +293,25 @@
   outline: none;
 }
 
-/* ── Bandeau du milieu ────────────────────────────────────────────────────── */
+/* ── Bandeaux : milieu (haut) et marché global (bas) ──────────────────────── */
+.fm-band {
+  --fm-band:      var(--fm-env);
+  --fm-band-line: var(--fm-env-line);
+}
+
+.fm-band--market {
+  --fm-band:      var(--fm-market);
+  --fm-band-line: var(--fm-market-line);
+}
+
 .fm-band__rect {
-  fill: var(--fm-env);
-  stroke: var(--fm-env-line);
+  fill: var(--fm-band);
+  stroke: var(--fm-band-line);
   stroke-dasharray: 4 4;
 }
 
 .fm-band__label {
-  fill: var(--fm-env-line);
+  fill: var(--fm-band-line);
   font-size: 14px;
   font-weight: 600;
 }
@@ -378,12 +392,6 @@
   stroke-width: 2;
 }
 
-.fm-block--unknown .fm-block__card {
-  fill: var(--color-surface-container-low);
-  stroke: var(--color-outline);
-  stroke-dasharray: 5 4;
-}
-
 .fm-block__type {
   fill: var(--color-on-surface-variant);
   font-size: 11px;
@@ -394,10 +402,6 @@
   fill: var(--color-on-surface);
   font-size: 15px;
   font-weight: 600;
-}
-
-.fm-block--unknown .fm-block__name {
-  fill: var(--color-outline);
 }
 
 .fm-block__toggle {

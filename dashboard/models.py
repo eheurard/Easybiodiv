@@ -820,21 +820,23 @@ class FlowScope(models.TextChoices):
 FlowRule = namedtuple('FlowRule', ['origins', 'destinations', 'message'])
 
 # Types d'extrémité autorisés par nature de flux (spec §3.4). Source unique des
-# contraintes en base et des messages d'erreur de l'import Excel.
+# contraintes en base et des messages d'erreur de l'import Excel. Une extrémité
+# vide (None) est le marché global : origine ou destination non localisée.
 FLOW_RULES = {
     FlowKind.PRODUCTION.value: FlowRule(
         (ENDPOINT_ASSET, ENDPOINT_COMPANY), (None,),
-        "Une production part d'un actif ou d'une entreprise, sans destination.",
+        "Une production part d'un actif ou d'une entreprise vers le marché global.",
     ),
     FlowKind.SUPPLY.value: FlowRule(
-        LOCATED_ENDPOINTS, LOCATED_ENDPOINTS,
-        'Un approvisionnement va d’un actif, d’une région, d’un pays ou d’une '
-        'entreprise vers un autre actif, région, pays ou entreprise.',
+        LOCATED_ENDPOINTS + (None,), LOCATED_ENDPOINTS,
+        'Un approvisionnement va d’un actif, d’une région, d’un pays, d’une '
+        'entreprise ou du marché global vers un actif, une région, un pays ou une '
+        'entreprise.',
     ),
     FlowKind.CONSUMPTION.value: FlowRule(
         (ENDPOINT_ENVIRONMENT, None), (ENDPOINT_ASSET, ENDPOINT_COMPANY),
-        'Une consommation vient du milieu ou d’une origine inconnue et va vers un '
-        'actif ou une entreprise.',
+        'Une consommation vient du milieu ou du marché global et va vers un actif ou '
+        'une entreprise.',
     ),
     FlowKind.EMISSION.value: FlowRule(
         (ENDPOINT_ASSET, ENDPOINT_COMPANY), (ENDPOINT_ENVIRONMENT,),
@@ -843,7 +845,7 @@ FLOW_RULES = {
     FlowKind.WASTE.value: FlowRule(
         (ENDPOINT_ASSET, ENDPOINT_COMPANY), (ENDPOINT_ENVIRONMENT, None, ENDPOINT_ASSET),
         "Un déchet part d'un actif ou d'une entreprise et va vers le milieu, un actif "
-        '(site de traitement) ou une destination inconnue.',
+        '(site de traitement) ou le marché global.',
     ),
 }
 
@@ -929,7 +931,7 @@ def _flow_constraints():
 
 FLOW_ENDPOINT_HELP_TEXT = (
     'Au plus un champ renseigné par côté (actif, région, pays, entreprise ou milieu). '
-    'Tout vide = inconnu (acheteur ou origine non renseignés).'
+    'Tout vide = marché global (origine ou destination non localisée).'
 )
 
 

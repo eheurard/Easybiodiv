@@ -24,6 +24,7 @@
 //                        fn({type, key, port, keyboard}) -> true si traité (le
 //                        comportement par défaut, déplier / replier, est alors sauté).
 //                        type : 'block', 'frame', 'edge', 'port', 'band', 'background'
+//                        (pour 'band', key vaut 'environment' ou 'market')
 //   FlowMap.lastRender() dernier résultat de FlowMapDraw.render (ou null)
 //   FlowMap.addSessionBlock({key, type, id, name}) -> 'added' | 'exists' | null
 //                        bloc extérieur ajouté pour la session (colonne 0, rien en
@@ -400,16 +401,18 @@ window.FlowMap = (function () {
     stretchBand();
   }
 
-  // Le bandeau du milieu couvre toute la largeur visible, son titre reste à l'écran.
+  // Les bandeaux (milieu, marché global) couvrent toute la largeur visible, leur
+  // titre reste à l'écran.
   function stretchBand() {
-    var rect = els.svg.querySelector('.fm-band__rect');
-    var label = els.svg.querySelector('.fm-band__label');
-    if (!rect || !view || !last) return;
+    if (!view || !last) return;
     var left = Math.min(view.x, last.bounds.x);
     var right = Math.max(view.x + view.width, last.bounds.x + last.bounds.width);
-    rect.setAttribute('x', left);
-    rect.setAttribute('width', right - left);
-    label.setAttribute('x', view.x + 16);
+    els.svg.querySelectorAll('.fm-band').forEach(function (band) {
+      var rect = band.querySelector('.fm-band__rect');
+      rect.setAttribute('x', left);
+      rect.setAttribute('width', right - left);
+      band.querySelector('.fm-band__label').setAttribute('x', view.x + 16);
+    });
   }
 
   function size() {
@@ -494,9 +497,10 @@ window.FlowMap = (function () {
     } else if (edge) {
       drag = { type: 'edge', key: edge.dataset.key, start: start };
     } else {
+      var band = event.target.closest('.fm-band');
       drag = {
         type: 'view', start: start, origin: { x: view.x, y: view.y },
-        band: !!event.target.closest('.fm-band'),
+        band: band ? band.dataset.key : null,
       };
     }
     drag.moved = false;
@@ -530,7 +534,8 @@ window.FlowMap = (function () {
     if (els.svg.hasPointerCapture(event.pointerId)) els.svg.releasePointerCapture(event.pointerId);
     if (done.moved) return;
     var type = done.type === 'view' ? (done.band ? 'band' : 'background') : done.type;
-    if (tap({ type: type, key: done.key || null, port: done.port || null, keyboard: false })) {
+    var key = done.type === 'view' ? done.band : done.key;
+    if (tap({ type: type, key: key || null, port: done.port || null, keyboard: false })) {
       return;
     }
     if (done.type === 'block' && done.key.indexOf('group:') === 0) toggleGroup(done.key, true);

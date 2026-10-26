@@ -196,12 +196,11 @@ class AssignColumnsTests(SimpleTestCase):
         cols = assign_columns(['a', 'b'], [('a', 'b'), ('b', 'a')])
         self.assertEqual(cols, {'a': 0, 'b': 1})
 
-    def test_environment_ignored_and_unknown_out_last(self):
+    def test_bands_are_ignored(self):
         cols = assign_columns(
-            ['a', 'b', 'c', 'unknown-out'],
-            [('a', 'b'), ('b', 'c'), ('a', 'unknown-out'), ('environment', 'b')])
-        self.assertEqual(cols['unknown-out'], 3)
-        self.assertNotIn('environment', cols)
+            ['a', 'b', 'c', 'market'],
+            [('a', 'b'), ('b', 'c'), ('market', 'a'), ('c', 'market'), ('environment', 'b')])
+        self.assertEqual(cols, {'a': 0, 'b': 1, 'c': 2})
 
     def test_isolated_node_is_in_first_column(self):
         self.assertEqual(assign_columns(['a', 'b'], []), {'a': 0, 'b': 0})
@@ -227,24 +226,24 @@ class EndpointKeyTests(TestCase):
         self.assertEqual(endpoint_key(other, 'from'), f'country:{self.brazil.pk}')
         self.assertEqual(endpoint_key(other, 'to'), f'company:{self.acme.pk}')
 
-    def test_environment_and_unknown_ends(self):
+    def test_environment_and_market_ends(self):
         water = make_inventory(asset=self.vevey, key='water', year=2024, value=1)
         self.assertEqual(endpoint_key(water, 'from'), 'environment')
         production = make_production(
             commodity=self.soja, year=2024, production=1, asset=self.vevey)
-        self.assertEqual(endpoint_key(production, 'to'), 'unknown-out')
-        unknown_origin = Flow.objects.create(
-            kind=FlowKind.CONSUMPTION, what=self.soja, to_asset=self.vevey,
+        self.assertEqual(endpoint_key(production, 'to'), 'market')
+        bought = Flow.objects.create(
+            kind=FlowKind.SUPPLY, what=self.soja, to_asset=self.vevey,
             year=2024, quantity=1)
-        self.assertEqual(endpoint_key(unknown_origin, 'from'), 'unknown-in')
+        self.assertEqual(endpoint_key(bought, 'from'), 'market')
 
     def test_parse_key(self):
         self.assertEqual(parse_key('asset:5'), ('asset', 5))
         self.assertEqual(parse_key('group:3'), ('group', 3))
         self.assertEqual(parse_key('environment'), ('environment', None))
-        self.assertEqual(parse_key('unknown-in'), (None, None))
-        self.assertEqual(parse_key('unknown-out'), (None, None))
-        for bad in ('asset', 'asset:', 'asset:x', 'site:5', 'asset:-1', '', 'asset:5:6'):
+        self.assertEqual(parse_key('market'), (None, None))
+        for bad in ('asset', 'asset:', 'asset:x', 'site:5', 'asset:-1', '', 'asset:5:6',
+                    'unknown-in', 'unknown-out'):
             with self.subTest(key=bad), self.assertRaises(ValueError):
                 parse_key(bad)
 
@@ -257,7 +256,7 @@ class EndpointKeyTests(TestCase):
             'to_asset': None, 'to_region': None, 'to_country': None,
             'to_company': None, 'to_environment': True,
         })
-        self.assertEqual(endpoint_fields('to', 'unknown-out'), {
+        self.assertEqual(endpoint_fields('to', 'market'), {
             'to_asset': None, 'to_region': None, 'to_country': None,
             'to_company': None, 'to_environment': False,
         })
@@ -297,7 +296,7 @@ class BuildFlowMapTests(TestCase):
         blocks = self._blocks(data)
         self.assertEqual(set(blocks), {
             f'company:{self.acme.pk}', f'asset:{self.vevey.pk}',
-            f'asset:{self.rotterdam.pk}', f'company:{self.cargill.pk}', 'unknown-out'})
+            f'asset:{self.rotterdam.pk}', f'company:{self.cargill.pk}'})
         self.assertEqual(len(data['flows']), 3)
         self.assertFalse(data['can_edit'])
         self.assertEqual(data['company'], {'id': self.acme.pk, 'name': 'Acme'})
@@ -308,11 +307,9 @@ class BuildFlowMapTests(TestCase):
         self.assertEqual(blocks[f'company:{self.acme.pk}']['column'], 0)
         self.assertEqual(blocks[f'company:{self.cargill.pk}']['column'], 0)
         self.assertEqual(blocks[f'asset:{self.vevey.pk}']['column'], 1)
-        self.assertEqual(blocks['unknown-out']['column'], 2)
         self.assertTrue(blocks[f'asset:{self.vevey.pk}']['owned'])
         self.assertFalse(blocks[f'company:{self.cargill.pk}']['owned'])
-        self.assertEqual(blocks['unknown-out']['type'], 'unknown')
-        self.assertIsNone(blocks['unknown-out']['id'])
+        self.assertEqual(data['flows'][2]['to'], 'market')
         self.assertEqual(data['flows'][0], {
             'id': supply.pk, 'kind': 'SUPPLY', 'kind_label': 'Approvisionnement',
             'from': f'company:{self.cargill.pk}', 'to': f'asset:{self.vevey.pk}',
@@ -321,15 +318,16 @@ class BuildFlowMapTests(TestCase):
             'source': '', 'reference': '', 'modifiers': [],
         })
 
-    def test_unknown_origin_block(self):
+    def test_market_is_a_band_not_a_block(self):
         Flow.objects.create(
-            kind=FlowKind.CONSUMPTION, what=self.soja, to_asset=self.vevey,
+            kind=FlowKind.SUPPLY, what=self.soja, to_asset=self.vevey,
             year=2024, quantity=1)
-        blocks = self._blocks(build_flow_map(self.acme, 2024, 2024, AnonymousUser()))
-        self.assertEqual(blocks['unknown-in']['column'], 0)
-        self.assertEqual(blocks['unknown-in']['name'], 'Origine inconnue')
-        self.assertEqual(blocks[f'asset:{self.vevey.pk}']['column'], 1)
-        self.assertNotIn('unknown-out', blocks)
+        data = build_flow_map(self.acme, 2024, 2024, AnonymousUser())
+        blocks = self._blocks(data)
+        self.assertNotIn('market', blocks)
+        self.assertEqual(blocks[f'asset:{self.vevey.pk}']['column'], 0)
+        self.assertEqual((data['flows'][0]['from'], data['flows'][0]['to']),
+                         ('market', f'asset:{self.vevey.pk}'))
 
     def test_default_range_is_known_years_else_current(self):
         current = datetime.date.today().year
@@ -643,8 +641,8 @@ class UnlinkTests(TestCase):
                    ownership_year=None)
         self.assertEqual(Flow.objects.count(), 3)
 
-    def test_refuses_groups_environment_and_unknown(self):
-        for key in ('group:1', 'environment', 'unknown-in', 'unknown-out'):
+    def test_refuses_groups_environment_and_market(self):
+        for key in ('group:1', 'environment', 'market'):
             with self.subTest(key=key):
                 with self.assertRaises(ValueError):
                     unlink_preview(self.acme, 2024, 2024, key)
@@ -863,13 +861,27 @@ class FlowWriteApiTests(TestCase):
         self.assertTrue(flow.from_environment)
         self.assertEqual(flow.to_asset, self.vevey)
 
-    def test_create_production_to_unknown(self):
+    def test_create_production_to_market(self):
         r = self._post('dashboard:flow_map_flow_create', self._supply(
-            kind='PRODUCTION', **{'from': f'asset:{self.vevey.pk}', 'to': 'unknown-out'}))
+            kind='PRODUCTION', **{'from': f'asset:{self.vevey.pk}', 'to': 'market'}))
         self.assertEqual(r.status_code, 201, r.content)
         flow = Flow.objects.get(pk=r.json()['id'])
         self.assertIsNone(flow.to_asset)
         self.assertFalse(flow.to_environment)
+
+    def test_create_supply_from_market(self):
+        r = self._post('dashboard:flow_map_flow_create', self._supply(**{'from': 'market'}))
+        self.assertEqual(r.status_code, 201, r.content)
+        flow = Flow.objects.get(pk=r.json()['id'])
+        self.assertEqual(
+            (flow.from_asset, flow.from_region, flow.from_country, flow.from_company),
+            (None, None, None, None))
+        self.assertEqual(flow.to_asset, self.vevey)
+
+    def test_create_supply_to_market_is_refused(self):
+        r = self._post('dashboard:flow_map_flow_create', self._supply(**{'to': 'market'}))
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(Flow.objects.count(), 0)
 
     def test_create_flow_accepts_french_number(self):
         r = self._post('dashboard:flow_map_flow_create', self._supply(quantity='12 400,5'))

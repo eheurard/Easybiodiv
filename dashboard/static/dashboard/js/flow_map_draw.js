@@ -23,13 +23,16 @@
 //   FlowMapDraw.curve(p0, p3, vertical) -> chemin « M… C… » (Bézier en S)
 //
 // Dans le SVG : chaque bloc est un <g class="fm-block" data-key>, chaque courbe
-// un <g class="fm-edge" data-key>, le bandeau un <g class="fm-band"
-// data-key="environment">, le cadre d'un groupe déplié un <g class="fm-frame">.
+// un <g class="fm-edge" data-key>, les bandeaux des <g class="fm-band"
+// data-key="environment|market"> (milieu en haut, marché global en bas), le cadre
+// d'un groupe déplié un <g class="fm-frame">.
 // Si state.editable, les « + » d'un bloc sont des <g class="fm-port"
-// data-port="out|in|env"> (droite : sortant, gauche : entrant, haut : milieu).
+// data-port="out|in|env|market"> (droite : sortant, gauche : entrant, haut :
+// milieu, bas : marché global).
 window.FlowMapDraw = (function () {
   var NS = 'http://www.w3.org/2000/svg';
   var ENV = 'environment';
+  var MARKET = 'market';
 
   var BLOCK_W = 170;
   var BLOCK_H = 64;
@@ -39,7 +42,8 @@ window.FlowMapDraw = (function () {
   var BAND_Y = 0;
   var BAND_H = 58;
   var BAND_BOTTOM = BAND_Y + BAND_H;
-  var TOP = BAND_BOTTOM + 80;   // première rangée de blocs, sous le bandeau
+  var BAND_GAP = 80;          // espace entre un bandeau et les blocs
+  var TOP = BAND_BOTTOM + BAND_GAP;   // première rangée de blocs, sous le bandeau
   var FRAME_HEAD = 30;        // place du titre d'un groupe déplié
   var FRAME_PAD = 12;
   // Courbes vers / depuis le bandeau : descente dans la gouttière entre deux
@@ -89,6 +93,17 @@ window.FlowMapDraw = (function () {
     return String(kind).toLowerCase();
   }
 
+  // Bandeau touché par une courbe : ENV, MARKET ou null (courbe entre deux blocs).
+  function bandOf(edge) {
+    if (edge.from === ENV || edge.to === ENV) return ENV;
+    if (edge.from === MARKET || edge.to === MARKET) return MARKET;
+    return null;
+  }
+
+  function isBand(key) {
+    return key === ENV || key === MARKET;
+  }
+
   // ── Agrégation ───────────────────────────────────────────────────────────
   function indexModel(model) {
     var blocks = {};
@@ -101,7 +116,7 @@ window.FlowMapDraw = (function () {
   // Clé du nœud dessiné pour un bloc : le groupe s'il est replié, null si masqué.
   function resolver(state, idx) {
     return function (key) {
-      if (key === ENV) return ENV;
+      if (key === ENV || key === MARKET) return key;
       if (state.hidden.has(key)) return null;
       var block = idx.blocks[key];
       var node = block && block.group && !state.expanded.has(block.group) ? block.group : key;
@@ -165,9 +180,7 @@ window.FlowMapDraw = (function () {
   }
 
   // ── Nœuds visibles ───────────────────────────────────────────────────────
-  function visibleNodes(model, state, idx, edges) {
-    var used = new Set();
-    edges.forEach(function (e) { used.add(e.from); used.add(e.to); });
+  function visibleNodes(model, state, idx) {
     var nodes = [];
     var seen = new Set();
     model.blocks.forEach(function (block) {
@@ -182,7 +195,6 @@ window.FlowMapDraw = (function () {
         return;
       }
       if (state.hidden.has(block.key)) return;
-      if (block.type === 'unknown' && !used.has(block.key)) return;
       nodes.push(Object.assign({}, block));
     });
     return nodes;
@@ -224,7 +236,7 @@ window.FlowMapDraw = (function () {
     nodes.forEach(function (n) { columnOf.set(n.key, n.column); });
     var neighbours = new Map();
     edges.forEach(function (e) {
-      if (e.from === ENV || e.to === ENV) return;
+      if (bandOf(e)) return;
       [[e.from, e.to], [e.to, e.from]].forEach(function (pair) {
         if (!neighbours.has(pair[0])) neighbours.set(pair[0], []);
         neighbours.get(pair[0]).push(pair[1]);
@@ -293,6 +305,13 @@ window.FlowMapDraw = (function () {
     });
   }
 
+  // Haut du bandeau du marché global : sous le bloc le plus bas, même déplacé.
+  function marketTop(nodes) {
+    var bottom = nodes.reduce(function (m, n) { return Math.max(m, n.y + BLOCK_H); },
+      TOP + BLOCK_H);
+    return bottom + BAND_GAP;
+  }
+
   // ── Géométrie des courbes ────────────────────────────────────────────────
   function controls(p0, p3, vertical) {
     if (vertical) {
@@ -330,24 +349,38 @@ window.FlowMapDraw = (function () {
   }
 
   // Points d'attache sur les blocs. Courbe horizontale : p0 (bord droit de
-  // l'origine) et p3 (bord gauche de la destination). Courbe du bandeau : `port`
-  // sur le haut du bloc (consommations à gauche, émissions et déchets à droite).
+  // l'origine) et p3 (bord gauche de la destination). Courbe d'un bandeau : `port`
+  // sur le haut du bloc pour le milieu, sur le bas pour le marché global ; ce qui
+  // vient du bandeau à gauche, ce qui y va à droite.
   function anchorEdges(edges, byKey) {
-    var sides = new Map();   // nodeKey -> {out: [], in: [], up: [], down: []}
+    var sides = new Map();   // nodeKey -> {out, in, envIn, envOut, marketIn, marketOut}
     function side(key) {
-      if (!sides.has(key)) sides.set(key, { out: [], in: [], up: [], down: [] });
+      if (!sides.has(key)) {
+        sides.set(key, { out: [], in: [], envIn: [], envOut: [], marketIn: [], marketOut: [] });
+      }
       return sides.get(key);
     }
     function centerY(key) { return byKey.get(key).y + BLOCK_H / 2; }
     edges.forEach(function (e) {
-      e.vertical = e.from === ENV || e.to === ENV;
-      if (e.from === ENV) side(e.to).down.push(e);
-      else if (e.to === ENV) side(e.from).up.push(e);
+      e.band = bandOf(e);
+      e.vertical = e.band !== null;
+      if (e.from === ENV) side(e.to).envIn.push(e);
+      else if (e.to === ENV) side(e.from).envOut.push(e);
+      else if (e.from === MARKET) side(e.to).marketIn.push(e);
+      else if (e.to === MARKET) side(e.from).marketOut.push(e);
       else { side(e.from).out.push(e); side(e.to).in.push(e); }
     });
+    function attach(list, node, x0, x1, y) {
+      slots(x0, x1, list.length).forEach(function (x, i) {
+        list[i].port = [x, y];
+        list[i].node = node;
+      });
+    }
     sides.forEach(function (s, key) {
       var node = byKey.get(key);
       var stack = stackOf(node);
+      var top = node.y - stack;
+      var bottom = node.y + BLOCK_H;
       s.out.sort(function (a, b) { return centerY(a.to) - centerY(b.to); });
       s.in.sort(function (a, b) { return centerY(a.from) - centerY(b.from); });
       slots(node.y + 8, node.y + BLOCK_H - 8, s.out.length).forEach(function (y, i) {
@@ -356,16 +389,12 @@ window.FlowMapDraw = (function () {
       slots(node.y + 8, node.y + BLOCK_H - 8, s.in.length).forEach(function (y, i) {
         s.in[i].p3 = [node.x, y];
       });
-      slots(node.x + 12, node.x + BLOCK_W / 2 - 6, s.down.length).forEach(function (x, i) {
-        s.down[i].port = [x, node.y - stack];
-        s.down[i].node = node;
-        s.down[i].slot = i;
-      });
-      slots(node.x + BLOCK_W / 2 + 6, node.x + BLOCK_W - 12, s.up.length).forEach(function (x, i) {
-        s.up[i].port = [x, node.y - stack];
-        s.up[i].node = node;
-        s.up[i].slot = s.down.length + i;
-      });
+      var left = [node.x + 12, node.x + BLOCK_W / 2 - 6];
+      var right = [node.x + BLOCK_W / 2 + 6, node.x + BLOCK_W - 12];
+      attach(s.envIn, node, left[0], left[1], top);
+      attach(s.envOut, node, right[0], right[1], top);
+      attach(s.marketIn, node, left[0], left[1], bottom);
+      attach(s.marketOut, node, right[0], right[1], bottom);
     });
   }
 
@@ -383,17 +412,27 @@ window.FlowMapDraw = (function () {
     e.labelAnchor = 'middle';
   }
 
-  // Voies de la gouttière : une par courbe du bandeau, réparties en s'éloignant
-  // du bloc. Consommations : gouttière gauche, la plus proche pour la rangée la
-  // plus haute ; émissions et déchets : gouttière droite, même règle. À rangée
-  // égale, l'ordre des attaches est conservé pour que les courbes ne se croisent
-  // pas. Trop de voies : on resserre pour rester dans la demi-gouttière.
-  function assignLanes(list, left) {
-    list.sort(function (a, b) {
-      var dy = a.port[1] - b.port[1];
+  // Voies de la gouttière : une par courbe d'un bandeau, réparties en s'éloignant
+  // du bloc. Gouttière gauche : ce qui vient d'un bandeau ; droite : ce qui y va.
+  // Voie la plus proche pour la rangée la plus proche du bandeau ; à rangée égale,
+  // l'ordre des attaches est conservé pour que les courbes ne se croisent pas.
+  // Les voies du milieu passent au plus près, celles du marché au-delà, pour que
+  // les deux familles ne se superposent pas. Trop de voies : on resserre pour
+  // rester dans la demi-gouttière.
+  function sortLanes(list, left, fromBelow) {
+    return list.sort(function (a, b) {
+      var dy = fromBelow ? b.port[1] - a.port[1] : a.port[1] - b.port[1];
       if (dy) return dy;
       return left ? b.port[0] - a.port[0] : a.port[0] - b.port[0];
     });
+  }
+
+  function assignLanes(list, left) {
+    var env = sortLanes(list.filter(function (e) { return e.band === ENV; }), left, false);
+    var market = sortLanes(list.filter(function (e) { return e.band === MARKET; }), left, true);
+    env.forEach(function (e, i) { e.laneIndex = i; });
+    market.forEach(function (e, i) { e.laneIndex = i; });
+    list = env.concat(market);
     var offsets = [];
     var d = LANE_BASE;
     list.forEach(function (e, i) {
@@ -408,14 +447,13 @@ window.FlowMapDraw = (function () {
       var node = e.node;
       // offset ≥ LANE_BASE dépasse la pile de cartes d'un groupe (8).
       e.lane = left ? node.x - offset : node.x + BLOCK_W + offset;
-      e.laneIndex = i;
     });
   }
 
-  // Courbe du bandeau : descente verticale dans la gouttière, puis virage en S
+  // Courbe du milieu : descente verticale dans la gouttière, puis virage en S
   // dans l'espace libre au-dessus du bloc. Le haut d'un bloc trop proche du
   // bandeau (bloc déplacé) reçoit une simple courbe en S.
-  function routeVertical(e) {
+  function routeEnvironment(e) {
     var down = e.from === ENV;
     var len = arrowLength(e.width);
     var top = e.port[1];
@@ -450,18 +488,58 @@ window.FlowMapDraw = (function () {
     e.labelAnchor = down ? 'end' : 'start';
   }
 
-  function routeEdges(edges) {
-    var gutters = new Map();   // côté + bord de colonne -> courbes du bandeau
+  // Courbe du marché global : miroir de celle du milieu, par le bas du bloc,
+  // jusqu'au haut du bandeau du marché (ordonnée `market`).
+  function routeMarket(e, market) {
+    var up = e.from === MARKET;
+    var len = arrowLength(e.width);
+    var bottom = e.port[1];
+    var turn = bottom + TURN;
+    var direct = turn > market - 8;
+    var lane = e.lane;
+    var h;
+    if (up) {
+      e.p0 = [lane, market];
+      e.p3 = e.port;
+      e.dir = [0, -1];
+      e.base = [e.port[0], bottom + len];
+      h = (turn - e.base[1]) / 2;
+      e.d = direct ? curve(e.p0, e.base, true)
+        : 'M' + pt(e.p0) + ' L' + pt([lane, turn]) + ' C' + pt([lane, turn - h]) + ' '
+          + pt([e.base[0], e.base[1] + h]) + ' ' + pt(e.base);
+    } else {
+      e.p0 = e.port;
+      e.p3 = [lane, market];
+      e.dir = [0, 1];
+      e.base = [lane, market - len];
+      h = (turn - bottom) / 2;
+      e.d = direct ? curve(e.p0, e.base, true)
+        : 'M' + pt(e.p0) + ' C' + pt([e.port[0], bottom + h]) + ' ' + pt([lane, turn - h])
+          + ' ' + pt([lane, turn]) + ' L' + pt(e.base);
+    }
+    // Étiquette le long de la voie, au-dessus du bandeau, décalée d'une voie à
+    // l'autre, écrite du côté opposé au bloc.
+    var y = Math.max(market - 24 - 13 * e.laneIndex, Math.min(turn + 10, market - 24));
+    var gap = e.width / 2 + 4;
+    e.labelAt = up ? [lane - gap, y] : [lane + gap, y];
+    e.labelAnchor = up ? 'end' : 'start';
+  }
+
+  function routeEdges(edges, market) {
+    var gutters = new Map();   // côté + bord de colonne -> courbes des bandeaux
     edges.forEach(function (e) {
       if (!e.vertical) { routeHorizontal(e); return; }
-      var left = e.from === ENV;
+      var left = isBand(e.from);
       var key = (left ? 'L' : 'R') + Math.round(e.node.x);
       if (!gutters.has(key)) gutters.set(key, { left: left, edges: [] });
       gutters.get(key).edges.push(e);
     });
     gutters.forEach(function (g) {
       assignLanes(g.edges, g.left);
-      g.edges.forEach(routeVertical);
+      g.edges.forEach(function (e) {
+        if (e.band === ENV) routeEnvironment(e);
+        else routeMarket(e, market);
+      });
     });
   }
 
@@ -533,24 +611,27 @@ window.FlowMapDraw = (function () {
     }
   }
 
-  // « + » d'un bloc : pas sur un groupe replié ni sur un bloc inconnu ; celui du
-  // haut (milieu) seulement sur un actif ou une entreprise.
+  // « + » d'un bloc : pas sur un groupe replié ; ceux du haut (milieu) et du bas
+  // (marché global) seulement sur un actif ou une entreprise.
   var PORTS = [
     { port: 'in', x: 0, y: BLOCK_H / 2 },
     { port: 'out', x: BLOCK_W, y: BLOCK_H / 2 },
     { port: 'env', x: BLOCK_W / 2, y: 0 },
+    { port: 'market', x: BLOCK_W / 2, y: BLOCK_H },
   ];
 
   function portLabel(port) {
     if (port === 'in') return gettext('Ajouter un flux entrant vers %(name)s');
     if (port === 'out') return gettext('Ajouter un flux sortant de %(name)s');
+    if (port === 'market') return gettext('Ajouter un flux avec le marché global pour %(name)s');
     return gettext('Ajouter un flux avec le milieu pour %(name)s');
   }
 
   function drawPorts(g, node) {
-    if (node.type === 'group' || node.type === 'unknown') return;
+    if (node.type === 'group') return;
     PORTS.forEach(function (p) {
-      if (p.port === 'env' && node.type !== 'asset' && node.type !== 'company') return;
+      var banded = p.port === 'env' || p.port === 'market';
+      if (banded && node.type !== 'asset' && node.type !== 'company') return;
       var label = interpolate(portLabel(p.port), { name: node.name }, true);
       var port = el('g', {
         class: 'fm-port fm-port--' + p.port, 'data-port': p.port, tabindex: '0',
@@ -634,15 +715,14 @@ window.FlowMapDraw = (function () {
     return box;
   }
 
-  function drawBand(layer, bounds) {
-    var g = el('g', { class: 'fm-band', 'data-key': ENV }, layer);
-    el('rect', { class: 'fm-band__rect', x: bounds.x, y: BAND_Y, width: bounds.width,
+  function drawBand(layer, bounds, key, y, label) {
+    var g = el('g', { class: 'fm-band fm-band--' + key, 'data-key': key }, layer);
+    el('rect', { class: 'fm-band__rect', x: bounds.x, y: y, width: bounds.width,
       height: BAND_H, rx: 10 }, g);
-    text('text', { class: 'fm-band__label', x: bounds.x + 16, y: BAND_Y + 34 },
-      gettext('Environnement — milieu naturel (eau, air, sol)'), g);
+    text('text', { class: 'fm-band__label', x: bounds.x + 16, y: y + 34 }, label, g);
   }
 
-  function computeBounds(nodes, frames, edges) {
+  function computeBounds(nodes, frames, edges, market) {
     var minX = PAD;
     var maxX = PAD + BLOCK_W;
     var maxY = TOP + BLOCK_H;
@@ -662,9 +742,10 @@ window.FlowMapDraw = (function () {
       maxX = Math.max(maxX, b.x + b.width);
       maxY = Math.max(maxY, b.y + b.height);
     });
+    maxY = Math.max(maxY, market + BAND_H);
     var x = minX - PAD;
     var y = BAND_Y - PAD / 2;
-    return { x: x, y: y, width: maxX + PAD - x, height: maxY + PAD - y };
+    return { x: x, y: y, width: maxX + PAD - x, height: maxY + PAD / 2 - y };
   }
 
   // Les natures masquées (légende) n'interviennent qu'au dessin : rangement des
@@ -675,12 +756,13 @@ window.FlowMapDraw = (function () {
     var idx = indexModel(model);
     var hiddenKinds = state.hiddenKinds || new Set();
     var edges = aggregateEdges(model.flows, model, state);
-    var nodes = visibleNodes(model, state, idx, edges);
+    var nodes = visibleNodes(model, state, idx);
     var byKey = new Map(nodes.map(function (n) { return [n.key, n]; }));
     edges = edges.filter(function (e) {
-      return (e.from === ENV || byKey.has(e.from)) && (e.to === ENV || byKey.has(e.to));
+      return (isBand(e.from) || byKey.has(e.from)) && (isBand(e.to) || byKey.has(e.to));
     });
     placeNodes(nodes, edges, state);
+    var market = marketTop(nodes);
     var max = edges.reduce(function (m, e) { return Math.max(m, e.total); }, 0);
     edges = edges.filter(function (e) { return !hiddenKinds.has(e.kind); });
     edges.forEach(function (e) {
@@ -688,10 +770,11 @@ window.FlowMapDraw = (function () {
       e.label = edgeLabel(e, model.end);
     });
     anchorEdges(edges, byKey);
-    routeEdges(edges);
+    routeEdges(edges, market);
 
     function name(key) {
       if (key === ENV) return gettext('Environnement');
+      if (key === MARKET) return gettext('Marché global');
       var node = byKey.get(key);
       return node ? node.name : key;
     }
@@ -707,8 +790,11 @@ window.FlowMapDraw = (function () {
       var members = nodes.filter(function (n) { return n.group === group.key; });
       if (members.length) frames.push(drawFrame(frameLayer, group, members));
     });
-    var bounds = computeBounds(nodes, frames, edges);
-    drawBand(bandLayer, bounds);
+    var bounds = computeBounds(nodes, frames, edges, market);
+    drawBand(bandLayer, bounds, ENV, BAND_Y,
+      gettext('Environnement — milieu naturel (eau, air, sol)'));
+    drawBand(bandLayer, bounds, MARKET, market,
+      gettext('Marché global'));
 
     edges.forEach(function (e) {
       drawEdge(edgeLayer, e, e.key === state.selectedEdge, edgeTitle(e, idx, name),
@@ -729,5 +815,6 @@ window.FlowMapDraw = (function () {
     BLOCK_W: BLOCK_W,
     BLOCK_H: BLOCK_H,
     ENVIRONMENT: ENV,
+    MARKET: MARKET,
   };
 })();

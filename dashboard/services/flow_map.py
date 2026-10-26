@@ -4,8 +4,9 @@ Blocs, groupes et flux d'une entreprise sur une plage d'années, rangés en colo
 Les flux sont lus via dashboard/services/flows.py, seul module qui filtre Flow.
 
 Clés de blocs (contrat partagé avec le JS) : `company:<id>`, `asset:<id>`,
-`country:<id>`, `region:<id>`, `group:<id>`, `environment`, `unknown-in`,
-`unknown-out`.
+`country:<id>`, `region:<id>`, `group:<id>`, et les deux bandeaux `environment`
+(le milieu) et `market` (le marché global : extrémité vide d'un flux, origine ou
+destination non localisée).
 """
 import datetime
 import re
@@ -24,13 +25,11 @@ from dashboard.services.flows import (
 )
 
 ENVIRONMENT_KEY = ENDPOINT_ENVIRONMENT
-UNKNOWN_IN_KEY = 'unknown-in'
-UNKNOWN_OUT_KEY = 'unknown-out'
+MARKET_KEY = 'market'
+BAND_KEYS = (ENVIRONMENT_KEY, MARKET_KEY)
 GROUP_TYPE = 'group'
-UNKNOWN_TYPE = 'unknown'
 
 _SIDES = ('from', 'to')
-_UNKNOWN_KEY = {'from': UNKNOWN_IN_KEY, 'to': UNKNOWN_OUT_KEY}
 _KEY_PATTERN = re.compile(
     r'(?P<type>%s):(?P<id>[1-9][0-9]*)'
     % '|'.join(list(_ENDPOINT_FIELD_SUFFIX) + [GROUP_TYPE])
@@ -51,15 +50,15 @@ def endpoint_key(flow, side):
         pk = getattr(flow, f'{side}_{suffix}_id')
         if pk is not None:
             return f'{endpoint}:{pk}'
-    return _UNKNOWN_KEY[side]
+    return MARKET_KEY
 
 
 def parse_key(key):
     """'asset:5' → ('asset', 5) ; 'environment' → ('environment', None) ;
-    'unknown-in' / 'unknown-out' → (None, None). ValueError sinon."""
+    'market' → (None, None). ValueError sinon."""
     if key == ENVIRONMENT_KEY:
         return ENDPOINT_ENVIRONMENT, None
-    if key in (UNKNOWN_IN_KEY, UNKNOWN_OUT_KEY):
+    if key == MARKET_KEY:
         return None, None
     match = _KEY_PATTERN.fullmatch(key)
     if match is None:
@@ -116,17 +115,14 @@ def _acyclic_successors(nodes, edges):
 
 def assign_columns(nodes, edges):
     """{nœud: colonne} : longueur du plus long chemin qui mène au nœud (sources
-    et nœuds isolés en 0). Les arêtes touchant le milieu sont ignorées, les
-    cycles cassés ; `unknown-out` est placé après toutes les autres colonnes."""
-    nodes = [node for node in dict.fromkeys(nodes) if node != ENVIRONMENT_KEY]
+    et nœuds isolés en 0). Les arêtes touchant un bandeau (milieu, marché global)
+    sont ignorées, les cycles cassés."""
+    nodes = [node for node in dict.fromkeys(nodes) if node not in BAND_KEYS]
     successors, order = _acyclic_successors(nodes, edges)
     columns = dict.fromkeys(nodes, 0)
     for node in order:
         for child in successors[node]:
             columns[child] = max(columns[child], columns[node] + 1)
-    if UNKNOWN_OUT_KEY in columns:
-        others = [col for node, col in columns.items() if node != UNKNOWN_OUT_KEY]
-        columns[UNKNOWN_OUT_KEY] = max(others, default=-1) + 1
     return columns
 
 
@@ -137,19 +133,9 @@ def _block(key, block_type, pk, name, owned=False):
     }
 
 
-def _unknown_block(key):
-    if key == UNKNOWN_IN_KEY:
-        name = gettext('Origine inconnue')
-    else:
-        name = gettext('Destination inconnue')
-    return _block(key, UNKNOWN_TYPE, None, name)
-
-
 def _endpoint_block(flow, side, key):
     """Bloc d'une extrémité extérieure au périmètre, construit depuis le flux."""
     endpoint, pk = parse_key(key)
-    if endpoint is None:
-        return _unknown_block(key)
     target = getattr(flow, f'{side}_{_ENDPOINT_FIELD_SUFFIX[endpoint]}')
     return _block(key, endpoint, pk, target.name)
 
@@ -200,7 +186,8 @@ def owned_assets_in_range(company, start, end):
 
 def _perimeter_blocks(company, owned_assets, flows):
     """Blocs dans l'ordre de rangement : l'entreprise, ses actifs détenus (par
-    pk), puis les autres extrémités des flux triées par type et id."""
+    pk), puis les autres extrémités des flux triées par type et id. Les bandeaux
+    (milieu, marché global) ne sont pas des blocs."""
     perimeter = {
         f'{ENDPOINT_COMPANY}:{company.pk}': _block(
             f'{ENDPOINT_COMPANY}:{company.pk}', ENDPOINT_COMPANY, company.pk, company.name,
@@ -213,9 +200,9 @@ def _perimeter_blocks(company, owned_assets, flows):
     for flow in flows:
         for side in _SIDES:
             key = endpoint_key(flow, side)
-            if key != ENVIRONMENT_KEY and key not in perimeter and key not in outside:
+            if key not in BAND_KEYS and key not in perimeter and key not in outside:
                 outside[key] = _endpoint_block(flow, side, key)
-    ordered = sorted(outside.values(), key=lambda b: (b['type'], b['id'] or 0, b['key']))
+    ordered = sorted(outside.values(), key=lambda b: (b['type'], b['id']))
     return list(perimeter.values()) + ordered
 
 
@@ -353,7 +340,7 @@ def delete_flow_years(company, start, end, flow, years):
 
 def _unlink_target(company, key):
     """(extrémité, pk) du bloc dont on retire les liens ; ValueError pour l'entreprise
-    elle-même, un groupe, le milieu ou une extrémité inconnue."""
+    elle-même, un groupe, le milieu ou le marché global."""
     endpoint, pk = parse_key(key)
     if endpoint in (None, ENDPOINT_ENVIRONMENT, GROUP_TYPE):
         raise ValueError(f'Les liens de ce bloc ne peuvent pas être retirés : {key!r}')

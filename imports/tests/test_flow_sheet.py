@@ -145,6 +145,10 @@ class FlowSheetTests(TestCase):
         self.assertEqual(row['status'], 'error')
         self.assertIn('estimated_revenue', row['message'])
 
+    def test_supply_from_the_global_market_is_ok(self):
+        row = self._parse(self._row(from_type='', from_name=''))['Flow'][0]
+        self.assertEqual(row['status'], 'ok', row.get('message'))
+
     def test_supply_self_loop_is_error(self):
         row = self._parse(self._row(
             from_type='asset', from_name='Mine', to_type='asset', to_name='Mine'))['Flow'][0]

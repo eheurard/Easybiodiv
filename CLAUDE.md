@@ -139,7 +139,8 @@ statiques ; coordonnées de l'éditeur dans `settings.LEGAL`).
   `docs/superpowers/specs/2026-09-18-table-flow-unique-design.md`). Une ligne = une
   quantité d'une commodité (`what`), une année, d'une origine (`from_*`) vers une
   destination (`to_*`) : actif, région, pays, entreprise, milieu
-  (`*_environment`) ou vide (inconnu). `kind` : PRODUCTION, SUPPLY, CONSUMPTION,
+  (`*_environment`) ou vide (le marché global : origine ou destination non
+  localisée, dessiné en bandeau sous les blocs de la *Carte des flux*). `kind` : PRODUCTION, SUPPLY, CONSUMPTION,
   EMISSION, WASTE ; les extrémités autorisées par nature sont dans `FLOW_RULES`,
   qui génère les contraintes en base. Lecture **uniquement** via
   `dashboard/services/flows.py`.

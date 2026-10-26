@@ -904,6 +904,10 @@ msgstr "Add an outgoing flow from %(name)s"
 msgid "Ajouter un flux avec le milieu pour %(name)s"
 msgstr "Add a flow with the environment for %(name)s"
 
+#, python-format
+msgid "Ajouter un flux avec le marché global pour %(name)s"
+msgstr "Add a flow with the global market for %(name)s"
+
 msgid "déplier"
 msgstr "expand"
 
@@ -924,29 +928,26 @@ msgstr "Environment — natural medium (water, air, soil)"
 msgid "Environnement"
 msgstr "Environment"
 
-msgid "Origine inconnue"
-msgstr "Unknown origin"
-
-msgid "Destination inconnue"
-msgstr "Unknown destination"
+msgid "Marché global"
+msgstr "Global market"
 
 #, python-format
 msgid "%(from)s → %(to)s"
 msgstr "%(from)s → %(to)s"
 
 msgid ""
-"Cliquez le bloc de destination, le bandeau Environnement, ou le fond pour "
-"une destination inconnue. Échap : annuler."
+"Cliquez le bloc de destination ou un bandeau (Environnement, Marché global). "
+"Échap ou clic sur le fond : annuler."
 msgstr ""
-"Click the destination block, the Environment banner, or the background for "
-"an unknown destination. Esc: cancel."
+"Click the destination block or a banner (Environment, Global market). Esc "
+"or click on the background: cancel."
 
 msgid ""
-"Cliquez le bloc d’origine, le bandeau Environnement, ou le fond pour une "
-"origine inconnue. Échap : annuler."
+"Cliquez le bloc d’origine ou un bandeau (Environnement, Marché global). "
+"Échap ou clic sur le fond : annuler."
 msgstr ""
-"Click the origin block, the Environment banner, or the background for an "
-"unknown origin. Esc: cancel."
+"Click the origin block or a banner (Environment, Global market). Esc or "
+"click on the background: cancel."
 
 msgid "Groupe déplié : choisissez l’un de ses actifs."
 msgstr "Group expanded: choose one of its assets."

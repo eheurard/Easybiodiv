@@ -90,7 +90,9 @@
     {% if can_edit %}
     <div class="flow-map__trace" id="flow-map-trace" hidden>
       <span id="flow-map-trace-text"></span>
-      <button type="button" class="flow-map__tool" id="flow-map-trace-unknown"></button>
+      <button type="button" class="flow-map__tool" id="flow-map-trace-market">
+        {% translate "Marché global" %}
+      </button>
       <button type="button" class="flow-map__tool" id="flow-map-trace-cancel">
         {% translate "Annuler" %}
       </button>
