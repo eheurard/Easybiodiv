@@ -56,6 +56,8 @@ window.FlowMapDraw = (function () {
   var MIN_WIDTH = 1.5;
   var MAX_WIDTH = 12;
   var NAME_MAX = 20;
+  var PILL_TEXT_X = 26;       // retrait du texte d'une entreprise (bloc en pilule)
+  var PILL_NAME_MAX = 18;
   var LABEL_MAX = 22;
   var TITLE_FLOWS_MAX = 12;
   var SWEEPS = 4;
@@ -668,12 +670,17 @@ window.FlowMapDraw = (function () {
           height: BLOCK_H, rx: 8 }, g);
       });
     }
-    el('rect', { class: 'fm-block__card', width: BLOCK_W, height: BLOCK_H, rx: 8 }, g);
+    // Une entreprise est une pilule (bouts en demi-cercle), un actif ou un lieu
+    // un rectangle : le texte s'écarte des bouts arrondis.
+    var pill = node.type === 'company';
+    var textX = pill ? PILL_TEXT_X : 12;
+    el('rect', { class: 'fm-block__card', width: BLOCK_W, height: BLOCK_H,
+      rx: pill ? BLOCK_H / 2 : 8 }, g);
     if (type) {
-      text('text', { class: 'fm-block__type', x: 12, y: 22 }, type.toLocaleUpperCase(), g);
+      text('text', { class: 'fm-block__type', x: textX, y: 22 }, type.toLocaleUpperCase(), g);
     }
-    text('text', { class: 'fm-block__name', x: 12, y: type ? 46 : 38 },
-      truncate(node.name, NAME_MAX), g);
+    text('text', { class: 'fm-block__name', x: textX, y: type ? 46 : 38 },
+      truncate(node.name, pill ? PILL_NAME_MAX : NAME_MAX), g);
     if (node.type === 'group') {
       text('text', { class: 'fm-block__toggle', x: 12, y: BLOCK_H - 4 },
         '▸ ' + gettext('déplier'), g);
@@ -683,8 +690,9 @@ window.FlowMapDraw = (function () {
         class: 'fm-block__menu', 'data-action': 'menu', tabindex: '0', role: 'button',
         'aria-label': interpolate(gettext('Actions du bloc %(name)s'), { name: node.name }, true),
       }, g);
-      el('circle', { cx: BLOCK_W - 16, cy: 17, r: 10 }, menu);
-      text('text', { x: BLOCK_W - 16, y: 21, 'text-anchor': 'middle' }, '⋯', menu);
+      var menuX = pill ? BLOCK_W - 26 : BLOCK_W - 16;
+      el('circle', { cx: menuX, cy: 17, r: 10 }, menu);
+      text('text', { x: menuX, y: 21, 'text-anchor': 'middle' }, '⋯', menu);
     }
     if (state.editable) drawPorts(g, node);
   }
