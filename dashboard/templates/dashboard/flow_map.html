@@ -6,9 +6,7 @@
 {% block nav_flow_map %}active{% endblock %}
 
 {% block extra_css %}
-{% if can_edit %}
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
-{% endif %}
 <link rel="stylesheet" href="{% static 'dashboard/css/flow_map.css' %}">
 {% endblock %}
 
@@ -87,6 +85,7 @@
     </p>
     <div class="flow-map__menu" id="flow-map-menu" role="menu" hidden></div>
     <p class="flow-map__notice" id="flow-map-notice" role="status" hidden></p>
+    {% include "dashboard/_flow_map_info_panel.html" %}
     {% if can_edit %}
     <div class="flow-map__trace" id="flow-map-trace" hidden>
       <span id="flow-map-trace-text"></span>
@@ -104,7 +103,7 @@
   <p class="flow-map__hint">
     {% blocktranslate trimmed %}
       Molette : zoom · glisser le fond : déplacer la vue · glisser un bloc : le déplacer
-      pour la session.
+      pour la session · clic sur un bloc : sa fiche et ses flux.
     {% endblocktranslate %}
     {% if can_edit %}
     {% blocktranslate trimmed %}
@@ -147,10 +146,16 @@
 {{ initial_data|json_script:"initial-data" }}
 {{ flow_rules|json_script:"flow-rules" }}
 {{ kinds|json_script:"flow-kinds" }}
-<script>var FLOW_MAP_API_URL = "{% url 'dashboard:flow_map_data' company_pk=0 %}";</script>
+<script>
+  var FLOW_MAP_API_URL = "{% url 'dashboard:flow_map_data' company_pk=0 %}";
+  var FLOW_MAP_BLOCK_URL = "{% url 'dashboard:flow_map_block' %}";
+</script>
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js" defer></script>
 <script src="{% static 'dashboard/js/flow_map_ui.js' %}" defer></script>
 <script src="{% static 'dashboard/js/flow_map_draw.js' %}" defer></script>
 <script src="{% static 'dashboard/js/flow_map.js' %}" defer></script>
+{# Avant flow_map_panel.js : son FlowMap.onTap passe en premier. #}
+<script src="{% static 'dashboard/js/flow_map_info.js' %}" defer></script>
 {% if can_edit %}
 <script>
   var FLOW_MAP_URLS = {
@@ -170,7 +175,6 @@
     unlink: "{% url 'dashboard:flow_map_unlink' company_pk=0 %}"
   };
 </script>
-<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js" defer></script>
 <script src="{% static 'dashboard/js/flow_map_panel.js' %}" defer></script>
 <script src="{% static 'dashboard/js/flow_map_blocks.js' %}" defer></script>
 {% endif %}

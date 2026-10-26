@@ -1,0 +1,49 @@
+{% load i18n %}
+{# Panneau latéral d'information (tous les visiteurs) : fiche d'un bloc et ses flux, #}
+{# ou un flux en lecture seule. Rempli par js/flow_map_info.js. #}
+<aside class="fm-panel fm-info" id="flow-map-info" aria-labelledby="fm-info-title" tabindex="-1"
+       hidden>
+  <header class="fm-panel__head">
+    <div class="fm-info__heading">
+      <p class="label-caps fm-info__type" id="fm-info-type"></p>
+      <h2 class="fm-panel__title" id="fm-info-title"></h2>
+    </div>
+    <button type="button" class="fm-panel__close" id="fm-info-close"
+            aria-label="{% translate 'Fermer' %}" title="{% translate 'Fermer' %}">✕</button>
+  </header>
+
+  <button type="button" class="fm-info__back" id="fm-info-back" hidden></button>
+
+  {# ── Fiche d'un bloc ── #}
+  <div class="fm-info__block" id="fm-info-block" hidden>
+    <p class="fm-info__status" id="fm-info-status" role="status"></p>
+    <div class="fm-info__details" id="fm-info-details"></div>
+
+    <section class="fm-info__section" id="fm-info-map-section" hidden>
+      <h3 class="fm-info__heading-sm">{% translate "Vue satellite" %}</h3>
+      <div class="fm-info__map" id="fm-info-map" role="img"
+           aria-label="{% translate 'Vue satellite de l’actif' %}"></div>
+    </section>
+
+    <section class="fm-info__section" aria-labelledby="fm-info-in-title">
+      <h3 class="fm-info__heading-sm" id="fm-info-in-title"></h3>
+      <ul class="fm-info__flows" id="fm-info-in"></ul>
+    </section>
+    <section class="fm-info__section" aria-labelledby="fm-info-out-title">
+      <h3 class="fm-info__heading-sm" id="fm-info-out-title"></h3>
+      <ul class="fm-info__flows" id="fm-info-out"></ul>
+    </section>
+    <p class="fm-info__note" id="fm-info-hidden-kinds" hidden>
+      {% translate "Les natures masquées dans la légende ne sont pas listées." %}
+    </p>
+  </div>
+
+  {# ── Flux en lecture seule ── #}
+  <div class="fm-info__edge" id="fm-info-edge" hidden>
+    <fieldset class="fm-panel__flows" id="fm-info-edge-flows" hidden>
+      <legend class="label-caps">{% translate "Flux de cette flèche" %}</legend>
+      <div class="fm-panel__flow-list" id="fm-info-edge-list"></div>
+    </fieldset>
+    <dl class="fm-info__facts" id="fm-info-facts"></dl>
+  </div>
+</aside>

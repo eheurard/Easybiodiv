@@ -9,6 +9,10 @@
 //               hiddenKinds: Set<FlowKind> (natures masquées par la légende ; le
 //               rangement des blocs n'en dépend pas, les blocs restent affichés),
 //               positions: Map<key, {x, y}>, selectedEdge: string|null,
+//               selectedBlock: string|null (bloc dont la fiche est ouverte : seuls
+//               restent nets les blocs et courbes de ses chaînes de flux, amont
+//               et aval ; avec selectedEdge, la courbe et ses deux extrémités ;
+//               le reste prend la classe is-dimmed),
 //               editable: bool (« + » des blocs, flèches activables au clavier),
 //               trace: {key, port}|null (tracé d'un flux en cours depuis ce bloc)}
 //     nodes  : blocs dessinés [{key, type, name, owned, column, x, y, …}]
@@ -570,22 +574,61 @@ window.FlowMapDraw = (function () {
     return lines.join('\n');
   }
 
-  function drawEdge(layer, edge, selected, title, editable) {
+  // Courbe mise en avant : celle sélectionnée, ou toutes celles du bloc dont la
+  // fiche est ouverte ; les autres sont atténuées.
+  // Blocs et courbes gardés nets ({nodes, edges} de clés), ou null sans sélection.
+  // Bloc sélectionné : toute sa chaîne amont (blocs d'où un chemin de flux mène à
+  // lui) et aval (blocs où mènent ses flux), avec les courbes de ces chemins. Un
+  // bandeau en fait partie sans relayer les chemins : sinon le milieu relierait
+  // presque tout. Flux sélectionné : sa courbe et ses deux extrémités.
+  function highlightOf(edges, state) {
+    if (state.selectedEdge) {
+      var picked = edges.find(function (e) { return e.key === state.selectedEdge; });
+      return picked ? { nodes: new Set([picked.from, picked.to]), edges: new Set([picked.key]) }
+        : null;
+    }
+    var start = state.selectedBlock;
+    if (!start) return null;
+    var keep = { nodes: new Set([start]), edges: new Set() };
+    [['to', 'from'], ['from', 'to']].forEach(function (way) {
+      var seen = new Set([start]);
+      var queue = [start];
+      while (queue.length) {
+        var key = queue.shift();
+        edges.forEach(function (e) {
+          if (e[way[0]] !== key) return;
+          var next = e[way[1]];
+          keep.edges.add(e.key);
+          keep.nodes.add(next);
+          if (!isBand(next) && !seen.has(next)) {
+            seen.add(next);
+            queue.push(next);
+          }
+        });
+      }
+    });
+    return keep;
+  }
+
+  function emphasis(edge, state, keep) {
+    if (!keep) return '';
+    if (!keep.edges.has(edge.key)) return 'is-dimmed';
+    return edge.key === state.selectedEdge ? 'is-selected' : '';
+  }
+
+  function drawEdge(layer, edge, state, title, keep) {
     var w = edge.width;
     var half = 3.5 + w * 0.75;
     var base = edge.base;
     var perp = [-edge.dir[1], edge.dir[0]];
+    var mark = emphasis(edge, state, keep);
 
     var g = el('g', {
-      class: 'fm-edge fm-edge--' + kindClass(edge.kind) + (selected ? ' is-selected' : ''),
-      'data-key': edge.key,
+      class: 'fm-edge fm-edge--' + kindClass(edge.kind) + (mark ? ' ' + mark : ''),
+      'data-key': edge.key, tabindex: '0', role: 'button',
+      'aria-label': interpolate(state.editable ? gettext('Modifier : %(title)s')
+        : gettext('Voir : %(title)s'), { title: title.split('\n')[0] }, true),
     }, layer);
-    if (editable) {
-      g.setAttribute('tabindex', '0');
-      g.setAttribute('role', 'button');
-      g.setAttribute('aria-label', interpolate(gettext('Modifier : %(title)s'),
-        { title: title.split('\n')[0] }, true));
-    }
     text('title', {}, title, g);
     el('path', { class: 'fm-edge__hit', d: edge.d, 'stroke-width': w + 12 }, g);
     el('path', { class: 'fm-edge__line', d: edge.d, 'stroke-width': w }, g);
@@ -645,25 +688,24 @@ window.FlowMapDraw = (function () {
     });
   }
 
-  function drawBlock(layer, node, focusKey, state) {
+  function drawBlock(layer, node, focusKey, state, keep) {
     var classes = ['fm-block', 'fm-block--' + node.type];
     if (node.owned) classes.push('is-owned');
     if (node.key === focusKey) classes.push('is-focus');
     if (state.trace && state.trace.key === node.key) classes.push('is-trace-source');
+    if (state.selectedBlock === node.key) classes.push('is-selected');
+    if (keep && !keep.nodes.has(node.key)) classes.push('is-dimmed');
     var g = el('g', {
       class: classes.join(' '), 'data-key': node.key,
       transform: 'translate(' + pt([node.x, node.y]) + ')',
     }, layer);
     var type = typeLabel(node);
     text('title', {}, type ? type + ' — ' + node.name : node.name, g);
-    if (state.trace && node.type !== 'group') {
-      // Tracé en cours : chaque bloc se choisit au clavier comme autre extrémité.
-      g.setAttribute('tabindex', '0');
-      g.setAttribute('role', 'button');
-    }
+    // Entrée sur un bloc : sa fiche (ou, pendant un tracé, l'autre extrémité du
+    // flux) ; sur un groupe replié : le déplier.
+    g.setAttribute('tabindex', '0');
+    g.setAttribute('role', 'button');
     if (node.type === 'group') {
-      g.setAttribute('tabindex', '0');
-      g.setAttribute('role', 'button');
       g.setAttribute('aria-expanded', 'false');
       [8, 4].forEach(function (offset) {
         el('rect', { class: 'fm-block__stack', x: offset, y: -offset, width: BLOCK_W,
@@ -799,17 +841,17 @@ window.FlowMapDraw = (function () {
       if (members.length) frames.push(drawFrame(frameLayer, group, members));
     });
     var bounds = computeBounds(nodes, frames, edges, market);
+    var keep = highlightOf(edges, state);
     drawBand(bandLayer, bounds, ENV, BAND_Y,
       gettext('Environnement — milieu naturel (eau, air, sol)'));
     drawBand(bandLayer, bounds, MARKET, market,
       gettext('Marché global'));
 
     edges.forEach(function (e) {
-      drawEdge(edgeLayer, e, e.key === state.selectedEdge, edgeTitle(e, idx, name),
-        !!state.editable);
+      drawEdge(edgeLayer, e, state, edgeTitle(e, idx, name), keep);
     });
     var focusKey = 'company:' + model.company.id;
-    nodes.forEach(function (n) { drawBlock(blockLayer, n, focusKey, state); });
+    nodes.forEach(function (n) { drawBlock(blockLayer, n, focusKey, state, keep); });
 
     return { nodes: nodes, edges: edges, bounds: bounds };
   }

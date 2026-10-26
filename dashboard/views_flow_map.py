@@ -2,6 +2,7 @@
 (Créateurs uniquement)."""
 import json
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
@@ -18,7 +19,7 @@ from .models import (
     Flow, FlowKind, SubnationalRegion,
 )
 from .services.flow_map import (
-    build_flow_map, delete_flow_years, endpoint_fields, flow_years, unlink, unlink_preview,
+    block_details, build_flow_map, delete_flow_years, endpoint_fields, flow_years, unlink, unlink_preview,
 )
 
 ENDPOINT_FIELDS = [
@@ -104,6 +105,18 @@ def flow_map_data(request, company_pk):
     if refused:
         return refused
     return JsonResponse(build_flow_map(company, start, end, request.user))
+
+
+@require_GET
+def flow_map_block(request):
+    """Fiche du bloc `?key=` (actif, entreprise, pays, région) pour le panneau
+    d'information, ouverte à tous comme la carte."""
+    try:
+        return JsonResponse(block_details(request.GET.get('key', '')))
+    except ValueError:
+        return _error(_('Bloc invalide.'))
+    except ObjectDoesNotExist:
+        return _error(_("Ce bloc n'existe plus."), status=404)
 
 
 # ── Écriture des flux ────────────────────────────────────────────────────────

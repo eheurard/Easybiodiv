@@ -13,11 +13,12 @@ import re
 from collections import Counter
 
 from django.db import transaction
-from django.utils.translation import gettext
+from django.db.models import F
 
 from dashboard.models import (
-    _ENDPOINT_FIELD_SUFFIX, ENDPOINT_ASSET, ENDPOINT_COMPANY, ENDPOINT_ENVIRONMENT, Asset,
-    Company, Ownership,
+    _ENDPOINT_FIELD_SUFFIX, ENDPOINT_ASSET, ENDPOINT_COMPANY, ENDPOINT_COUNTRY,
+    ENDPOINT_ENVIRONMENT, ENDPOINT_REGION, Asset, Company, Country, Ownership,
+    SubnationalRegion,
 )
 from dashboard.services.flows import (
     delete_flows, ownerships_in_range, ownerships_overlapping, perimeter_years,
@@ -284,6 +285,71 @@ def build_flow_map(company, start, end, user):
         'groups': groups,
         'flows': [_serialize_flow(flow) for flow in flows],
     }
+
+
+def _identifier(value):
+    """ISIN ou ticker affichable : '' quand il vaut la valeur par défaut « 0 »."""
+    value = (value or '').strip()
+    try:
+        return '' if float(value) == 0 else value
+    except ValueError:
+        return value
+
+
+def _held_share(ownership):
+    return {
+        'share': float(ownership.share), 'start_year': ownership.start_year,
+        'end_year': ownership.end_year,
+    }
+
+
+def _by_years(rows, name_field):
+    """Détentions triées par nom puis par année de début (sans début d'abord)."""
+    return rows.order_by(name_field, F('start_year').asc(nulls_first=True), 'pk')
+
+
+def block_details(key):
+    """Fiche d'un bloc de la carte (panneau d'information), quelle que soit la plage :
+    actif (pays, région, coordonnées et toutes ses détentions), entreprise (ISIN,
+    ticker et tous les actifs qu'elle détient ou a détenus), pays, région.
+    ValueError pour un bandeau, un groupe ou une clé invalide ; DoesNotExist si
+    l'objet n'existe plus."""
+    endpoint, pk = parse_key(key)
+    details = {'key': key, 'type': endpoint}
+    if endpoint == ENDPOINT_ASSET:
+        asset = Asset.objects.select_related('country', 'subnational_region').get(pk=pk)
+        held = _by_years(asset.ownerships.select_related('company'), 'company__name')
+        details.update({
+            'name': asset.name,
+            'country': asset.country.name,
+            'region': asset.subnational_region.name if asset.subnational_region else None,
+            'latitude': asset.latitude,
+            'longitude': asset.longitude,
+            'ownerships': [
+                {'company_id': o.company_id, 'company': o.company.name, **_held_share(o)}
+                for o in held
+            ],
+        })
+    elif endpoint == ENDPOINT_COMPANY:
+        company = Company.objects.get(pk=pk)
+        held = _by_years(company.ownerships.select_related('asset'), 'asset__name')
+        details.update({
+            'name': company.name,
+            'isin': _identifier(company.isin),
+            'ticker': _identifier(company.ticker),
+            'assets': [
+                {'asset_id': o.asset_id, 'asset': o.asset.name, **_held_share(o)}
+                for o in held
+            ],
+        })
+    elif endpoint == ENDPOINT_COUNTRY:
+        details['name'] = Country.objects.get(pk=pk).name
+    elif endpoint == ENDPOINT_REGION:
+        region = SubnationalRegion.objects.select_related('country').get(pk=pk)
+        details.update({'name': region.name, 'country': region.country.name})
+    else:
+        raise ValueError(f"Ce bloc n'a pas de fiche : {key!r}")
+    return details
 
 
 def _check_range(start, end):

@@ -2613,10 +2613,10 @@ msgstr "Confirm"
 
 msgid ""
 "Molette : zoom · glisser le fond : déplacer la vue · glisser un bloc : le "
-"déplacer pour la session."
+"déplacer pour la session · clic sur un bloc : sa fiche et ses flux."
 msgstr ""
 "Wheel: zoom · drag the background: pan the view · drag a block: move it for "
-"the session."
+"the session · click a block: its details and flows."
 
 msgid ""
 "« + » d’un bloc : tracer un flux · clic sur une flèche : modifier ses flux."
@@ -3219,3 +3219,23 @@ msgstr[1] "ticked on %(n)s flows"
 
 msgid "Liste des commodités"
 msgstr "Commodity list"
+
+#: dashboard/templates/dashboard/_flow_map_info_panel.html
+msgid "Vue satellite"
+msgstr "Satellite view"
+
+#: dashboard/templates/dashboard/_flow_map_info_panel.html
+msgid "Vue satellite de l’actif"
+msgstr "Satellite view of the asset"
+
+#: dashboard/templates/dashboard/_flow_map_info_panel.html
+msgid "Les natures masquées dans la légende ne sont pas listées."
+msgstr "Kinds hidden in the legend are not listed."
+
+#: dashboard/views_flow_map.py
+msgid "Bloc invalide."
+msgstr "Invalid block."
+
+#: dashboard/views_flow_map.py
+msgid "Ce bloc n'existe plus."
+msgstr "This block no longer exists."

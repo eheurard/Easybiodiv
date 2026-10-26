@@ -1046,3 +1046,137 @@ msgstr "\"%(name)s\" has no links to delete from %(start)s to %(end)s."
 
 msgid "Toutes les natures de flux sont masquées."
 msgstr "All flow kinds are hidden."
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+#, javascript-format
+msgid "%(value)s %"
+msgstr "%(value)s%"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+#, javascript-format
+msgid "%(start)s – %(end)s"
+msgstr "%(start)s – %(end)s"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+#, javascript-format
+msgid "depuis %(year)s"
+msgstr "since %(year)s"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+#, javascript-format
+msgid "jusqu’en %(year)s"
+msgstr "until %(year)s"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "sans limite de date"
+msgstr "no time limit"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Impossible de charger la fiche."
+msgstr "Could not load the details."
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Années"
+msgstr "Years"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Aucune détention enregistrée."
+msgstr "No ownership recorded."
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "ISIN"
+msgstr "ISIN"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Ticker"
+msgstr "Ticker"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Aucun identifiant renseigné."
+msgstr "No identifier provided."
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Actifs détenus"
+msgstr "Assets held"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Aucun actif détenu."
+msgstr "No asset held."
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Aucun flux entrant sur la plage affichée."
+msgstr "No incoming flow in the displayed range."
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Aucun flux sortant sur la plage affichée."
+msgstr "No outgoing flow in the displayed range."
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+#, javascript-format
+msgid "%(kind)s · depuis %(name)s"
+msgstr "%(kind)s · from %(name)s"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+#, javascript-format
+msgid "%(kind)s · vers %(name)s"
+msgstr "%(kind)s · to %(name)s"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+#, javascript-format
+msgid "← Retour à %(name)s"
+msgstr "← Back to %(name)s"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Nature"
+msgstr "Kind"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Origine"
+msgstr "Origin"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Destination"
+msgstr "Destination"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Modificateurs"
+msgstr "Modifiers"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Année"
+msgstr "Year"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Tier"
+msgstr "Tier"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Scope GES"
+msgstr "GHG scope"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Source"
+msgstr "Source"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+msgid "Référence"
+msgstr "Reference"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+#, javascript-format
+msgid "Voir : %(title)s"
+msgstr "View: %(title)s"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+#, javascript-format
+msgid "Flux entrant (%(n)s)"
+msgid_plural "Flux entrants (%(n)s)"
+msgstr[0] "Incoming flow (%(n)s)"
+msgstr[1] "Incoming flows (%(n)s)"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+#, javascript-format
+msgid "Flux sortant (%(n)s)"
+msgid_plural "Flux sortants (%(n)s)"
+msgstr[0] "Outgoing flow (%(n)s)"
+msgstr[1] "Outgoing flows (%(n)s)"

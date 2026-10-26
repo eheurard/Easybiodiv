@@ -53,7 +53,7 @@ window.FlowMap = (function () {
   var api = {
     state: {
       expanded: new Set(), hidden: new Set(), hiddenKinds: new Set(), positions: new Map(),
-      selectedEdge: null,
+      selectedEdge: null, selectedBlock: null,
     },
     rules: {},
     kinds: [],
@@ -97,6 +97,7 @@ window.FlowMap = (function () {
     api.state.hidden.clear();
     api.state.positions.clear();
     api.state.selectedEdge = null;
+    api.state.selectedBlock = null;
     api.state.trace = null;
   }
 

@@ -10,7 +10,8 @@
 //
 //   FlowMapPanel.openNewFlow(fromKey, toKey) -> bool   fiche de création (faux :
 //                                                      aucune nature permise)
-//   FlowMapPanel.openEdge(edge)       panneau d'une flèche (edge de FlowMapDraw.render)
+//   FlowMapPanel.openEdge(edge, flowId) panneau d'une flèche (edge de FlowMapDraw.render),
+//                                     sur le flux `flowId` (facultatif : le premier)
 //   FlowMapPanel.close()              ferme sans enregistrer
 //   FlowMapPanel.confirm(message, {confirmLabel, danger}) -> Promise<bool>
 //                                     fenêtre modale de confirmation (focus piégé,
@@ -323,9 +324,10 @@ window.FlowMapPanel = (function () {
     return true;
   }
 
-  function openEdge(edge) {
+  function openEdge(edge, flowId) {
     cancelTrace();
     if (!FlowMap.model()) return;
+    var flow = edge.flows.find(function (f) { return f.id === flowId; }) || edge.flows[0];
     sheet = { mode: 'edit', edge: edge, flow: null, options: [] };
     FlowMap.state.selectedEdge = edge.key;
     FlowMap.redraw();
@@ -333,8 +335,8 @@ window.FlowMapPanel = (function () {
     els.remove.hidden = false;
     var collapsed = edge.from.indexOf('group:') === 0 || edge.to.indexOf('group:') === 0;
     els.add.hidden = collapsed;
-    renderFlowList(edge);
-    selectFlow(edge.flows[0]);
+    renderFlowList(edge, flow);
+    selectFlow(flow);
     var checked = els.flowList.querySelector('input:checked');
     showPanel(edge.flows.length > 1 && checked ? checked : els.quantity);
   }
@@ -357,18 +359,18 @@ window.FlowMapPanel = (function () {
     return '';
   }
 
-  function renderFlowList(edge) {
+  function renderFlowList(edge, selected) {
     els.flowList.textContent = '';
     els.flows.hidden = edge.flows.length < 2;
     if (edge.flows.length < 2) return;
-    edge.flows.forEach(function (flow, i) {
+    edge.flows.forEach(function (flow) {
       var label = document.createElement('label');
       label.className = 'fm-panel__flow';
       var input = document.createElement('input');
       input.type = 'radio';
       input.name = 'fm-flow';
       input.value = String(flow.id);
-      input.checked = i === 0;
+      input.checked = flow === selected;
       input.addEventListener('change', function () {
         if (input.checked) selectFlow(flow);
       });

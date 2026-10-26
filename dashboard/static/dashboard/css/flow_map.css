@@ -357,6 +357,20 @@
   stroke-opacity: 1;
 }
 
+.fm-edge {
+  transition: opacity 0.15s ease;
+}
+
+/* Fiche d'un bloc ou flux ouverts : les autres courbes passent au second plan. */
+.fm-edge.is-dimmed {
+  opacity: 0.12;
+}
+
+.fm-edge.is-dimmed:hover,
+.fm-edge.is-dimmed:focus-visible {
+  opacity: 0.5;
+}
+
 .fm-edge.is-selected .fm-edge__hit {
   stroke: var(--fm-kind);
   stroke-opacity: 0.18;
@@ -365,6 +379,7 @@
 /* ── Blocs ────────────────────────────────────────────────────────────────── */
 .fm-block {
   cursor: pointer;
+  transition: opacity 0.15s ease;
 }
 
 .flow-map__svg.is-dragging .fm-block {
@@ -390,6 +405,21 @@
 .fm-block.is-focus .fm-block__card {
   stroke: var(--color-primary);
   stroke-width: 2;
+}
+
+.fm-block.is-selected .fm-block__card {
+  stroke: var(--color-primary);
+  stroke-width: 3;
+}
+
+/* Bloc hors des chaînes de flux du bloc ou du flux sélectionné. */
+.fm-block.is-dimmed {
+  opacity: 0.3;
+}
+
+.fm-block.is-dimmed:hover,
+.fm-block.is-dimmed:focus-visible {
+  opacity: 0.75;
 }
 
 .fm-block__type {
@@ -1166,6 +1196,196 @@
     inset: 0;
     border-left: none;
   }
+}
+
+/* ── Panneau d'information : fiche d'un bloc, flux en lecture seule ─────────── */
+.fm-info__heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.fm-info__type {
+  margin: 0 0 2px;
+  color: var(--color-on-surface-variant);
+}
+
+.fm-info__back {
+  align-self: flex-start;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fm-info__back[hidden],
+.fm-info__block[hidden],
+.fm-info__edge[hidden],
+.fm-info__section[hidden],
+.fm-info__note[hidden] {
+  display: none;
+}
+
+.fm-info__back:hover,
+.fm-info__back:focus-visible {
+  text-decoration: underline;
+}
+
+.fm-info__block,
+.fm-info__edge,
+.fm-info__details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fm-info__status {
+  margin: 0;
+  color: var(--color-on-surface-variant);
+}
+
+.fm-info__status:empty {
+  display: none;
+}
+
+.fm-info__heading-sm {
+  margin: 0 0 8px;
+  font-size: var(--text-body-sm-size);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+}
+
+.fm-info__facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.fm-info__facts dt {
+  color: var(--color-on-surface-variant);
+}
+
+.fm-info__facts dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.fm-info__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.fm-info__table th,
+.fm-info__table td {
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid var(--color-outline-variant);
+  text-align: left;
+  vertical-align: top;
+}
+
+.fm-info__table th {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+}
+
+.fm-info__table td:nth-child(2) {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fm-info__map {
+  height: 200px;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.fm-info__flows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.fm-info__flows > li + li {
+  border-top: 1px solid var(--color-outline-variant);
+}
+
+.fm-info__flow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fm-info__flow:hover,
+.fm-info__flow:focus-visible {
+  background: var(--color-surface-container-high);
+  outline: none;
+}
+
+.fm-info__flow--supply      { --fm-kind: var(--fm-supply); }
+.fm-info__flow--consumption { --fm-kind: var(--fm-consumption); }
+.fm-info__flow--emission    { --fm-kind: var(--fm-emission); }
+.fm-info__flow--waste       { --fm-kind: var(--fm-waste); }
+.fm-info__flow--production  { --fm-kind: var(--fm-production); }
+
+.fm-info__swatch {
+  flex: none;
+  width: 4px;
+  align-self: stretch;
+  border-radius: 2px;
+  background: var(--fm-kind);
+}
+
+.fm-info__flow-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fm-info__flow-main {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.fm-info__flow-sub,
+.fm-info__note {
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+}
+
+.fm-info__empty {
+  margin: 0;
+  padding: 8px 10px;
+  color: var(--color-on-surface-variant);
+}
+
+.fm-info__details > .fm-info__empty {
+  padding: 0;
+}
+
+.fm-info__note {
+  margin: 0;
 }
 
 /* ── Fenêtre de confirmation ──────────────────────────────────────────────── */

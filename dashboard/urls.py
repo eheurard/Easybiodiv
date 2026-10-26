@@ -62,6 +62,7 @@ urlpatterns = [
     path('flux/', views_flow_map.flow_map, name='flow_map'),
     path('api/flow-map/<int:company_pk>/', views_flow_map.flow_map_data,
          name='flow_map_data'),
+    path('api/flow-map/block/', views_flow_map.flow_map_block, name='flow_map_block'),
     path('api/flow-map/flows/', views_flow_map.flow_map_flow_create,
          name='flow_map_flow_create'),
     path('api/flow-map/flows/<int:pk>/', views_flow_map.flow_map_flow_update,

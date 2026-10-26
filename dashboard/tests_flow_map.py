@@ -16,7 +16,7 @@ from .models import (
     REVENUE_PRODUCTION_ONLY_MESSAGE, SubnationalRegion,
 )
 from .services.flow_map import (
-    assign_columns, build_flow_map, delete_flow_years, end_ownership, endpoint_fields,
+    assign_columns, block_details, build_flow_map, delete_flow_years, end_ownership, endpoint_fields,
     endpoint_key, flow_key, flow_years, latest_flows, owned_assets_in_range, parse_key, unlink,
     unlink_preview,
 )
@@ -401,6 +401,73 @@ class BuildFlowMapTests(TestCase):
         subscriber = User.objects.create_user('s', password='pw', role=User.SUBSCRIBER)
         self.assertTrue(build_flow_map(self.acme, 2024, 2024, creator)['can_edit'])
         self.assertFalse(build_flow_map(self.acme, 2024, 2024, subscriber)['can_edit'])
+
+
+class BlockDetailsTests(TestCase):
+    def setUp(self):
+        self.brazil = Country.objects.create(
+            name='Brésil', water_ownership='Public', land_ownership='Private')
+        self.mato = SubnationalRegion.objects.create(name='Mato Grosso', country=self.brazil)
+        self.acme = Company.objects.create(name='Acme', isin='FR0000000001', ticker='ACM')
+        self.cargill = Company.objects.create(name='Cargill')
+        self.farm = Asset.objects.create(
+            name='Ferme', latitude=-12.5, longitude=-55.7, country=self.brazil,
+            subnational_region=self.mato)
+        self.silo = Asset.objects.create(
+            name='Silo', latitude=1.0, longitude=2.0, country=self.brazil)
+        Ownership.objects.create(
+            asset=self.farm, company=self.cargill, share='0.4', start_year=2021, end_year=None)
+        Ownership.objects.create(
+            asset=self.farm, company=self.acme, share='0.6', start_year=2018, end_year=2022)
+        Ownership.objects.create(
+            asset=self.silo, company=self.acme, share='1', start_year=None, end_year=None)
+
+    def test_asset_has_place_coordinates_and_every_ownership(self):
+        details = block_details(f'asset:{self.farm.pk}')
+        self.assertEqual(details['type'], 'asset')
+        self.assertEqual(details['name'], 'Ferme')
+        self.assertEqual(details['country'], 'Brésil')
+        self.assertEqual(details['region'], 'Mato Grosso')
+        self.assertEqual((details['latitude'], details['longitude']), (-12.5, -55.7))
+        self.assertEqual(details['ownerships'], [
+            {'company_id': self.acme.pk, 'company': 'Acme', 'share': 0.6,
+             'start_year': 2018, 'end_year': 2022},
+            {'company_id': self.cargill.pk, 'company': 'Cargill', 'share': 0.4,
+             'start_year': 2021, 'end_year': None},
+        ])
+
+    def test_asset_without_region(self):
+        details = block_details(f'asset:{self.silo.pk}')
+        self.assertIsNone(details['region'])
+        self.assertEqual(details['ownerships'][0]['start_year'], None)
+
+    def test_company_has_identifiers_and_held_assets(self):
+        details = block_details(f'company:{self.acme.pk}')
+        self.assertEqual((details['isin'], details['ticker']), ('FR0000000001', 'ACM'))
+        self.assertEqual(details['assets'], [
+            {'asset_id': self.farm.pk, 'asset': 'Ferme', 'share': 0.6,
+             'start_year': 2018, 'end_year': 2022},
+            {'asset_id': self.silo.pk, 'asset': 'Silo', 'share': 1.0,
+             'start_year': None, 'end_year': None},
+        ])
+        cargill = block_details(f'company:{self.cargill.pk}')
+        self.assertEqual((cargill['isin'], cargill['ticker']), ('', ''))   # défaut « 0 »
+
+    def test_country_and_region(self):
+        self.assertEqual(block_details(f'country:{self.brazil.pk}'), {
+            'key': f'country:{self.brazil.pk}', 'type': 'country', 'name': 'Brésil'})
+        self.assertEqual(block_details(f'region:{self.mato.pk}'), {
+            'key': f'region:{self.mato.pk}', 'type': 'region', 'name': 'Mato Grosso',
+            'country': 'Brésil'})
+
+    def test_bands_groups_and_bad_keys_are_refused(self):
+        for key in ('environment', 'market', 'group:1', 'nope'):
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                block_details(key)
+
+    def test_missing_object_is_does_not_exist(self):
+        with self.assertRaises(Asset.DoesNotExist):
+            block_details('asset:999999')
 
 
 class RangeFlowMapTests(TestCase):
@@ -1511,6 +1578,20 @@ class FlowMapPageTests(TestCase):
                 r = self.client.get(url, params)
                 self.assertEqual(r.status_code, 400)
                 self.assertTrue({'start', 'end'} & set(r.json()['errors']))
+
+    def test_block_endpoint_is_public(self):
+        brazil = Country.objects.create(
+            name='Pérou', water_ownership='Public', land_ownership='Private')
+        self.client.logout()
+        r = self.client.get(reverse('dashboard:flow_map_block'), {'key': f'country:{brazil.pk}'})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['name'], 'Pérou')
+
+    def test_block_endpoint_errors(self):
+        url = reverse('dashboard:flow_map_block')
+        self.assertEqual(self.client.get(url).status_code, 400)
+        self.assertEqual(self.client.get(url, {'key': 'market'}).status_code, 400)
+        self.assertEqual(self.client.get(url, {'key': 'asset:999999'}).status_code, 404)
 
     def test_data_endpoint_unknown_company(self):
         r = self.client.get(reverse('dashboard:flow_map_data', args=[999999]))
