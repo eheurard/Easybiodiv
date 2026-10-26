@@ -1180,3 +1180,23 @@ msgid "Flux sortant (%(n)s)"
 msgid_plural "Flux sortants (%(n)s)"
 msgstr[0] "Outgoing flow (%(n)s)"
 msgstr[1] "Outgoing flows (%(n)s)"
+
+#: dashboard/static/dashboard/js/flow_map_ui.js
+#, javascript-format
+msgid "%(value)s md"
+msgstr "%(value)sbn"
+
+#: dashboard/static/dashboard/js/flow_map_ui.js
+#, javascript-format
+msgid "%(value)s M"
+msgstr "%(value)sM"
+
+#: dashboard/static/dashboard/js/flow_map_ui.js
+#, javascript-format
+msgid "%(value)s k"
+msgstr "%(value)sk"
+
+#: dashboard/static/dashboard/js/flow_map_info.js
+#, javascript-format
+msgid "Valeur exacte : %(value)s %(unit)s"
+msgstr "Exact value: %(value)s %(unit)s"

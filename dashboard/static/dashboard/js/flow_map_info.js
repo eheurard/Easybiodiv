@@ -83,7 +83,12 @@ window.FlowMapInfo = (function () {
   }
 
   function quantity(value) {
-    return Number(value).toLocaleString(APP_LOCALE, { maximumFractionDigits: 2 });
+    return FlowMapUI.compact(value);
+  }
+
+  function exactQuantity(flow) {
+    return interpolate(gettext('Valeur exacte : %(value)s %(unit)s'),
+      { value: FlowMapUI.exact(flow.quantity), unit: flow.what.unit }, true);
   }
 
   function percent(share) {
@@ -329,6 +334,7 @@ window.FlowMapInfo = (function () {
       var item = node('li');
       var button = node('button', 'fm-info__flow fm-info__flow--' + flow.kind.toLowerCase());
       button.type = 'button';
+      button.title = exactQuantity(flow);
       var swatch = node('i', 'fm-info__swatch');
       swatch.setAttribute('aria-hidden', 'true');
       button.appendChild(swatch);
@@ -416,7 +422,8 @@ window.FlowMapInfo = (function () {
     pairs.forEach(function (pair) {
       if (!pair[1]) return;
       els.facts.appendChild(node('dt', null, pair[0]));
-      els.facts.appendChild(node('dd', null, pair[1]));
+      var value = els.facts.appendChild(node('dd', null, pair[1]));
+      if (pair[0] === gettext('Quantité')) value.title = exactQuantity(flow);
     });
   }
 

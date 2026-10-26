@@ -92,7 +92,7 @@ window.FlowMapDraw = (function () {
   }
 
   function quantity(n) {
-    return Number(n).toLocaleString(APP_LOCALE, { maximumFractionDigits: 2 });
+    return FlowMapUI.compact(n);
   }
 
   function kindClass(kind) {

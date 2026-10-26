@@ -72,9 +72,7 @@ window.FlowMapPanel = (function () {
 
   function quantityText(value, grouping) {
     var number = Number(value);
-    if (grouping) {
-      return number.toLocaleString(APP_LOCALE, { maximumFractionDigits: 2 });
-    }
+    if (grouping) return FlowMapUI.compact(number);
     // Préremplissage d'édition : le texte doit redonner exactement le flottant
     // stocké (15 chiffres significatifs, 17 si 15 ne suffisent pas).
     var text;

@@ -7,6 +7,9 @@
 //                                  {% url … pk=0 %}, dans l'ordre (company_pk=0 pk=0)
 //   FlowMapUI.rangeQuery(start, end) -> « ?start=…&end=… »
 //   FlowMapUI.cssEscape(value)     valeur sûre dans un sélecteur [data-key="…"]
+//   FlowMapUI.compact(n)           « 195 k », « 4,55 M », « 1,2 md » : à partir de 1 000,
+//                                  3 chiffres significatifs ; en dessous, 2 décimales au plus
+//   FlowMapUI.exact(n)             nombre complet (2 décimales au plus), pour une infobulle
 //   FlowMapUI.post(url, payload) -> Promise<{ok, status, data}>
 //   FlowMapUI.getJson(url)       -> Promise<{ok, status, data}>
 //   FlowMapUI.combobox(opts)     -> {hide(), cancel(), set(changes)}
@@ -39,6 +42,29 @@ window.FlowMapUI = (function () {
 
   function cssEscape(value) {
     return window.CSS && CSS.escape ? CSS.escape(value) : value;
+  }
+
+  // Suffixes du plus grand au plus petit ; « %(value)s k » se traduit (« 195k » en anglais).
+  var COMPACT_UNITS = [
+    [1e9, function () { return gettext('%(value)s md'); }],
+    [1e6, function () { return gettext('%(value)s M'); }],
+    [1e3, function () { return gettext('%(value)s k'); }],
+  ];
+
+  function exact(value) {
+    return Number(value).toLocaleString(APP_LOCALE, { maximumFractionDigits: 2 });
+  }
+
+  // L'arrondi précède le choix du suffixe : 999 950 donne « 1 M », pas « 1 000 k ».
+  function compact(value) {
+    var n = Number(value);
+    var rounded = Number(Math.abs(n).toPrecision(3));
+    var unit = COMPACT_UNITS.find(function (u) { return rounded >= u[0]; });
+    if (!unit) return exact(n);
+    var digits = (Math.sign(n) * rounded / unit[0]).toLocaleString(APP_LOCALE,
+      { maximumSignificantDigits: 3 });
+    // Espace insécable : le suffixe ne passe jamais seul à la ligne.
+    return interpolate(unit[1](), { value: digits }, true).replace(' ', '\u00a0');
   }
 
   function getCookie(name) {
@@ -204,6 +230,6 @@ window.FlowMapUI = (function () {
 
   return {
     idUrl: idUrl, rangeQuery: rangeQuery, cssEscape: cssEscape, post: post, getJson: getJson,
-    combobox: combobox,
+    combobox: combobox, compact: compact, exact: exact,
   };
 })();
